@@ -33,6 +33,15 @@ namespace krrTools
             var converterWindow = new ConverterWindow();
             converterWindow.Show();
         }
-        
+        private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+            e.Handled = true;
+        }
+
+        private void GitHubLink_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo("https://github.com/krrcream/krrcream-Toolkit") { UseShellExecute = true });
+        }
     }
 }

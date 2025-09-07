@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:krrTools"
         mc:Ignorable="d"
-        Title="krrcream's Toolkit" Height="275" Width="300"
+        Title="krrcream's Toolkit" Height="290" Width="300"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen">
     
@@ -84,6 +84,14 @@
                     Click="GetFilesButton_Click"
                     Margin="0,0,0,10"
                     Style="{DynamicResource LightGrayButtonStyle}"/>
+            <!-- GitHub 链接 -->
+            <TextBlock HorizontalAlignment="Center" TextAlignment="Center" Margin="0,10,0,5">
+                <Run Text="© 2025 krrcream. All rights reserved."/>
+                <Hyperlink NavigateUri="https://github.com/krrcream/krrcream-Toolkit" RequestNavigate="Hyperlink_RequestNavigate">
+                    github
+                </Hyperlink>
+            </TextBlock>
+            
         </StackPanel>
     </Grid>
 </Window>
