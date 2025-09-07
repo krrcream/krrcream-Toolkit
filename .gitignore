@@ -1,0 +1,13 @@
+﻿# C# build files
+bin/
+obj/
+*.exe
+*.dll
+*.pdb
+*.user
+*.suo
+*.cache
+
+# VS IDE files
+*.sln.DotSettings.user
+*.vs/
