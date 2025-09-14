@@ -65,6 +65,11 @@ namespace krrTools.Tools.Converter
             {
                 throw new ArgumentException("不在筛选的键位模式里");
             }
+
+            if (CS == targetKeys && options.MaxKeys == targetKeys)
+            {
+                throw new ArgumentException("目标键位与当前键位相同且不降低密度");
+            }
             
             var ANA = new OsuAnalyzer();
             double BPM = double.Parse(ANA.GetBPM(beatmap).Split('(')[0]);
@@ -572,6 +577,7 @@ namespace krrTools.Tools.Converter
                 }
                 
                 beatmap.Save(fullPath);
+                beatmap = null;
             }
 
             void HitObjectSort()
@@ -669,6 +675,8 @@ namespace krrTools.Tools.Converter
                     }
                 }
             }
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
         }
 
         public HitObject CopyHitObjectbyPX(HitObject hitObject, int position)

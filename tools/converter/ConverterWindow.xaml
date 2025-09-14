@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Krrcream's AnyKeys Converter V2.0.0" Height="660" Width="600"
+        Title="Krrcream's AnyKeys Converter V2.1.0" Height="660" Width="600"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize">
     
@@ -122,7 +122,7 @@
                                FontSize="18"/>
                     <Slider x:Name="TargetKeysSlider" 
                             Grid.Column="1" 
-                            Minimum="4" 
+                            Minimum="1" 
                             Maximum="18" 
                             Value="{Binding TargetKeys}"
                             TickFrequency="1" 
@@ -344,6 +344,15 @@
                             Click="GenerateSeedButton_Click"
                             Style="{StaticResource LightGrayButtonStyle}"/>
                 </Grid>
+                
+                <StackPanel Margin="10,20,10,0" HorizontalAlignment="Center">
+                    <TextBlock>
+                        <Hyperlink Click="PresetHyperlink_Click" Foreground="#2196F3">
+                            预设 Preset
+                        </Hyperlink>
+                    </TextBlock>
+                </StackPanel>
+                
                 <StackPanel Margin="10,20,10,0" Visibility="Collapsed" x:Name="ProgressPanel">
                     <ProgressBar x:Name="ConversionProgressBar" 
                                  Height="20" 

@@ -1,12 +1,17 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
+using System.IO;
+using System.Text.Json;
 
 namespace krrTools.Tools.Converter
 {
@@ -14,11 +19,23 @@ namespace krrTools.Tools.Converter
     {
         private ConverterViewModel _viewModel;
         
+        private readonly string _configPath;
+        
         public ConverterWindow()
         {
             InitializeComponent();
             _viewModel = new ConverterViewModel();
             DataContext = _viewModel;
+            
+            // 获取项目根目录并构建配置文件路径
+            string projectDirectory = System.AppDomain.CurrentDomain.BaseDirectory;
+            _configPath = Path.Combine(projectDirectory, "converterConfig.fq");
+            
+            // 加载配置
+            LoadConfiguration();
+            
+            // 注册窗口关闭事件
+            this.Closing += ConverterWindow_Closing;
         }
 
         private async void Border_Drop(object sender, DragEventArgs e)
@@ -85,29 +102,137 @@ namespace krrTools.Tools.Converter
             var converter = new Converter();
             Converter.options = _viewModel.GetConversionOptions();
             
-            // 处理每个文件
-            foreach (string filePath in allOsuFiles)
+            // 分批处理文件，每批处理1000个文件
+            const int batchSize = 1000;
+            for (int i = 0; i < allOsuFiles.Count; i += batchSize)
             {
-                try
+                var batch = allOsuFiles.Skip(i).Take(batchSize).ToList();
+                
+                // 处理当前批次的文件
+                foreach (string filePath in batch)
                 {
-                    converter.NTONC(filePath);
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error processing file {filePath}: {ex.Message}");
+                    try
+                    {
+                        converter.NTONC(filePath);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error processing file {filePath}: {ex.Message}");
+                    }
+                    
+                    processedFiles++;
+                    
+                    // 更新进度条
+                    Dispatcher.Invoke(() =>
+                    {
+                        ConversionProgressBar.Value = processedFiles;
+                        ProgressTextBlock.Text = $"Processing {processedFiles} of {totalFiles} files...";
+                    });
                 }
                 
-                processedFiles++;
-                
-                // 更新进度条
-                Dispatcher.Invoke(() =>
-                {
-                    ConversionProgressBar.Value = processedFiles;
-                    ProgressTextBlock.Text = $"Processing {processedFiles} of {totalFiles} files...";
-                });
+                // 强制进行垃圾回收以释放内存
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
             }
         }
 
+                // 窗口关闭时保存配置
+        private void ConverterWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            SaveConfiguration();
+        }
+
+        // 保存配置到文件
+        private void SaveConfiguration()
+        {
+            try
+            {
+                var config = new
+                {
+                    TargetKeys = _viewModel.TargetKeys,
+                    MaxKeys = _viewModel.MaxKeys,
+                    MinKeys = _viewModel.MinKeys,
+                    TransformSpeed = _viewModel.TransformSpeed,
+                    Seed = _viewModel.Seed,
+                    Is4KSelected = _viewModel.Is4KSelected,
+                    Is5KSelected = _viewModel.Is5KSelected,
+                    Is6KSelected = _viewModel.Is6KSelected,
+                    Is7KSelected = _viewModel.Is7KSelected,
+                    Is8KSelected = _viewModel.Is8KSelected,
+                    Is9KSelected = _viewModel.Is9KSelected,
+                    Is10KSelected = _viewModel.Is10KSelected,
+                    Is10KPlusSelected = _viewModel.Is10KPlusSelected
+                };
+
+                string json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(_configPath, json);
+            }
+            catch (Exception ex)
+            {
+                // 可以选择记录日志或显示错误消息
+                System.Diagnostics.Debug.WriteLine($"保存配置失败: {ex.Message}");
+            }
+        }
+
+        // 从文件加载配置
+        private void LoadConfiguration()
+        {
+            try
+            {
+                if (File.Exists(_configPath))
+                {
+                    string json = File.ReadAllText(_configPath);
+                    using JsonDocument doc = JsonDocument.Parse(json);
+                    JsonElement root = doc.RootElement;
+
+                    if (root.TryGetProperty("TargetKeys", out JsonElement targetKeys))
+                        _viewModel.TargetKeys = targetKeys.GetDouble();
+                    
+                    if (root.TryGetProperty("MaxKeys", out JsonElement maxKeys))
+                        _viewModel.MaxKeys = maxKeys.GetDouble();
+                    
+                    if (root.TryGetProperty("MinKeys", out JsonElement minKeys))
+                        _viewModel.MinKeys = minKeys.GetDouble();
+                    
+                    if (root.TryGetProperty("TransformSpeed", out JsonElement transformSpeed))
+                        _viewModel.TransformSpeed = transformSpeed.GetDouble();
+                    
+                    if (root.TryGetProperty("Seed", out JsonElement seed) && seed.ValueKind != JsonValueKind.Null)
+                        _viewModel.Seed = seed.GetInt32();
+                    
+                    // 加载复选框状态
+                    if (root.TryGetProperty("Is4KSelected", out JsonElement is4KSelected))
+                        _viewModel.Is4KSelected = is4KSelected.GetBoolean();
+                    
+                    if (root.TryGetProperty("Is5KSelected", out JsonElement is5KSelected))
+                        _viewModel.Is5KSelected = is5KSelected.GetBoolean();
+                    
+                    if (root.TryGetProperty("Is6KSelected", out JsonElement is6KSelected))
+                        _viewModel.Is6KSelected = is6KSelected.GetBoolean();
+                    
+                    if (root.TryGetProperty("Is7KSelected", out JsonElement is7KSelected))
+                        _viewModel.Is7KSelected = is7KSelected.GetBoolean();
+                    
+                    if (root.TryGetProperty("Is8KSelected", out JsonElement is8KSelected))
+                        _viewModel.Is8KSelected = is8KSelected.GetBoolean();
+                    
+                    if (root.TryGetProperty("Is9KSelected", out JsonElement is9KSelected))
+                        _viewModel.Is9KSelected = is9KSelected.GetBoolean();
+                    
+                    if (root.TryGetProperty("Is10KSelected", out JsonElement is10KSelected))
+                        _viewModel.Is10KSelected = is10KSelected.GetBoolean();
+                    
+                    if (root.TryGetProperty("Is10KPlusSelected", out JsonElement is10KPlusSelected))
+                        _viewModel.Is10KPlusSelected = is10KPlusSelected.GetBoolean();
+                }
+            }
+            catch (Exception ex)
+            {
+                // 如果加载失败，使用默认值
+                System.Diagnostics.Debug.WriteLine($"加载配置失败: {ex.Message}");
+            }
+        }
+        
         private void Border_DragEnter(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
@@ -149,5 +274,22 @@ namespace krrTools.Tools.Converter
             Random random = new Random();
             SeedTextBox.Text = random.Next().ToString();
         }
+        
+        private void PresetHyperlink_Click(object sender, RoutedEventArgs e)
+        {
+            // 传递当前的 ViewModel 和当前窗口实例
+            PresetWindow presetWindow = new PresetWindow(this.DataContext as ConverterViewModel, this);
+            presetWindow.Owner = this;
+            presetWindow.ShowDialog();
+        }
+        public void ApplyPreset(PresetData preset)
+        {
+            _viewModel.TargetKeys = preset.TargetKeys;
+            _viewModel.MaxKeys = preset.MaxKeys;
+            _viewModel.MinKeys = preset.MinKeys;
+            _viewModel.TransformSpeed = preset.TransformSpeed;
+            _viewModel.Seed = preset.Seed;
+        }
+        
     }
 }
