@@ -38,7 +38,18 @@ namespace krrTools
             Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
             e.Handled = true;
         }
-
+        
+        private void LNTransformerButton_Click(object sender, RoutedEventArgs e)
+        {
+            var transformerWindow = new LNTransformer();
+            transformerWindow.Show();
+        }
+        
+        private void DPToolButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dpToolWindow = new tools.DPtool.DPToolWindow();
+            dpToolWindow.Show();
+        }
         private void GitHubLink_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             Process.Start(new ProcessStartInfo("https://github.com/krrcream/krrcream-Toolkit") { UseShellExecute = true });

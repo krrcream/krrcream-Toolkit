@@ -85,6 +85,7 @@ namespace krrTools.Tools.OsuParser
             double BPM = 0;
             List<double> BPMList = new List<double>();
             List<double> Times = new List<double>();
+            
             foreach (var BL in beatmap.TimingPoints)
             {
                 if (BL.BeatLength > 0)
@@ -93,9 +94,17 @@ namespace krrTools.Tools.OsuParser
                     Times.Add(BL.Offset);
                 }
             }
+            //根据Times去重，如果Times有相同的数字，则删除掉，同时删除BPMList中对应的元素
+            var distinctPairs = Times.Zip(BPMList, (t, b) => new { Time = t, BPM = b })
+                .DistinctBy(x => x.Time)
+                .ToList();
+            Times = distinctPairs.Select(x => x.Time).ToList();
+            BPMList = distinctPairs.Select(x => x.BPM).ToList();
+            
+            
             //如果BPMList长度为0，则返回"0"
             if (BPMList.Count == 0)
-                return "0";
+                return "120";
             //如果BPMList长度为1，则返回BPMList[0]
             if (BPMList.Count == 1)
                 return BPMList[0].ToString();

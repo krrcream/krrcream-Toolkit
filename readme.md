@@ -17,10 +17,11 @@
 ### 🎵 krr AnyKeys Converter
 Converts osu! beatmap files with any keys layout.
 
-**Update Notes:**
-- Optimized the original NTONC algorithm to better preserve the original beatmap's pattern during the conversion process
-- Implemented density reduction feature *(testing)*
-- Currently only the algorithm for increasing keys is implemented
+### 📝 YLS LN Transformer
+Customize the proportion and length of Long Notes.
+
+### 🗝 DP Tool
+Keys doubling tool with adjustable density.
 
 ### 🗑️ .osu File Manager
 Helps you organize and delete unwanted .osu files from your songs.
@@ -32,11 +33,9 @@ Automatically rates beatmaps based on KRR LV.
 
 ## 📸 Screenshots
 
-### krr AnyKeys Converter
-![img_1.png](img/I1.png)
-![img_4.png](img/C1.png)
-![img_5.png](img/C2.png)
-
+### krr AnyKeys Converter / YLS LN Transformer / DP Tool
+![img_1.png](img/1.png)
+![img_S.png](img/S.png)
 ### .osu File Manager
 ![img_2.png](img/I2.png)
 

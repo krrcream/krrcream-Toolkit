@@ -100,7 +100,7 @@ namespace krrTools.Tools.Converter
             
             // 设置转换选项
             var converter = new Converter();
-            Converter.options = _viewModel.GetConversionOptions();
+            converter.options = _viewModel.GetConversionOptions();
             
             // 分批处理文件，每批处理1000个文件
             const int batchSize = 1000;

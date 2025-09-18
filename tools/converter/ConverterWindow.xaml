@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Krrcream's AnyKeys Converter V2.1.0" Height="660" Width="600"
+        Title="Krrcream's AnyKeys Converter V2.2.0" Height="660" Width="600"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize">
     
