@@ -7,7 +7,7 @@
 
 ## 📥 Download
 
-- [GitHub Release Page](https://github.com/krrcream/krrcream-Toolkit/releases/tag/v1.0.0) 🚀 *(Recommended)*
+- [GitHub Release Page](https://github.com/krrcream/krrcream-Toolkit/releases) 🚀 *(Recommended)*
 - [Baidu Netdisk](https://pan.baidu.com/s/1VBhS-RCG402KkjoX9obQNw?from=init&pwd=kr8k) 🔗 *(Password: kr8k)*
 
 ---
