@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using System.Globalization; // 添加这个引用
 
 namespace krrTools
 {
@@ -151,12 +152,12 @@ namespace krrTools
 
                 switch (key)
                 {
-                    case "HPDrainRate": general.HPDrainRate = double.Parse(value); continue;
-                    case "CircleSize": general.CircleSize = double.Parse(value); continue;
-                    case "OverallDifficulty": general.OverallDifficulty = double.Parse(value); continue;
-                    case "ApproachRate": general.ApproachRate = double.Parse(value); continue;
-                    case "SliderMultiplier": general.SliderMultiplier = double.Parse(value); continue;
-                    case "SliderTickRate": general.SliderTickRate = double.Parse(value); continue;
+                    case "HPDrainRate": general.HPDrainRate = double.Parse(value, CultureInfo.InvariantCulture); continue;
+                    case "CircleSize": general.CircleSize = double.Parse(value, CultureInfo.InvariantCulture); continue;
+                    case "OverallDifficulty": general.OverallDifficulty = double.Parse(value, CultureInfo.InvariantCulture); continue;
+                    case "ApproachRate": general.ApproachRate = double.Parse(value, CultureInfo.InvariantCulture); continue;
+                    case "SliderMultiplier": general.SliderMultiplier = double.Parse(value, CultureInfo.InvariantCulture); continue;
+                    case "SliderTickRate": general.SliderTickRate = double.Parse(value, CultureInfo.InvariantCulture); continue;
                 }
 
                 // [HitObjects] & [TimingPoints] & [Colours] & [Events]
@@ -200,7 +201,15 @@ namespace krrTools
                 if (TimingPoints)
                 {
                     var pointElements = line.Split(',');
-                    points.Add(new TimingPoint((int)double.Parse(pointElements[0]), double.Parse(pointElements[1]), (int)double.Parse(pointElements[2]), (int)double.Parse(pointElements[3]), (int)double.Parse(pointElements[4]), (int)double.Parse(pointElements[5]), (int)double.Parse(pointElements[6]), (int)double.Parse(pointElements[7])));
+                    points.Add(new TimingPoint(
+                        int.Parse(pointElements[0], CultureInfo.InvariantCulture), 
+                        double.Parse(pointElements[1], CultureInfo.InvariantCulture), 
+                        int.Parse(pointElements[2], CultureInfo.InvariantCulture), 
+                        int.Parse(pointElements[3], CultureInfo.InvariantCulture), 
+                        int.Parse(pointElements[4], CultureInfo.InvariantCulture), 
+                        int.Parse(pointElements[5], CultureInfo.InvariantCulture), 
+                        int.Parse(pointElements[6], CultureInfo.InvariantCulture), 
+                        int.Parse(pointElements[7], CultureInfo.InvariantCulture)));
                     continue;
                 }
 
@@ -209,7 +218,11 @@ namespace krrTools
                     var colourElements = line.Split(':');
                     var name = colourElements[0].Trim();
                     var colour = colourElements[1].Trim().Split(',');
-                    colours.Add(new Colour(name, byte.Parse(colour[0]), byte.Parse(colour[1]), byte.Parse(colour[2])));
+                    colours.Add(new Colour(
+                        name, 
+                        byte.Parse(colour[0], CultureInfo.InvariantCulture), 
+                        byte.Parse(colour[1], CultureInfo.InvariantCulture), 
+                        byte.Parse(colour[2], CultureInfo.InvariantCulture)));
                     continue;
                 }
 
@@ -219,11 +232,11 @@ namespace krrTools
                 }
                 
                 var elements = line.Split(',');
-                var x = (int)double.Parse(elements[0]);
-                var y = (int)double.Parse(elements[1]);
-                var time = (int)double.Parse(elements[2]);
-                var type = (int)double.Parse(elements[3]);
-                var hitSound = (int)double.Parse(elements[4]);
+                var x = (int)double.Parse(elements[0], CultureInfo.InvariantCulture);
+                var y = (int)double.Parse(elements[1], CultureInfo.InvariantCulture);
+                var time = (int)double.Parse(elements[2], CultureInfo.InvariantCulture);
+                var type = (int)double.Parse(elements[3], CultureInfo.InvariantCulture);
+                var hitSound = (int)double.Parse(elements[4], CultureInfo.InvariantCulture);
                 //var objectParams = elements[4];
                 var hitSample = elements[5];
                 obj.Add(new ManiaHitObject(x, y, (int)general.CircleSize, time, type, hitSound, hitSample));
@@ -524,12 +537,12 @@ namespace krrTools
 
             // [Difficulty]
             writer.WriteLine("[Difficulty]");
-            writer.WriteLine("HPDrainRate:" + General.HPDrainRate);
-            writer.WriteLine("CircleSize:" + General.CircleSize);
-            writer.WriteLine("OverallDifficulty:" + General.OverallDifficulty);
-            writer.WriteLine("ApproachRate:" + General.ApproachRate);
-            writer.WriteLine("SliderMultiplier:" + General.SliderMultiplier);
-            writer.WriteLine("SliderTickRate:" + General.SliderTickRate);
+            writer.WriteLine("HPDrainRate:" + General.HPDrainRate.ToString(CultureInfo.InvariantCulture));
+            writer.WriteLine("CircleSize:" + General.CircleSize.ToString(CultureInfo.InvariantCulture));
+            writer.WriteLine("OverallDifficulty:" + General.OverallDifficulty.ToString(CultureInfo.InvariantCulture));
+            writer.WriteLine("ApproachRate:" + General.ApproachRate.ToString(CultureInfo.InvariantCulture));
+            writer.WriteLine("SliderMultiplier:" + General.SliderMultiplier.ToString(CultureInfo.InvariantCulture));
+            writer.WriteLine("SliderTickRate:" + General.SliderTickRate.ToString(CultureInfo.InvariantCulture));
             writer.WriteLine();
 
             // [Events]
@@ -549,7 +562,15 @@ namespace krrTools
             writer.WriteLine("[TimingPoints]");
             foreach (var point in TimingPoints)
             {
-                writer.WriteLine(string.Join(",", point.Time, point.BeatLength, point.Meter, point.SampleSet, point.SampleIndex, point.Volume, point.Uninherited, point.Effects));
+                writer.WriteLine(string.Join(",", 
+                    point.Time.ToString(CultureInfo.InvariantCulture),
+                    point.BeatLength.ToString(CultureInfo.InvariantCulture),
+                    point.Meter.ToString(CultureInfo.InvariantCulture),
+                    point.SampleSet.ToString(CultureInfo.InvariantCulture),
+                    point.SampleIndex.ToString(CultureInfo.InvariantCulture),
+                    point.Volume.ToString(CultureInfo.InvariantCulture),
+                    point.Uninherited.ToString(CultureInfo.InvariantCulture),
+                    point.Effects.ToString(CultureInfo.InvariantCulture)));
             }
             writer.WriteLine();
 
@@ -624,7 +645,7 @@ namespace krrTools
                     {
                         return StartTime;
                     }
-                    int time = int.Parse(HitSample.Split(':')[0]);
+                    int time = int.Parse(HitSample.Split(':')[0], CultureInfo.InvariantCulture);
                     return time;
                 }
                 catch
