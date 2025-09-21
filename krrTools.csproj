@@ -2,11 +2,14 @@
 
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFramework>net6.0-windows</TargetFramework>
+        <TargetFramework>net8.0-windows</TargetFramework>
         <Nullable>enable</Nullable>
         <UseWPF>true</UseWPF>
         <ApplicationIcon>fq.ico</ApplicationIcon>
         <LangVersion>latest</LangVersion>
+        <PublishSingleFile>true</PublishSingleFile>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <SelfContained>true</SelfContained>
     </PropertyGroup>
 
     <ItemGroup>
@@ -14,27 +17,22 @@
     </ItemGroup>
     
     <ItemGroup>
-        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.0" />
+        <PackageReference Include="BlurredBackground.WPF" Version="1.1.0" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+        <PackageReference Include="FluentWPF" Version="0.10.2" />
+        <PackageReference Include="OsuFileIO" Version="0.1.1" />
+        <PackageReference Include="OsuFileIO.Analyzer" Version="0.1.1" />
         <PackageReference Include="OsuMemoryDataProvider" Version="0.11.1" />
-        <PackageReference Include="zzzzv.OsuParsers" Version="1.7.2" />
+        <PackageReference Include="OsuParsers" Version="1.7.2" />
+        <PackageReference Include="WPF-UI" Version="4.0.3" />
+        <PackageReference Include="WPF-UI.DependencyInjection" Version="4.0.3" />
+        <PackageReference Include="WPFChromeTabsMVVM" Version="1.4.0" />
     </ItemGroup>
 
     <ItemGroup>
-      <Page Update="tools\KRR LV\KRRLVWindow.xaml">
-        <Generator>MSBuild:Compile</Generator>
-        <XamlRuntime>Wpf</XamlRuntime>
-        <SubType>Designer</SubType>
-      </Page>
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Update="fq.ico">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <None Update="tools\Preview\mania-last-object-not-latest.osu">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="krrcream-Toolkit\" />
-    </ItemGroup>
-
+    
 </Project>
