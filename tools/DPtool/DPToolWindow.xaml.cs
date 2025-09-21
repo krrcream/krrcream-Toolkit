@@ -5,6 +5,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using krrTools.tools.Listener;
+using krrTools.Tools.OsuParser;
 
 namespace krrTools.tools.DPtool
 {
@@ -20,6 +22,60 @@ namespace krrTools.tools.DPtool
             
             // 初始化绑定
             SetupBindings();
+        }
+        
+        // 添加处理单个文件的方法
+        public void ProcessSingleFile(string filePath)
+        {
+            try
+            {
+                // 检查文件是否存在
+                if (!File.Exists(filePath))
+                {
+                    MessageBox.Show($"File not found: {filePath}", "File Not Found", 
+                                  MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                
+                // 检查文件扩展名是否为.osu
+                if (Path.GetExtension(filePath).ToLower() != ".osu")
+                {
+                    MessageBox.Show("Selected file is not a valid .osu file", "Invalid File", 
+                                  MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                
+                // 显示进度条
+                _viewModel.IsProcessing = true;
+                _viewModel.ProgressValue = 0;
+                _viewModel.ProgressMaximum = 1;
+                _viewModel.ProgressText = "Processing file...";
+                
+                var dp = new DP();
+                DP.Options = _viewModel.Options;
+                string newFilepath = dp.ProcessFile(filePath);
+                OsuAnalyzer.AddNewBeatmapToSongFolder(newFilepath);
+                
+                // 处理完成后隐藏进度条
+                _viewModel.IsProcessing = false;
+                
+                MessageBox.Show("File processed successfully!", "Success", 
+                              MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                // 处理完成后隐藏进度条
+                _viewModel.IsProcessing = false;
+                
+                MessageBox.Show($"Error processing file: {ex.Message}", "Processing Error", 
+                              MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        
+        private void OpenOsuListenerButton_Click(object sender, RoutedEventArgs e)
+        {
+            var listenerWindow = new ListenerView(this, 3); 
+            listenerWindow.Show();
         }
         
         private void SetupBindings()
@@ -250,7 +306,5 @@ namespace krrTools.tools.DPtool
             else
                 e.Effects = DragDropEffects.None;
         }
-
-        
     }
 }

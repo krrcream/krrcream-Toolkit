@@ -4,9 +4,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
 
-namespace krrTools
+namespace krrTools.tools.LNTransformer
 {
     public static class Helper
     {

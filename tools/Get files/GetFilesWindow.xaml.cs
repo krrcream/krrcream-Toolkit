@@ -1,25 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.ComponentModel;
-using System.Globalization;
 using System.Windows.Data;
 
-namespace krrTools.Tools.GetFiles
+namespace krrTools.tools.Get_files
 {
-    public partial class GetFilesWindow : Window
+    public partial class GetFilesWindow
     {
-        private GetFilesViewModel _viewModel;
-
         public GetFilesWindow()
         {
             InitializeComponent();
-            _viewModel = new GetFilesViewModel();
-            DataContext = _viewModel;
+            var viewModel = new GetFilesViewModel();
+            DataContext = viewModel;
         }
 
         private async void DeleteMenuItem_Click(object sender, RoutedEventArgs e)
@@ -44,7 +40,8 @@ namespace krrTools.Tools.GetFiles
             }
         }
 
-        private async Task DeleteSelectedFilesAsync(List<OsuFileInfo> filesToDelete, GetFilesViewModel viewModel)
+        //异步后台删除文件
+        private Task DeleteSelectedFilesAsync(List<OsuFileInfo> filesToDelete, GetFilesViewModel viewModel)
         {
             foreach (var file in filesToDelete)
             {
@@ -68,19 +65,20 @@ namespace krrTools.Tools.GetFiles
             viewModel.FilteredOsuFiles.Refresh();
 
             MessageBox.Show($"{filesToDelete.Count} file(s) deleted successfully.", "Delete", MessageBoxButton.OK, MessageBoxImage.Information);
+            return Task.CompletedTask;
         }
     }
 
     public class InverseBooleanConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is bool booleanValue)
                 return !booleanValue;
             return true;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is bool booleanValue)
                 return !booleanValue;

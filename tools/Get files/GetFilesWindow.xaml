@@ -1,13 +1,14 @@
-﻿<Window x:Class="krrTools.Tools.GetFiles.GetFilesWindow"
+﻿<Window x:Class="krrTools.tools.Get_files.GetFilesWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:getFiles="clr-namespace:krrTools.Tools.GetFiles"
+        xmlns:getFiles="clr-namespace:krrTools.tools.Get_files"
         mc:Ignorable="d"
         Title="osu! file manager V0.1" Height="540" Width="960"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize"
+        Style="{DynamicResource ToolWindowStyle}">
     
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
@@ -98,8 +99,8 @@
             <Setter Property="Foreground" Value="#2196F3"/>
         </Style>
         
-        <!-- 窗口全局样式 -->
-        <Style TargetType="Window">
+        <!-- 窗口全局样式 (keyed to avoid implicit application when resources are merged) -->
+        <Style x:Key="ToolWindowStyle" TargetType="Window">
             <Setter Property="Background" Value="#EEEEEE"/>
             <Setter Property="Foreground" Value="#212121"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>

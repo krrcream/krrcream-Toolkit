@@ -176,7 +176,7 @@ namespace krrTools.Tools.Converter
         }
         
 
-        public ConversionOptions GetConversionOptions()
+        public ConversionOptions? GetConversionOptions()
         {
             // 定义滑块值到实际速度值的映射
             double[] speedMap = { 0.0625, 0.125, 0.25, 0.5, 1, 2, 4, 8, 9999 };

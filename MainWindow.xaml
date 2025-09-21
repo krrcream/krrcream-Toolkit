@@ -3,12 +3,15 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:krrTools"
+        xmlns:preview="clr-namespace:krrTools.tools.Preview"
+
         mc:Ignorable="d"
-        Title="krrcream's Toolkit V2.2.1" Height="400" Width="300"
-        ResizeMode="NoResize"
-        WindowStartupLocation="CenterScreen">
-    
+        Title="krrcream's Toolkit V2.3.1" Height="750" Width="1000"
+        ResizeMode="CanResize"
+        WindowStartupLocation="CenterScreen"
+        AllowDrop="True"
+        Drop="Window_Drop">
+
     <Window.Resources>
         <!-- 浅灰主题按钮样式 -->
         <Style x:Key="LightGrayButtonStyle" TargetType="Button">
@@ -50,65 +53,155 @@
         <!-- 窗口全局样式 -->
         <Style TargetType="Window">
             <Setter Property="Background" Value="#EEEEEE"/>
-            <Setter Property="Foreground" Value="#212121"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
-            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="#212121" />
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+
+        <!-- Modern Tab Header -->
+        <Style x:Key="ModernTabItemStyle" TargetType="TabItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Grid>
+                            <Border x:Name="Bd"
+                                    Background="Transparent"
+                                    CornerRadius="4"
+                                    Padding="8,6" Margin="2,2,2,0">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="{TemplateBinding Header}" FontWeight="SemiBold" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="White" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#E0E0E0" />
+                                <Setter TargetName="Bd" Property="BorderThickness" Value="1" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F6F9FF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
-    
-    <Grid>
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-            <!-- Converter Button -->
-            <Button Content="Converter" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Center"
-                    Width="200" Height="50"
-                    Click="ConverterButton_Click"
-                    Margin="0,10,0,15"
-                    Style="{DynamicResource LightGrayButtonStyle}"/>
-            
-            <!-- LN Transformer Button -->
-            <Button Content="LN Transformer" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Center"
-                    Width="200" Height="50"
-                    Click="LNTransformerButton_Click"
-                    Margin="0,0,0,15"        Style="{DynamicResource LightGrayButtonStyle}"/> 
 
-            <!-- DP TOOL Button -->
-            <Button Content="DP tool" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Center"
-                    Width="200" Height="50"
-                    Click="DPToolButton_Click"
-                    Margin="0,0,0,15"
-                    Style="{DynamicResource LightGrayButtonStyle}"/>
-            
-            <Button Content="LV Calculator" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Center"
-                    Width="200" Height="50"
-                    Click="KRR_LV_Button_Click"
-                    Margin="0,0,0,15"
-                    Style="{DynamicResource LightGrayButtonStyle}"/>
-            
-            <!-- osu! file manager Button -->
-            <Button Content="osu! file manager" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Center"
-                    Width="200" Height="50"
-                    Click="GetFilesButton_Click"
-                    Margin="0,0,0,10"
-                    Style="{DynamicResource LightGrayButtonStyle}"/>
-            
-            <!-- GitHub 链接 -->
-            <TextBlock HorizontalAlignment="Center" TextAlignment="Center" Margin="0,10,0,5">
-                <Run Text="© 2025 krrcream. All rights reserved."/>
-                <Hyperlink NavigateUri="https://github.com/krrcream/krrcream-Toolkit" RequestNavigate="Hyperlink_RequestNavigate">
-                    github
-                </Hyperlink>
-            </TextBlock>
-            
-        </StackPanel>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Main TabControl fills remaining space -->
+        <TabControl Grid.Row="0" x:Name="MainTabControl" Margin="8,8,8,0" Background="Transparent"
+                    ItemContainerStyle="{StaticResource ModernTabItemStyle}"
+                    PreviewMouseMove="TabControl_PreviewMouseMove"
+                    PreviewMouseLeftButtonDown="TabControl_PreviewMouseLeftButtonDown"
+                    HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+            <!-- Converter Tab -->
+            <TabItem Header="Converter" x:Name="Tab_Converter">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <!-- Left settings: fixed width -->
+                        <ColumnDefinition Width="360" />
+                        <!-- Right preview: stretch to remaining space -->
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: Settings area with ScrollViewer -->
+                    <Border Grid.Column="0" CornerRadius="6" Background="#FFFFFF" BorderBrush="#E0E0E0"
+                            BorderThickness="1" Margin="8" Padding="0">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ContentControl x:Name="ConverterSettingsHost" />
+                        </ScrollViewer>
+                    </Border>
+
+                    <!-- Unified preview control -->
+                    <preview:DualPreviewControl x:Name="ConverterPreview" Grid.Column="1" Margin="8"
+                                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MinWidth="200" />
+                </Grid>
+            </TabItem>
+
+            <!-- LN Transformer Tab -->
+            <TabItem Header="LN Transformer" x:Name="Tab_LNTransformer">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <!-- Left settings: fixed width -->
+                        <ColumnDefinition Width="360" />
+                        <!-- Right preview: stretch to remaining space -->
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: Settings area with ScrollViewer -->
+                    <Border Grid.Column="0" CornerRadius="6" Background="#FFFFFF" BorderBrush="#E0E0E0"
+                            BorderThickness="1" Margin="8" Padding="0">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ContentControl x:Name="LNSettingsHost" />
+                        </ScrollViewer>
+                    </Border>
+
+                    <preview:DualPreviewControl x:Name="LNPreview" Grid.Column="1" Margin="8"
+                                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MinWidth="200" />
+                </Grid>
+            </TabItem>
+
+            <!-- DP tool Tab -->
+            <TabItem Header="DP tool" x:Name="Tab_DPTool">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <!-- Left settings: fixed width -->
+                        <ColumnDefinition Width="360" />
+                        <!-- Right preview: stretch to remaining space -->
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: Settings area with ScrollViewer -->
+                    <Border Grid.Column="0" CornerRadius="6" Background="#FFFFFF" BorderBrush="#E0E0E0"
+                            BorderThickness="1" Margin="8" Padding="0">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ContentControl x:Name="DPSettingsHost" />
+                        </ScrollViewer>
+                    </Border>
+
+                    <preview:DualPreviewControl x:Name="DPPreview" Grid.Column="1" Margin="8"
+                                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MinWidth="200" />
+                </Grid>
+            </TabItem>
+
+            <!-- LV Calculator Tab (now embeds real window content) -->
+            <TabItem Header="LV Calculator" x:Name="Tab_LV">
+                <Grid Margin="8">
+                    <Border CornerRadius="6" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="1" Padding="0">
+                        <ContentControl x:Name="LVSettingsHost" />
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- osu! File Manager Tab (embedded) -->
+            <TabItem Header="osu! file manager" x:Name="Tab_GetFiles">
+                <Grid Margin="8">
+                    <Border CornerRadius="6" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="1" Padding="0">
+                        <ContentControl x:Name="GetFilesHost" />
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- Global OSU Listener button on the tab row (right aligned) -->
+        <Button x:Name="GlobalOsuListenerButton" Grid.Row="0" Content="OSU Listener" Style="{StaticResource LightGrayButtonStyle}"
+                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,12,0" Width="110" Height="30" Click="GlobalOsuListenerButton_Click"/>
+
+        <!-- Footer stays at bottom -->
+        <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E8E8E8" BorderThickness="1" Height="28" Margin="0,4,0,0">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="© 2025 krrcream. All rights reserved. " VerticalAlignment="Center" />
+                <TextBlock VerticalAlignment="Center">
+                    <Hyperlink NavigateUri="https://github.com/krrcream/krrcream-Toolkit" RequestNavigate="Hyperlink_RequestNavigate">github</Hyperlink>
+                </TextBlock>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

@@ -1,4 +1,4 @@
-﻿<Window x:Class="krrTools.Tools.KRRLV.KRRLVWindow"
+﻿<Window x:Class="krrTools.tools.KRR_LV.KRRLVWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -94,8 +94,8 @@
                   CellStyle="{StaticResource LightGrayDataGridCellStyle}"
                   ColumnHeaderStyle="{StaticResource LightGrayDataGridColumnHeaderStyle}">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="KRRLV" Binding="{Binding KRRLV, StringFormat=F2}" Width="60"/>
-                <DataGridTextColumn Header="XXYSR" Binding="{Binding XXYSR, StringFormat=F2}" Width="60"/>
+                <DataGridTextColumn Header="KRR_LV" Binding="{Binding KRR_LV, StringFormat=F2}" Width="60"/>
+                <DataGridTextColumn Header="XXY_SR" Binding="{Binding XXY_SR, StringFormat=F2}" Width="60"/>
                 <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="*"/>
                 <DataGridTextColumn Header="Diff" Binding="{Binding Diff}" Width="*"/>
                 <DataGridTextColumn Header="Artist" Binding="{Binding Artist}" Width="*"/>

@@ -1,12 +1,11 @@
 ﻿using System;
-using System.IO;
 using System.Windows;
 
-namespace krrTools.Tools.KRRLV
+namespace krrTools.tools.KRR_LV
 {
-    public partial class KRRLVWindow : Window
+    public partial class KRRLVWindow
     {
-        private KRRLVViewModel _viewModel;
+        private readonly KRRLVViewModel _viewModel;
 
         public KRRLVWindow()
         {
@@ -19,25 +18,22 @@ namespace krrTools.Tools.KRRLV
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+                if (files == null || files.Length == 0)
+                    return;
+
                 _viewModel.ProcessDroppedFiles(files);
             }
         }
 
         private void Window_DragEnter(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
-                e.Effects = DragDropEffects.Copy;
-            }
-            else
-            {
-                e.Effects = DragDropEffects.None;
-            }
+            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? 
+                DragDropEffects.Copy : DragDropEffects.None;
         }
         protected override void OnClosed(EventArgs e)
         {
-            _viewModel?.Dispose();
+            _viewModel.Dispose();
             base.OnClosed(e);
         }
     }

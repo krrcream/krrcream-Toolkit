@@ -1,5 +1,4 @@
 ﻿using System;
-using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,24 +15,20 @@ namespace krrTools.Tools.Converter
 {
     public class Converter
     {
-        
-        /// <summary>
-        /// 将.osu文件的键数转换为目标键数
-        /// </summary>
-        /// <param name="filepath">需要转换的.osu文件路径</param>
-        public ConversionOptions options { get; set; }
+        // 将 .osu 映射并转换为目标键位（简短说明，详见方法实现）
+        public ConversionOptions? options { get; set; }
 
-        /// <summary>
-
-        public void NTONC(string filepath)
+        public string NTONC(string filepath)
         {
+            if (options == null)
+                throw new InvalidOperationException("ConversionOptions 未设置，请先赋值 options。");
 
             // 检查文件是否存在
             if (!File.Exists(filepath))
             {
                 throw new FileNotFoundException($"文件未找到: {filepath}");
             }
-            
+
             // 检查文件扩展名是否为.osu
             if (Path.GetExtension(filepath).ToLower() != ".osu")
             {
@@ -41,7 +36,7 @@ namespace krrTools.Tools.Converter
             }
 
             Beatmap beatmap = BeatmapDecoder.Decode(filepath);
-            
+
             if (beatmap.GeneralSection.ModeId != 3)
                 throw new ArgumentException("不是mania模式");
 
@@ -50,134 +45,90 @@ namespace krrTools.Tools.Converter
             int turn = targetKeys - CS;
             var P = options.SelectedKeyTypes;
             // 创建带种子的随机数生成器
-            Random RG;
-            if (options.Seed.HasValue)
-            {
-                RG = new Random(options.Seed.Value);
-            }
-            else
-            {
-                RG = new Random(); // 使用系统时间作为种子
-            }
-            
+            var RG = options.Seed.HasValue ? new Random(options.Seed.Value) : new Random(); // 使用系统时间作为种子
+
             if (P.Count > 0 && !P.Contains(CS))
             {
                 throw new ArgumentException("不在筛选的键位模式里");
             }
-            
-            if (CS == targetKeys && options.MaxKeys == targetKeys)
+
+            if (CS == targetKeys && (int)options.TargetKeys == targetKeys && (int)options.MaxKeys == targetKeys)
             {
                 throw new ArgumentException("目标键位与当前键位相同且不降低密度");
             }
             var ANA = new OsuAnalyzer();
-            double BPM = double.Parse(ANA.GetBPM(beatmap).Split('(')[0]);
+            double BPM = ANA.GetBPMMain(beatmap);
             Console.WriteLine("BPM：" + BPM);
             double beatLength = 60000 / BPM * 4;
             // 变换时间
             double convertTime = Math.Max(1, options.TransformSpeed * beatLength - 10);
             var (matrix, timeAxis) = BuildMatrix(beatmap);
-            
-            if (turn >= 0)
-            {
-                DOAddKeys(RG);
-            }
-            
-            if (turn < 0)
-            {
-                DORemoveKeys(RG);
-            }
 
-            void DORemoveKeys(Random random)
-            {
-                var newMatrix = SmartReduceColumns(matrix, timeAxis, -turn, convertTime,beatLength);
-                DensityReducer(newMatrix, (int)options.TargetKeys - (int)options.MaxKeys, (int)options.MinKeys, (int)options.TargetKeys, random);
-                newHitObjects(beatmap ,newMatrix);
-                BeatmapSave();
-            }
+            var resultPath = turn >= 0 ? 
+                DoAddKeys(beatmap, matrix, timeAxis, turn, convertTime, CS, targetKeys, beatLength, RG, filepath) 
+                : 
+                DoRemoveKeys(beatmap, matrix, timeAxis, turn, convertTime, beatLength, RG, filepath, CS);
 
-            void DOAddKeys(Random random)
-            {
-                var (oldMTX, insertMTX) = convertMTX(turn, timeAxis, convertTime, CS, random);
-                int[,] newMatrix = convert(matrix, oldMTX, insertMTX, timeAxis, targetKeys,beatLength,random);
-                DensityReducer(newMatrix, (int)options.TargetKeys - (int)options.MaxKeys, (int)options.MinKeys, (int)options.TargetKeys, random);
-                newHitObjects(beatmap ,newMatrix);
-                
-                // PrintMatrix(newMatrix, timeAxis);
-                // PrintMatrix(oldMTX, timeAxis);
-                // PrintMatrix(insertMTX, timeAxis);
-                
-                BeatmapSave();
-            }
-
-            // 转换操作
-
-            // 打印二维矩阵到控制台
-            void PrintMatrix(int[,] matrix, List<int> timeAxis)
-            {
-                int h = timeAxis.Count;
-                int a = matrix.GetLength(1); // 获取矩阵的列数
-
-                Console.WriteLine("二维矩阵:");
-                // 从最后一行开始向前遍历到第一行
-                for (int i = h - 1; i >= 0; i--)
-                {
-                    Console.Write($"[{timeAxis[i]:D6}] ");
-                    for (int j = 0; j < a; j++)
-                    {
-                        if (matrix[i, j] == -1)
-                            Console.Write(" . ");
-                        else if (matrix[i, j] == -7)
-                            Console.Write(" | ");
-                        else
-                            Console.Write($"{matrix[i, j],2:D} ");
-                    }
-
-                    Console.WriteLine();
-                }
-            }
-
-            //保存操作
-            void BeatmapSave()
-            {
-                beatmap.MetadataSection.Creator = "Krr Conv. & " + beatmap.MetadataSection.Creator;
-                beatmap.DifficultySection.CircleSize = (float)options.TargetKeys;
-                beatmap.MetadataSection.Version =
-                    "[" + CS + "to" + options.TargetKeys + "C] " + beatmap.MetadataSection.Version;
-
-                var currentTags = beatmap.MetadataSection.Tags ?? new string[0];
-                var newTags = currentTags.Concat(new[] { "krrcream's converter" }).ToArray();
-                beatmap.MetadataSection.Tags = newTags;
-
-                string directory = Path.GetDirectoryName(filepath);
-                string baseFilename = getfilename(beatmap);
-                string filename = baseFilename + ".osu";
-                string fullPath = Path.Combine(directory, filename);
-                if (fullPath.Length > 255)
-                {
-                    int excessLength = fullPath.Length - 255;
-                    int charsToTrim = excessLength + 3; // 多截掉3个字符用于添加"..."
-
-                    if (charsToTrim < baseFilename.Length)
-                    {
-                        baseFilename = baseFilename.Substring(0, baseFilename.Length - charsToTrim) + "...";
-                        filename = baseFilename + ".osu";
-                        fullPath = Path.Combine(directory, filename);
-                    }
-                }
-                
-                beatmap.Save(fullPath);
-                beatmap = null;
-            }
-
-
-            
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
+            return resultPath;
         }
-        
+
+        private string DoAddKeys(Beatmap beatmap, int[,] matrix, List<int> timeAxis, int turn, double convertTime,
+            int CS, int targetKeys, double beatLength, Random random, string filepath)
+        {
+            // 生成转换矩阵
+            var (oldMTX, insertMTX) = convertMTX(turn, timeAxis, convertTime, CS, random);
+            int[,] newMatrix = convert(matrix, oldMTX, insertMTX, timeAxis, targetKeys, beatLength, random);
+            DensityReducer(newMatrix, (int)options!.TargetKeys - (int)options.MaxKeys, (int)options.MinKeys, (int)options.TargetKeys, random);
+            newHitObjects(beatmap, newMatrix);
+
+            return SaveBeatmap(beatmap, filepath, CS);
+        }
+
+        private string DoRemoveKeys(Beatmap beatmap, int[,] matrix, List<int> timeAxis, int turn, double convertTime,
+            double beatLength, Random random, string filepath, int originalCS)
+         {
+             var newMatrix = SmartReduceColumns(matrix, timeAxis, -turn, convertTime, beatLength);
+             DensityReducer(newMatrix, (int)options!.TargetKeys - (int)options.MaxKeys, (int)options.MinKeys, (int)options.TargetKeys, random);
+             newHitObjects(beatmap, newMatrix);
+
+             return SaveBeatmap(beatmap, filepath, originalCS);
+         }
+
+        private string SaveBeatmap(Beatmap beatmap, string filepath, int originalCS)
+        {
+            beatmap.MetadataSection.Creator = "Krr Conv. & " + beatmap.MetadataSection.Creator;
+            beatmap.DifficultySection.CircleSize = (float)options!.TargetKeys;
+            beatmap.MetadataSection.Version = "[" + originalCS + "to" + options.TargetKeys + "C] " + beatmap.MetadataSection.Version;
+
+            var currentTags = beatmap.MetadataSection.Tags ?? [];
+            var newTags = currentTags.Concat(["krrcream's converter"]).ToArray();
+            beatmap.MetadataSection.Tags = newTags;
+
+            string directory = Path.GetDirectoryName(filepath) ?? Environment.CurrentDirectory;
+            string baseFilename = getfilename(beatmap);
+            string filename = baseFilename + ".osu";
+            string fullPath = Path.Combine(directory, filename);
+            if (fullPath.Length > 255)
+            {
+                int excessLength = fullPath.Length - 255;
+                int charsToTrim = excessLength + 3; // 多截掉3个字符用于添加"..."
+
+                if (charsToTrim < baseFilename.Length)
+                {
+                    baseFilename = baseFilename.Substring(0, baseFilename.Length - charsToTrim) + "...";
+                    filename = baseFilename + ".osu";
+                    fullPath = Path.Combine(directory, filename);
+                }
+            }
+
+            beatmap.Save(fullPath);
+            return fullPath;
+        }
+
+
         // 生成转换矩阵
-        public (int[,], int[,]) convertMTX(int turn, List<int> timeAxis, 
-            double convertTime,int CS, Random random)
+        public (int[,], int[,]) convertMTX(int turn, List<int> timeAxis,
+            double convertTime, int CS, Random random)
         {
             int rows = timeAxis.Count;
             int cols = turn; // 需要添加的列数
@@ -208,7 +159,7 @@ namespace krrTools.Tools.Converter
                         timeCounter = 0;
                     }
                 }
-                
+
                 int randomMoves = random.Next(0, CS - 1);
                 for (int i = 0; i < randomMoves; i++)
                 {
@@ -238,7 +189,7 @@ namespace krrTools.Tools.Converter
                         timeCounter = 0;
                     }
                 }
-                
+
                 int randomMoves = random.Next(0, CS - 1 + col); // 随机移动0-2次
                 for (int i = 0; i < randomMoves; i++)
                 {
@@ -250,7 +201,7 @@ namespace krrTools.Tools.Converter
         }
 
         // 转换操作
-        public int[,] convert(int[,] matrix, int[,] oldMTX, int[,] insertMTX, List<int> timeAxis1,int targetKeys,double beatLength ,Random random)
+        public int[,] convert(int[,] matrix, int[,] oldMTX, int[,] insertMTX, List<int> timeAxis1, int targetKeys, double beatLength, Random random)
         {
             try
             {
@@ -387,11 +338,11 @@ namespace krrTools.Tools.Converter
                     }
 
                 }
-                
+
                 //位置映射，拷贝newMatrix到colsMatrix;    
                 int[,] colsMatrix = new int[newMatrix.GetLength(0), newMatrix.GetLength(1)];
                 Array.Copy(newMatrix, colsMatrix, newMatrix.Length);
-                
+
                 for (int j = 0; j < newCols; j++)
                 {
                     for (int i = 1; i < rows; i++)
@@ -410,7 +361,7 @@ namespace krrTools.Tools.Converter
                         int targetValue = colsMatrix[i, j];
                         if (targetValue >= 0)
                         {
-                            // 在matrix第i行中查找targetValue所在的列索引
+                            // 在matrix第i行查找targetValue所在的列索引
                             for (int c = 0; c < originalCols; c++)
                             {
                                 if (matrix[i, c] == targetValue)
@@ -424,7 +375,7 @@ namespace krrTools.Tools.Converter
                 }
                 //删除矩阵
                 bool[,] needDeleteMTX = new bool[colsMatrix.GetLength(0), colsMatrix.GetLength(1)];
-                
+
                 for (int j = 0; j < newCols; j++)
                 {
                     for (int i = 0; i < rows - 1; i++)
@@ -434,16 +385,16 @@ namespace krrTools.Tools.Converter
                         {
                             int changeRow = i;        // 变化点
                             int nextValue = colsMatrix[i + 1, j];  // 变化后的值
-        
+
                             // 从变化点之后开始检查
                             for (int k = 1; i + 1 + k < rows; k++)
                             {
                                 int checkRow = i + 1 + k;
-            
+
                                 // 如果值变了，停止检查
                                 if (colsMatrix[checkRow, j] != nextValue)
                                     break;
-            
+
                                 // 如果时间差小于阈值，标记为需要删除
                                 if (timeAxis1[checkRow] - timeAxis1[changeRow] < beatLength / 16 * 2 + 10)
                                 {
@@ -457,7 +408,7 @@ namespace krrTools.Tools.Converter
                         }
                     }
                 }
-                
+
                 for (int i = 0; i < rows; i++)
                 {
                     for (int j = 0; j < newCols; j++)
@@ -466,7 +417,7 @@ namespace krrTools.Tools.Converter
                             newMatrix[i, j] = -1;
                     }
                 }
-                
+
                 return newMatrix;
             }
             catch (Exception ex)
@@ -477,7 +428,7 @@ namespace krrTools.Tools.Converter
             }
         }
 
-        public bool AreRowsDifferent(int[,] matrix, int row1, int row2)
+        private bool AreRowsDifferent(int[,] matrix, int row1, int row2)
         {
             int colCount = matrix.GetLength(1);
             for (int j = 0; j < colCount; j++)
@@ -489,7 +440,7 @@ namespace krrTools.Tools.Converter
             return false;
         }
 
-        public void ShiftInsert<T>(T nums, int insertIndex) where T : IList<int>
+        private void ShiftInsert<T>(T nums, int insertIndex) where T : IList<int>
         {
             // 检查insertIndex是否为有效下标
             if (insertIndex >= 0 && insertIndex <= nums.Count - 1)
@@ -509,7 +460,7 @@ namespace krrTools.Tools.Converter
             }
         }
 
-        public void newHitObjects(Beatmap beatmap, int[,] newMatrix)
+        private void newHitObjects(Beatmap beatmap, int[,] newMatrix)
         {
 
             // 创建临时列表存储对象
@@ -523,7 +474,7 @@ namespace krrTools.Tools.Converter
                     if (oldindex >= 0)
                     {
                         newObjects.Add(CopyHitObjectbyPX(beatmap.HitObjects[oldindex],
-                            ColumnPositionMapper.ColumnToPositionX((int)options.TargetKeys, j)
+                            ColumnPositionMapper.ColumnToPositionX((int)options!.TargetKeys, j)
                         ));
                     }
                 }
@@ -534,9 +485,9 @@ namespace krrTools.Tools.Converter
             beatmap.HitObjects.AddRange(newObjects);
             HitObjectSort(beatmap);
         }
-        
-        
-        
+
+
+
         public void HitObjectSort(Beatmap beatmap)
         {
             beatmap.HitObjects.Sort((a, b) =>
@@ -551,7 +502,7 @@ namespace krrTools.Tools.Converter
                 }
             });
         }
-        
+
         public void DensityReducer(int[,] matrix, int maxToRemovePerRow, int minKeys, int targetKeys, Random random)
         {
             if (maxToRemovePerRow <= 0) return;
@@ -561,7 +512,7 @@ namespace krrTools.Tools.Converter
 
             // 记录每列被删除的次数，用于全局平衡
             var columnDeletionCounts = new int[cols];
-            
+
             // 遍历每一行进行密度降低
             for (int i = 0; i < rows; i++)
             {
@@ -590,7 +541,7 @@ namespace krrTools.Tools.Converter
                 if (toRemove <= 0) continue;
 
                 // 根据权重选择要删除的列
-                var columnsToRemove = new List<int>();
+                // var columnsToRemove = new List<int>(); // removed: previously unused
 
                 // 创建临时列表用于选择
                 var candidates = new List<int>(activeNotes);
@@ -627,13 +578,13 @@ namespace krrTools.Tools.Converter
                     int columnToRemove = candidates[selectedIndex];
                     matrix[i, columnToRemove] = -1;
                     columnDeletionCounts[columnToRemove]++; // 更新该列的删除计数
-                    columnsToRemove.Add(columnToRemove);
+                    // columnsToRemove.Add(columnToRemove);
                     candidates.RemoveAt(selectedIndex);
                 }
             }
         }
 
-        
+
         public (int[,], List<int>) BuildMatrix(Beatmap beatmap)
         {
             int cs = (int)beatmap.DifficultySection.CircleSize;
@@ -698,7 +649,7 @@ namespace krrTools.Tools.Converter
             HitSoundType hitSound = hitObject.HitSound;
 
             // 正确复制Extras，确保不为null
-            Extras newExtras = hitObject.Extras != null ? 
+            Extras newExtras = hitObject.Extras != null ?
                 new Extras(
                     hitObject.Extras.SampleSet,
                     hitObject.Extras.AdditionSet,
@@ -714,7 +665,7 @@ namespace krrTools.Tools.Converter
             // 根据WriteHelper.TypeByte的逻辑来判断对象类型
             // 检查是否是长音符（mania模式下）
             bool isHoldNote = (hitObject.EndTime > hitObject.StartTime);
-    
+
             if (isHoldNote)
             {
                 // 创建ManiaHoldNote对象
@@ -744,8 +695,7 @@ namespace krrTools.Tools.Converter
         }
 
 
-        
-        
+
 
         public string getfilename(Beatmap beatmap)
         {
@@ -764,7 +714,8 @@ namespace krrTools.Tools.Converter
 
             return $"{artist} - {title} ({creator}) [{version}]";
         }
-        public int positionXtocolumn(int CS, int X)
+
+        private int positionXtocolumn(int CS, int X)
         {
             int column = (int)Math.Floor(X * (double)CS / 512);
             return column;
@@ -775,7 +726,7 @@ namespace krrTools.Tools.Converter
             int rows = orgMTX.GetLength(0);
             int originalCols = orgMTX.GetLength(1);
             int targetCols = originalCols - turn;
-            
+
             // 创建新矩阵，初始化为-1（空）
             int[,] newMatrix = new int[rows, targetCols];
             for (int i = 0; i < rows; i++)
@@ -785,16 +736,16 @@ namespace krrTools.Tools.Converter
                     newMatrix[i, j] = -1;
                 }
             }
-            
+
             // 按时间段处理
             int regionStart = 0;
-            
+
             for (int regionEnd = 1; regionEnd < rows; regionEnd++)
             {
                 // 检查是否到达新区域的结束点
                 bool isRegionEnd = (timeAxis[regionEnd] - timeAxis[regionStart] >= convertTime);
                 bool isLastRow = (regionEnd == rows - 1);
-                
+
                 if (isRegionEnd || isLastRow)
                 {
                     // 确保最后一个区域包含最后一行
@@ -802,33 +753,33 @@ namespace krrTools.Tools.Converter
                     {
                         regionEnd = rows - 1;
                     }
-                    
+
                     // 处理当前区域
                     ProcessRegion(orgMTX, newMatrix, timeAxis, regionStart, regionEnd, targetCols, beatLength);
-                    
+
                     // 更新下一个区域的起始点
                     regionStart = regionEnd;
                 }
             }
-            
+
             // 处理可能剩余的行（如果最后一段不足一个完整区域）
             if (regionStart < rows - 1)
             {
                 ProcessRegion(orgMTX, newMatrix, timeAxis, regionStart, rows - 1, targetCols, beatLength);
             }
-            
+
             // 处理空行
             ProcessEmptyRows(orgMTX, newMatrix, timeAxis, beatLength);
-            
+
             return newMatrix;
         }
 
-        private void ProcessRegion(int[,] orgMTX, int[,] newMatrix, List<int> timeAxis, 
+        private void ProcessRegion(int[,] orgMTX, int[,] newMatrix, List<int> timeAxis,
                                   int regionStart, int regionEnd, int targetCols, double beatLength)
         {
             int originalCols = orgMTX.GetLength(1);
             int rows = orgMTX.GetLength(0);
-            
+
             // 分析区域内各列的重要性（物件数量）
             var columnWeights = new int[originalCols];
             for (int i = regionStart; i <= regionEnd; i++)
@@ -841,13 +792,13 @@ namespace krrTools.Tools.Converter
                     }
                 }
             }
-            
+
             // 确定要移除的列（选择权重最小且风险最低的几列）
             var columnsToRemove = GetColumnsToRemove(columnWeights, targetCols, originalCols, orgMTX, regionStart, regionEnd);
-            
+
             // 创建列映射关系（原列 -> 新列）
-            var columnMapping = CreateColumnMapping(originalCols, columnsToRemove, targetCols);
-            
+            var columnMapping = CreateColumnMapping(originalCols, columnsToRemove);
+
             // 处理区域内的每一行
             for (int row = regionStart; row <= regionEnd; row++)
             {
@@ -864,7 +815,7 @@ namespace krrTools.Tools.Converter
                             if (IsPositionAvailable(newMatrix, row, newCol, timeAxis, beatLength))
                             {
                                 newMatrix[row, newCol] = newValue;
-                                
+
                                 // 如果是长条头部，复制整个长条
                                 CopyLongNoteBody(orgMTX, newMatrix, row, col, newCol, rows);
                             }
@@ -872,13 +823,13 @@ namespace krrTools.Tools.Converter
                     }
                 }
             }
-            
+
             // 处理长条延续部分
             for (int row = regionStart; row <= regionEnd; row++)
             {
                 HandleLongNoteExtensions(newMatrix, row, targetCols);
             }
-            
+
             // 应用约束条件：确保每行至少有一个note
             // 应用约束条件：确保每行至少有一个note
             ApplyMinimumNotesConstraint(newMatrix, orgMTX, regionStart, regionEnd, targetCols, timeAxis, beatLength);
@@ -900,7 +851,7 @@ namespace krrTools.Tools.Converter
                         break;
                     }
                 }
-                
+
                 // 如果当前行没有note，从orgMTX的相同行随机选取一个note插入
                 if (!hasNote)
                 {
@@ -914,14 +865,14 @@ namespace krrTools.Tools.Converter
                             candidateNotes.Add(col);
                         }
                     }
-                    
+
                     // 如果orgMTX中当前行有note
                     if (candidateNotes.Count > 0)
                     {
                         Random random = new Random();
                         // 随机选择一个候选note的列
                         int selectedOrgCol = candidateNotes[random.Next(candidateNotes.Count)];
-                        
+
                         // 查找matrix中可用的位置
                         var availablePositions = new List<int>();
                         for (int col = 0; col < targetCols; col++)
@@ -936,7 +887,7 @@ namespace krrTools.Tools.Converter
                                 }
                             }
                         }
-                        
+
                         // 如果有可用位置
                         if (availablePositions.Count > 0)
                         {
@@ -950,35 +901,35 @@ namespace krrTools.Tools.Converter
             }
         }
 
-        private List<int> GetColumnsToRemove(int[] columnWeights, int targetCols, int originalCols, 
+        private List<int> GetColumnsToRemove(int[] columnWeights, int targetCols, int originalCols,
                                             int[,] orgMTX, int regionStart, int regionEnd)
         {
             int colsToRemove = originalCols - targetCols;
             if (colsToRemove <= 0) return new List<int>();
-            
+
             var columnList = new List<(int index, int weight, double risk)>();
-            
+
             for (int i = 0; i < originalCols; i++)
             {
                 // 计算该列的权重（note数量）
                 int weight = columnWeights[i];
-                
+
                 // 计算该列的"空行风险"：如果移除它，有多少行会变成空？
                 double risk = CalculateColumnRisk(orgMTX, i, originalCols, regionStart, regionEnd);
-                
+
                 columnList.Add((i, weight, risk));
             }
-            
+
             // 排序：优先移除权重低 + 风险低的列
             // 首先按权重排序，权重相同时按风险排序
-            columnList.Sort((a, b) => 
+            columnList.Sort((a, b) =>
             {
                 int weightComparison = a.weight.CompareTo(b.weight);
                 if (weightComparison != 0)
                     return weightComparison;
                 return a.risk.CompareTo(b.risk);
             });
-            
+
             // 返回需要移除的列索引
             return columnList.Take(colsToRemove).Select(x => x.index).ToList();
         }
@@ -987,11 +938,11 @@ namespace krrTools.Tools.Converter
         {
             int totalRows = 0;
             int emptyRows = 0;
-            
+
             for (int row = regionStart; row <= regionEnd; row++)
             {
                 bool hasNoteInRow = false;
-                
+
                 // 检查该行在移除指定列后是否还有note
                 for (int c = 0; c < totalCols; c++)
                 {
@@ -1001,7 +952,7 @@ namespace krrTools.Tools.Converter
                         break;
                     }
                 }
-                
+
                 // 如果移除该列后该行没有note了，则计为空行
                 if (!hasNoteInRow && matrix[row, colIndex] >= 0)
                 {
@@ -1009,46 +960,44 @@ namespace krrTools.Tools.Converter
                 }
                 totalRows++;
             }
-            
+
             // 如果该列本身没有note，则风险为0
             if (totalRows == 0) return 0;
-            
+
             // 计算空行比例作为风险值
             return (double)emptyRows / totalRows;
         }
 
-        private int[] CreateColumnMapping(int originalCols, List<int> columnsToRemove, int targetCols)
-        {
-            var mapping = new int[originalCols];
-            int newColIndex = 0;
-            
-            for (int oldCol = 0; oldCol < originalCols; oldCol++)
-            {
-                if (!columnsToRemove.Contains(oldCol))
-                {
-                    mapping[oldCol] = newColIndex++;
-                }
-                else
-                {
-                    // 被移除的列映射为-1
-                    mapping[oldCol] = -1;
-                }
-            }
-            
-            return mapping;
-        }
+        private int[] CreateColumnMapping(int originalCols, List<int> columnsToRemove)
+         {
+             var mapping = new int[originalCols];
+             int newColIndex = 0;
+
+             for (int oldCol = 0; oldCol < originalCols; oldCol++)
+             {
+                 if (!columnsToRemove.Contains(oldCol))
+                 {
+                     mapping[oldCol] = newColIndex++;
+                 }
+                 else
+                 {
+                     // 被移除的列映射为-1
+                     mapping[oldCol] = -1;
+                 }
+             }
+
+             return mapping;
+         }
 
         private bool IsPositionAvailable(int[,] matrix, int row, int col, List<int> timeAxis, double beatLength)
         {
             if (matrix[row, col] != -1)
                 return false;
 
-            double timeThreshold = beatLength / 16 + 10;
-
             // 检查前面几行
             for (int r = Math.Max(0, row - 3); r < row; r++)
             {
-                if (timeAxis[row] - timeAxis[r] <= timeThreshold)
+                if (timeAxis[row] - timeAxis[r] <= beatLength / 16 + 10)
                 {
                     if (matrix[r, col] >= 0 || matrix[r, col] == -7)
                         return false;
@@ -1059,7 +1008,7 @@ namespace krrTools.Tools.Converter
             int rows = matrix.GetLength(0);
             for (int r = row + 1; r <= Math.Min(rows - 1, row + 3); r++)
             {
-                if (timeAxis[r] - timeAxis[row] <= timeThreshold)
+                if (timeAxis[r] - timeAxis[row] <= beatLength / 16 + 10)
                 {
                     if (matrix[r, col] >= 0 || matrix[r, col] == -7)
                         return false;
@@ -1138,11 +1087,9 @@ namespace krrTools.Tools.Converter
         }
 
         // 尝试直接插入note到当前行的可用位置
-        private bool TryInsertNoteDirectly(int[,] newMatrix, int[,] orgMTX, List<int> timeAxis, int row, 
+        private bool TryInsertNoteDirectly(int[,] newMatrix, int[,] orgMTX, List<int> timeAxis, int row,
             int targetCols, int originalCols, double beatLength, Random random)
         {
-            double timeThreshold = beatLength / 16 + 10;
-
             // 收集当前行中所有可用的位置（前后时间窗口内无冲突）
             var availableCols = new List<int>();
             for (int col = 0; col < targetCols; col++)
@@ -1174,29 +1121,28 @@ namespace krrTools.Tools.Converter
             // 随机选择一个可用位置和一个候选note
             int targetCol = availableCols[random.Next(availableCols.Count)];
             var selectedNote = candidateNotes[random.Next(candidateNotes.Count)];
-            
+
             // 检查是否为长条，并验证长条尾部是否满足时间距离要求
             if (IsHoldNoteTailTooClose(newMatrix, orgMTX, timeAxis, row, selectedNote.orgCol, targetCol, beatLength))
             {
                 return false; // 不满足长条尾部时间距离要求
             }
-            
+
             newMatrix[row, targetCol] = selectedNote.noteIndex;
 
             return true;
         }
 
         // 检查长条尾部是否过于接近下一个note
-        private bool IsHoldNoteTailTooClose(int[,] newMatrix, int[,] orgMTX, List<int> timeAxis, 
+        private bool IsHoldNoteTailTooClose(int[,] newMatrix, int[,] orgMTX, List<int> timeAxis,
             int row, int orgCol, int targetCol, double beatLength)
         {
             double minTimeDistance = beatLength / 16 - 10; // 注意这里是-10
-            
+
             // 检查原始矩阵中该位置是否为长条头部
             int rows = orgMTX.GetLength(0);
-            bool isHoldNote = false;
             int holdLength = 0;
-            
+
             // 计算长条长度
             for (int r = row + 1; r < rows; r++)
             {
@@ -1209,13 +1155,13 @@ namespace krrTools.Tools.Converter
                     break;
                 }
             }
-            
-            isHoldNote = holdLength > 0;
-            
+
+            var isHoldNote = holdLength > 0;
+
             // 如果不是长条或者长度为0，直接返回false
             if (!isHoldNote || holdLength == 0)
                 return false;
-            
+
             // 检查长条尾部在新矩阵中的时间距离
             int tailRow = row + holdLength;
             if (tailRow < timeAxis.Count && tailRow < newMatrix.GetLength(0))
@@ -1234,13 +1180,13 @@ namespace krrTools.Tools.Converter
                     }
                 }
             }
-            
+
             return false;
         }
 
         // 尝试通过删除其他列的note来腾出空间并插入note
-        private void TryClearSpaceAndInsert(int[,] orgMTX, int[,] newMatrix, List<int> timeAxis, 
-                                           int emptyRow, int targetCols, int originalCols, 
+        private void TryClearSpaceAndInsert(int[,] orgMTX, int[,] newMatrix, List<int> timeAxis,
+                                           int emptyRow, int targetCols, int originalCols,
                                            double beatLength, Random random)
         {
             double timeThreshold = beatLength / 16 + 10;
@@ -1352,102 +1298,52 @@ namespace krrTools.Tools.Converter
 
 
 
- 
-        private bool IsPositionAvailableForEmptyRow(int[,] matrix, List<int> timeAxis, 
-                                                  int row, int col, double beatLength)
-        {
-            if (matrix[row, col] != -1)
-                return false;
+        private bool IsPositionAvailableForEmptyRow(int[,] matrix, List<int> timeAxis,
+                                                   int row, int col, double beatLength)
+         {
+             if (matrix[row, col] != -1)
+                 return false;
 
-            double timeThreshold = beatLength / 16 + 10;
+             // 检查前面几行
             int rows = matrix.GetLength(0);
+             for (int r = Math.Max(0, row - 3); r < row; r++)
+             {
+                 if (timeAxis[row] - timeAxis[r] <= beatLength / 16 + 10)
+                 {
+                     if (matrix[r, col] >= 0 || matrix[r, col] == -7)
+                         return false;
+                 }
+             }
 
-            // 检查前面几行
-            for (int r = Math.Max(0, row - 3); r < row; r++)
-            {
-                if (timeAxis[row] - timeAxis[r] <= timeThreshold)
-                {
-                    if (matrix[r, col] >= 0 || matrix[r, col] == -7)
-                        return false;
-                }
-            }
+             // 检查后面几行
+             for (int r = row + 1; r <= Math.Min(rows - 1, row + 3); r++)
+             {
+                 if (timeAxis[r] - timeAxis[row] <= beatLength / 16 + 10)
+                 {
+                     if (matrix[r, col] >= 0 || matrix[r, col] == -7)
+                         return false;
+                 }
+             }
 
-            // 检查后面几行
-            for (int r = row + 1; r <= Math.Min(rows - 1, row + 3); r++)
-            {
-                if (timeAxis[r] - timeAxis[row] <= timeThreshold)
-                {
-                    if (matrix[r, col] >= 0 || matrix[r, col] == -7)
-                        return false;
-                }
-            }
+             return true;
+         }
 
-            return true;
-        }
-
- // 辅助方法：随机打乱列表
+        // 辅助方法：随机打乱列表
         private void ShuffleList<T>(List<T> list, Random random)
         {
             for (int i = list.Count - 1; i > 0; i--)
             {
-                int j = random.Next(i + 1);
-                T temp = list[i];
-                list[i] = list[j];
-                list[j] = temp;
+                var j = random.Next(i + 1);
+                (list[i], list[j]) = (list[j], list[i]);
             }
         }
-
-
-
-   
-        public class ColumnPositionMapper
-        {
-            private static readonly int[][] key_value_MTX = 
-            {
-                new[] {256},
-                new[] {128, 384},
-                new[] {85, 256, 426},
-                new[] {64, 192, 320, 448},
-                new[] {51, 153, 256, 358, 460},
-                new[] {42, 128, 213, 298, 384, 469},
-                new[] {36, 109, 182, 256, 329, 402, 475},
-                new[] {32, 96, 160, 224, 288, 352, 416, 480},
-                new[] {28, 85, 142, 199, 256, 312, 369, 426, 483},
-                new[] {25, 76, 128, 179, 230, 281, 332, 384, 435, 486},
-                new[] {23, 69, 116, 162, 209, 256, 302, 349, 395, 442, 488},
-                new[] {21, 64, 106, 149, 192, 234, 277, 320, 362, 405, 448, 490},
-                new[] {19, 59, 98, 137, 177, 256, 216, 295, 334, 374, 413, 452, 492},
-                new[] {18, 54, 91, 128, 164, 201, 237, 274, 310, 347, 384, 420, 457, 493},
-                new[] {17, 51, 85, 119, 153, 187, 221, 256, 290, 324, 358, 392, 426, 460, 494},
-                new[] {16, 48, 80, 112, 144, 176, 240, 208, 272, 304, 336, 368, 400, 432, 464, 496},
-                new[] {15, 45, 75, 135, 165, 105, 195, 225, 316, 286, 256, 376, 346, 406, 436, 466, 496},
-                new[] {16, 48, 80, 112, 128, 144, 176, 208, 240, 272, 304, 336, 368, 384, 400, 432, 464, 496},
-                new[] {13, 39, 66, 93, 120, 147, 174, 201, 228, 255, 282, 309, 336, 363, 390, 417, 444, 471, 498},
-                new[] {12, 37, 63, 88, 114, 140, 165, 191, 216, 242, 268, 293, 319, 344, 370, 396, 421, 447, 472, 498},
-                new[] {12, 36, 60, 85, 109, 133, 158, 182, 207, 231, 255, 280, 304, 328, 353, 377, 402, 426, 450, 475, 499},
-                new[] {11, 34, 57, 80, 104, 127, 150, 173, 197, 220, 243, 267, 290, 313, 336, 360, 383, 406, 429, 453, 476, 499},
-                new[] {11, 33, 55, 77, 100, 122, 144, 166, 189, 211, 233, 255, 278, 300, 322, 344, 367, 389, 411, 433, 456, 478, 500},
-                new[] {10, 31, 52, 74, 95, 116, 138, 159, 180, 202, 223, 244, 266, 287, 308, 330, 351, 372, 394, 415, 436, 458, 479, 500}
-            };
-
-            public static int ColumnToPositionX(int cs1, int column)
-            {
-                // CS-1参数对应二维数组的行索引
-                var row = key_value_MTX[cs1-1];
-                
-                // 返回对应列的值
-                return row[column];
-            }
-        }
-
 
         class OscillatorGenerator
         {
             private int _maxValue;
             private int _currentValue;
             private int _direction;
-            private readonly Random _random; 
-            public OscillatorGenerator(int maxValue, Random random = null)
+            public OscillatorGenerator(int maxValue, Random? random = null)
             {
                 if (maxValue <= 0)
                 {
@@ -1455,9 +1351,9 @@ namespace krrTools.Tools.Converter
                 }
 
                 _maxValue = maxValue;
-                _random = random ?? new Random();
-                _currentValue = _random.Next(1, maxValue);
-                _direction = _random.Next(0, 2) == 0 ? -1 : 1;
+                var rnd = random ?? new Random();
+                _currentValue = rnd.Next(1, maxValue);
+                _direction = rnd.Next(0, 2) == 0 ? -1 : 1;
             }
         
 
@@ -1483,7 +1379,6 @@ namespace krrTools.Tools.Converter
                 }
             }
         }
-        
-        
     }
 }
+

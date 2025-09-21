@@ -15,15 +15,8 @@
     
     <ItemGroup>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.0" />
+        <PackageReference Include="OsuMemoryDataProvider" Version="0.11.1" />
         <PackageReference Include="zzzzv.OsuParsers" Version="1.7.2" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Page Update="tools\KRR LV\KRRLVWindow.xaml">
-        <Generator>MSBuild:Compile</Generator>
-        <XamlRuntime>Wpf</XamlRuntime>
-        <SubType>Designer</SubType>
-      </Page>
     </ItemGroup>
 
     <ItemGroup>
@@ -34,6 +27,12 @@
 
     <ItemGroup>
       <Folder Include="krrcream-Toolkit\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="tools\Preview\mania-last-object-not-latest.osu">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>

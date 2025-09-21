@@ -1,62 +1,63 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
-using System.IO;
 using System.Text.Json;
+using krrTools.tools.Listener;
+using krrTools.Tools.OsuParser;
 
 namespace krrTools.Tools.Converter
 {
-    public partial class ConverterWindow : Window
+    public partial class ConverterWindow
     {
-        private ConverterViewModel _viewModel;
+        private readonly ConverterViewModel _viewModel = new ConverterViewModel();
         
         private readonly string _configPath;
         
         public ConverterWindow()
         {
             InitializeComponent();
-            _viewModel = new ConverterViewModel();
             DataContext = _viewModel;
             
             // 获取项目根目录并构建配置文件路径
-            string projectDirectory = System.AppDomain.CurrentDomain.BaseDirectory;
+            string projectDirectory = AppDomain.CurrentDomain.BaseDirectory;
             _configPath = Path.Combine(projectDirectory, "converterConfig.fq");
             
             // 加载配置
             LoadConfiguration();
             
             // 注册窗口关闭事件
-            this.Closing += ConverterWindow_Closing;
+            Closing += ConverterWindow_Closing;
         }
 
         private async void Border_Drop(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                
-                // 显示进度条
-                ProgressPanel.Visibility = Visibility.Visible;
-                ConversionProgressBar.Value = 0;
-                ProgressTextBlock.Text = "Preparing to process files...";
-                
-                // 在后台线程处理文件
-                await Task.Run(() => ProcessFilesWithProgress(files));
-                
-                // 处理完成后隐藏进度条
-                ProgressPanel.Visibility = Visibility.Collapsed;
-                
-                // 显示完成消息
-                MessageBox.Show("File conversion completed!", "Conversion Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                // Use safe pattern matching to avoid possible null cast
+                if (e.Data.GetData(DataFormats.FileDrop) is string[] files)
+                {
+                    // 显示进度条
+                    ProgressPanel.Visibility = Visibility.Visible;
+                    ConversionProgressBar.Value = 0;
+                    ProgressTextBlock.Text = "Preparing to process files...";
+
+                    // 在后台线程处理文件
+                    await Task.Run(() => ProcessFilesWithProgress(files));
+
+                    // 处理完成后隐藏进度条
+                    ProgressPanel.Visibility = Visibility.Collapsed;
+
+                    // 显示完成消息
+                    MessageBox.Show("File conversion completed!", "Conversion Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    // No files or unexpected data format
+                    MessageBox.Show("No valid files were dropped.", "No Files", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
 
@@ -99,9 +100,11 @@ namespace krrTools.Tools.Converter
             });
             
             // 设置转换选项
-            var converter = new Converter();
-            converter.options = _viewModel.GetConversionOptions();
-            
+            var converter = new Converter
+            {
+                options = _viewModel.GetConversionOptions()
+            };
+
             // 分批处理文件，每批处理1000个文件
             const int batchSize = 1000;
             for (int i = 0; i < allOsuFiles.Count; i += batchSize)
@@ -123,10 +126,11 @@ namespace krrTools.Tools.Converter
                     processedFiles++;
                     
                     // 更新进度条
+                    var files1 = processedFiles;
                     Dispatcher.Invoke(() =>
                     {
-                        ConversionProgressBar.Value = processedFiles;
-                        ProgressTextBlock.Text = $"Processing {processedFiles} of {totalFiles} files...";
+                        ConversionProgressBar.Value = files1;
+                        ProgressTextBlock.Text = $"Processing {files1} of {totalFiles} files...";
                     });
                 }
                 
@@ -136,8 +140,8 @@ namespace krrTools.Tools.Converter
             }
         }
 
-                // 窗口关闭时保存配置
-        private void ConverterWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        // 窗口关闭时保存配置
+        private void ConverterWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             SaveConfiguration();
         }
@@ -147,21 +151,21 @@ namespace krrTools.Tools.Converter
         {
             try
             {
-                var config = new
+                var config = new Dictionary<string, object?>
                 {
-                    TargetKeys = _viewModel.TargetKeys,
-                    MaxKeys = _viewModel.MaxKeys,
-                    MinKeys = _viewModel.MinKeys,
-                    TransformSpeed = _viewModel.TransformSpeed,
-                    Seed = _viewModel.Seed,
-                    Is4KSelected = _viewModel.Is4KSelected,
-                    Is5KSelected = _viewModel.Is5KSelected,
-                    Is6KSelected = _viewModel.Is6KSelected,
-                    Is7KSelected = _viewModel.Is7KSelected,
-                    Is8KSelected = _viewModel.Is8KSelected,
-                    Is9KSelected = _viewModel.Is9KSelected,
-                    Is10KSelected = _viewModel.Is10KSelected,
-                    Is10KPlusSelected = _viewModel.Is10KPlusSelected
+                    ["TargetKeys"] = _viewModel.TargetKeys,
+                    ["MaxKeys"] = _viewModel.MaxKeys,
+                    ["MinKeys"] = _viewModel.MinKeys,
+                    ["TransformSpeed"] = _viewModel.TransformSpeed,
+                    ["Seed"] = _viewModel.Seed,
+                    ["Is4KSelected"] = _viewModel.Is4KSelected,
+                    ["Is5KSelected"] = _viewModel.Is5KSelected,
+                    ["Is6KSelected"] = _viewModel.Is6KSelected,
+                    ["Is7KSelected"] = _viewModel.Is7KSelected,
+                    ["Is8KSelected"] = _viewModel.Is8KSelected,
+                    ["Is9KSelected"] = _viewModel.Is9KSelected,
+                    ["Is10KSelected"] = _viewModel.Is10KSelected,
+                    ["Is10KPlusSelected"] = _viewModel.Is10KPlusSelected
                 };
 
                 string json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
@@ -235,16 +239,14 @@ namespace krrTools.Tools.Converter
         
         private void Border_DragEnter(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-                e.Effects = DragDropEffects.Copy;
-            else
-                e.Effects = DragDropEffects.None;
+            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? 
+                DragDropEffects.Copy : DragDropEffects.None;
         }
 
         private void TargetKeysSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             // 当目标键数改变时，根据规则更新最大键数滑块位置
-            if (_viewModel != null && MaxKeysSlider != null)
+            if (MaxKeysSlider != null)
             {
                 if (_viewModel.MaxKeys >= 10)
                     MaxKeysSlider.Value = 10;
@@ -253,15 +255,12 @@ namespace krrTools.Tools.Converter
             }
     
             // 同步更新最小键数滑块的最大值
-            if (_viewModel != null && MinKeysSlider != null)
+            if (MinKeysSlider != null)
             {
                 MinKeysSlider.Maximum = _viewModel.MinKeysMaximum;
                 // 当最大键数改变时，更新最小键数的值
                 // 如果最大键数等于1，最小键数等于1；否则最小键数等于2
-                if (_viewModel.MaxKeys == 1)
-                    _viewModel.MinKeys = 1;
-                else
-                    _viewModel.MinKeys = 2;
+                _viewModel.MinKeys = !(Math.Abs(_viewModel.MaxKeys - 1) < 0) ? 2 : 1;
         
                 // 确保最小键数不超过最大键数
                 if (_viewModel.MinKeys > _viewModel.MinKeysMaximum)
@@ -278,7 +277,7 @@ namespace krrTools.Tools.Converter
         private void PresetHyperlink_Click(object sender, RoutedEventArgs e)
         {
             // 传递当前的 ViewModel 和当前窗口实例
-            PresetWindow presetWindow = new PresetWindow(this.DataContext as ConverterViewModel, this);
+            PresetWindow presetWindow = new PresetWindow(_viewModel, this);
             presetWindow.Owner = this;
             presetWindow.ShowDialog();
         }
@@ -290,6 +289,51 @@ namespace krrTools.Tools.Converter
             _viewModel.TransformSpeed = preset.TransformSpeed;
             _viewModel.Seed = preset.Seed;
         }
+        private void OpenOsuListenerButton_Click(object sender, RoutedEventArgs e)
+        {
+            var listenerWindow = new ListenerView(this, 1); // 1表示Converter窗口
+            listenerWindow.Show();
+        }
+
+        // 添加处理单个文件的方法
+        public void ProcessSingleFile(string filePath)
+        {
+            try
+            {
+                // 检查文件是否存在
+                if (!File.Exists(filePath))
+                {
+                    MessageBox.Show($"File not found: {filePath}", "File Not Found", 
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+        
+                // 检查文件扩展名是否为.osu
+                if (Path.GetExtension(filePath).ToLower() != ".osu")
+                {
+                    MessageBox.Show("Selected file is not a valid .osu file", "Invalid File", 
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+        
+                var converter = new Converter
+                {
+                    options = _viewModel.GetConversionOptions()
+                };
+                string newFilepath = converter.NTONC(filePath);
+                OsuAnalyzer.AddNewBeatmapToSongFolder(newFilepath);
+                
+                MessageBox.Show("File processed successfully!", "Success", 
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error processing file: {ex.Message}", "Processing Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+
         
     }
 }

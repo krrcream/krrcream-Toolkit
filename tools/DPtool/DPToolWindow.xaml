@@ -1,9 +1,10 @@
 ﻿<Window x:Class="krrTools.tools.DPtool.DPToolWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="DP TOOL" Height="400" Width="500"
+        Title="DP TOOL" Height="500" Width="560"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="NoResize">
+        ResizeMode="CanResize"
+        Style="{DynamicResource ToolWindowStyle}">
     <Window.Resources>
         <!-- 浅灰主题按钮样式 -->
         <Style x:Key="LightGrayButtonStyle" TargetType="Button">
@@ -33,7 +34,7 @@
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="border" Property="Background" Value="#2196F3"/>
-                                <Setter Property="BorderBrush" Value="#1976D2"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#1976D2"/>
                                 <Setter Property="Foreground" Value="White"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -59,8 +60,8 @@
         <!-- BooleanToVisibilityConverter -->
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
 
-        <!-- 窗口全局样式 -->
-        <Style TargetType="Window">
+        <!-- 窗口全局样式 (now keyed to avoid implicit application when resources are merged) -->
+        <Style x:Key="ToolWindowStyle" TargetType="Window">
             <Setter Property="Background" Value="#EEEEEE"/>
             <Setter Property="Foreground" Value="#212121"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
@@ -73,127 +74,111 @@
         <Border HorizontalAlignment="Stretch" 
                 VerticalAlignment="Stretch"
                 BorderBrush="#BDBDBD" 
-                BorderThickness="2" 
-                AllowDrop="True"
-                Drop="Border_Drop"
-                DragEnter="Border_DragEnter">
-            <Border.Background>
-                <SolidColorBrush Color="#FFFFFF" Opacity="0.5"/>
-            </Border.Background>
-            <StackPanel Margin="20" VerticalAlignment="Top">
+                BorderThickness="2">
+             <Border.Background>
+                 <SolidColorBrush Color="#FFFFFF" Opacity="0.5"/>
+             </Border.Background>
+             <StackPanel Margin="20" VerticalAlignment="Top">
                 <!-- 标题区域 -->
-                <StackPanel Orientation="Vertical" Margin="0,0,0,20">
-                    <TextBlock Text="拖拽.osu文件或包含.osu的文件夹到此处。" 
-                               Foreground="#212121"
-                               FontSize="21" 
-                               FontWeight="Bold"
-                               Margin="0,0,0,5"
-                               HorizontalAlignment="Center"/>
-                    <TextBlock Text="Drag and drop .osu files or a folder containing .osu files here." 
-                               Foreground="#212121"
-                               FontSize="14" 
-                               Margin="0,0,0,20"
-                               HorizontalAlignment="Center"/>
-                </StackPanel>
+                <!-- <StackPanel Orientation="Vertical" Margin="0,0,0,20"> -->
+                <!--     <TextBlock Text="拖拽.osu文件或包含.osu的文件夹到此处。"  -->
+                <!--                Foreground="#212121" -->
+                <!--                FontSize="21"  -->
+                <!--                FontWeight="Bold" -->
+                <!--                Margin="0,0,0,5" -->
+                <!--                HorizontalAlignment="Center"/> -->
+                <!--     <TextBlock Text="Drag and drop .osu files or a folder containing .osu files here."  -->
+                <!--                Foreground="#212121" -->
+                <!--                FontSize="14"  -->
+                <!--                Margin="0,0,0,20" -->
+                <!--                HorizontalAlignment="Center"/> -->
+                <!-- </StackPanel> -->
 
                 <!-- 是否修改单侧按键数量 -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,20" HorizontalAlignment="Center">
-                    <CheckBox x:Name="ModifyKeysCheckBox" Content="Modify single Hand " VerticalAlignment="Center" 
-                              Checked="ModifyKeysCheckBox_Checked" Unchecked="ModifyKeysCheckBox_Unchecked"
-                              FontSize="14"/>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{Binding Value, ElementName=KeysSlider, StringFormat='Keys({0}): '}" VerticalAlignment="Center" FontSize="14"/>
-                        <Slider x:Name="KeysSlider" 
-                                Grid.Column="1"
-                                Width="100" 
-                                Margin="10,0,0,0" 
-                                Minimum="4" 
-                                Maximum="10" 
-                                Value="5" 
-                                TickFrequency="1" 
-                                IsSnapToTickEnabled="True"
-                                IsEnabled="False"
-                                FontSize="14"
-                                ValueChanged="KeysSlider_ValueChanged"/>
-                    </Grid>
+                <!-- Top control row: use a responsive grid so checkbox and slider don't get squeezed -->
+               
+                <CheckBox x:Name="ModifyKeysCheckBox" Content="Modify single Hand" VerticalAlignment="Center"
+                          Checked="ModifyKeysCheckBox_Checked" Unchecked="ModifyKeysCheckBox_Unchecked"
+                          FontSize="14" Margin="0,0,10,10" />
+                
+                <!-- Label above the slider so the slider moves to the next line -->
+                <StackPanel Margin="0,4,0,12">
+                    <TextBlock Text="{Binding Value, 
+                    ElementName=KeysSlider, StringFormat='Keys({0}): '}" FontSize="14" Foreground="#212121" />
+                    <Slider x:Name="KeysSlider"
+                            Minimum="4"
+                            Maximum="10"
+                            Value="5"
+                            TickFrequency="1"
+                            IsSnapToTickEnabled="True"
+                            IsEnabled="False"
+                            FontSize="14"
+                            HorizontalAlignment="Stretch"
+                            ValueChanged="KeysSlider_ValueChanged"/>
                 </StackPanel>
 
-                <!-- 左右面板 -->
+                <!-- Left / center separator / right layout using three columns so the separator doesn't overlap content -->
                 <Grid Margin="0,0,0,20">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="2"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
                     <!-- 中间分隔线 -->
-                    <Border Grid.Column="0" Grid.ColumnSpan="2" BorderThickness="0,0,2,0" BorderBrush="DarkSlateGray" HorizontalAlignment="Center"/>
+                    <Border Grid.Column="1" Background="DarkSlateGray" HorizontalAlignment="Stretch"/>
 
                     <!-- 左侧面板 -->
                     <StackPanel Grid.Column="0" Margin="0,0,10,0">
                         <!-- L 标签 -->
                         <TextBlock Text="L" FontSize="28" FontWeight="Bold" Margin="0,0,0,15" HorizontalAlignment="Center"/>
 
-                        <CheckBox x:Name="LMirrorCheckBox" Content="Mirror" Margin="0,0,0,10" FontSize="14"/>
-                        <CheckBox x:Name="LDensityCheckBox" Content="Density" Margin="0,0,0,10" 
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <CheckBox x:Name="LMirrorCheckBox" Content="Mirror " Margin="0,0,10,10" FontSize="14"/>
+                        <CheckBox x:Name="LDensityCheckBox" Content="Density" Margin="0,0,10,10" 
                                   Checked="LDensityCheckBox_Checked" Unchecked="LDensityCheckBox_Unchecked"
                                   FontSize="14"/>
-
-                        <Grid Margin="0,0,0,10">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="{Binding Value, ElementName=LMaxKeysSlider, StringFormat='Max keys({0}): '}" VerticalAlignment="Center" FontSize="14"/>
-                            <Slider x:Name="LMaxKeysSlider" Grid.Column="1" Minimum="0" Maximum="5" Value="5" TickFrequency="1" IsSnapToTickEnabled="True" IsEnabled="False" ValueChanged="LMaxKeysSlider_ValueChanged"
-                                    Width="100" FontSize="14"/>
-                        </Grid>
-
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="{Binding Value, ElementName=LMinKeysSlider, StringFormat='Min keys({0}): '}" VerticalAlignment="Center" FontSize="14"/>
-                            <Slider x:Name="LMinKeysSlider" Grid.Column="1" Minimum="0" Maximum="{Binding Value, ElementName=LMaxKeysSlider}" Value="0" TickFrequency="1" IsSnapToTickEnabled="True" IsEnabled="False"
-                                    Width="100" FontSize="14"/>
-                        </Grid>
-                    </StackPanel>
+                        </StackPanel>
+                        
+                        <StackPanel Margin="0,0,0,10">
+                            <TextBlock Text="{Binding Value, ElementName=LMaxKeysSlider, StringFormat='Max keys({0}): '}" FontSize="14" Margin="0,0,0,4"/>
+                            <Slider x:Name="LMaxKeysSlider" Minimum="0" Maximum="5" Value="5" TickFrequency="1" 
+                                    IsSnapToTickEnabled="True" IsEnabled="False" 
+                                    ValueChanged="LMaxKeysSlider_ValueChanged"
+                                    FontSize="14" HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,0,0">
+                            <TextBlock Text="{Binding Value, ElementName=LMinKeysSlider, StringFormat='Min keys({0}): '}" FontSize="14" Margin="0,0,0,4"/>
+                            <Slider x:Name="LMinKeysSlider" Minimum="0" Maximum="{Binding Value, ElementName=LMaxKeysSlider}" Value="0" TickFrequency="1" IsSnapToTickEnabled="True" IsEnabled="False"
+                                    FontSize="14" HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+                     </StackPanel>
 
                     <!-- 右侧面板 -->
-                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                    <StackPanel Grid.Column="2" Margin="10,0,0,0">
                         <!-- R 标签 -->
                         <TextBlock Text="R" FontSize="28" FontWeight="Bold" Margin="0,0,0,15" HorizontalAlignment="Center"/>
 
-                        <CheckBox x:Name="RMirrorCheckBox" Content="Mirror" Margin="0,0,0,10" FontSize="14"/>
-                        <CheckBox x:Name="RDensityCheckBox" Content="Density" Margin="0,0,0,10" 
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <CheckBox x:Name="RMirrorCheckBox" Content="Mirror" Margin="0,0,10,10" FontSize="14"/>
+                        <CheckBox x:Name="RDensityCheckBox" Content="Density" Margin="0,0,10,10" 
                                   Checked="RDensityCheckBox_Checked" Unchecked="RDensityCheckBox_Unchecked"
                                   FontSize="14"/>
+                        </StackPanel>
 
-                        <Grid Margin="0,0,0,10">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="{Binding Value, ElementName=RMaxKeysSlider, StringFormat='Max keys({0}): '}" VerticalAlignment="Center" FontSize="14"/>
-                            <Slider x:Name="RMaxKeysSlider" Grid.Column="1" Minimum="0" Maximum="5" Value="5" TickFrequency="1" IsSnapToTickEnabled="True" IsEnabled="False" ValueChanged="RMaxKeysSlider_ValueChanged"
-                                    Width="100" FontSize="14"/>
-                        </Grid>
+                        <StackPanel Margin="0,0,0,10">
+                            <TextBlock Text="{Binding Value, ElementName=RMaxKeysSlider, StringFormat='Max keys({0}): '}" FontSize="14" Margin="0,0,0,4"/>
+                            <Slider x:Name="RMaxKeysSlider" Minimum="0" Maximum="5" Value="5" TickFrequency="1" IsSnapToTickEnabled="True" IsEnabled="False" ValueChanged="RMaxKeysSlider_ValueChanged"
+                                    FontSize="14" HorizontalAlignment="Stretch"/>
+                        </StackPanel>
 
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="{Binding Value, ElementName=RMinKeysSlider, StringFormat='Min keys({0}): '}" VerticalAlignment="Center" FontSize="14"/>
-                            <Slider x:Name="RMinKeysSlider" Grid.Column="1" Minimum="0" Maximum="{Binding Value, ElementName=RMaxKeysSlider}" Value="0" TickFrequency="1" IsSnapToTickEnabled="True" IsEnabled="False"
-                                    Width="100" FontSize="14"/>
-                        </Grid>
-                    </StackPanel>
-                </Grid>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Value, ElementName=RMinKeysSlider, StringFormat='Min keys({0}): '}" FontSize="14" Margin="0,0,0,4"/>
+                            <Slider x:Name="RMinKeysSlider" Minimum="0" Maximum="{Binding Value, ElementName=RMaxKeysSlider}" Value="0" TickFrequency="1" IsSnapToTickEnabled="True" IsEnabled="False"
+                                    FontSize="14" HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+                      </StackPanel>
+                  </Grid>
                 
                 <!-- 进度面板 -->
                 <StackPanel Margin="0,0,0,20" Visibility="{Binding IsProcessing, Converter={StaticResource BooleanToVisibilityConverter}}" 
@@ -210,7 +195,8 @@
                                FontSize="16" 
                                HorizontalAlignment="Center"/>
                 </StackPanel>
-            </StackPanel>
-        </Border>
-    </Grid>
-</Window>
+                <!-- OSU Listener relocated to main tab bar -->
+             </StackPanel>
+         </Border>
+     </Grid>
+ </Window>

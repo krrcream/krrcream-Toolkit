@@ -1,33 +1,31 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Microsoft.Win32;
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Data;
-using OsuParsers.Beatmaps;
-using OsuParsers.Decoders;
 using System.Windows.Forms;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using OsuParsers.Decoders;
 using Application = System.Windows.Application;
 
-namespace krrTools.Tools.GetFiles
+namespace krrTools.tools.Get_files
 {
     
     public class OsuFileInfo
     {
-        public string Title { get; set; }
-        public string Diff { get; set; }
-        public string Artist { get; set; }
-        public string Creator { get; set; }
+        public string? Title { get; set; }
+        public string? Diff { get; set; }
+        public string? Artist { get; set; }
+        public string? Creator { get; set; }
+        public string? FilePath { get; set; }
         public int Keys { get; set; }
         public double OD { get; set; }
         public double HP { get; set; }
         public int BeatmapID { get; set; }
         public int BeatmapSetID { get; set; }
-        public string FilePath { get; set; }
     }
     
     public partial class GetFilesViewModel : ObservableObject
@@ -36,6 +34,7 @@ namespace krrTools.Tools.GetFiles
         public GetFilesViewModel()
         {
             // 初始化过滤视图
+            _progressValue = 0;
             FilteredOsuFiles = CollectionViewSource.GetDefaultView(OsuFiles);
             FilteredOsuFiles.Filter = FilterPredicate;
         }
@@ -78,10 +77,10 @@ namespace krrTools.Tools.GetFiles
         private string _filePathFilter = "";
         
         [ObservableProperty]
-        private bool _isProcessing = false;
+        private bool _isProcessing;
 
         [ObservableProperty]
-        private int _progressValue = 0;
+        private int _progressValue;
 
         [ObservableProperty]
         private int _progressMaximum = 100;
@@ -100,7 +99,7 @@ namespace krrTools.Tools.GetFiles
             folderDialog.Description = "Please select the osu! Songs folder";
             folderDialog.RootFolder = Environment.SpecialFolder.MyComputer;
 
-            if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            if (folderDialog.ShowDialog() == DialogResult.OK)
             {
                 string selectedPath = folderDialog.SelectedPath;
                 await ProcessAsync(selectedPath);
@@ -154,13 +153,13 @@ namespace krrTools.Tools.GetFiles
                     if (batch.Count >= batchSize || i == files.Length - 1)
                     {
                         // 在UI线程上更新数据
-                        Application.Current.Dispatcher.Invoke(() =>
+                        Application.Current.Dispatcher.Invoke((Action)(() =>
                         {
                             foreach (var item in batch)
                             {
                                 OsuFiles.Add(item);
                             }
-                        });
+                        }));
                         
                         batch.Clear();
                         
@@ -183,7 +182,7 @@ namespace krrTools.Tools.GetFiles
             }
         }
 
-        private OsuFileInfo ParseOsuFile(string filePath)
+        private OsuFileInfo? ParseOsuFile(string filePath)
         {
             try
             {
@@ -224,23 +223,23 @@ namespace krrTools.Tools.GetFiles
             string artist = fileInfo.Artist?.ToLower() ?? "";
             string creator = fileInfo.Creator?.ToLower() ?? "";
             string keys = fileInfo.Keys.ToString();
-            string od = fileInfo.OD.ToString();
-            string hp = fileInfo.HP.ToString();
+            string od = fileInfo.OD.ToString(CultureInfo.InvariantCulture);
+            string hp = fileInfo.HP.ToString(CultureInfo.InvariantCulture);
             string beatmapId = fileInfo.BeatmapID.ToString();
             string beatmapSetId = fileInfo.BeatmapSetID.ToString();
             string filePath = fileInfo.FilePath?.ToLower() ?? "";
 
             // 检查是否满足所有筛选条件
-            return (string.IsNullOrEmpty(TitleFilter) || title.Contains(TitleFilter.ToLower())) &&
-                   (string.IsNullOrEmpty(DiffFilter) || diff.Contains(DiffFilter.ToLower())) &&
-                   (string.IsNullOrEmpty(ArtistFilter) || artist.Contains(ArtistFilter.ToLower())) &&
-                   (string.IsNullOrEmpty(CreatorFilter) || creator.Contains(CreatorFilter.ToLower())) &&
-                   (string.IsNullOrEmpty(KeysFilter) || keys.Contains(KeysFilter)) &&
-                   (string.IsNullOrEmpty(OdFilter) || od.Contains(OdFilter)) &&
-                   (string.IsNullOrEmpty(HpFilter) || hp.Contains(HpFilter)) &&
-                   (string.IsNullOrEmpty(BeatmapIdFilter) || beatmapId.Contains(BeatmapIdFilter)) &&
-                   (string.IsNullOrEmpty(BeatmapSetIdFilter) || beatmapSetId.Contains(BeatmapSetIdFilter)) &&
-                   (string.IsNullOrEmpty(FilePathFilter) || filePath.Contains(FilePathFilter.ToLower()));
+            return (string.IsNullOrEmpty(TitleFilter) || title.Contains((string)TitleFilter.ToLower())) &&
+                   (string.IsNullOrEmpty(DiffFilter) || diff.Contains((string)DiffFilter.ToLower())) &&
+                   (string.IsNullOrEmpty(ArtistFilter) || artist.Contains((string)ArtistFilter.ToLower())) &&
+                   (string.IsNullOrEmpty(CreatorFilter) || creator.Contains((string)CreatorFilter.ToLower())) &&
+                   (string.IsNullOrEmpty(KeysFilter) || keys.Contains((string)KeysFilter)) &&
+                   (string.IsNullOrEmpty(OdFilter) || od.Contains((string)OdFilter)) &&
+                   (string.IsNullOrEmpty(HpFilter) || hp.Contains((string)HpFilter)) &&
+                   (string.IsNullOrEmpty(BeatmapIdFilter) || beatmapId.Contains((string)BeatmapIdFilter)) &&
+                   (string.IsNullOrEmpty(BeatmapSetIdFilter) || beatmapSetId.Contains((string)BeatmapSetIdFilter)) &&
+                   (string.IsNullOrEmpty(FilePathFilter) || filePath.Contains((string)FilePathFilter.ToLower()));
         }
     }
 }
