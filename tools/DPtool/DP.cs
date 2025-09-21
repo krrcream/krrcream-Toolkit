@@ -23,7 +23,7 @@ namespace krrTools.tools.DPtool
         /// 处理.osu文件的DP操作
         /// </summary>
         /// <param name="filePath">需要处理的.osu文件路径</param>
-        public void ProcessFile(string filePath)
+        public string ProcessFile(string filePath)
         {
             // 检查文件是否存在
             if (!File.Exists(filePath))
@@ -53,28 +53,34 @@ namespace krrTools.tools.DPtool
             OPorg.TargetKeys = Options.SingleSideKeyCount;
             OPorg.TransformSpeed = 4;
             Conv.options = OPorg;
+            var ANA = new OsuAnalyzer();
+            double BPM = double.Parse(ANA.GetBPM(beatmap).Split('(')[0]);
+            double beatLength = 60000 / BPM * 4;
+            double convertTime = Math.Max(1, OPorg.TransformSpeed * beatLength - 10);
+            var (matrix, timeAxis) = Conv.BuildMatrix(beatmap);
             
             if (Options.ModifySingleSideKeyCount && Options.SingleSideKeyCount > beatmap.DifficultySection.CircleSize)
             {
                 
                 int targetKeys = Options.SingleSideKeyCount;
-                var ANA = new OsuAnalyzer();
-                double BPM = double.Parse(ANA.GetBPM(beatmap).Split('(')[0]);
-                double beatLength = 60000 / BPM * 4;
                 // 变换时间
-                double convertTime = Math.Max(1, OPorg.TransformSpeed * beatLength - 10);
                 
-                
-                
-                var (matrix, timeAxis) = Conv.BuildMatrix(beatmap);
                 var (oldMTX, insertMTX) = Conv.convertMTX(targetKeys-CS, timeAxis, convertTime, CS, random);
                 int[,] newMatrix = Conv.convert(matrix, oldMTX, insertMTX, timeAxis, targetKeys,beatLength,random);
                 orgMTX = newMatrix;
             }
+            else if (Options.ModifySingleSideKeyCount &&
+                     Options.SingleSideKeyCount < beatmap.DifficultySection.CircleSize)
+            {
+                int targetKeys = Options.SingleSideKeyCount;
+                var newMatrix = Conv.SmartReduceColumns(matrix, timeAxis, CS - targetKeys, convertTime,beatLength);
+                orgMTX = newMatrix;
+            }
             else
             {
-                (orgMTX,var timeAxis) = Conv.BuildMatrix(beatmap);
+                (orgMTX,timeAxis) = Conv.BuildMatrix(beatmap);
             }
+             
             //克隆两个矩阵分别叫做orgL和orgR
             int[,] orgL = (int[,])orgMTX.Clone();
             int[,] orgR = (int[,])orgMTX.Clone();
@@ -105,10 +111,10 @@ namespace krrTools.tools.DPtool
             int[,] result = ConcatenateMatrices(orgL, orgR);
             // 合成新HitObjects
             newHitObjects(beatmap, result);
-            BeatmapSave();
+            return BeatmapSave();
             
             
-            void BeatmapSave()
+            string BeatmapSave()
             {
                 
                 beatmap.MetadataSection.Creator = "Krr DP. & " + beatmap.MetadataSection.Creator;
@@ -139,6 +145,7 @@ namespace krrTools.tools.DPtool
                 
                 beatmap.Save(fullPath);
                 beatmap = null;
+                return fullPath;
             }
             
         }

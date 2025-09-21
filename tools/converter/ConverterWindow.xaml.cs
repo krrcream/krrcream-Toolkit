@@ -12,6 +12,8 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.IO;
 using System.Text.Json;
+using krrTools.tools.Listener;
+using krrTools.Tools.OsuParser;
 
 namespace krrTools.Tools.Converter
 {
@@ -282,6 +284,7 @@ namespace krrTools.Tools.Converter
             presetWindow.Owner = this;
             presetWindow.ShowDialog();
         }
+
         public void ApplyPreset(PresetData preset)
         {
             _viewModel.TargetKeys = preset.TargetKeys;
@@ -290,6 +293,49 @@ namespace krrTools.Tools.Converter
             _viewModel.TransformSpeed = preset.TransformSpeed;
             _viewModel.Seed = preset.Seed;
         }
+        private void OpenOsuListenerButton_Click(object sender, RoutedEventArgs e)
+        {
+            var listenerWindow = new ListenerView(this, 1); // 1表示Converter窗口
+            listenerWindow.Show();
+        }
+
+        // 添加处理单个文件的方法
+        public void ProcessSingleFile(string filePath)
+        {
+            try
+            {
+                // 检查文件是否存在
+                if (!File.Exists(filePath))
+                {
+                    MessageBox.Show($"File not found: {filePath}", "File Not Found", 
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+        
+                // 检查文件扩展名是否为.osu
+                if (Path.GetExtension(filePath).ToLower() != ".osu")
+                {
+                    MessageBox.Show("Selected file is not a valid .osu file", "Invalid File", 
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+        
+                var converter = new Converter();
+                converter.options = _viewModel.GetConversionOptions();
+                string newFilepath = converter.NTONC(filePath);
+                OsuAnalyzer.AddNewBeatmapToSongFolder(newFilepath);
+                
+                MessageBox.Show("File processed successfully!", "Success", 
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error processing file: {ex.Message}", "Processing Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+
         
     }
 }

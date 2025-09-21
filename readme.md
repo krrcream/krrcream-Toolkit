@@ -5,6 +5,12 @@
   <b>A collection of tools for osumania beatmap</b>
 </p>
 
+<p align="center">
+These tools allows creating new maps by either dragging batch files into the window or pressing hotkeys directly in-game.
+</p>
+
+
+
 ## 📥 Download
 
 - [GitHub Release Page](https://github.com/krrcream/krrcream-Toolkit/releases) 🚀 *(Recommended)*
@@ -34,6 +40,7 @@ Automatically rates beatmaps based on KRR LV.
 ## 📸 Screenshots
 
 ### krr AnyKeys Converter / YLS LN Transformer / DP Tool
+![img_LI.png](img/LI.png)
 ![img_1.png](img/1.png)
 ![img_S.png](img/S.png)
 ### .osu File Manager

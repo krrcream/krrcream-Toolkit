@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using System.Windows;
+using krrTools.tools.Listener;
 
 namespace krrTools.tools.DPtool
 {
@@ -45,6 +47,15 @@ namespace krrTools.tools.DPtool
         {
             get => _options;
             set => SetProperty(ref _options, value);
+        }
+        
+        /// <summary>
+        /// 打开osu!监听器窗口
+        /// </summary>
+        public void OpenOsuListener()
+        {
+            var listenerWindow = new ListenerView();
+            listenerWindow.Show();
         }
     }
 }

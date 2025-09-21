@@ -202,7 +202,7 @@ namespace krrTools
                 {
                     var pointElements = line.Split(',');
                     points.Add(new TimingPoint(
-                        int.Parse(pointElements[0], CultureInfo.InvariantCulture), 
+                        (int)double.Parse(pointElements[0], CultureInfo.InvariantCulture), // 时间戳（支持小数）
                         double.Parse(pointElements[1], CultureInfo.InvariantCulture), 
                         int.Parse(pointElements[2], CultureInfo.InvariantCulture), 
                         int.Parse(pointElements[3], CultureInfo.InvariantCulture), 
@@ -884,16 +884,16 @@ namespace krrTools
 
         public General()
         {
-            PreviewTime = string.Empty;
+            PreviewTime = "-1";
             AudioFilename = string.Empty;
-            AudioLeadIn = string.Empty;
-            Countdown = string.Empty;
-            SampleSet = string.Empty;
-            StackLeniency = string.Empty;
+            AudioLeadIn = "0";
+            Countdown = "0";
+            SampleSet = "Soft";
+            StackLeniency = "0.7";
             Mode = string.Empty;
-            LetterboxInBreaks = string.Empty;
-            SpecialStyle = string.Empty;
-            WidescreenStoryboard = string.Empty;
+            LetterboxInBreaks = "0";
+            SpecialStyle = "1";
+            WidescreenStoryboard = "0";
             HPDrainRate = 0;
             CircleSize = 8;
             OverallDifficulty = 0;

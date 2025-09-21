@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 using System.Linq;
+using System.Windows;
 using krrTools.Tools.OsuParser; 
 
 namespace krrTools.Tools.OsuParser
@@ -118,6 +121,72 @@ namespace krrTools.Tools.OsuParser
             //选出Times最大值的索引，获取对应索引的BPMlist中的值作为BPM
             BPM = BPMList[Times.IndexOf(Times.Max())];
             return BPM + "(" + BPMList.Min().ToString() + " - " + BPMList.Max().ToString() + ")";
+        }
+        
+        public static void AddNewBeatmapToSongFolder(string newBeatmapFile)
+        {
+            // 获取.osu文件所在的目录作为歌曲文件夹
+            string songFolder = Path.GetDirectoryName(newBeatmapFile);
+            Console.WriteLine(songFolder);
+            
+            // 创建.osz文件
+            string outputOsz = Path.GetFileName(songFolder) + ".osz";
+            string fullOutputPath = Path.Combine(Path.GetDirectoryName(songFolder), outputOsz);
+            
+            if (File.Exists(fullOutputPath))
+                File.Delete(fullOutputPath);
+                
+            try
+            {
+                ZipFile.CreateFromDirectory(songFolder, fullOutputPath);
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show($"Failed to create {fullOutputPath} {Environment.NewLine}{Environment.NewLine}{e.Message}", "Error");
+                return;
+            }
+            
+            // 2. 加入新的谱面文件到.osz
+            try
+            {
+                using (ZipArchive archive = ZipFile.Open(fullOutputPath, ZipArchiveMode.Update))
+                {
+                    archive.CreateEntryFromFile(newBeatmapFile, Path.GetFileName(newBeatmapFile));
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show($"Failed to add beatmap to archive: {Environment.NewLine}{Environment.NewLine}{e.Message}", "Error");
+                return;
+            }
+            
+            // 3. 删除原本谱面
+            try
+            {
+                if (File.Exists(newBeatmapFile))
+                {
+                    File.Delete(newBeatmapFile);
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show($"Failed to delete the temporary beatmap file: {newBeatmapFile} {Environment.NewLine}{Environment.NewLine}{e.Message}", "Warning");
+            }
+            
+            // 4. 打开. osz
+            Process proc = new Process();
+            proc.StartInfo.FileName = fullOutputPath;
+            proc.StartInfo.UseShellExecute = true;
+            try
+            {
+                proc.Start();
+            }
+            catch
+            {
+                MessageBox.Show("There was an error opening the generated .osz file. This is probably because .osz files have not been configured to open with osu!.exe on this system." + Environment.NewLine + Environment.NewLine +
+                                "To fix this, download any map from the website, right click the .osz file, click properties, beside Opens with... click Change..., and select osu!. " +
+                                "You'll know the problem is fixed when you can double click .osz files to open them with osu!", "Error");
+            }
         }
         
     }

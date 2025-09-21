@@ -25,7 +25,7 @@ namespace krrTools.Tools.Converter
 
         /// <summary>
 
-        public void NTONC(string filepath)
+        public string NTONC(string filepath)
         {
 
             // 检查文件是否存在
@@ -76,7 +76,8 @@ namespace krrTools.Tools.Converter
             // 变换时间
             double convertTime = Math.Max(1, options.TransformSpeed * beatLength - 10);
             var (matrix, timeAxis) = BuildMatrix(beatmap);
-            
+            //
+            string newFilename = ""; 
             if (turn >= 0)
             {
                 DOAddKeys(RG);
@@ -92,7 +93,7 @@ namespace krrTools.Tools.Converter
                 var newMatrix = SmartReduceColumns(matrix, timeAxis, -turn, convertTime,beatLength);
                 DensityReducer(newMatrix, (int)options.TargetKeys - (int)options.MaxKeys, (int)options.MinKeys, (int)options.TargetKeys, random);
                 newHitObjects(beatmap ,newMatrix);
-                BeatmapSave();
+                newFilename = BeatmapSave();
             }
 
             void DOAddKeys(Random random)
@@ -106,9 +107,10 @@ namespace krrTools.Tools.Converter
                 // PrintMatrix(oldMTX, timeAxis);
                 // PrintMatrix(insertMTX, timeAxis);
                 
-                BeatmapSave();
+                newFilename = BeatmapSave();
             }
 
+            return newFilename;
             // 转换操作
 
             // 打印二维矩阵到控制台
@@ -137,7 +139,7 @@ namespace krrTools.Tools.Converter
             }
 
             //保存操作
-            void BeatmapSave()
+            string BeatmapSave()
             {
                 beatmap.MetadataSection.Creator = "Krr Conv. & " + beatmap.MetadataSection.Creator;
                 beatmap.DifficultySection.CircleSize = (float)options.TargetKeys;
@@ -167,6 +169,7 @@ namespace krrTools.Tools.Converter
                 
                 beatmap.Save(fullPath);
                 beatmap = null;
+                return fullPath;
             }
 
 

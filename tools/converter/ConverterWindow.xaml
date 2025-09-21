@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Krrcream's AnyKeys Converter V2.2.0" Height="660" Width="600"
+        Title="Krrcream's AnyKeys Converter" Height="720" Width="600"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize">
     
@@ -352,6 +352,13 @@
                         </Hyperlink>
                     </TextBlock>
                 </StackPanel>
+                
+                <!-- OSU Listener按钮 -->
+                <Button Content="OSU Listener" 
+                        Click="OpenOsuListenerButton_Click"
+                        Style="{StaticResource LightGrayButtonStyle}"
+                        Margin="10,20,10,10"
+                        Height="30"/>
                 
                 <StackPanel Margin="10,20,10,0" Visibility="Collapsed" x:Name="ProgressPanel">
                     <ProgressBar x:Name="ConversionProgressBar" 

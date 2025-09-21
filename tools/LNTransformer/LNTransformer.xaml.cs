@@ -11,7 +11,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
+using krrTools.tools.Listener;
 using OsuParsers.Beatmaps.Objects;
+using krrTools.Tools.OsuParser;
 
 namespace krrTools
 {
@@ -59,7 +61,168 @@ namespace krrTools
         {
             ProcessDroppedFiles(e);
         }
+        
+         // 添加处理单个文件的方法
+        public void ProcessSingleFile(string filePath)
+        {
+            try
+            {
+                // 检查文件是否存在
+                if (!File.Exists(filePath))
+                {
+                    MessageBox.Show($"File not found: {filePath}", "File Not Found", 
+                                  MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                
+                // 检查文件扩展名是否为.osu
+                if (Path.GetExtension(filePath).ToLower() != ".osu")
+                {
+                    MessageBox.Show("Selected file is not a valid .osu file", "Invalid File", 
+                                  MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                
+                // 显示进度条
+                ProgressStackPanel.Visibility = Visibility.Visible;
+                processedFiles = 0;
+                totalFiles = 1;
+                UpdateProgress(true, false);
+                
+                Task.Run(() =>
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        processedFiles = 0;
+                        ConversionProgress.Value = 0;
+                    });
 
+                    // 创建包含单个文件的列表
+                    var allFiles = new List<string> { filePath };
+                    totalFiles = allFiles.Count;
+
+                    if (totalFiles > 0)
+                    {
+                        LNTransformParameters parameters = new LNTransformParameters();
+
+                        Dispatcher.Invoke(() =>
+                        {
+                            parameters.SeedText = Setting.Seed;
+                            parameters.LevelValue = (int)LevelValue.Value;
+                            parameters.PercentageValue = PercentageValue.Value;
+                            parameters.DivideValue = DivideValue.Value;
+                            parameters.ColumnValue = ColumnValue.Value;
+                            parameters.GapValue = GapValue.Value;
+                            parameters.IgnoreIsChecked = Ignore.IsChecked == true;
+                            parameters.OriginalLNIsChecked = OriginalLN.IsChecked == true;
+                            parameters.FixErrorIsChecked = FixError.IsChecked == true;
+                            parameters.OverallDifficulty = double.Parse(OverallDifficulty.Text);
+                            parameters.CreatorText = Setting.Creator;
+                            parameters.CheckKeys = Setting.KeyFilter;
+                        });
+
+                        var osuFiles = OsuFileProcessor.ReadMultipleFiles(allFiles, (line) =>
+                        {
+                            if (line.StartsWith("Mode"))
+                            {
+                                string str = line.Substring(line.IndexOf(':') + 1).Trim();
+                                if (str != "3")
+                                {
+                                    UpdateProgress(false);
+                                    return true;
+                                }
+                            }
+                            if (line.StartsWith("CircleSize"))
+                            {
+                                string str = line.Substring(line.IndexOf(':') + 1).Trim();
+                                if (int.TryParse(str, out int cs))
+                                {
+                                    if (cs > 10)
+                                    {
+                                        UpdateProgress(false);
+                                        return true;
+                                    }
+                                    if (Setting.KeyFilter.Count > 0 && !Setting.KeyFilter.Contains(cs))
+                                    {
+                                        UpdateProgress(false);
+                                        return true;
+                                    }
+                                }
+                                else
+                                {
+                                    UpdateProgress(false);
+                                    return true;
+                                }
+                            }
+                            if (parameters.IgnoreIsChecked && line.StartsWith("Creator"))
+                            {
+                                var str = line.Substring(line.IndexOf(':') + 1).Trim();
+                                if (str.Contains("LNTransformer"))
+                                {
+                                    UpdateProgress(false);
+                                    return true;
+                                }
+                            }
+                            return false;
+                        });
+
+                        foreach (var osuFile in osuFiles)
+                        {
+                            try
+                            {
+                                ApplyToBeatmap(osuFile, parameters);
+                                string newFilepath = osuFile.path+ "\\" +osuFile.FileName + ".osu";
+                                OsuAnalyzer.AddNewBeatmapToSongFolder(newFilepath);
+                            }
+                            catch (Exception ex)
+                            {
+                                UpdateProgress(false);
+
+        #if DEBUG                               
+                                Task.Run(() =>
+                                {
+                                    MessageBox.Show($"Error processing {osuFile.OriginalFile!.FullName}: {ex.Message}\n\nStack Trace:\n{ex.StackTrace}", "Converting Error", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.None, MessageBoxOptions.DefaultDesktopOnly);
+                                });
+        #endif
+                            }
+                        }
+
+                        processedFiles = totalFiles;
+                        UpdateProgress(true, false);
+                    }
+                    
+                    // 隐藏进度条
+                    Dispatcher.Invoke(() =>
+                    {
+                        ProgressStackPanel.Visibility = Visibility.Collapsed;
+                    });
+                    
+                    Task.Run(() =>
+                    {
+                        MessageBox.Show("File processed successfully!", "Success", 
+                                      MessageBoxButton.OK, MessageBoxImage.Information);
+                    });
+                });
+            }
+            catch (Exception ex)
+            {
+                // 隐藏进度条
+                Dispatcher.Invoke(() =>
+                {
+                    ProgressStackPanel.Visibility = Visibility.Collapsed;
+                });
+                
+                Task.Run(() =>
+                {
+                    MessageBox.Show($"Error processing file: {ex.Message}", "Processing Error", 
+                                  MessageBoxButton.OK, MessageBoxImage.Error);
+                });
+            }
+        }
+
+        
+
+        
         private void ProcessDroppedFiles(DragEventArgs e)
         {
             if (!e.Data.GetDataPresent(DataFormats.FileDrop))
@@ -290,7 +453,7 @@ namespace krrTools
                     osu.Metadata.Creator += " & LNTransformer";
                 }
                 osu.WriteFile();
-
+                
                 UpdateProgress();
 
                 return;
@@ -705,6 +868,12 @@ namespace krrTools
         {
             InstructionsWindow instructionsWindow = new InstructionsWindow();
             instructionsWindow.ShowDialog();
+        }
+        
+        private void OpenOsuListenerButton_Click(object sender, RoutedEventArgs e)
+        {
+            var listenerWindow = new ListenerView(this, 2); // 2表示LN Transformer窗口
+            listenerWindow.Show();
         }
         
     }

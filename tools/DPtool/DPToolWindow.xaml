@@ -1,7 +1,7 @@
 ﻿<Window x:Class="krrTools.tools.DPtool.DPToolWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="DP TOOL" Height="400" Width="500"
+        Title="DP TOOL" Height="450" Width="500"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize">
     <Window.Resources>
@@ -210,6 +210,10 @@
                                FontSize="16" 
                                HorizontalAlignment="Center"/>
                 </StackPanel>
+                <!-- OSU Listener按钮 -->
+                <Button Content="OSU Listener" 
+                        Click="OpenOsuListenerButton_Click"                        Style="{StaticResource LightGrayButtonStyle}"
+                        Margin="0,0,0,10"/>
             </StackPanel>
         </Border>
     </Grid>
