@@ -33,7 +33,7 @@ namespace krrTools.tools.DPtool
 
         public DPToolControl()
         {
-            this.DataContext = _viewModel;
+            DataContext = _viewModel;
             try
             {
                 BuildDPToolUI();
@@ -42,7 +42,7 @@ namespace krrTools.tools.DPtool
             catch (Exception ex)
             {
                 Debug.WriteLine($"DPToolControl initialization error: {ex.Message}");
-                this.Content = new TextBlock
+                Content = new TextBlock
                 {
                     Text = "DP Tool 加载失败: " + ex.Message,
                     TextWrapping = TextWrapping.Wrap,
@@ -53,7 +53,7 @@ namespace krrTools.tools.DPtool
                 return;
             }
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
-            this.Unloaded += (_, _) =>
+            Unloaded += (_, _) =>
             {
                 SharedUIComponents.LanguageChanged -= OnLanguageChanged;
                 DPToolWindow_Closed();
@@ -64,11 +64,11 @@ namespace krrTools.tools.DPtool
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                    var dc = this.DataContext;
-                    this.Content = null;
+                    var dc = DataContext;
+                    Content = null;
                     BuildDPToolUI();
                     SetupBindings();
-                    this.DataContext = dc;
+                    DataContext = dc;
             }));
         }
 
@@ -76,7 +76,7 @@ namespace krrTools.tools.DPtool
         {
             try
             {
-                OptionsService.SaveOptions(OptionsConstants.DPToolName, OptionsConstants.OptionsFileName, _viewModel.Options);
+                OptionsManager.SaveOptions(OptionsManager.DPToolName, OptionsManager.OptionsFileName, _viewModel.Options);
             }
             catch (Exception ex)
             {
@@ -86,7 +86,7 @@ namespace krrTools.tools.DPtool
 
         private void BuildDPToolUI()
         {
-            var enumProvider = new EnumSettingsProviderDelegate(
+            var enumProvider = new krrTools.Tools.Shared.EnumSettingsProviderDelegate(
                 getter: key =>
                 {
                     try { return _viewModel.Options.GetType().GetProperty(key.ToString())?.GetValue(_viewModel.Options); }
@@ -110,7 +110,7 @@ namespace krrTools.tools.DPtool
             _enumProvider = enumProvider;
 
             // Top: Modify keys + keys slider
-            ModifyKeysCheckBox = SharedUIComponents.CreateStandardCheckBoxWithTooltip(Strings.DPModifyKeysCheckbox, Strings.DPModifyKeysTooltip);
+            ModifyKeysCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.DPModifyKeysCheckbox, Strings.DPModifyKeysTooltip);
             ModifyKeysCheckBox.Margin = new Thickness(0, 0, 0, 6);
 
             var keysSettings = new SettingsSlider<double>
@@ -139,8 +139,8 @@ namespace krrTools.tools.DPtool
             // Left/Right panels
             // Left
             var leftLabel = SharedUIComponents.CreateHeaderLabel(Strings.DPLeftLabel);
-            LMirrorCheckBox = SharedUIComponents.CreateStandardCheckBoxWithTooltip(Strings.DPMirrorLabel, Strings.DPMirrorTooltipLeft);
-            LDensityCheckBox = SharedUIComponents.CreateStandardCheckBoxWithTooltip(Strings.DPDensityLabel, Strings.DPDensityTooltipLeft);
+            LMirrorCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.DPMirrorLabel, Strings.DPMirrorTooltipLeft);
+            LDensityCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.DPDensityLabel, Strings.DPDensityTooltipLeft);
 
             var leftChecks = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 10) };
             leftChecks.Children.Add(LMirrorCheckBox);
@@ -181,8 +181,8 @@ namespace krrTools.tools.DPtool
 
             // Right
             var rightLabel = SharedUIComponents.CreateHeaderLabel(Strings.DPRightLabel);
-            RMirrorCheckBox = SharedUIComponents.CreateStandardCheckBoxWithTooltip(Strings.DPMirrorLabel, Strings.DPMirrorTooltipRight);
-            RDensityCheckBox = SharedUIComponents.CreateStandardCheckBoxWithTooltip(Strings.DPDensityLabel, Strings.DPDensityTooltipRight);
+            RMirrorCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.DPMirrorLabel, Strings.DPMirrorTooltipRight);
+            RDensityCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.DPDensityLabel, Strings.DPDensityTooltipRight);
 
             var rightChecks = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 10) };
             rightChecks.Children.Add(RMirrorCheckBox);
@@ -236,7 +236,7 @@ namespace krrTools.tools.DPtool
             grid.Children.Add(rightPanel);
 
             // Presets panel (preserve existing factory usage)
-            var presetInner = PresetPanelFactory.CreatePresetPanel(OptionsConstants.DPToolName, () => _viewModel.Options, (opt) =>
+            var presetInner = PresetPanelFactory.CreatePresetPanel(OptionsManager.DPToolName, () => _viewModel.Options, (opt) =>
             {
                 if (opt == null) return;
                 var target = _viewModel.Options;
@@ -263,7 +263,7 @@ namespace krrTools.tools.DPtool
             stackPanel.Children.Add(grid);
             stackPanel.Children.Add(presetsPanel);
             // Assign the built UI to the control's content
-            this.Content = stackPanel;
+            Content = stackPanel;
         }
 
         public void ProcessSingleFile(string filePath)

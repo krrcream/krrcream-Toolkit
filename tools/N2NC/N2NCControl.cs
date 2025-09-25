@@ -25,11 +25,11 @@ namespace krrTools.tools.N2NC
         {
             // Initialize view and bindings
             BuildConverterUI();
-            this.DataContext = _viewModel;
+            DataContext = _viewModel;
             // Subscribe to language change to rebuild UI on demand
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
             // Unsubscribe when this control is unloaded
-            this.Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
+            Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
         }
 
         private void OnLanguageChanged()
@@ -37,14 +37,14 @@ namespace krrTools.tools.N2NC
             try
             {
                 // Rebuild UI on UI thread to refresh labels/tooltips
-                this.Dispatcher.BeginInvoke(new Action(() =>
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
                     try
                     {
-                        var dm = this.DataContext;
-                        this.Content = null;
+                        var dm = DataContext;
+                        Content = null;
                         BuildConverterUI();
-                        this.DataContext = dm;
+                        DataContext = dm;
                     }
                     catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"N2NCWindow inner rebuild failed: {ex.Message}"); }
                 }));
@@ -85,7 +85,7 @@ namespace krrTools.tools.N2NC
 
             // 组装界面 - use ScrollViewer directly as top-level Content (removed extra Grid layer)
             scrollViewer.Content = grid;
-            this.Content = scrollViewer;
+            Content = scrollViewer;
 
             // 事件处理
             SetupEventHandlers();
@@ -110,18 +110,20 @@ namespace krrTools.tools.N2NC
             var label = Strings.Localize(Strings.N2NCTargetKeysLabel);
             void UpdateTargetKeysLabel() => label = Strings.Localize(Strings.N2NCTargetKeysLabel);
             
-            var targetKeysSlider = SharedUIComponents.CreateStandardSlider(1, 15, 30, true);
+            var targetKeysSlider = SharedUIComponents.CreateStandardSlider(1, 15, double.NaN, true);
             targetKeysSlider.SetBinding(RangeBase.ValueProperty, new Binding("TargetKeys") { Source = _viewModel });
+            TargetKeysSlider = targetKeysSlider;
             
             var targetKeysText = SharedUIComponents.CreateStandardTextBlock();
             targetKeysText.SetBinding(TextBlock.TextProperty, new Binding("TargetKeys") { Source = _viewModel, StringFormat = "{0}" });
             
             var targetKeysPanel = new StackPanel { Orientation = Orientation.Horizontal };
+            targetKeysPanel.Children.Add(targetKeysSlider);
             targetKeysPanel.Children.Add(targetKeysText);
             
             var targetKeysRow = SharedUIComponents.CreateLabeledRow(label, targetKeysPanel, rowMargin);
             SharedUIComponents.LanguageChanged += UpdateTargetKeysLabel;
-            this.Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= UpdateTargetKeysLabel;
+            Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= UpdateTargetKeysLabel;
 
             return targetKeysRow;
         }
@@ -131,7 +133,7 @@ namespace krrTools.tools.N2NC
             var maxInner = new Grid();
             maxInner.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             maxInner.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            MaxKeysSlider = SharedUIComponents.CreateStandardSlider(1, 18, 24, true);
+            MaxKeysSlider = SharedUIComponents.CreateStandardSlider(1, 18, double.NaN, true);
             MaxKeysSlider.SetBinding(RangeBase.ValueProperty, new Binding(nameof(N2NCViewModel.MaxKeys)) { Mode = BindingMode.TwoWay });
             MaxKeysSlider.ValueChanged += MaxKeysSlider_ValueChanged;
             Grid.SetColumn(MaxKeysSlider, 0);
@@ -149,7 +151,7 @@ namespace krrTools.tools.N2NC
             var minInner = new Grid();
             minInner.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             minInner.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            MinKeysSlider = SharedUIComponents.CreateStandardSlider(1, 18, 18, true);
+            MinKeysSlider = SharedUIComponents.CreateStandardSlider(1, 18, double.NaN, true);
             MinKeysSlider.SetBinding(RangeBase.ValueProperty, new Binding(nameof(N2NCViewModel.MinKeys)) { Mode = BindingMode.TwoWay });
             Grid.SetColumn(MinKeysSlider, 0);
             minInner.Children.Add(MinKeysSlider);
@@ -167,7 +169,7 @@ namespace krrTools.tools.N2NC
             transformInner.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             transformInner.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             // 创建整数档位滑块 (1-8)，每个档位对应一个节拍值
-            var transformSlider = SharedUIComponents.CreateStandardSlider(1, 8, 1, true); // 整数档位，启用刻度对齐
+            var transformSlider = SharedUIComponents.CreateStandardSlider(1, 8, double.NaN, true); // 整数档位，启用刻度对齐
             transformSlider.SetBinding(RangeBase.ValueProperty, new Binding(nameof(N2NCViewModel.TransformSpeedSlot)) { Mode = BindingMode.TwoWay });
             Grid.SetColumn(transformSlider, 0);
             transformInner.Children.Add(transformSlider);
@@ -224,7 +226,7 @@ namespace krrTools.tools.N2NC
 
             foreach (var flag in flagOrder)
             {
-                var cb = SharedUIComponents.CreateStandardCheckBoxWithTooltip(flagLabels[flag], flagLabels[flag]);
+                var cb = SharedUIComponents.CreateStandardCheckBox(flagLabels[flag], flagLabels[flag]);
                 cb.IsChecked = GetKeySelectionFlag(flag);
                 cb.Checked += (_, _) => SetKeySelectionFlag(flag, true);
                 cb.Unchecked += (_, _) => SetKeySelectionFlag(flag, false);
@@ -278,7 +280,7 @@ namespace krrTools.tools.N2NC
             var filterLabel = Strings.Localize(Strings.FilterLabel);
             void UpdateFilterLabel() => filterLabel = Strings.Localize(Strings.FilterLabel);
             SharedUIComponents.LanguageChanged += UpdateFilterLabel;
-            this.Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= UpdateFilterLabel;
+            Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= UpdateFilterLabel;
             
             return SharedUIComponents.CreateLabeledRow(filterLabel, mainPanel, rowMargin);
         }
@@ -306,7 +308,7 @@ namespace krrTools.tools.N2NC
         {
             // Use shared PresetPanelFactory to manage presets for ConverterOptions
             FrameworkElement panel = PresetPanelFactory.CreatePresetPanel(
-                OptionsConstants.ConverterToolName,
+                OptionsManager.ConverterToolName,
                 () => _viewModel.GetConversionOptions(),
                 (opt) =>
                 {
@@ -404,7 +406,7 @@ namespace krrTools.tools.N2NC
             {
                 var opt = _viewModel.GetConversionOptions();
                 opt.Validate();
-                OptionsService.SaveOptions(OptionsConstants.ConverterToolName, OptionsConstants.OptionsFileName, opt);
+                OptionsManager.SaveOptions(OptionsManager.ConverterToolName, OptionsManager.OptionsFileName, opt);
             }
             catch (Exception ex)
             {

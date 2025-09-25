@@ -10,7 +10,7 @@ namespace krrTools.tools.DPtool
             // Try to load saved options; if none, keep defaults
             try
             {
-                var saved = OptionsService.LoadOptions<DPToolOptions>(OptionsConstants.DPToolName, OptionsConstants.OptionsFileName);
+                var saved = OptionsManager.LoadOptions<DPToolOptions>(OptionsManager.DPToolName, OptionsManager.OptionsFileName);
                 if (saved != null)
                 {
                     Options = saved;

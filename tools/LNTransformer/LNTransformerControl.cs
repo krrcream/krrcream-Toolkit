@@ -137,7 +137,7 @@ public static class Setting
             PercentageValue.Name = "PercentageValue"; // 添加Name属性以便预览功能查找
             PercentageValue.Value = 100;
             PercentageValue.ValueChanged += (_, e) => {
-                var prefix = SharedUIComponents.IsChineseLanguage() ? Strings.LNPercentageHeader.Split('|')[1] : Strings.LNPercentageHeader.Split('|')[0];
+                var prefix = Strings.LNPercentageHeader.Localize();
                 percLabel.Text = $"{prefix} {e.NewValue:F0}%";
             };
             percStack.Children.Add(percLabel);
@@ -154,7 +154,7 @@ public static class Setting
             DivideValue.Value = 1;
             DivideValue.TickFrequency = 1;
             DivideValue.ValueChanged += (_, e) => {
-                var prefix = SharedUIComponents.IsChineseLanguage() ? Strings.DivideHeader.Split('|')[1] : Strings.DivideHeader.Split('|')[0];
+                var prefix = Strings.DivideHeader.Localize();
                 divLabel.Text = $"{prefix} 1/{e.NewValue:F0}";
             };
             divStack.Children.Add(divLabel);
@@ -171,7 +171,7 @@ public static class Setting
             ColumnValue.Value = 0;
             ColumnValue.TickFrequency = 1;
             ColumnValue.ValueChanged += (_, e) => {
-                var prefix = SharedUIComponents.IsChineseLanguage() ? Strings.ColumnsHeader.Split('|')[1] : Strings.ColumnsHeader.Split('|')[0];
+                var prefix = Strings.ColumnsHeader.Localize();
                 colLabel.Text = $"{prefix} {e.NewValue:F0}";
             };
             colStack.Children.Add(colLabel);
@@ -188,7 +188,7 @@ public static class Setting
             GapValue.Value = 0;
             GapValue.TickFrequency = 1;
             GapValue.ValueChanged += (_, e) => {
-                var prefix = SharedUIComponents.IsChineseLanguage() ? Strings.GapHeader.Split('|')[1] : Strings.GapHeader.Split('|')[0];
+                var prefix = Strings.GapHeader.Localize();
                 gapLabel.Text = $"{prefix} {e.NewValue:F0}";
             };
             gapStack.Children.Add(gapLabel);
@@ -224,17 +224,17 @@ public static class Setting
                 Orientation = Orientation.Vertical, 
                 HorizontalAlignment = HorizontalAlignment.Left 
             };
-            Ignore = SharedUIComponents.CreateStandardCheckBoxWithTooltip(
+            Ignore = SharedUIComponents.CreateStandardCheckBox(
                 Strings.IgnoreCheckbox, Strings.IgnoreTooltip);
             Ignore.Name = "Ignore"; // 添加Name属性
             Ignore.IsChecked = true;
             Ignore.Margin = new Thickness(2, 0, 10, 0);
-            FixError = SharedUIComponents.CreateStandardCheckBoxWithTooltip(
+            FixError = SharedUIComponents.CreateStandardCheckBox(
                 Strings.FixErrorsCheckbox, Strings.FixErrorsTooltip);
             FixError.Name = "FixError"; // 添加Name属性以便预览功能查找
             FixError.IsChecked = true;
             FixError.Margin = new Thickness(2, 0, 10, 0);
-            OriginalLN = SharedUIComponents.CreateStandardCheckBoxWithTooltip(
+            OriginalLN = SharedUIComponents.CreateStandardCheckBox(
                 Strings.OriginalLNsCheckbox, Strings.OriginalLNsTooltip);
             OriginalLN.Name = "OriginalLN"; // 添加Name属性以便预览功能查找
             OriginalLN.Margin = new Thickness(2, 0, 10, 0);
@@ -250,7 +250,7 @@ public static class Setting
             instr.FontSize = SharedUIComponents.ComFontSize + 2;
             instr.Margin = new Thickness(0, 10, 0, 0);
             instr.TextAlignment = TextAlignment.Center;
-            var link = new Hyperlink(new Run(SharedUIComponents.IsChineseLanguage() ? Strings.InstructionsLink.Split('|')[1] : Strings.InstructionsLink.Split('|')[0]));
+            var link = new Hyperlink(new Run(Strings.InstructionsLink.Localize()));
             link.Click += InstructionButton_Click;
             instr.Inlines.Add(link);
             return instr;

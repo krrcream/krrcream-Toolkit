@@ -70,18 +70,18 @@ public class MainWindow : FluentWindow
     private DPToolControl? _dpWindowInstance;
 
     private ContentControl? ConverterSettingsHost =>
-        _settingsHosts.GetValueOrDefault(OptionsConstants.ConverterToolName);
+        _settingsHosts.GetValueOrDefault(OptionsManager.ConverterToolName);
 
-    private ContentControl? LNSettingsHost => _settingsHosts.GetValueOrDefault(OptionsConstants.LNToolName);
-    private ContentControl? DPSettingsHost => _settingsHosts.GetValueOrDefault(OptionsConstants.DPToolName);
-    private ContentControl? LVSettingsHost => _settingsHosts.GetValueOrDefault(OptionsConstants.LVToolName);
-    private ContentControl? GetFilesHost => _settingsHosts.GetValueOrDefault(OptionsConstants.GetFilesToolName);
+    private ContentControl? LNSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.LNToolName);
+    private ContentControl? DPSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.DPToolName);
+    private ContentControl? LVSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.LVToolName);
+    private ContentControl? GetFilesHost => _settingsHosts.GetValueOrDefault(OptionsManager.GetFilesToolName);
 
     public DualPreviewControl? ConverterPreview =>
-        _previewControls.GetValueOrDefault(OptionsConstants.ConverterToolName);
+        _previewControls.GetValueOrDefault(OptionsManager.ConverterToolName);
 
-    public DualPreviewControl? LNPreview => _previewControls.GetValueOrDefault(OptionsConstants.LNToolName);
-    public DualPreviewControl? DPPreview => _previewControls.GetValueOrDefault(OptionsConstants.DPToolName);
+    public DualPreviewControl? LNPreview => _previewControls.GetValueOrDefault(OptionsManager.LNToolName);
+    public DualPreviewControl? DPPreview => _previewControls.GetValueOrDefault(OptionsManager.DPToolName);
 
     public MainWindow()
     {
@@ -109,11 +109,11 @@ public class MainWindow : FluentWindow
         PreviewKeyDown += MainWindow_PreviewKeyDown;
         LoadToolSettingsHosts();
         SetupPreviewProcessors();
-        if (_previewControls.TryGetValue(OptionsConstants.ConverterToolName, out var cp))
+        if (_previewControls.TryGetValue(OptionsManager.ConverterToolName, out var cp))
             cp.StartConversionRequested += ConverterPreview_StartConversionRequested;
-        if (_previewControls.TryGetValue(OptionsConstants.LNToolName, out var lp))
+        if (_previewControls.TryGetValue(OptionsManager.LNToolName, out var lp))
             lp.StartConversionRequested += LNPreview_StartConversionRequested;
-        if (_previewControls.TryGetValue(OptionsConstants.DPToolName, out var dp))
+        if (_previewControls.TryGetValue(OptionsManager.DPToolName, out var dp))
             dp.StartConversionRequested += DPPreview_StartConversionRequested;
     }
 
@@ -509,9 +509,9 @@ public class MainWindow : FluentWindow
     {
         var previewConfigs = new[]
         {
-            new { ToolKey = OptionsConstants.ConverterToolName },
-            new { ToolKey = OptionsConstants.LNToolName },
-            new { ToolKey = OptionsConstants.DPToolName }
+            new { ToolKey = OptionsManager.ConverterToolName },
+            new { ToolKey = OptionsManager.LNToolName },
+            new { ToolKey = OptionsManager.DPToolName }
         };
         foreach (var cfg in previewConfigs)
         {
@@ -560,8 +560,8 @@ public class MainWindow : FluentWindow
     {
         var simpleConfigs = new[]
         {
-            new { ToolKey = OptionsConstants.LVToolName },
-            new { ToolKey = OptionsConstants.GetFilesToolName }
+            new { ToolKey = OptionsManager.LVToolName },
+            new { ToolKey = OptionsManager.GetFilesToolName }
         };
         foreach (var cfg in simpleConfigs)
         {
@@ -590,12 +590,12 @@ public class MainWindow : FluentWindow
     {
         _internalOsuPath = ResolveInternalSample();
         // Providers read current host DataContext / controls at invocation time, making ordering safe
-        if (_previewControls.TryGetValue(OptionsConstants.ConverterToolName, out var converterPreview) &&
-            _settingsHosts.TryGetValue(OptionsConstants.ConverterToolName, out var convHost))
+        if (_previewControls.TryGetValue(OptionsManager.ConverterToolName, out var converterPreview) &&
+            _settingsHosts.TryGetValue(OptionsManager.ConverterToolName, out var convHost))
             converterPreview.Processor = new ConverterPreviewProcessor(null,
                 () => (convHost.DataContext as N2NCViewModel)?.GetConversionOptions());
 
-        if (_previewControls.TryGetValue(OptionsConstants.LNToolName, out var lnPreview))
+        if (_previewControls.TryGetValue(OptionsManager.LNToolName, out var lnPreview))
             lnPreview.Processor = new LNPreviewProcessor(null,
                 () => new PreviewTransformation.LNPreviewParameters
                 {
@@ -609,8 +609,8 @@ public class MainWindow : FluentWindow
                     OverallDifficulty = GetTextBoxDouble("OverallDifficulty")
                 });
 
-        if (_previewControls.TryGetValue(OptionsConstants.DPToolName, out var dpPreview) &&
-            _settingsHosts.TryGetValue(OptionsConstants.DPToolName, out var dpHost))
+        if (_previewControls.TryGetValue(OptionsManager.DPToolName, out var dpPreview) &&
+            _settingsHosts.TryGetValue(OptionsManager.DPToolName, out var dpHost))
             dpPreview.Processor = new DPPreviewProcessor(null,
                 () => (dpHost.DataContext as DPToolViewModel)?.Options ?? new DPToolOptions());
 
@@ -635,11 +635,11 @@ public class MainWindow : FluentWindow
         if (!string.IsNullOrEmpty(_internalOsuPath) && File.Exists(_internalOsuPath))
         {
             var arr = new[] { _internalOsuPath };
-            if (_previewControls.TryGetValue(OptionsConstants.ConverterToolName, out var convControl))
+            if (_previewControls.TryGetValue(OptionsManager.ConverterToolName, out var convControl))
                 convControl.LoadFiles(arr, true);
-            if (_previewControls.TryGetValue(OptionsConstants.LNToolName, out var lnControl))
+            if (_previewControls.TryGetValue(OptionsManager.LNToolName, out var lnControl))
                 lnControl.LoadFiles(arr, true);
-            if (_previewControls.TryGetValue(OptionsConstants.DPToolName, out var dpControl))
+            if (_previewControls.TryGetValue(OptionsManager.DPToolName, out var dpControl))
                 dpControl.LoadFiles(arr, true);
         }
     }
@@ -1678,15 +1678,15 @@ public class MainWindow : FluentWindow
         var sourceId = 0;
         switch (selectedTab?.Tag as string)
         {
-            case OptionsConstants.ConverterToolName when _convWindowInstance != null:
+            case OptionsManager.ConverterToolName when _convWindowInstance != null:
                 source = _convWindowInstance;
                 sourceId = 1;
                 break;
-            case OptionsConstants.LNToolName when _lnWindowInstance != null:
+            case OptionsManager.LNToolName when _lnWindowInstance != null:
                 source = _lnWindowInstance;
                 sourceId = 2;
                 break;
-            case OptionsConstants.DPToolName when _dpWindowInstance != null:
+            case OptionsManager.DPToolName when _dpWindowInstance != null:
                 source = _dpWindowInstance;
                 sourceId = 3;
                 break;

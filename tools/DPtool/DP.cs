@@ -99,13 +99,13 @@ namespace krrTools.tools.DPtool
             string BeatmapSave()
             {
                 // 添加作者前缀并更新 CircleSize 与版本说明
-                beatmap.MetadataSection.Creator = OptionsConstants.DPCreatorPrefix + beatmap.MetadataSection.Creator;
+                beatmap.MetadataSection.Creator = OptionsManager.DPCreatorPrefix + beatmap.MetadataSection.Creator;
                 beatmap.DifficultySection.CircleSize = result.GetLength(1);
                 beatmap.MetadataSection.Version = "[" + CS + "to" + result.GetLength(1) + "DP] " + beatmap.MetadataSection.Version;
 
                 // 处理 tags：确保不是 null，然后添加默认 DP tag（避免重复）
                 var currentTags = beatmap.MetadataSection.Tags ?? [];
-                var tagToAdd = OptionsConstants.DPDefaultTag;
+                var tagToAdd = OptionsManager.DPDefaultTag;
                 if (!currentTags.Contains(tagToAdd))
                 {
                     var newTags = currentTags.Concat([tagToAdd]).ToArray();

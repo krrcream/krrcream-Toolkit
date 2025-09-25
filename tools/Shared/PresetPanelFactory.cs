@@ -28,7 +28,7 @@ namespace krrTools.tools.Shared
             void Refresh()
             {
                 list.Children.Clear();
-                foreach (var (name, opt) in OptionsService.LoadPresets<T>(toolName))
+                foreach (var (name, opt) in OptionsManager.LoadPresets<T>(toolName))
                 {
                     var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
 
@@ -44,7 +44,7 @@ namespace krrTools.tools.Shared
                     del.Margin = new Thickness(8, 0, 0, 0);
                     del.Click += (_, _) =>
                     {
-                        var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), OptionsConstants.BaseAppFolderName, toolName, OptionsConstants.PresetsFolderName);
+                        var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), OptionsManager.BaseAppFolderName, toolName, OptionsManager.PresetsFolderName);
                         var safe = MakeSafeFilename(name) + ".json";
                         var path = Path.Combine(folder, safe);
                         try
@@ -84,7 +84,7 @@ namespace krrTools.tools.Shared
                     var name = dialog.Value.Trim();
                     if (!string.IsNullOrEmpty(name))
                     {
-                        OptionsService.SavePreset(toolName, name, current);
+                        OptionsManager.SavePreset(toolName, name, current);
                         Refresh();
                     }
                 }

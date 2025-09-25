@@ -40,7 +40,7 @@ namespace krrTools.tools.N2NC
             // Try to load saved ConverterOptions
             try
             {
-                var saved = OptionsService.LoadOptions<N2NCOptions>(OptionsConstants.ConverterToolName, OptionsConstants.OptionsFileName);
+                var saved = OptionsManager.LoadOptions<N2NCOptions>(OptionsManager.ConverterToolName, OptionsManager.OptionsFileName);
                 if (saved != null)
                 {
                     TargetKeys = saved.TargetKeys;
