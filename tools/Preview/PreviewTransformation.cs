@@ -5,9 +5,9 @@ using System.Diagnostics;
 using System.Linq;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
-using krrTools.Tools.Converter;
 using krrTools.tools.DPtool;
 using krrTools.tools.LNTransformer;
+using krrTools.tools.N2NC;
 using krrTools.Tools.OsuParser;
 
 namespace krrTools.tools.Preview;
@@ -107,7 +107,7 @@ public static class PreviewTransformation
 
     // 构建一个时间窗口内的转换器输出音符
     public static (int columns, List<BasePreviewProcessor.ManiaNote> notes, double quarterMs) BuildConverterWindow(
-        string osuPath, ConversionOptions options, int startMs, int endMs)
+        string osuPath, N2NCOptions options, int startMs, int endMs)
     {
         if (!TryBuildMatrix(osuPath, options, out var beatmap, out var conv, out var matrix, out var timeAxis,
                 out var cs)) return (0, new List<BasePreviewProcessor.ManiaNote>(), 0);
@@ -497,17 +497,17 @@ public static class PreviewTransformation
         return true;
     }
 
-    // 集中构建矩阵的辅助方法（可传入可选的 ConversionOptions）
-    private static bool TryBuildMatrix(string osuPath, ConversionOptions? options, out Beatmap? beatmap,
-        out Converter conv, out int[,] matrix, out List<int> timeAxis, out int cs)
+    // 集中构建矩阵的辅助方法（可传入可选的 ConverterOptions）
+    private static bool TryBuildMatrix(string osuPath, N2NCOptions? options, out Beatmap? beatmap,
+        out N2NC.N2NC conv, out int[,] matrix, out List<int> timeAxis, out int cs)
     {
         beatmap = null;
-        conv = new Converter();
+        conv = new N2NC.N2NC();
         matrix = new int[0, 0];
         timeAxis = new List<int>();
         cs = 0;
         if (!TryDecodeMania(osuPath, out beatmap, out cs)) return false;
-        conv = options != null ? new Converter { options = options } : new Converter();
+        conv = options != null ? new N2NC.N2NC { options = options } : new N2NC.N2NC();
         var tuple = conv.BuildMatrix(beatmap!);
         matrix = tuple.Item1;
         timeAxis = tuple.Item2;
@@ -521,7 +521,7 @@ public static class PreviewTransformation
         try
         {
             // Use numeric API for primary BPM. Keep fallback if unexpected value.
-            double bpm = ana.GetBPMMain(beatmap);
+            double bpm = ana.GetBPM(beatmap);
             if (bpm <= 0 || double.IsNaN(bpm) || double.IsInfinity(bpm)) return fallback;
             return bpm;
         }

@@ -1,27 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+﻿using krrTools.tools.Shared;
 
 namespace krrTools.tools.DPtool
 {
     /// <summary>
     /// DP工具选项类，用于封装所有DP参数
     /// </summary>
-    public class DPToolOptions : INotifyPropertyChanged
+    public class DPToolOptions : ObservableObject
     {
-        private bool _modifySingleSideKeyCount = false;
+        private bool _modifySingleSideKeyCount;
         private int _singleSideKeyCount = 5;
-        
-        private bool _lMirror = false;
-        private bool _lDensity = false;
-        private int _lMaxKeys = 5;
-        private int _lMinKeys = 0;
-        
-        private bool _rMirror = false;
-        private bool _rDensity = false;
-        private int _rMaxKeys = 5;
-        private int _rMinKeys = 0;
+
+        // Use SideOptions to hold left/right specific settings (mirror/density/min/max)
+        public SideOptions Left { get; } = new SideOptions();
+        public SideOptions Right { get; } = new SideOptions();
 
         /// <summary>
         /// 是否修改单侧按键数量
@@ -29,135 +20,76 @@ namespace krrTools.tools.DPtool
         public bool ModifySingleSideKeyCount
         {
             get => _modifySingleSideKeyCount;
-            set
-            {
-                _modifySingleSideKeyCount = value;
-                OnPropertyChanged();
-            }
+            set => SetProperty(ref _modifySingleSideKeyCount, value);
         }
 
         /// <summary>
-        /// 单侧按键数量
+        /// 单侧按键数量 (1-16 recommended clamp)
         /// </summary>
         public int SingleSideKeyCount
         {
             get => _singleSideKeyCount;
             set
             {
-                _singleSideKeyCount = value;
-                OnPropertyChanged();
+                // Clamp to a reasonable range to avoid invalid states in UI/logic
+                int newVal = value < 1 ? 1 : value;
+                if (newVal > 16) newVal = 16;
+                if (SetProperty(ref _singleSideKeyCount, newVal))
+                {
+                    // keep consistency with side options (ensure min/max sensible)
+                    Left.Validate();
+                    Right.Validate();
+                }
             }
         }
 
-        /// <summary>
-        /// 左侧镜像
-        /// </summary>
+        // Legacy wrapper properties - keep names for existing bindings/code
         public bool LMirror
         {
-            get => _lMirror;
-            set
-            {
-                _lMirror = value;
-                OnPropertyChanged();
-            }
+            get => Left.Mirror;
+            set => Left.Mirror = value;
         }
 
-        /// <summary>
-        /// 左侧密度
-        /// </summary>
         public bool LDensity
         {
-            get => _lDensity;
-            set
-            {
-                _lDensity = value;
-                OnPropertyChanged();
-            }
+            get => Left.Density;
+            set => Left.Density = value;
         }
 
-        /// <summary>
-        /// 左侧最大键数
-        /// </summary>
         public int LMaxKeys
         {
-            get => _lMaxKeys;
-            set
-            {
-                _lMaxKeys = value;
-                OnPropertyChanged();
-            }
+            get => Left.MaxKeys;
+            set => Left.MaxKeys = value;
         }
 
-        /// <summary>
-        /// 左侧最小键数
-        /// </summary>
         public int LMinKeys
         {
-            get => _lMinKeys;
-            set
-            {
-                _lMinKeys = value;
-                OnPropertyChanged();
-            }
+            get => Left.MinKeys;
+            set => Left.MinKeys = value;
         }
 
-        /// <summary>
-        /// 右侧镜像
-        /// </summary>
         public bool RMirror
         {
-            get => _rMirror;
-            set
-            {
-                _rMirror = value;
-                OnPropertyChanged();
-            }
+            get => Right.Mirror;
+            set => Right.Mirror = value;
         }
 
-        /// <summary>
-        /// 右侧密度
-        /// </summary>
         public bool RDensity
         {
-            get => _rDensity;
-            set
-            {
-                _rDensity = value;
-                OnPropertyChanged();
-            }
+            get => Right.Density;
+            set => Right.Density = value;
         }
 
-        /// <summary>
-        /// 右侧最大键数
-        /// </summary>
         public int RMaxKeys
         {
-            get => _rMaxKeys;
-            set
-            {
-                _rMaxKeys = value;
-                OnPropertyChanged();
-            }
+            get => Right.MaxKeys;
+            set => Right.MaxKeys = value;
         }
 
-        /// <summary>
-        /// 右侧最小键数
-        /// </summary>
         public int RMinKeys
         {
-            get => _rMinKeys;
-            set
-            {
-                _rMinKeys = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            get => Right.MinKeys;
+            set => Right.MinKeys = value;
         }
     }
 }

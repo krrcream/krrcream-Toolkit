@@ -7,10 +7,10 @@ namespace krrTools.tools.LNTransformer;
 // Core LN transformation logic extracted from LNTransformer.xaml.cs
 public static class LNTransformerCore
 {
-    public const double ERROR = 2.0;
+    private const double ERROR = 2.0;
 
     // Random-distribution utilities
-    public static double RandDistribution(Random Rng, double u, double d)
+    private static double RandDistribution(Random Rng, double u, double d)
     {
         if (d <= 0) return u;
 
@@ -21,7 +21,7 @@ public static class LNTransformerCore
         return x;
     }
 
-    public static double TimeRound(double timedivide, double num)
+    private static double TimeRound(double timedivide, double num)
     {
         var remainder = num % timedivide;
         if (remainder < timedivide / 2)
@@ -29,7 +29,7 @@ public static class LNTransformerCore
         return num + timedivide - remainder;
     }
 
-    public static double GetDurationByDistribution(Random Rng, OsuFileV14 osu, int startTime, double limitDuration,
+    private static double GetDurationByDistribution(Random Rng, OsuFileV14 osu, int startTime, double limitDuration,
         double mu, double sigmaDivisor, double divide, double divide2 = -1, double mu2 = -2, double mu1Dmu2 = -1)
     {
         var beatLength = osu.TimingPointAt(startTime).BeatLength;
@@ -76,7 +76,7 @@ public static class LNTransformerCore
     }
 
     // Transform a single column (returns original LN objects found in this column)
-    public static List<ManiaHitObject> TransformColumn(Random Rng, double mu, double sigmaDivisor, double divide,
+    private static List<ManiaHitObject> TransformColumn(Random Rng, double mu, double sigmaDivisor, double divide,
         OsuFileV14 osu, List<ManiaHitObject> newObjects,
         IGrouping<int, ManiaHitObject> column, bool originalLNIsChecked, double percentageValue,
         bool fixErrorIsChecked, int divide2 = -1, double mu2 = -2, double mu1Dmu2 = -1)
@@ -128,7 +128,7 @@ public static class LNTransformerCore
         return originalLNObjects;
     }
 
-    public static List<ManiaHitObject> InvertColumn(OsuFileV14 osu, List<ManiaHitObject> newObjects, Random Rng,
+    private static List<ManiaHitObject> InvertColumn(OsuFileV14 osu, List<ManiaHitObject> newObjects, Random Rng,
         IGrouping<int, ManiaHitObject> column, double divideValue, bool originalLNIsChecked, double percentageValue,
         bool fixErrorIsChecked)
     {
@@ -193,7 +193,7 @@ public static class LNTransformerCore
         return originalLNObjects;
     }
 
-    public static List<ManiaHitObject> TrueRandomColumn(List<ManiaHitObject> newObjects, Random Rng,
+    private static List<ManiaHitObject> TrueRandomColumn(List<ManiaHitObject> newObjects, Random Rng,
         IGrouping<int, ManiaHitObject> column, bool originalLNIsChecked, double percentageValue)
     {
         var locations = column.OrderBy(h => h.StartTime).ToList();
@@ -227,12 +227,28 @@ public static class LNTransformerCore
             }
         }
 
+        // Handle last note
+        var last = locations[locCount - 1];
+        if (originalLNIsChecked && last.StartTime != last.EndTime)
+        {
+            newColumnObjects.Add(last);
+            originalLNObjects.Add(last);
+        }
+        else if (Math.Abs(last.StartTime - last.EndTime) <= ERROR || (Rng.NextDouble() * 100.0) >= percentageValue)
+        {
+            newColumnObjects.Add(last.ToNote());
+        }
+        else
+        {
+            newColumnObjects.Add(last);
+        }
+
         newObjects.AddRange(newColumnObjects);
 
         return originalLNObjects;
     }
 
-    public static void AfterTransform(List<ManiaHitObject> afterObjects, List<ManiaHitObject> originalLNObjects,
+    private static void AfterTransform(List<ManiaHitObject> afterObjects, List<ManiaHitObject> originalLNObjects,
         OsuFileV14 osu, Random Rng, int transformColumnNum, bool originalLNIsChecked, int gapValue)
     {
         var resultObjects = new List<ManiaHitObject>();

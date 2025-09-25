@@ -4,110 +4,89 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using OsuParsers.Beatmaps;
-using OsuParsers.Decoders;
-using krrTools.Tools.Converter;
+using krrTools.tools.N2NC;
 using OsuParsers.Beatmaps.Objects;
 using krrTools.Tools.OsuParser;
+using krrTools.tools.Shared;
+using krrTools.Tools.Shared;
 
 namespace krrTools.tools.DPtool
 {
     public class DP
     {
-        /// <summary>
-        /// DP工具的配置选项
-        /// </summary>
-        public static DPToolOptions? Options { get; set; }
-
-        /// <summary>
-        /// 处理.osu文件的DP操作
-        /// </summary>
-        /// <param name="filePath">需要处理的.osu文件路径</param>
-        public string ProcessFile(string filePath)
+        public string ProcessFile(string filePath, DPToolOptions options)
         {
-            // 检查文件是否存在
-            if (!File.Exists(filePath) )
-            {
-                throw new FileNotFoundException($"文件未找到: {filePath}");
-            }
+            options.Left.Validate();
+            options.Right.Validate();
 
-            // 检查文件扩展名是否为.osu
-            if (Path.GetExtension(filePath).ToLower() != ".osu")
-            {
-                throw new ArgumentException("文件扩展名必须为.osu");
-            }
+            var beatmap = FileProcessingHelper.LoadValidatedBeatmap(filePath);
 
-            // 加载Beatmap
-            Beatmap beatmap = BeatmapDecoder.Decode(filePath);
-            // 检查是否为mania模式
-            if (beatmap.GeneralSection.ModeId != 3)
-                throw new ArgumentException("不是mania模式");
-
-            if (Options == null) throw new InvalidOperationException("DP.Options must be set before calling ProcessFile");
-            var Conv = new Converter();
+            var Conv = new N2NC.N2NC();
             var random = new Random(114514);
             int[,] orgMTX;
             int CS = (int)beatmap.DifficultySection.CircleSize;
-            var OPorg = new ConversionOptions
+            var convOptions = new N2NCOptions
             {
-                MaxKeys = Options.SingleSideKeyCount,
+                MaxKeys = options.SingleSideKeyCount,
                 MinKeys = 2,
-                TargetKeys = Options.SingleSideKeyCount,
+                TargetKeys = options.SingleSideKeyCount,
                 TransformSpeed = 4
             };
-            Conv.options = OPorg;
+            Conv.options = convOptions;
             var ANA = new OsuAnalyzer();
-            double BPM = ANA.GetBPMMain(beatmap);
+            double BPM = ANA.GetBPM(beatmap);
             double beatLength = 60000 / BPM * 4;
-            double convertTime = Math.Max(1, OPorg.TransformSpeed * beatLength - 10);
+            double convertTime = Math.Max(1, convOptions.TransformSpeed * beatLength - 10);
             var (matrix, timeAxis) = Conv.BuildMatrix(beatmap);
 
-            if (Options.ModifySingleSideKeyCount && Options.SingleSideKeyCount > beatmap.DifficultySection.CircleSize)
+            if (options.ModifySingleSideKeyCount && options.SingleSideKeyCount > beatmap.DifficultySection.CircleSize)
             {
-                int targetKeys = Options.SingleSideKeyCount;
+                int targetKeys = options.SingleSideKeyCount;
                 // 变换时间
 
                 var (oldMTX, insertMTX) = Conv.convertMTX(targetKeys - CS, timeAxis, convertTime, CS, random);
                 int[,] newMatrix = Conv.convert(matrix, oldMTX, insertMTX, timeAxis, targetKeys, beatLength, random);
                 orgMTX = newMatrix;
             }
-            else if (Options.ModifySingleSideKeyCount &&
-                     Options.SingleSideKeyCount < beatmap.DifficultySection.CircleSize)
+            else if (options.ModifySingleSideKeyCount &&
+                     options.SingleSideKeyCount < beatmap.DifficultySection.CircleSize)
             {
-                int targetKeys = Options.SingleSideKeyCount;
+                int targetKeys = options.SingleSideKeyCount;
                 var newMatrix = Conv.SmartReduceColumns(matrix, timeAxis, CS - targetKeys, convertTime, beatLength);
                 orgMTX = newMatrix;
             }
             else
             {
-                (orgMTX, timeAxis) = Conv.BuildMatrix(beatmap);
+                // We already built (matrix, timeAxis) above; reuse it when no conversion is needed
+                orgMTX = matrix;
             }
 
             //克隆两个矩阵分别叫做orgL和orgR
             int[,] orgL = (int[,])orgMTX.Clone();
             int[,] orgR = (int[,])orgMTX.Clone();
-            if (Options.LMirror)
+            if (options.LMirror)
             {
                 orgL = Mirror(orgL);
             }
 
-            if (Options.RMirror)
+            if (options.RMirror)
             {
                 orgR = Mirror(orgR);
             }
 
 
-            if (Options.LDensity && orgL.GetLength(1) > Options.LMaxKeys)
+            if (options.LDensity && orgL.GetLength(1) > options.LMaxKeys)
             {
                 var randomL = new Random(114514);
-                Conv.DensityReducer(orgL, orgL.GetLength(1) - Options.LMaxKeys,
-                    Options.LMinKeys, orgL.GetLength(1), randomL);
+                Conv.DensityReducer(orgL, orgL.GetLength(1) - options.LMaxKeys,
+                    options.LMinKeys, orgL.GetLength(1), randomL);
             }
 
-            if (Options.RDensity && orgR.GetLength(1) > Options.RMaxKeys)
+            if (options.RDensity && orgR.GetLength(1) > options.RMaxKeys)
             {
                 var randomR = new Random(114514);
-                Conv.DensityReducer(orgR, orgR.GetLength(1) - Options.RMaxKeys,
-                    Options.RMinKeys, orgR.GetLength(1), randomR);
+                Conv.DensityReducer(orgR, orgR.GetLength(1) - options.RMaxKeys,
+                    options.RMinKeys, orgR.GetLength(1), randomR);
             }
 
             // 合并两个矩阵
@@ -119,14 +98,19 @@ namespace krrTools.tools.DPtool
 
             string BeatmapSave()
             {
-                beatmap.MetadataSection.Creator = "Krr DP. & " + beatmap.MetadataSection.Creator;
+                // 添加作者前缀并更新 CircleSize 与版本说明
+                beatmap.MetadataSection.Creator = OptionsManager.DPCreatorPrefix + beatmap.MetadataSection.Creator;
                 beatmap.DifficultySection.CircleSize = result.GetLength(1);
-                beatmap.MetadataSection.Version =
-                    "[" + CS + "to" + result.GetLength(1) + "DP] " + beatmap.MetadataSection.Version;
+                beatmap.MetadataSection.Version = "[" + CS + "to" + result.GetLength(1) + "DP] " + beatmap.MetadataSection.Version;
 
+                // 处理 tags：确保不是 null，然后添加默认 DP tag（避免重复）
                 var currentTags = beatmap.MetadataSection.Tags ?? [];
-                var newTags = currentTags.Concat(["krrcream's converter DP"]).ToArray();
-                beatmap.MetadataSection.Tags = newTags;
+                var tagToAdd = OptionsManager.DPDefaultTag;
+                if (!currentTags.Contains(tagToAdd))
+                {
+                    var newTags = currentTags.Concat([tagToAdd]).ToArray();
+                    beatmap.MetadataSection.Tags = newTags;
+                }
 
                 string directory = Path.GetDirectoryName(filePath) ?? string.Empty;
                 string baseFilename = Conv.getfilename(beatmap);
@@ -154,16 +138,16 @@ namespace krrTools.tools.DPtool
         {
             // 创建临时列表存储对象
             List<HitObject> newObjects = new List<HitObject>();
-            var Conv = new Converter();
+            var Conv = new N2NC.N2NC();
             //遍历newMatrix
             for (int i = 0; i < newMatrix.GetLength(0); i++)
             {
                 for (int j = 0; j < newMatrix.GetLength(1); j++)
                 {
-                    int oldindex = newMatrix[i, j];
-                    if (oldindex >= 0)
+                    int oldIndex = newMatrix[i, j];
+                    if (oldIndex >= 0)
                     {
-                        newObjects.Add(Conv.CopyHitObjectbyPX(beatmap.HitObjects[oldindex],
+                        newObjects.Add(Conv.CopyHitObjectByPX(beatmap.HitObjects[oldIndex],
                             ColumnPositionMapper.ColumnToPositionX(newMatrix.GetLength(1), j)
                         ));
                     }
@@ -231,176 +215,6 @@ namespace krrTools.tools.DPtool
             }
 
             return result;
-        }
-
-
-        /// <summary>
-        /// 物件信息类
-        /// </summary>
-        private class MatrixObject
-        {
-            public int Row { get; set; }
-            public int Col { get; set; }
-            public int Value { get; set; }
-            public int Order { get; set; }
-            public bool IsLongNote { get; set; }
-            public int LongNoteLength { get; set; }
-        }
-
-        /// <summary>
-        /// 提取矩阵中的所有物件信息
-        /// </summary>
-        /// <param name="matrix">原始矩阵</param>
-        /// <returns>物件列表</returns>
-        private static List<MatrixObject> ExtractObjects(int[,] matrix)
-        {
-            var objects = new List<MatrixObject>();
-            int rows = matrix.GetLength(0);
-            int cols = matrix.GetLength(1);
-
-            // 用于跟踪已处理的长条身体部分
-            var processedLN = new bool[rows, cols];
-
-            int order = 0;
-
-            for (int j = 0; j < cols; j++)
-            {
-                for (int i = 0; i < rows; i++)
-                {
-                    if (processedLN[i, j]) continue;
-
-                    int value = matrix[i, j];
-
-                    if (value >= 0)
-                    {
-                        // 普通物件或长条头部
-                        var obj = new MatrixObject
-                        {
-                            Row = i,
-                            Col = j,
-                            Value = value,
-                            Order = order++
-                        };
-
-                        // 检查是否为长条
-                        if (IsLongNoteHead(matrix, i, j, out int length))
-                        {
-                            obj.IsLongNote = true;
-                            obj.LongNoteLength = length;
-                        }
-
-                        objects.Add(obj);
-                    }
-                    else if (value == -7)
-                    {
-                        // 长条身体部分，标记为已处理
-                        processedLN[i, j] = true;
-                    }
-                }
-            }
-
-            return objects;
-        }
-
-        /// <summary>
-        /// 检查指定位置是否为长条头部
-        /// </summary>
-        /// <param name="matrix">矩阵</param>
-        /// <param name="row">行索引</param>
-        /// <param name="col">列索引</param>
-        /// <param name="length">长条长度</param>
-        /// <returns>是否为长条头部</returns>
-        private static bool IsLongNoteHead(int[,] matrix, int row, int col, out int length)
-        {
-            length = 0;
-
-            // 检查是否为非负数（物件）
-            if (matrix[row, col] < 0) return false;
-
-            // 向下检查是否为连续的-7
-            int currentRow = row + 1;
-            int rows = matrix.GetLength(0);
-
-            while (currentRow < rows && matrix[currentRow, col] == -7)
-            {
-                length++;
-                currentRow++;
-            }
-
-            return length > 0;
-        }
-
-        /// <summary>
-        /// 寻找可用的列位置
-        /// </summary>
-        /// <param name="result">结果矩阵</param>
-        /// <param name="obj">物件信息</param>
-        /// <param name="lastCol">上一个物件所在的列</param>
-        /// <param name="targetCols">目标列数</param>
-        /// <returns>可用的列索引，-1表示未找到</returns>
-        private static int FindAvailableColumn(int[,] result, MatrixObject obj, int lastCol, int targetCols)
-        {
-            // 从lastCol+1开始寻找可用位置
-            for (int col = lastCol + 1; col < targetCols; col++)
-            {
-                // 检查该位置是否可用
-                if (result[obj.Row, col] == -1)
-                {
-                    // 如果是长条，检查身体部分是否有足够空间
-                    if (obj.IsLongNote)
-                    {
-                        if (CanPlaceLongNoteBody(result, obj.Row, col, obj.LongNoteLength))
-                        {
-                            return col;
-                        }
-                    }
-                    else
-                    {
-                        return col;
-                    }
-                }
-            }
-
-            return -1;
-        }
-
-        /// <summary>
-        /// 检查是否可以放置长条身体部分
-        /// </summary>
-        /// <param name="result">结果矩阵</param>
-        /// <param name="startRow">起始行</param>
-        /// <param name="col">列索引</param>
-        /// <param name="length">长条长度</param>
-        /// <returns>是否可以放置</returns>
-        private static bool CanPlaceLongNoteBody(int[,] result, int startRow, int col, int length)
-        {
-            int endRow = startRow + length;
-            int rows = result.GetLength(0);
-
-            // 检查是否会超出矩阵范围
-            if (endRow >= rows) return false;
-
-            // 检查身体部分是否都为空
-            for (int i = startRow + 1; i <= endRow; i++)
-            {
-                if (result[i, col] != -1) return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// 放置长条身体部分
-        /// </summary>
-        /// <param name="result">结果矩阵</param>
-        /// <param name="obj">物件信息</param>
-        /// <param name="col">新列索引</param>
-        private static void PlaceLongNoteBody(int[,] result, MatrixObject obj, int col)
-        {
-            for (int i = 1; i <= obj.LongNoteLength; i++)
-            {
-                result[obj.Row + i, col] = -7;
-            }
         }
     }
 }

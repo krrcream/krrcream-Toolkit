@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -8,6 +7,10 @@ using OsuParsers.Decoders;
 using System.Linq;
 using System.Windows;
 using System.Globalization;
+using OsuFileIO.Analyzer;
+using OsuFileIO.OsuFile;
+using OsuFileIO.OsuFileReader;
+using ManiaHitObject = OsuFileIO.HitObject.Mania.ManiaHitObject;
 
 namespace krrTools.Tools.OsuParser
 {
@@ -18,14 +21,16 @@ namespace krrTools.Tools.OsuParser
         public string? Artist { get; init; }
         public string? Creator { get; init; }
         public string? BPM { get; init; }
-        public List<double> BPM_List { get; set; } = new List<double>();
-        public double BPM_Main { get; set; }
-        public double XXY_SR { get; init; }
-        public double KRR_LV { get; init; }
+        public double BPM_Main { get; init; }
         public double Keys { get; init; }
         public double OD { get; init; }
         public double HP { get; init; }
+
+        // Custom properties unique to OsuAnalyzer
+        public double XXY_SR { get; init; }
+        public double KRR_LV { get; init; }
         public double LNPercent { get; init; }
+
         public double BeatmapID { get; init; }
         public double BeatmapSetID { get; init; }
     }
@@ -35,22 +40,20 @@ namespace krrTools.Tools.OsuParser
         private readonly SRCalculator calculator = new SRCalculator();
 
         public OsuAnalysisResult Analyze(string? filePath)
-        {
-            if (!File.Exists(filePath))
-                throw new FileNotFoundException("文件未找到", filePath);
-
-            Beatmap beatmap = BeatmapDecoder.Decode(filePath); 
-            if (beatmap.GeneralSection.ModeId!=3)
+        {    
+            var beatmap = BeatmapDecoder.Decode(filePath);
+            if (beatmap.GeneralSection.ModeId != 3)
                 throw new ArgumentException("不是mania模式");
 
+            // compute custom stats via SRCalculator
             var Keys1 = (int)beatmap.DifficultySection.CircleSize;
             var OD1 = beatmap.DifficultySection.OverallDifficulty;
             var notes = calculator.getNotes(beatmap);
-            double xxySR = calculator.Calculate(notes, Keys1, OD1);      
+            double xxySR = calculator.Calculate(notes, Keys1, OD1);
             double krrLV = -1;
             if (Keys1 <= 10)
             {
-                var (a, b, c) = Keys1 == 10 
+                var (a, b, c) = Keys1 == 10
                     ? (-0.0773, 3.8651, -3.4979)
                     : (-0.0644, 3.6139, -3.0677);
 
@@ -58,23 +61,26 @@ namespace krrTools.Tools.OsuParser
                 krrLV = LV > 0 ? LV : -1;
             }
 
-            var (bpmList, bpmMain) = GetBPMInfo(beatmap);
-
+            // gather standard metadata with OsuParsers
+            var bpmDisplay = GetBPMDisplay(filePath);
+            var bpm = GetMainBpm(filePath);
             var result = new OsuAnalysisResult
             {
                 Diff = beatmap.MetadataSection.Version,
-                XXY_SR = xxySR,
-                KRR_LV = krrLV,
                 Title = beatmap.MetadataSection.Title,
                 Artist = beatmap.MetadataSection.Artist,
                 Creator = beatmap.MetadataSection.Creator,
+                BPM = bpmDisplay,
+                BPM_Main = bpm,
                 Keys = Keys1,
-                BPM_List = bpmList,
-                BPM_Main = bpmMain,
-                BPM = FormatBPMDisplay(bpmList, bpmMain),
                 OD = OD1,
                 HP = beatmap.DifficultySection.HPDrainRate,
+
+                // Custom properties unique to OsuAnalyzer
+                XXY_SR = xxySR,
+                KRR_LV = krrLV,
                 LNPercent = LnPercent(beatmap),
+
                 BeatmapID = beatmap.MetadataSection.BeatmapID,
                 BeatmapSetID = beatmap.MetadataSection.BeatmapSetID
             };
@@ -86,155 +92,106 @@ namespace krrTools.Tools.OsuParser
         {
             double Z = beatmap.HitObjects.Count;
             if (Z == 0) return 0;
-            double LN = beatmap.HitObjects.Count(hitObject => hitObject.EndTime > hitObject.StartTime);  
+            double LN = beatmap.HitObjects.Count(hitObject => hitObject.EndTime > hitObject.StartTime);
             return LN / Z * 100;
         }
 
-        // Simplified GetBPMInfo: returns BPM list and primary BPM only (no segment objects)
-        private (List<double> BPMList, double PrimaryBpm) GetBPMInfo(Beatmap beatmap)
+        private string GetBPMDisplay(string? filePath)
         {
-            List<double> bpms = new List<double>();
-            List<double> offsets = new List<double>();
+            if (filePath == null || !File.Exists(filePath))
+                throw new ArgumentNullException(nameof(filePath));
 
-            foreach (var tp in beatmap.TimingPoints)
+            var reader = new OsuFileReaderBuilder(filePath).Build();
+            var beatmap = reader.ReadFile();
+            string BPMFormat = "";
+            
+            if (beatmap is IReadOnlyBeatmap<ManiaHitObject> maniaHitObject)
             {
-                if (tp.BeatLength > 0)
-                {
-                    bpms.Add(Math.Round(60000.0 / tp.BeatLength, 3));
-                    offsets.Add(tp.Offset);
-                }
-            }
+                var result = maniaHitObject.Analyze();
+                var bpm = result.Bpm;
+                var bpmMax = result.BpmMax;
+                var bpmMin = result.BpmMin;
+                BPMFormat = string.Format(CultureInfo.InvariantCulture, "{0}({1} - {2})", bpm, bpmMin, bpmMax);
 
-            // dedupe by offset
-            var distinct = offsets.Zip(bpms, (t, b) => new { Time = t, BPM = b })
-                .DistinctBy(x => x.Time)
+            }
+            return BPMFormat;
+        }
+
+        private double GetMainBpm(string? filePath)
+        {
+            if (filePath == null || !File.Exists(filePath))
+                throw new ArgumentNullException(nameof(filePath));
+
+            var reader = new OsuFileReaderBuilder(filePath).Build();
+            var beatmap = reader.ReadFile();
+            double BPM = 0;
+            
+            if (beatmap is IReadOnlyBeatmap<ManiaHitObject> maniaHitObject)
+            {
+                var result = maniaHitObject.Analyze();
+                BPM = result.Bpm;
+
+            }
+            return BPM;
+        }
+        
+        public double GetBPM(Beatmap beatmap)
+        {
+            var tp = beatmap.TimingPoints
+                .Where(p => p.BeatLength > 0)
+                .OrderBy(p => p.Offset)
                 .ToList();
-            offsets = distinct.Select(x => x.Time).ToList();
-            bpms = distinct.Select(x => x.BPM).ToList();
+            if (tp.Count == 0)
+                return 0;
 
-            if (bpms.Count == 0)
-                return ([120], 120);
-            if (bpms.Count == 1)
-                return ([bpms[0]], bpms[0]);
-
-            // compute durations per timing point
-            var durations = new List<double>();
-            for (int i = 0; i < offsets.Count; i++)
+            double maxDuration = -1;
+            var longestPoint = tp[0];
+            for (int i = 0; i < tp.Count - 1; i++)
             {
-                double start = offsets[i];
-                double end = (i < offsets.Count - 1) ? offsets[i + 1] : (
-                    beatmap.HitObjects.Count > 0 ? beatmap.HitObjects.Last().StartTime : start + 1);
-                durations.Add(Math.Max(0, end - start));
-            }
-
-            // merge near-equal bpms and filter too-short segments
-            const double mergeTolerance = 0.5; // BPM
-            const double minDurationMs = 250; // ms
-            var merged = new List<(double bpm, double duration, double offset)>();
-
-            for (int i = 0; i < bpms.Count; i++)
-            {
-                double b = bpms[i];
-                double d = durations[i];
-                double o = offsets[i];
-                if (d < minDurationMs)
-                    continue;
-
-                var idx = merged.FindIndex(m => Math.Abs(m.bpm - b) <= mergeTolerance);
-                if (idx < 0)
+                double duration = tp[i + 1].Offset - tp[i].Offset;
+                if (duration > maxDuration)
                 {
-                    merged.Add((b, d, o));
-                }
-                else
-                {
-                    var exist = merged[idx];
-                    double totalDur = exist.duration + d;
-                    if (totalDur > 0)
-                    {
-                        double newBpm = (exist.bpm * exist.duration + b * d) / totalDur;
-                        merged[idx] = (newBpm, exist.duration + d, Math.Min(exist.offset, o));
-                    }
-                    else
-                    {
-                        merged[idx] = ((exist.bpm + b) / 2.0, exist.duration + d, Math.Min(exist.offset, o));
-                    }
+                    maxDuration = duration;
+                    longestPoint = tp[i];
                 }
             }
 
-            // fallback: if nothing survived filtering, pick the longest original segment
-            if (merged.Count == 0)
-            {
-                int maxIdx = durations.Select((val, idx) => (val, idx)).OrderByDescending(x => x.val).First().idx;
-                double fallbackBpm = bpms[Math.Min(maxIdx, bpms.Count - 1)];
-                return ([Math.Round(fallbackBpm, 3)], Math.Round(fallbackBpm, 3));
-            }
-
-            var finalBpms = merged.Select(m => Math.Round(m.bpm, 3)).Distinct().ToList();
-            var primary = Math.Round(merged.OrderByDescending(m => m.duration).First().bpm, 3);
-            return (finalBpms, primary);
+            return Math.Round(60000 / longestPoint.BeatLength, 2);
         }
 
-        private string FormatBPMDisplay(List<double>? bpmList, double primary)
-        {
-            if (bpmList == null || bpmList.Count == 0)
-                return "120";
-            if (bpmList.Count == 1)
-                return bpmList[0].ToString(CultureInfo.InvariantCulture);
-
-            double min = bpmList.Min();
-            double max = bpmList.Max();
-            return string.Format(CultureInfo.InvariantCulture, "{0}({1} - {2})", primary, min, max);
-        }
-
-        // Compatibility helpers
-        public string GetBPM(Beatmap beatmap)
-        {
-            var (list, primary) = GetBPMInfo(beatmap);
-            return FormatBPMDisplay(list, primary);
-        }
-
-        private double GetPrimaryBpm(Beatmap beatmap)
-        {
-            var (_, primary) = GetBPMInfo(beatmap);
-            return primary;
-        }
-
-        // keep older name for compatibility
-        public double GetBPMMain(Beatmap beatmap) => GetPrimaryBpm(beatmap);
-
-        public static void AddNewBeatmapToSongFolder(string newBeatmapFile)
+        public static string? AddNewBeatmapToSongFolder(string newBeatmapFile, bool openOsz = false)
         {
             // 获取.osu文件所在的目录作为歌曲文件夹
             string? songFolder = Path.GetDirectoryName(newBeatmapFile);
             if (string.IsNullOrEmpty(songFolder))
             {
                 MessageBox.Show($"Invalid beatmap file path: {newBeatmapFile}", "Error");
-                return;
+                return null;
             }
 
             Console.WriteLine(songFolder);
-            
+
             // 创建.osz文件
             string outputOsz = Path.GetFileName(songFolder) + ".osz";
             string? parentDir = Path.GetDirectoryName(songFolder);
             if (string.IsNullOrEmpty(parentDir))
             {
                 MessageBox.Show($"Unable to determine parent directory for: {songFolder}", "Error");
-                return;
+                return null;
             }
 
             string fullOutputPath = Path.Combine(parentDir, outputOsz);
-            
+
             if (File.Exists(fullOutputPath))
                 File.Delete(fullOutputPath);
-                
+
             try
             {
                 // Ensure source directory exists before creating archive
                 if (!Directory.Exists(songFolder))
                 {
                     MessageBox.Show($"Source song folder does not exist: {songFolder}", "Error");
-                    return;
+                    return null;
                 }
 
                 ZipFile.CreateFromDirectory(songFolder, fullOutputPath);
@@ -242,9 +199,9 @@ namespace krrTools.Tools.OsuParser
             catch (Exception e)
             {
                 MessageBox.Show($"Failed to create {fullOutputPath} {Environment.NewLine}{Environment.NewLine}{e.Message}", "Error");
-                return;
+                return null;
             }
-            
+
             // 2. 加入新的谱面文件到.osz
             try
             {
@@ -254,9 +211,9 @@ namespace krrTools.Tools.OsuParser
             catch (Exception e)
             {
                 MessageBox.Show($"Failed to add beatmap to archive: {Environment.NewLine}{Environment.NewLine}{e.Message}", "Error");
-                return;
+                return null;
             }
-            
+
             // 3. 删除原本谱面
             try
             {
@@ -269,22 +226,28 @@ namespace krrTools.Tools.OsuParser
             {
                 MessageBox.Show($"Failed to delete the temporary beatmap file: {newBeatmapFile} {Environment.NewLine}{Environment.NewLine}{e.Message}", "Warning");
             }
-            
-            // 4. 打开. osz
-            Process proc = new Process();
-            proc.StartInfo.FileName = fullOutputPath;
-            proc.StartInfo.UseShellExecute = true;
-            try
+
+            // 4. 打开 .osz（仅当调用方请求时）
+            if (openOsz)
             {
-                proc.Start();
+                Process proc = new Process();
+                proc.StartInfo.FileName = fullOutputPath;
+                proc.StartInfo.UseShellExecute = true;
+                try
+                {
+                    proc.Start();
+                }
+                catch
+                {
+                    MessageBox.Show("There was an error opening the generated .osz file. This is probably because .osz files have not been configured to open with osu!.exe on this system." + Environment.NewLine + Environment.NewLine +
+                                    "To fix this, download any map from the website, right click the .osz file, click properties, beside Opens with... click Change..., and select osu!. " +
+                                    "You'll know the problem is fixed when you can double click .osz files to open them with osu!", "Error");
+                }
             }
-            catch
-            {
-                MessageBox.Show("There was an error opening the generated .osz file. This is probably because .osz files have not been configured to open with osu!.exe on this system." + Environment.NewLine + Environment.NewLine +
-                                "To fix this, download any map from the website, right click the .osz file, click properties, beside Opens with... click Change..., and select osu!. " +
-                                "You'll know the problem is fixed when you can double click .osz files to open them with osu!", "Error");
-            }
+
+            // return the created osz path as success indicator
+            return fullOutputPath;
         }
-        
+
     }
 }

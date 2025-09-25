@@ -5,8 +5,8 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using krrTools.Tools.Converter;
 using krrTools.tools.DPtool;
+using krrTools.tools.N2NC;
 
 namespace krrTools.tools.Preview
 {
@@ -130,10 +130,10 @@ namespace krrTools.tools.Preview
     internal sealed class ConverterPreviewProcessor : BasePreviewProcessor
     {
         public override string ToolKey => "Converter";
-        public Func<ConversionOptions?>? ConverterOptionsProvider { get; set; }
+        public Func<N2NCOptions?>? ConverterOptionsProvider { get; set; }
         public ConverterPreviewProcessor()
         {
-            this.ConversionProvider = (path, start, end) =>
+            ConversionProvider = (path, start, end) =>
             {
                 var opt = ConverterOptionsProvider?.Invoke();
                 if (opt == null) return (0, new List<ManiaNote>(), 0.0);
@@ -141,7 +141,7 @@ namespace krrTools.tools.Preview
             };
         }
 
-        public ConverterPreviewProcessor(int? columnOverride, Func<ConversionOptions?>? converterOptionsProvider) : this()
+        public ConverterPreviewProcessor(int? columnOverride, Func<N2NCOptions?>? converterOptionsProvider) : this()
         {
             ColumnOverride = columnOverride;
             ConverterOptionsProvider = converterOptionsProvider;
@@ -154,7 +154,7 @@ namespace krrTools.tools.Preview
         public Func<PreviewTransformation.LNPreviewParameters>? LNParamsProvider { get; set; }
         public LNPreviewProcessor()
         {
-            this.ConversionProvider = (path, start, end) =>
+            ConversionProvider = (path, start, end) =>
             {
                 if (LNParamsProvider == null)
                     return (0, new List<ManiaNote>(), 0.0);
@@ -176,7 +176,7 @@ namespace krrTools.tools.Preview
         public Func<DPToolOptions>? DPOptionsProvider { get; set; }
         public DPPreviewProcessor()
         {
-            this.ConversionProvider = (path, start, end) =>
+            ConversionProvider = (path, start, end) =>
             {
                 var opt = DPOptionsProvider?.Invoke();
                 if (opt == null) return (0, new List<ManiaNote>(), 0.0);

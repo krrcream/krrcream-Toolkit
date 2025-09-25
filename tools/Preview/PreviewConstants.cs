@@ -1,5 +1,3 @@
-// 预览渲染的尺寸与限制集中管理
-// 将所有用于绘制预览的 magic number 放在这里，方便统一调整和维护
 using System.Windows.Media;
 
 namespace krrTools.tools.Preview

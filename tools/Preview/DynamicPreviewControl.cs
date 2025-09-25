@@ -31,7 +31,7 @@ namespace krrTools.tools.Preview
             Children.Add(_canvas);
 
             SizeChanged += DynamicPreviewControl_SizeChanged;
-            this.Loaded += (_, _) => Dispatcher.BeginInvoke(new Action(Redraw), System.Windows.Threading.DispatcherPriority.Loaded);
+            Loaded += (_, _) => Dispatcher.BeginInvoke(new Action(Redraw), System.Windows.Threading.DispatcherPriority.Loaded);
 
             Redraw();
         }

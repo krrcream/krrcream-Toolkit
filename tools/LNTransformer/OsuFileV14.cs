@@ -284,8 +284,7 @@ internal class OsuFileProcessor
     {
         using var reader = new StreamReader(stream, leaveOpen: true);
         var lines = new List<string>();
-        string? line;
-        while ((line = reader.ReadLine()) != null) lines.Add(line);
+        while (reader.ReadLine() is { } line) lines.Add(line);
         return ParseFromLines(lines, null, exitFunc);
     }
 
@@ -347,16 +346,16 @@ internal class OsuFileProcessor
 
 public class OsuFileV14
 {
-    public List<ManiaHitObject> HitObjects = new();
-    public List<TimingPoint> TimingPoints = new();
-    public List<Colour> Colours = new();
-    public Metadata Metadata = new();
-    public General General = new();
+    public List<ManiaHitObject> HitObjects;
+    public List<TimingPoint> TimingPoints;
+    public List<Colour> Colours = [];
+    public Metadata Metadata;
+    public General General;
     public Event Events = new();
     public FileInfo? OriginalFile;
     public string path = string.Empty;
     public const string FileExtension = ".osu";
-    public readonly char[] ForbiddenChar = { '\\', '/', ':', '*', '?', '"', '<', '>', '|' };
+    public readonly char[] ForbiddenChar = ['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
     public double StarRating;
     public bool IsEmpty;
 
@@ -400,8 +399,10 @@ public class OsuFileV14
         get
         {
             var osu = new OsuFileV14(new List<ManiaHitObject>(), new List<TimingPoint>(), new List<Colour>(),
-                new Metadata(), new General(), new Event(), null);
-            osu.IsEmpty = true;
+                new Metadata(), new General(), new Event(), null)
+            {
+                IsEmpty = true
+            };
             return osu;
         }
     }
@@ -409,48 +410,48 @@ public class OsuFileV14
     public OsuFileV14(List<ManiaHitObject> hitObjects, List<TimingPoint> timingPoints, List<Colour> colours,
         Metadata metadata, General general, Event events, FileInfo? file)
     {
-            this.HitObjects = hitObjects;
-            this.TimingPoints = timingPoints;
-            this.Colours = colours;
-            this.Metadata = metadata;
-            this.General = general;
-            this.Events = events;
-            this.OriginalFile = file;
+            HitObjects = hitObjects;
+            TimingPoints = timingPoints;
+            Colours = colours;
+            Metadata = metadata;
+            General = general;
+            Events = events;
+            OriginalFile = file;
             for (int i = 0; i < hitObjects.Count; i++)
-        {
-            var obj = HitObjects[i];
-            obj.CircleSize = (int)general.CircleSize;
-            obj.actualColumn = (int)Math.Floor(obj.X * obj.CircleSize / 512.0);
-            HitObjects[i] = obj;
-        }
+            {
+                var obj = HitObjects[i];
+                obj.CircleSize = (int)general.CircleSize;
+                obj.actualColumn = (int)Math.Floor(obj.X * obj.CircleSize / 512.0);
+                HitObjects[i] = obj;
+            }
 
-        if (file is not null)
-        {
-            path = file.DirectoryName ?? string.Empty;
-            try
+            if (file is not null)
+            {
+                path = file.DirectoryName ?? string.Empty;
+                try
+                {
+                    StarRating = 0;
+                }
+                catch
+                {
+                    StarRating = 0;
+                }
+            }
+            else
             {
                 StarRating = 0;
             }
-            catch
-            {
-                StarRating = 0;
-            }
-        }
-        else
-        {
-            StarRating = 0;
-        }
     }
 
     public OsuFileV14(string FileName)
     {
         var osu = OsuFileProcessor.ReadFile(FileName);
-            this.HitObjects = osu.HitObjects;
-            this.TimingPoints = osu.TimingPoints;
-            this.Metadata = osu.Metadata;
-            this.General = osu.General;
-            this.path = Path.GetDirectoryName(FileName) ?? string.Empty;
-            this.OriginalFile = new FileInfo(FileName);
+            HitObjects = osu.HitObjects;
+            TimingPoints = osu.TimingPoints;
+            Metadata = osu.Metadata;
+            General = osu.General;
+            path = Path.GetDirectoryName(FileName) ?? string.Empty;
+            OriginalFile = new FileInfo(FileName);
             for (int i = 0; i < HitObjects.Count; i++)
         {
             var obj = HitObjects[i];
@@ -470,7 +471,7 @@ public class OsuFileV14
         for (var i = 0; i < RedPoints.Count - 1; i++)
             if (RedPoints[i].Time <= time && RedPoints[i + 1].Time > time)
                 return RedPoints[i];
-        return RedPoints[RedPoints.Count - 1];
+        return RedPoints[^1];
     }
 
     public void ManiaToKeys(int Keys)
@@ -516,8 +517,8 @@ public class OsuFileV14
 
     public OsuFileV14 Copy()
     {
-        return new OsuFileV14(new List<ManiaHitObject>(HitObjects.Select(obj => obj)),
-            new List<TimingPoint>(TimingPoints.Select(pt => pt)), new List<Colour>(Colours.Select(col => col)),
+        return new OsuFileV14([..HitObjects.Select(obj => obj)],
+            [..TimingPoints.Select(pt => pt)], [..Colours.Select(col => col)],
             Metadata, General, Events, OriginalFile);
     }
 
@@ -597,49 +598,59 @@ public class OsuFileV14
             writer.WriteLine(string.Join(",", obj.X, obj.Y, obj.StartTime, obj.Type, obj.HitSound, obj.HitSample));
     }
 
-    public void WriteFile(string path = "")
+    public void WriteFile(string filePath = "")
     {
         StreamWriter writer;
-        if (!string.IsNullOrEmpty(path))
+        if (!string.IsNullOrEmpty(filePath))
         {
-            if (string.Equals(Path.GetExtension(path), FileExtension, StringComparison.InvariantCultureIgnoreCase))
-                writer = new StreamWriter(path);
-            else
-                writer = new StreamWriter(path + Path.DirectorySeparatorChar + FileName + FileExtension);
+            writer = string.Equals(Path.GetExtension(filePath), FileExtension, StringComparison.InvariantCultureIgnoreCase) ? 
+                new StreamWriter(filePath) 
+                : 
+                new StreamWriter(filePath + Path.DirectorySeparatorChar + FileName + FileExtension);
         }
         else
         {
-            writer = new StreamWriter(this.path + Path.DirectorySeparatorChar + FileName + FileExtension);
+            writer = new StreamWriter(path + Path.DirectorySeparatorChar + FileName + FileExtension);
         }
 
         SerializeTo(writer);
         writer.Close();
     }
+
+    public void Recalculate()
+    {
+        // Ensure timing points are ordered
+        TimingPoints = TimingPoints.OrderBy(tp => tp.Time).ToList();
+
+        // Recompute CircleSize and actualColumn for hitobjects
+        for (int i = 0; i < HitObjects.Count; i++)
+        {
+            var obj = HitObjects[i];
+            obj.CircleSize = (int)General.CircleSize;
+            obj.actualColumn = (int)Math.Floor(obj.X * obj.CircleSize / 512.0);
+            HitObjects[i] = obj;
+        }
+    }
 }
 
-public struct TimingPoint
+public struct TimingPoint(
+    int time,
+    double beatLength,
+    int meter,
+    int sampleSet,
+    int sampleIndex,
+    int volume,
+    int uninherited,
+    int effects)
 {
-    public int Time;
-    public double BeatLength;
-    public int Meter;
-    public int SampleSet;
-    public int SampleIndex;
-    public int Volume;
-    public int Uninherited;
-    public int Effects;
-
-    public TimingPoint(int time, double beatLength, int meter, int sampleSet, int sampleIndex, int volume,
-        int uninherited, int effects)
-    {
-        Time = time;
-        BeatLength = beatLength;
-        Meter = meter;
-        SampleSet = sampleSet;
-        SampleIndex = sampleIndex;
-        Volume = volume;
-        Uninherited = uninherited;
-        Effects = effects;
-    }
+    public int Time = time;
+    public double BeatLength = beatLength;
+    public int Meter = meter;
+    public int SampleSet = sampleSet;
+    public int SampleIndex = sampleIndex;
+    public int Volume = volume;
+    public int Uninherited = uninherited;
+    public int Effects = effects;
 }
 
 public record struct ManiaHitObject
@@ -755,8 +766,7 @@ public record struct ManiaHitObject
             return;
         }
 
-        if (endTime != startTime) Type = 128;
-        else Type = 1;
+        Type = endTime != startTime ? 128 : 1;
     }
 
     public ManiaHitObject ToNote()
@@ -765,16 +775,26 @@ public record struct ManiaHitObject
         note.EndTime = note.StartTime;
         return note;
     }
+
+    public ManiaHitObject ToLongNote(double endTimeDouble)
+    {
+        var note = this;
+        try
+        {
+            int endTime = (int)Math.Round(endTimeDouble);
+            note.EndTime = endTime;
+        }
+        catch
+        {
+            note.EndTime = note.StartTime;
+        }
+        return note;
+    }
 }
 
-public struct Event
+public struct Event()
 {
-    public string eventString;
-
-    public Event()
-    {
-        eventString = string.Empty;
-    }
+    public string eventString = string.Empty;
 }
 
 public struct Colour
@@ -806,16 +826,16 @@ public struct Colour
 
 public struct Metadata
 {
-    public string Title;
-    public string TitleUnicode;
-    public string Artist;
-    public string ArtistUnicode;
-    public string Creator;
-    public string Difficulty;
-    public string Source;
-    public string Tags;
-    public string BeatmapID;
-    public string BeatmapSetID;
+    public string? Title;
+    public string? TitleUnicode;
+    public string? Artist;
+    public string? ArtistUnicode;
+    public string? Creator;
+    public string? Difficulty;
+    public string? Source;
+    public string? Tags;
+    public string? BeatmapID;
+    public string? BeatmapSetID;
 
     public Metadata()
     {
@@ -848,7 +868,7 @@ public struct Metadata
 
 public struct General
 {
-        public string Version = "v14";
+    public readonly string Version = "v14";
     public string PreviewTime;
     public string AudioFilename;
     public string AudioLeadIn;
@@ -865,47 +885,47 @@ public struct General
     public double ApproachRate;
     public double SliderMultiplier;
     public double SliderTickRate;
-    public string ImageEvent;
-    public string VideoEvent;
+    public string? ImageEvent;
+    public string? VideoEvent;
 
     public General()
     {
-            PreviewTime = "-1";
+        PreviewTime = "-1";
         AudioFilename = string.Empty;
-            AudioLeadIn = "0";
-            Countdown = "0";
-            SampleSet = "Soft";
-            StackLeniency = "0.7";
+        AudioLeadIn = "0";
+        Countdown = "0";
+        SampleSet = "Soft";
+        StackLeniency = "0.7";
         Mode = string.Empty;
-            LetterboxInBreaks = "0";
-            SpecialStyle = "1";
-            WidescreenStoryboard = "0";
+        LetterboxInBreaks = "0";
+        SpecialStyle = "1";
+        WidescreenStoryboard = "0";
         HPDrainRate = 0;
         CircleSize = 8;
         OverallDifficulty = 0;
         ApproachRate = 5;
-        }
+    }
 
-        public General(string version, string previewTime, string audioFilename, string audioLeadIn, string countdown, string sampleSet, string stackLeniency, string mode, string letterboxInBreaks, string specialStyle, string widescreenStoryboard, double hPDrainRate, double circleSize, double overallDifficulty, double approachRate, double sliderMultiplier, double sliderTickRate, string imageEvent, string videoEvent)
-        {
-            Version = version;
-            PreviewTime = previewTime;
-            AudioFilename = audioFilename;
-            AudioLeadIn = audioLeadIn;
-            Countdown = countdown;
-            SampleSet = sampleSet;
-            StackLeniency = stackLeniency;
-            Mode = mode;
-            LetterboxInBreaks = letterboxInBreaks;
-            SpecialStyle = specialStyle;
-            WidescreenStoryboard = widescreenStoryboard;
-            HPDrainRate = hPDrainRate;
-            CircleSize = circleSize;
-            OverallDifficulty = overallDifficulty;
-            ApproachRate = approachRate;
-            SliderMultiplier = sliderMultiplier;
-            SliderTickRate = sliderTickRate;
-            ImageEvent = imageEvent;
-            VideoEvent = videoEvent;
+    public General(string version, string previewTime, string audioFilename, string audioLeadIn, string countdown, string sampleSet, string stackLeniency, string mode, string letterboxInBreaks, string specialStyle, string widescreenStoryboard, double hPDrainRate, double circleSize, double overallDifficulty, double approachRate, double sliderMultiplier, double sliderTickRate, string imageEvent, string videoEvent)
+    {
+        Version = version;
+        PreviewTime = previewTime;
+        AudioFilename = audioFilename;
+        AudioLeadIn = audioLeadIn;
+        Countdown = countdown;
+        SampleSet = sampleSet;
+        StackLeniency = stackLeniency;
+        Mode = mode;
+        LetterboxInBreaks = letterboxInBreaks;
+        SpecialStyle = specialStyle;
+        WidescreenStoryboard = widescreenStoryboard;
+        HPDrainRate = hPDrainRate;
+        CircleSize = circleSize;
+        OverallDifficulty = overallDifficulty;
+        ApproachRate = approachRate;
+        SliderMultiplier = sliderMultiplier;
+        SliderTickRate = sliderTickRate;
+        ImageEvent = imageEvent;
+        VideoEvent = videoEvent;
     }
 }

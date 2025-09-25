@@ -9,7 +9,7 @@ namespace krrTools.tools.LNTransformer
 {
     public static class Helper
     {
-        public static readonly int[] DIVIDE_NUMBER = [2, 4, 8, 3, 6, 9, 5, 7, 12, 16, 48, 35, 64];
+        public static readonly int[] DIVIDE_NUMBER = new int[] { 2, 4, 8, 3, 6, 9, 5, 7, 12, 16, 48, 35, 64 };
         public const double ERROR = 2.0;
 
         public delegate void FileFunc(string fileName);
@@ -159,12 +159,14 @@ namespace krrTools.tools.LNTransformer
                 endTime = random.Next(time + 1 + durationMinLimit, time + 1 + durationMaxLimit);
                 if (LNProbability > 0 && random.Next(100) < LNProbability)
                 {
+                    // Construct LN using (x, y, circleSize, startTime, type, hitSound, hitSample, endTime)
                     var ln = new ManiaHitObject(OsuFileV14.KeyX[keys][column], 192, keys, time, 128, 0, "0:0:0:0:", endTime: endTime);
                     list.Add(ln);
                 }
                 else
                 {
-                    var note = new ManiaHitObject(OsuFileV14.KeyX[keys][column], keys, 192, keys, time, 1);
+                    // Use constructor (column, circleSize, startTime, type)
+                    var note = new ManiaHitObject(column, keys, time, type: 1);
                     list.Add(note);
                 }
             }
@@ -292,7 +294,7 @@ namespace krrTools.tools.LNTransformer
         {
             if (times <= 0)
             {
-                return [];
+                return Enumerable.Empty<T>();
             }
 
             var result = new List<T>();

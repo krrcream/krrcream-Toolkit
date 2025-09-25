@@ -5,8 +5,9 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using krrTools.Tools.Converter;
 using krrTools.tools.DPtool;
+using krrTools.tools.N2NC;
+using krrTools.Tools.Shared;
 
 namespace krrTools.tools.Preview
 {
@@ -15,14 +16,17 @@ namespace krrTools.tools.Preview
     {
         public event EventHandler? MergeRequested;
         private readonly DualPreviewControl _previewControl = new();
+        private readonly string _headerText;
 
         public DetachedToolWindow(string header, UIElement? settingsContent, ResourceDictionary? settingsResources, IPreviewProcessor processor)
         {
+            _headerText = header;
             Title = header + " (Detached)";
             Width = 1100;
             Height = 700;
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
-            Background = new SolidColorBrush(Color.FromRgb(250, 251, 253));
+            // Use shared translucent panel background so acrylic/blur can be seen
+            Background = SharedUIComponents.PanelBackgroundBrush;
 
             // 将传入的资源合并到窗口资源（如果键不存在）
             AddResourcesIfMissing(settingsResources);
@@ -36,7 +40,7 @@ namespace krrTools.tools.Preview
                 if (settingsContent is FrameworkElement fe)
                 {
                     // Converter
-                    if (processor is ConverterPreviewProcessor cpp && fe.DataContext is ConverterViewModel convVm)
+                    if (processor is ConverterPreviewProcessor cpp && fe.DataContext is N2NCViewModel convVm)
                     {
                         cpp.ConverterOptionsProvider = () => convVm.GetConversionOptions();
                         if (convVm is INotifyPropertyChanged npc)
@@ -103,12 +107,14 @@ namespace krrTools.tools.Preview
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                Debug.WriteLine("DetachedToolWindow: Failed to bind settings to preview processor.");
+                Debug.WriteLine($"DetachedToolWindow: Failed to bind settings to preview processor: {ex.Message}");
             }
 
             Content = BuildLayout(settingsContent);
+            
+            SharedUIComponents.LanguageChanged += OnLanguageChanged;
         }
         
         private UIElement BuildLayout(UIElement? settingsContent)
@@ -119,13 +125,11 @@ namespace krrTools.tools.Preview
 
             var toolbar = new DockPanel { Margin = new Thickness(6, 6, 6, 0) };
             Grid.SetRow(toolbar, 0);
-            var mergeBtn = new Button
-            {
-                Content = "Merge back",
-                Padding = new Thickness(10, 4, 10, 4),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(0, 0, 0, 4)
-            };
+            var mergeBtn = SharedUIComponents.CreateStandardButton("Merge back|合并回主界面");
+            mergeBtn.Width = 140; // 设置固定宽度以保持按钮大小一致
+            mergeBtn.Padding = new Thickness(10, 4, 10, 4);
+            mergeBtn.HorizontalAlignment = HorizontalAlignment.Right;
+            mergeBtn.Margin = new Thickness(0, 0, 0, 4);
             mergeBtn.Click += (_, _) => MergeRequested?.Invoke(this, EventArgs.Empty);
             DockPanel.SetDock(mergeBtn, Dock.Right);
             toolbar.Children.Add(mergeBtn);
@@ -146,15 +150,23 @@ namespace krrTools.tools.Preview
 
             var settingsBorder = new Border
             {
-                Background = Brushes.White,
-                BorderBrush = new SolidColorBrush(Color.FromRgb(224, 224, 224)),
+                Background = SharedUIComponents.PanelBackgroundBrush,
+                BorderBrush = SharedUIComponents.PanelBorderBrush,
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(6),
                 Margin = new Thickness(8),
                 Padding = new Thickness(0)
             };
-            var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = settingsContent };
-            settingsBorder.Child = scroll;
+            // If settingsContent is already a ScrollViewer, use it directly to avoid nesting
+            if (settingsContent is ScrollViewer existingScroll)
+            {
+                settingsBorder.Child = existingScroll;
+            }
+            else
+            {
+                var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = settingsContent };
+                settingsBorder.Child = scroll;
+            }
             main.Children.Add(settingsBorder);
 
             Grid.SetColumn(_previewControl, 1);
@@ -176,5 +188,22 @@ namespace krrTools.tools.Preview
             }
         }
 
+        protected override void OnClosed(EventArgs e)
+        {
+            SharedUIComponents.LanguageChanged -= OnLanguageChanged;
+            base.OnClosed(e);
+        }
+
+        private void OnLanguageChanged()
+        {
+            try
+            {
+                Dispatcher.BeginInvoke(new Action(() => { Title = _headerText + " (Detached)"; }));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"DetachedToolWindow OnLanguageChanged failed: {ex.Message}");
+            }
+        }
     }
 }

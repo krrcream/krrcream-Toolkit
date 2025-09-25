@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -13,9 +12,8 @@ using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using krrTools.Tools.KRRLV;
 using krrTools.Tools.OsuParser;
-using Microsoft.Win32;
+using krrTools.Tools.Shared;
 
 namespace krrTools.tools.KRR_LV
 {
@@ -51,7 +49,7 @@ namespace krrTools.tools.KRR_LV
         public string? FilePath
         {
             get => _filePath;
-            set => SetProperty(ref _filePath, value);
+            init => SetProperty(ref _filePath, value);
         }
 
         public string? Status
@@ -164,7 +162,7 @@ namespace krrTools.tools.KRR_LV
         }
     }
     
-    public partial class KRRLVViewModel : ObservableObject, INotifyPropertyChanged
+    public partial class KRRLVViewModel : ObservableObject
 {
     [ObservableProperty]
     private string _pathInput = null!;
@@ -194,13 +192,6 @@ namespace krrTools.tools.KRR_LV
         get => _processedCount;
         set => SetProperty(ref _processedCount, value);
     }
-    
-    // protected new virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    // {
-    //     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    // }
-
-    public new event PropertyChangedEventHandler? PropertyChanged;
 
     public KRRLVViewModel()
     {
@@ -231,39 +222,27 @@ namespace krrTools.tools.KRR_LV
     [RelayCommand]
     private void Browse()
     {
-        var dialog = new OpenFileDialog
+        var selected = FileProcessingHelper.ShowOpenFileOrFolderDialog("选择文件或文件夹");
+        if (!string.IsNullOrEmpty(selected))
         {
-            Title = "选择文件或文件夹",
-            CheckFileExists = false, // 允许选择文件夹
-            CheckPathExists = true
-        };
-
-        if (dialog.ShowDialog() == true)
-        {
-            PathInput = dialog.FileName;
-            ProcessDroppedFiles([dialog.FileName]);
+            PathInput = selected;
+            ProcessDroppedFiles([selected]);
         }
     }
 
     [RelayCommand]
     private void Save()
     {
-        var dialog = new SaveFileDialog
-        {
-            Title = "保存为CSV文件",
-            Filter = "CSV文件|*.csv",
-            DefaultExt = "csv"
-        };
-
-        if (dialog.ShowDialog() == true)
+        var savePath = FileProcessingHelper.ShowSaveFileDialog("保存为CSV文件", "CSV文件|*.csv", "csv");
+        if (!string.IsNullOrEmpty(savePath))
         {
             try
             {
                 var csv = new StringBuilder();
-        
+                
                 // 添加CSV头部
                 csv.AppendLine("KRR_LV,XXY_SR,Title,Diff,Artist,Creator,Keys,BPM,OD,HP,LN%,beatmapID,beatmapsetId,filePath");
-        
+                
                 // 添加数据行
                 foreach (var file in OsuFiles)
                 {
@@ -271,8 +250,8 @@ namespace krrTools.tools.KRR_LV
                     csv.AppendLine(line);
                 }
         
-                File.WriteAllText(dialog.FileName, csv.ToString(), Encoding.UTF8);
-                var processStartInfo = new ProcessStartInfo(dialog.FileName)
+                File.WriteAllText(savePath, csv.ToString(), Encoding.UTF8);
+                var processStartInfo = new ProcessStartInfo(savePath)
                 {
                     UseShellExecute = true
                 };
@@ -281,7 +260,6 @@ namespace krrTools.tools.KRR_LV
             }
             catch (Exception ex)
             {
-                // 可以添加错误处理，例如显示消息框
                 Console.WriteLine($"保存文件时出错: {ex.Message}");
             }
         }
@@ -292,25 +270,8 @@ namespace krrTools.tools.KRR_LV
         try
         {
             // 计算总文件数（包括.osz中的.osu文件）
-            TotalCount = CountOsuFiles(files);
+            TotalCount = FileProcessingHelper.CountOsuFiles(files);
             _currentProcessedCount = 0;
-    
-            // 计算.osz文件中的.osu文件数量
-            foreach (var file in files)
-            {
-                if (File.Exists(file) && Path.GetExtension(file).Equals(".osz", StringComparison.OrdinalIgnoreCase))
-                {
-                    try
-                    {
-                        using var archive = ZipFile.OpenRead(file);
-                        TotalCount += archive.Entries.Count(e => e.Name.EndsWith(".osu", StringComparison.OrdinalIgnoreCase));
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"读取.osz文件时出错: {ex.Message}");
-                    }
-                }
-            }
     
             // 显示进度窗口
             Application.Current.Dispatcher.Invoke(() =>
@@ -418,9 +379,9 @@ namespace krrTools.tools.KRR_LV
                 _processingWindow = null;
             });
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Debug.WriteLine(e);
+            Debug.WriteLine(ex);
         }
     }
 
@@ -540,61 +501,6 @@ namespace krrTools.tools.KRR_LV
     
     
     
-    private int CountOsuFiles(string[] files)
-    {
-        int count = 0;
-        foreach (var file in files)
-        {
-            if (Directory.Exists(file))
-            {
-                count += Directory.GetFiles(file, "*.osu", SearchOption.AllDirectories)
-                    .Count(f => Path.GetExtension(f).Equals(".osu", StringComparison.OrdinalIgnoreCase));
-            }
-            else if (File.Exists(file) && Path.GetExtension(file).Equals(".osu", StringComparison.OrdinalIgnoreCase))
-            {
-                count++;
-            }
-            // 添加对.osz文件的支持
-            else if (File.Exists(file) && Path.GetExtension(file).Equals(".osz", StringComparison.OrdinalIgnoreCase))
-            {
-                try
-                {
-                    using var archive = ZipFile.OpenRead(file);
-                    count += archive.Entries.Count(e => e.Name.EndsWith(".osu", StringComparison.OrdinalIgnoreCase));
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"读取.osz文件时出错: {ex.Message}");
-                }
-            }
-        }
-        return count;
-    }
-
-
-    private bool IsOsuFile(string filePath)
-    {
-        return Path.GetExtension(filePath).Equals(".osu", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private void ProcessDirectory(string directoryPath)
-    {
-        try
-        {
-            var osuFiles = Directory.GetFiles(directoryPath, "*.osu", SearchOption.AllDirectories)
-                .Where(IsOsuFile);
-    
-            foreach (var file in osuFiles)
-            {
-                ProcessOsuFile(file);
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"处理目录时出错: {ex.Message}");
-        }
-    }
-    
     private void ProcessOsuFile(string filePath)
     {
         // 检查文件是否已存在于列表中
@@ -666,24 +572,10 @@ namespace krrTools.tools.KRR_LV
         }
     }
     
-    // 添加 Dispose 方法
     public void Dispose()
     {
         _semaphore.Dispose();
         _updateTimer.Stop();
     }
-
-    /// <summary>
-    /// osu 文件分析方法，留空等你实现
-    /// <param name="filePath">osu 文件路径</param>
-    /// </summary>
-
-    private void OsuAnalyze(string? filePath)
-    {
-        var analyzer = new OsuAnalyzer();
-        analyzer.Analyze(filePath);
-    }
 }
-
- 
 }

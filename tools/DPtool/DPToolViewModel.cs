@@ -1,61 +1,39 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-using System.Windows;
-using krrTools.tools.Listener;
+﻿using krrTools.tools.Shared;
 
 namespace krrTools.tools.DPtool
 {
     public class DPToolViewModel : ObservableObject
     {
-        private bool _isProcessing = false;
-        private double _progressValue = 0;
-        private double _progressMaximum = 100;
-        private string _progressText = "Ready";
-        private DPToolOptions _options = new DPToolOptions();
+        public DPToolViewModel()
+        {
+            // Try to load saved options; if none, keep defaults
+            try
+            {
+                var saved = OptionsManager.LoadOptions<DPToolOptions>(OptionsManager.DPToolName, OptionsManager.OptionsFileName);
+                if (saved != null)
+                {
+                    Options = saved;
+                }
+            }
+            catch
+            {
+                // best-effort load; ignore errors
+            }
+        }
 
         public bool IsProcessing
         {
-            get => _isProcessing;
-            set => SetProperty(ref _isProcessing, value);
+            get;
+            set => SetProperty(ref field, value);
         }
 
-        public double ProgressValue
-        {
-            get => _progressValue;
-            set => SetProperty(ref _progressValue, value);
-        }
-
-        public double ProgressMaximum
-        {
-            get => _progressMaximum;
-            set => SetProperty(ref _progressMaximum, value);
-        }
-
-        public string ProgressText
-        {
-            get => _progressText;
-            set => SetProperty(ref _progressText, value);
-        }
-        
         /// <summary>
         /// DP工具选项
         /// </summary>
         public DPToolOptions Options
         {
-            get => _options;
-            set => SetProperty(ref _options, value);
-        }
-        
-        /// <summary>
-        /// 打开osu!监听器窗口
-        /// </summary>
-        public void OpenOsuListener()
-        {
-            var listenerWindow = new ListenerView();
-            listenerWindow.Show();
-        }
+            get;
+            set => SetProperty(ref field, value);
+        } = new DPToolOptions();
     }
 }
