@@ -33,7 +33,7 @@ namespace krrTools.tools.DPtool
 
         public DPToolControl()
         {
-            DataContext = _viewModel;
+            this.DataContext = _viewModel;
             try
             {
                 BuildDPToolUI();
@@ -42,9 +42,9 @@ namespace krrTools.tools.DPtool
             catch (Exception ex)
             {
                 Debug.WriteLine($"DPToolControl initialization error: {ex.Message}");
-                Content = new TextBlock
+                this.Content = new TextBlock
                 {
-                    Text = (SharedUIComponents.IsChineseLanguage() ? "DP Tool 加载失败: " : "DP Tool failed to load: ") + ex.Message,
+                    Text = "DP Tool 加载失败: " + ex.Message,
                     TextWrapping = TextWrapping.Wrap,
                     Margin = new Thickness(12),
                     VerticalAlignment = VerticalAlignment.Center,
@@ -53,7 +53,7 @@ namespace krrTools.tools.DPtool
                 return;
             }
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
-            Unloaded += (_, _) =>
+            this.Unloaded += (_, _) =>
             {
                 SharedUIComponents.LanguageChanged -= OnLanguageChanged;
                 DPToolWindow_Closed();
@@ -64,11 +64,11 @@ namespace krrTools.tools.DPtool
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                    var dc = DataContext;
-                    Content = null;
+                    var dc = this.DataContext;
+                    this.Content = null;
                     BuildDPToolUI();
                     SetupBindings();
-                    DataContext = dc;
+                    this.DataContext = dc;
             }));
         }
 
@@ -76,7 +76,7 @@ namespace krrTools.tools.DPtool
         {
             try
             {
-                OptionsManager.SaveOptions(OptionsManager.DPToolName, OptionsManager.OptionsFileName, _viewModel.Options);
+                OptionsService.SaveOptions(OptionsConstants.DPToolName, OptionsConstants.OptionsFileName, _viewModel.Options);
             }
             catch (Exception ex)
             {
@@ -110,7 +110,7 @@ namespace krrTools.tools.DPtool
             _enumProvider = enumProvider;
 
             // Top: Modify keys + keys slider
-            ModifyKeysCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.DPModifyKeysCheckbox, Strings.DPModifyKeysTooltip);
+            ModifyKeysCheckBox = SharedUIComponents.CreateStandardCheckBoxWithTooltip(Strings.DPModifyKeysCheckbox, Strings.DPModifyKeysTooltip);
             ModifyKeysCheckBox.Margin = new Thickness(0, 0, 0, 6);
 
             var keysSettings = new SettingsSlider<double>
@@ -139,12 +139,10 @@ namespace krrTools.tools.DPtool
             // Left/Right panels
             // Left
             var leftLabel = SharedUIComponents.CreateHeaderLabel(Strings.DPLeftLabel);
-            LMirrorCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.DPMirrorLabel, Strings.DPMirrorTooltipLeft);
-            LMirrorCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
-            LDensityCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.DPDensityLabel, Strings.DPDensityTooltipLeft);
-            LDensityCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
+            LMirrorCheckBox = SharedUIComponents.CreateStandardCheckBoxWithTooltip(Strings.DPMirrorLabel, Strings.DPMirrorTooltipLeft);
+            LDensityCheckBox = SharedUIComponents.CreateStandardCheckBoxWithTooltip(Strings.DPDensityLabel, Strings.DPDensityTooltipLeft);
 
-            var leftChecks = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 6, 0, 10), HorizontalAlignment = HorizontalAlignment.Left };
+            var leftChecks = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 10) };
             leftChecks.Children.Add(LMirrorCheckBox);
             leftChecks.Children.Add(LDensityCheckBox);
 
@@ -183,12 +181,10 @@ namespace krrTools.tools.DPtool
 
             // Right
             var rightLabel = SharedUIComponents.CreateHeaderLabel(Strings.DPRightLabel);
-            RMirrorCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.DPMirrorLabel, Strings.DPMirrorTooltipRight);
-            RMirrorCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
-            RDensityCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.DPDensityLabel, Strings.DPDensityTooltipRight);
-            RDensityCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
+            RMirrorCheckBox = SharedUIComponents.CreateStandardCheckBoxWithTooltip(Strings.DPMirrorLabel, Strings.DPMirrorTooltipRight);
+            RDensityCheckBox = SharedUIComponents.CreateStandardCheckBoxWithTooltip(Strings.DPDensityLabel, Strings.DPDensityTooltipRight);
 
-            var rightChecks = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 6, 0, 10), HorizontalAlignment = HorizontalAlignment.Left };
+            var rightChecks = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 10) };
             rightChecks.Children.Add(RMirrorCheckBox);
             rightChecks.Children.Add(RDensityCheckBox);
 
@@ -240,7 +236,7 @@ namespace krrTools.tools.DPtool
             grid.Children.Add(rightPanel);
 
             // Presets panel (preserve existing factory usage)
-            var presetInner = PresetPanelFactory.CreatePresetPanel(OptionsManager.DPToolName, () => _viewModel.Options, (opt) =>
+            var presetInner = PresetPanelFactory.CreatePresetPanel(OptionsConstants.DPToolName, () => _viewModel.Options, (opt) =>
             {
                 if (opt == null) return;
                 var target = _viewModel.Options;
@@ -267,7 +263,7 @@ namespace krrTools.tools.DPtool
             stackPanel.Children.Add(grid);
             stackPanel.Children.Add(presetsPanel);
             // Assign the built UI to the control's content
-            Content = stackPanel;
+            this.Content = stackPanel;
         }
 
         public void ProcessSingleFile(string filePath)

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Windows;
@@ -6,6 +7,8 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Data;
+using krrTools.tools.DPtool;
+using krrTools.tools.N2NC;
 using krrTools.tools.Preview;
 using krrTools.tools.Shared;
 using krrTools.Tools.Shared;
@@ -33,12 +36,12 @@ namespace krrTools.tools.Listener
             // Subscribe to language changes
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
             // Unsubscribe when unloaded
-            Unloaded += (_,_) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
+            this.Unloaded += (_,_) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
 
             // 监听热键变化
             _viewModel.HotkeyChanged += (_, _) => {
                 UnregisterHotkey();
-                Dispatcher.BeginInvoke(new Action(InitializeHotkey));
+                this.Dispatcher.BeginInvoke(new Action(InitializeHotkey));
             };
 
             // 订阅 BeatmapSelected 事件以便在实时预览开启时把文件推送到预览控件
@@ -53,7 +56,7 @@ namespace krrTools.tools.Listener
         private void BuildUI()
         {
             // Control styling: background and sizing handled by host
-            Background = new SolidColorBrush(Color.FromRgb(0xBD, 0xBD, 0xBD));
+            this.Background = new SolidColorBrush(Color.FromRgb(0xBD, 0xBD, 0xBD));
 
             // Root grid
             var root = new Grid();
@@ -68,14 +71,13 @@ namespace krrTools.tools.Listener
             topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            var titleText = new TextBlock { FontSize = 16, FontWeight = FontWeights.Bold, VerticalAlignment = VerticalAlignment.Center, Width = 200 };
+            var titleText = new TextBlock { FontSize = 16, FontWeight = FontWeights.Bold, VerticalAlignment = VerticalAlignment.Center };
             titleText.SetBinding(TextBlock.TextProperty, new Binding("WindowTitle"));
             Grid.SetColumn(titleText, 0);
             topGrid.Children.Add(titleText);
 
             var createBtn = SharedUIComponents.CreateStandardButton(Strings.CreateMapLabel);
             createBtn.Background = Brushes.LightBlue;
-            createBtn.Width = 120; // 设置固定宽度以保持按钮大小一致
             createBtn.Margin = new Thickness(5);
             createBtn.Click += ConvertButton_Click;
             Grid.SetColumn(createBtn, 1);
@@ -89,7 +91,6 @@ namespace krrTools.tools.Listener
 
             var hotkeyBtn = SharedUIComponents.CreateStandardButton(Strings.SetHotkeyLabel);
             hotkeyBtn.Background = Brushes.LightYellow;
-            hotkeyBtn.Width = 100; // 设置固定宽度以保持按钮大小一致
             hotkeyBtn.Margin = new Thickness(5);
             hotkeyBtn.Click += HotkeySetButton_Click;
             Grid.SetColumn(hotkeyBtn, 3);
@@ -118,7 +119,6 @@ namespace krrTools.tools.Listener
             Grid.SetColumn(songsPathText, 0);
             songsGrid.Children.Add(songsPathText);
             var browseBtn = SharedUIComponents.CreateStandardButton(Strings.BrowseLabel);
-            browseBtn.Width = 80; // 设置固定宽度以保持按钮大小一致
             browseBtn.Padding = new Thickness(10,2,10,2);
             browseBtn.Click += BrowseButton_Click;
             Grid.SetColumn(browseBtn, 1);
@@ -160,11 +160,11 @@ namespace krrTools.tools.Listener
             root.Children.Add(contentGrid);
 
             // Set control content
-            Content = root;
+            this.Content = root;
 
             // Wire lifecycle events
-            Loaded += (_,_) => InitializeHotkey();
-            Unloaded += Window_Closing;
+            this.Loaded += (_,_) => InitializeHotkey();
+            this.Unloaded += Window_Closing;
         }
 
         private void BrowseButton_Click(object? sender, RoutedEventArgs e)
@@ -193,17 +193,6 @@ namespace krrTools.tools.Listener
                 return;
             }
 
-            // Get current active tab from MainWindow
-            var mainWindow = Application.Current?.MainWindow as MainWindow;
-            var activeTab = mainWindow?.TabControl.SelectedItem as TabItem;
-            var activeTag = activeTab?.Tag as string;
-
-            if (string.IsNullOrEmpty(activeTag))
-            {
-                MessageBox.Show("No active tab selected.", "Cannot Convert", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
             // If RealTimePreview is on and there are staged files, convert those instead of the single current file
             try
             {
@@ -212,9 +201,71 @@ namespace krrTools.tools.Listener
                     var staged = DualPreviewControl.GetSharedStagedPaths();
                     if (staged is { Length: > 0 })
                     {
-                        // Use FileDispatcher to convert staged files
-                        mainWindow?._fileDispatcher?.ConvertFiles(staged.Where(p => !string.IsNullOrEmpty(p)).ToArray(), activeTag);
-                        return;
+                        // Prefer an existing ConverterWindow or create one
+                        N2NCControl? conv;
+                        if (_sourceWindow is N2NCControl swConv) conv = swConv;
+                        else
+                        {
+                            conv = Application.Current?.Windows.OfType<N2NCControl>().FirstOrDefault();
+                        }
+
+                        if (conv == null)
+                        {
+                            try {
+                                conv = new N2NCControl();
+                                var convWindow = new Window { Title = Strings.TabConverter, Content = conv, Width = 800, Height = 600 };
+                                convWindow.Show();
+                            } catch (Exception ex) { Debug.WriteLine($"Failed to create/show N2NCControl: {ex.Message}"); }
+                        }
+
+                        if (conv == null)
+                        {
+                            MessageBox.Show("No converter available to process staged files.", "No Converter", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            return;
+                        }
+
+                        var created = new List<string>();
+                        var failed = new List<string>();
+
+                        foreach (var p in staged.Where(p => !string.IsNullOrEmpty(p)))
+                        {
+                            try
+                            {
+                                var res = conv.ProcessSingleFile(p);
+                                if (!string.IsNullOrEmpty(res)) created.Add(res);
+                                else failed.Add(p);
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine("Error converting staged file: " + ex.Message);
+                                failed.Add(p);
+                            }
+                        }
+
+                        if (created.Count > 0)
+                        {
+                            try { DualPreviewControl.BroadcastStagedPaths(null); } catch (Exception ex) { Debug.WriteLine($"BroadcastStagedPaths clear failed: {ex.Message}"); }
+
+                            var sb = new System.Text.StringBuilder();
+                            sb.AppendLine("Conversion finished. Created files:");
+                            foreach (var c in created) sb.AppendLine(c);
+                            if (failed.Count > 0)
+                            {
+                                sb.AppendLine();
+                                sb.AppendLine("The following source files failed to convert:");
+                                foreach (var f in failed) sb.AppendLine(f);
+                            }
+                            MessageBox.Show(sb.ToString(), "Conversion Result", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                        else
+                        {
+                            var msg = failed.Count > 0
+                                ? "Conversion failed for the staged files. The staged files remain so you can retry."
+                                : "Conversion did not produce any output.";
+                            MessageBox.Show(msg, "Conversion Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        }
+
+                        return; // staged handling done
                     }
                 }
             }
@@ -227,7 +278,80 @@ namespace krrTools.tools.Listener
             // Fallback/single-file behavior: process the current selected osu file
             if (!string.IsNullOrEmpty(_viewModel.CurrentOsuFilePath))
             {
-                mainWindow?._fileDispatcher?.ConvertFiles([_viewModel.CurrentOsuFilePath], activeTag);
+                switch (_sourceId)
+                {
+                    case 1: // Converter
+                        try
+                        {
+                            N2NCControl? conv;
+                            if (_sourceWindow is N2NCControl swConv) conv = swConv;
+                            else
+                            {
+                                conv = Application.Current?.Windows.OfType<N2NCControl>().FirstOrDefault();
+                            }
+
+                            if (conv == null)
+                            {
+                                try {
+                                    conv = new N2NCControl();
+                                    var convWindow = new Window { Title = Strings.TabConverter, Content = conv, Width = 800, Height = 600 };
+                                    convWindow.Show();
+                                } catch (Exception ex) { Debug.WriteLine($"Failed to create/show N2NCControl: {ex.Message}"); }
+                            }
+
+                            if (conv != null)
+                            {
+                                conv.ProcessSingleFile(_viewModel.CurrentOsuFilePath, openOsz: true);
+                            }
+                            else
+                            {
+                                MessageBox.Show("No converter available to process the file.", "No Converter", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine("Converter invocation failed: " + ex.Message);
+                            MessageBox.Show("Conversion failed: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                        break;
+                    case 2: // LN Transformer
+                        {
+                            LNTransformer.LNTransformerControl? LNTransformerControl;
+                            if (_sourceWindow is LNTransformer.LNTransformerControl swLn) LNTransformerControl = swLn;
+                            else
+                            {
+                                LNTransformerControl = Application.Current?.Windows.OfType<LNTransformer.LNTransformerControl>().FirstOrDefault();
+                            }
+
+                            if (LNTransformerControl == null)
+                            {
+                                try {
+                                    LNTransformerControl = new LNTransformer.LNTransformerControl();
+                                    var lnWindow = new Window { Title = Strings.TabLNTransformer, Content = LNTransformerControl, Width = 800, Height = 600 };
+                                    lnWindow.Show();
+                                } catch (Exception ex) { Debug.WriteLine($"Failed to create/show LNTransformerControl: {ex.Message}"); }
+                            }
+
+                            if (LNTransformerControl != null)
+                            {
+                                LNTransformerControl.ProcessSingleFile(_viewModel.CurrentOsuFilePath);
+                            }
+                        }
+                        break;
+                    case 3: // DP Tool
+                        if (_sourceWindow is DPToolControl dpToolWindow)
+                        {
+                            dpToolWindow.ProcessSingleFile(_viewModel.CurrentOsuFilePath);
+                        }
+                        break;
+                    default:
+                        MessageBox.Show($"Selected file: {_viewModel.CurrentOsuFilePath}", "File Selected", MessageBoxButton.OK, MessageBoxImage.Information);
+                        break;
+                }
+            }
+            else
+            {
+                MessageBox.Show("No beatmap is currently selected.", "Cannot Convert", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
         
@@ -271,11 +395,13 @@ namespace krrTools.tools.Listener
         {
             if (e.PropertyName == "RealTimePreview")
             {
-                // 在 UI 线程更新
+                // 在 UI 线程更新预览控件的 Drop 可用性
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     try
                     {
+                        // 当实时预览开启时，禁用所有预览的 DropZone；关闭时恢复
+                        DualPreviewControl.SetGlobalDropEnabled(!_viewModel.Config.RealTimePreview);
                         if (!_viewModel.Config.RealTimePreview)
                         {
                             // 清理之前通过实时预览暂存的文件（全局广播清除）
@@ -326,7 +452,7 @@ namespace krrTools.tools.Listener
                              main.DPPreview.ApplyStagedUI(arr);
                          }
                      }
-                     // Removed: DualPreviewControl.SetGlobalDropEnabled(false);
+                     DualPreviewControl.SetGlobalDropEnabled(false);
                  }
                  catch (Exception ex)
                  {
@@ -337,10 +463,14 @@ namespace krrTools.tools.Listener
 
         private void OnLanguageChanged()
         {
-            Dispatcher.BeginInvoke(new Action(() =>
+            try
             {
-                _viewModel.WindowTitle = Strings.ListenerTitlePrefix;
-            }));
+                this.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    _viewModel.WindowTitle = Strings.ListenerTitlePrefix;
+                }));
+            }
+            catch (Exception ex) { Debug.WriteLine($"ListenerView OnLanguageChanged invoke failed: {ex.Message}"); }
         }
     }
 }

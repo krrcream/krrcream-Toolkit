@@ -60,13 +60,6 @@ namespace krrTools.tools.Shared
         public const string OriginalLNsTooltip = "Keep original LNs|保留原始长条";
         public const string InstructionsLink = "Instructions|使用说明";
 
-        // LN Labels for sliders
-        public const string LevelLabel = "Level {0}|强度 {0}";
-        public const string LNPercentageLabel = "LN {0}%|LN占比 {0}%";
-        public const string DivideLabel = "Divide 1/{0}|面尾量化 1/{0}";
-        public const string ColumnLabel = "Column {0}|列量级 {0}";
-        public const string GapLabel = "Gap {0}|间隔 {0}";
-
         // DP Tool texts
         public const string DPModifyKeysCheckbox = "Enable Modify keys|启用修改键数";
         public const string DPModifyKeysTooltip = "Enable modification of single-side key count|启用键位修改";
@@ -113,21 +106,15 @@ namespace krrTools.tools.Shared
     
     public static class LocalizationExtensions
     {
-        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string[]> _cache = new();
-
         /// <summary>
         /// 拓展方法，xxx.Localize()
         /// </summary>
         public static string Localize(this string s)
         {
             if (string.IsNullOrEmpty(s)) return s;
-            
-            if (!_cache.TryGetValue(s, out var parts))
-            {
-                parts = s.Split(['|'], 2);
-                _cache[s] = parts;
-            }
-            
+            var parts = s.Split(['|'], 2);
+            if (parts.Length == 1) return s;
+
             // Use centralized Strings management; no try-catch for localization
             return SharedUIComponents.IsChineseLanguage() && parts.Length > 1 ? parts[1] : parts[0];
         }

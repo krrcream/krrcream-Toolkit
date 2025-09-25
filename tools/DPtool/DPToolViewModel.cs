@@ -1,4 +1,5 @@
-﻿using krrTools.tools.Shared;
+﻿using krrTools.tools.Listener;
+using krrTools.tools.Shared;
 
 namespace krrTools.tools.DPtool
 {
@@ -9,7 +10,7 @@ namespace krrTools.tools.DPtool
             // Try to load saved options; if none, keep defaults
             try
             {
-                var saved = OptionsManager.LoadOptions<DPToolOptions>(OptionsManager.DPToolName, OptionsManager.OptionsFileName);
+                var saved = OptionsService.LoadOptions<DPToolOptions>(OptionsConstants.DPToolName, OptionsConstants.OptionsFileName);
                 if (saved != null)
                 {
                     Options = saved;

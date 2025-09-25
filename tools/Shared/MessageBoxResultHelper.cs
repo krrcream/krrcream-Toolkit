@@ -8,8 +8,8 @@ namespace krrTools.Tools.Shared
         public static void TryShowSuccess(bool isChinese)
         {
             // Central place to show success; can be adjusted to suppress/pop notifications later
-            MessageBox.Show(isChinese ? "文件处理成功！|File processed successfully!" : "File processed successfully!|文件处理成功！",
-                isChinese ? "成功|Success" : "Success|成功",
+            MessageBox.Show(isChinese ? "文件处理成功！" : "File processed successfully!",
+                isChinese ? "成功" : "Success",
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }

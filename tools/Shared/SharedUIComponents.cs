@@ -10,7 +10,6 @@ using System.Diagnostics;
 using System.Windows.Controls;
 using krrTools.tools.Shared;
 using Button = Wpf.Ui.Controls.Button;
-using TextBox = Wpf.Ui.Controls.TextBox;
 
 namespace krrTools.Tools.Shared
 {
@@ -32,11 +31,17 @@ namespace krrTools.Tools.Shared
             // Persist immediately
             SaveAppSettings();
 
-            // Asynchronous notification to avoid blocking UI
-            Application.Current.Dispatcher.BeginInvoke(() => 
+            var handlers = LanguageChanged?.GetInvocationList();
+            if (handlers != null)
             {
-                LanguageChanged?.Invoke();
-            });
+                foreach (var d in handlers)
+                {
+                    if (d is Action a)
+                    {
+                        a();
+                    }
+                }
+            }
         }
 
         // Toggle the language selection (used by simple toggle UIs)
@@ -57,7 +62,7 @@ namespace krrTools.Tools.Shared
         {
             try
             {
-                var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), OptionsManager.BaseAppFolderName);
+                var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), OptionsConstants.BaseAppFolderName);
                 Directory.CreateDirectory(folder);
                 _appSettingsPath = Path.Combine(folder, "appsettings.json");
                 LoadAppSettings();
@@ -184,53 +189,24 @@ namespace krrTools.Tools.Shared
              return CultureInfo.CurrentUICulture.Name.Contains("zh");
          }
 
-         private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, System.Collections.Concurrent.ConcurrentDictionary<string, string[]>> _enumCache = new();
-
          /// <summary>
          /// 根据枚举的Description特性获取本地化显示名称
          /// </summary>
          public static string GetLocalizedEnumDisplayName<T>(T enumValue) where T : Enum
          {
-             var type = typeof(T);
-             if (!_enumCache.TryGetValue(type, out var dict))
+             FieldInfo? field = enumValue.GetType().GetField(enumValue.ToString());
+             if (field != null)
              {
-                 dict = new System.Collections.Concurrent.ConcurrentDictionary<string, string[]>();
-                 foreach (var field in type.GetFields())
+                 var attributes = (DescriptionAttribute[])field.GetCustomAttributes(typeof(DescriptionAttribute), false);
+                 if (attributes.Length > 0 && !string.IsNullOrEmpty(attributes[0].Description))
                  {
-                     var attr = field.GetCustomAttribute<DescriptionAttribute>();
-                     if (attr != null && !string.IsNullOrEmpty(attr.Description) && attr.Description.Contains('|'))
-                     {
-                         dict[field.Name] = attr.Description.Split('|', 2);
-                     }
+                     var parts = attributes[0].Description.Split('|');
+                     if (parts.Length > 1 && IsChineseLanguage()) return parts[1];
+                     return parts[0];
                  }
-                 _enumCache[type] = dict;
              }
-             
-             if (dict.TryGetValue(enumValue.ToString(), out var parts) && IsChineseLanguage() && parts.Length > 1)
-             {
-                 return parts[1];
-             }
-             return parts != null ? parts[0] : enumValue.ToString();
-         }
 
-         /// <summary>
-         /// 设置本地化的ToolTip
-         /// </summary>
-         public static void SetLocalizedToolTip(FrameworkElement element, string? tooltipText)
-         {
-             if (string.IsNullOrEmpty(tooltipText)) return;
-             if (tooltipText.Contains('|'))
-             {
-                 var parts = tooltipText.Split('|', 2);
-                 element.ToolTip = IsChineseLanguage() && parts.Length > 1 ? parts[1] : parts[0];
-                 void UpdateTip() { var p = tooltipText.Split('|', 2); element.ToolTip = IsChineseLanguage() && p.Length > 1 ? p[1] : p[0]; }
-                 LanguageChanged += UpdateTip;
-                 element.Unloaded += (_, _) => LanguageChanged -= UpdateTip;
-             }
-             else
-             {
-                 element.ToolTip = tooltipText;
-             }
+             return enumValue.ToString();
          }
 
          public static TextBlock CreateStandardTextBlock()
@@ -266,7 +242,7 @@ namespace krrTools.Tools.Shared
          public static FrameworkElement CreateLabeledRow(string labelText, UIElement control, Thickness rowMargin)
          {
              var panel = new StackPanel { Orientation = Orientation.Vertical, Margin = rowMargin };
-             var label = CreateHeaderLabel(labelText);
+             var label = CreateStandardTextBlock();
              if (!string.IsNullOrEmpty(labelText) && labelText.Contains('|'))
              {
                  void Update()
@@ -312,7 +288,7 @@ namespace krrTools.Tools.Shared
              };
          }
          
-         public static Button CreateStandardButton(string content, string? tooltip = null)
+         public static Button CreateStandardButton(string content)
          {
              // Use a TextBlock as content so we can measure and shrink the font when needed.
              var tb = new TextBlock { FontSize = ComFontSize, TextTrimming = TextTrimming.CharacterEllipsis };
@@ -326,7 +302,7 @@ namespace krrTools.Tools.Shared
                  }
                  Update();
                  LanguageChanged += Update;
-                 // remove handler when button unloads
+                 tb.Unloaded += (_, _) => LanguageChanged -= Update;
              }
              else
              {
@@ -346,13 +322,7 @@ namespace krrTools.Tools.Shared
                  Foreground = UiTextBrush
              };
 
-             // Attach auto-shrink behavior so long text reduces font to fit available width
-             AttachAutoShrinkBehavior(btn, tb);
-
-             // Set tooltip
-             SetLocalizedToolTip(btn, tooltip);
-
-             // Handle language change unloading
+             // Support localized content expressed as "en|zh". If provided, hook up a language-updating handler
              if (!string.IsNullOrEmpty(content) && content.Contains('|'))
              {
                  void UpdateText()
@@ -360,9 +330,14 @@ namespace krrTools.Tools.Shared
                      var parts = content.Split('|', 2);
                      tb.Text = IsChineseLanguage() && parts.Length > 1 ? parts[1] : parts[0];
                  }
+                 UpdateText();
                  LanguageChanged += UpdateText;
+                 // remove handler when button unloads
                  btn.Unloaded += (_, _) => LanguageChanged -= UpdateText;
              }
+
+             // Attach auto-shrink behavior so long text reduces font to fit available width
+             AttachAutoShrinkBehavior(btn, tb);
 
              return btn;
          }
@@ -402,13 +377,13 @@ namespace krrTools.Tools.Shared
              btn.Unloaded += (_, _) => LanguageChanged -= Adjust;
           }
 
-          public static CheckBox CreateStandardCheckBox(string content, string? tooltip = null)
+          public static CheckBox CreateStandardCheckBox(string content)
           {
               var cb = new CheckBox { FontSize = ComFontSize, Margin = new Thickness(2, 0, 10, 0), Background = Brushes.Transparent };
               if (!string.IsNullOrEmpty(content) && content.Contains('|'))
               {
                  var parts = content.Split('|', 2);
-                 var tb = new TextBlock { Text = IsChineseLanguage() && parts.Length > 1 ? parts[1] : parts[0], FontSize = ComFontSize, TextWrapping = TextWrapping.Wrap };
+                 var tb = new TextBlock { Text = IsChineseLanguage() && parts.Length > 1 ? parts[1] : parts[0], FontSize = ComFontSize };
                   cb.Content = tb;
                  void UpdateText() { var p = content.Split('|', 2); tb.Text = IsChineseLanguage() && p.Length > 1 ? p[1] : p[0]; }
                  LanguageChanged += UpdateText;
@@ -416,10 +391,28 @@ namespace krrTools.Tools.Shared
               }
               else
               {
-                  cb.Content = new TextBlock { Text = content, FontSize = ComFontSize, TextWrapping = TextWrapping.Wrap };
+                  cb.Content = content;
               }
-              SetLocalizedToolTip(cb, tooltip);
               return cb;
+          }
+
+          public static CheckBox CreateStandardCheckBoxWithTooltip(string content, string tooltip)
+          {
+              var checkBox = CreateStandardCheckBox(content);
+              if (!string.IsNullOrEmpty(tooltip) && tooltip.Contains('|'))
+              {
+                  // tooltip localized part
+                 var parts = tooltip.Split('|', 2);
+                  checkBox.ToolTip = IsChineseLanguage() && parts.Length > 1 ? parts[1] : parts[0];
+                 void UpdateTip() { var p = tooltip.Split('|', 2); checkBox.ToolTip = IsChineseLanguage() && p.Length > 1 ? p[1] : p[0]; }
+                 LanguageChanged += UpdateTip;
+                 checkBox.Unloaded += (_, _) => LanguageChanged -= UpdateTip;
+              }
+              else
+              {
+                  checkBox.ToolTip = tooltip;
+              }
+              return checkBox;
           }
 
           /// <summary>
@@ -442,9 +435,9 @@ namespace krrTools.Tools.Shared
                   btnStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(10, 6, 10, 6)));
                   btnStyle.Setters.Add(new Setter(Control.HorizontalContentAlignmentProperty, HorizontalAlignment.Center));
                   btnStyle.Setters.Add(new Setter(Control.VerticalContentAlignmentProperty, VerticalAlignment.Center));
-                  btnStyle.Setters.Add(new Setter(Control.BackgroundProperty, PanelBackgroundBrush));
-                  btnStyle.Setters.Add(new Setter(Control.ForegroundProperty, UiTextBrush));
-                  btnStyle.Setters.Add(new Setter(Control.BorderBrushProperty, PanelBorderBrush));
+                  btnStyle.Setters.Add(new Setter(Control.BackgroundProperty, SharedUIComponents.PanelBackgroundBrush));
+                  btnStyle.Setters.Add(new Setter(Control.ForegroundProperty, SharedUIComponents.UiTextBrush));
+                  btnStyle.Setters.Add(new Setter(Control.BorderBrushProperty, SharedUIComponents.PanelBorderBrush));
                   btnStyle.Setters.Add(new Setter(Control.BorderThicknessProperty, new Thickness(1)));
                   appRes[typeof(Button)] = btnStyle;
               }

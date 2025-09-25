@@ -31,17 +31,13 @@ namespace krrTools.tools.N2NC
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show((SharedUIComponents.IsChineseLanguage() ? "打包/添加谱面失败: " : "Packaging/adding beatmap failed: ") + ex.Message, 
-                        SharedUIComponents.IsChineseLanguage() ? "错误|Error" : "Error|错误", 
-                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Packaging/adding beatmap failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return null;
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show((SharedUIComponents.IsChineseLanguage() ? "处理文件时出错: " : "Error processing file: ") + ex.Message, 
-                    SharedUIComponents.IsChineseLanguage() ? "处理错误|Processing Error" : "Processing Error|处理错误", 
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Error processing file: {ex.Message}", "Processing Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }
         }

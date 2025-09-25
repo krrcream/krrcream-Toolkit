@@ -58,7 +58,7 @@ namespace krrTools.Tools.Shared
                     Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                     {
                         MessageBox.Show((SharedUIComponents.IsChineseLanguage() ? "处理文件时出错: " : "Error processing file: ") + ex.Message,
-                            SharedUIComponents.IsChineseLanguage() ? "处理错误|Processing Error" : "Processing Error|处理错误",
+                            SharedUIComponents.IsChineseLanguage() ? "处理错误" : "Processing Error",
                             MessageBoxButton.OK, MessageBoxImage.Error);
                         onCompleted?.Invoke();
                     }));
@@ -92,7 +92,7 @@ namespace krrTools.Tools.Shared
                             Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                             {
                                 MessageBox.Show((SharedUIComponents.IsChineseLanguage() ? "打包/添加谱面失败: " : "Packaging/adding beatmap failed: ") + ex.Message,
-                                    SharedUIComponents.IsChineseLanguage() ? "错误|Error" : "Error|错误",
+                                    SharedUIComponents.IsChineseLanguage() ? "错误" : "Error",
                                     MessageBoxButton.OK, MessageBoxImage.Error);
                             }));
                             Debug.WriteLine($"Packaging/adding beatmap failed: {ex.Message}");
@@ -110,7 +110,7 @@ namespace krrTools.Tools.Shared
                     Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                     {
                         MessageBox.Show((SharedUIComponents.IsChineseLanguage() ? "处理文件时出错: " : "Error processing file: ") + ex.Message,
-                            SharedUIComponents.IsChineseLanguage() ? "处理错误|Processing Error" : "Processing Error|处理错误",
+                            SharedUIComponents.IsChineseLanguage() ? "处理错误" : "Processing Error",
                             MessageBoxButton.OK, MessageBoxImage.Error);
                         onCompleted?.Invoke();
                     }));
@@ -124,7 +124,7 @@ namespace krrTools.Tools.Shared
              if (!File.Exists(filePath))
              {
                  MessageBox.Show((SharedUIComponents.IsChineseLanguage() ? "未找到文件: " : "File not found: ") + filePath,
-                     SharedUIComponents.IsChineseLanguage() ? "文件未找到|File Not Found" : "File Not Found|文件未找到",
+                     SharedUIComponents.IsChineseLanguage() ? "文件未找到" : "File Not Found",
                      MessageBoxButton.OK, MessageBoxImage.Warning);
                  return false;
              }
@@ -132,7 +132,7 @@ namespace krrTools.Tools.Shared
              if (!string.Equals(Path.GetExtension(filePath), ".osu", StringComparison.OrdinalIgnoreCase))
              {
                  MessageBox.Show(SharedUIComponents.IsChineseLanguage() ? "所选文件不是有效的.osu文件" : "The selected file is not a valid .osu file",
-                     SharedUIComponents.IsChineseLanguage() ? "无效文件|Invalid File" : "Invalid File|无效文件",
+                     SharedUIComponents.IsChineseLanguage() ? "无效文件" : "Invalid File",
                      MessageBoxButton.OK, MessageBoxImage.Warning);
                  return false;
              }

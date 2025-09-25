@@ -7,7 +7,6 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using krrTools.Tools.Shared;
-using krrTools.tools.Shared;
 
 namespace krrTools.tools.DPtool
 {
@@ -27,22 +26,7 @@ namespace krrTools.tools.DPtool
         public TextBlock LabelTextBlock { get; private set; }
         public Slider InnerSlider { get; private set; }
 
-        private string _labelText = string.Empty;
-        public string LabelText
-        {
-            get => _labelText;
-            set
-            {
-                _labelText = value;
-                if (LabelTextBlock != null && _isInitialized)
-                {
-                    // Remove old label and create new one with bilingual support
-                    Children.Remove(LabelTextBlock);
-                    LabelTextBlock = SharedUIComponents.CreateHeaderLabel(_labelText);
-                    Children.Insert(0, LabelTextBlock);
-                }
-            }
-        }
+        public string LabelText { get; set; } = string.Empty;
         public string TooltipText { get; set; } = string.Empty;
         public object? Source { get; set; }
         public string? Path { get; set; }
@@ -60,7 +44,7 @@ namespace krrTools.tools.DPtool
         {
             Orientation = Orientation.Vertical;
             Margin = new Thickness(0, 0, 0, 10);
-            LabelTextBlock = new TextBlock { FontSize = SharedUIComponents.HeaderFontSize, FontWeight = FontWeights.Bold };
+            LabelTextBlock = new TextBlock();
             InnerSlider = new Slider();
             Children.Add(LabelTextBlock);
             Children.Add(InnerSlider);
@@ -73,12 +57,7 @@ namespace krrTools.tools.DPtool
             _isInitialized = true;
 
             if (!string.IsNullOrEmpty(LabelText))
-            {
-                // Remove the initial TextBlock and create proper bilingual label
-                Children.Remove(LabelTextBlock);
-                LabelTextBlock = SharedUIComponents.CreateHeaderLabel(LabelText);
-                Children.Insert(0, LabelTextBlock);
-            }
+                LabelTextBlock.Text = LabelText;
             if (!string.IsNullOrEmpty(TooltipText))
                 ToolTipService.SetToolTip(this, TooltipText);
 
@@ -224,11 +203,10 @@ namespace krrTools.tools.DPtool
         {
             try
             {
-                if (!string.IsNullOrEmpty(_labelText))
+                if (!string.IsNullOrEmpty(LabelText))
                 {
-                    // Get the current localized label text and append numeric value
-                    string localizedLabel = Strings.Localize(_labelText);
-                    LabelTextBlock.Text = localizedLabel + " " + ((int)value).ToString();
+                    // Append numeric value to label
+                    LabelTextBlock.Text = LabelText + " " + ((int)value).ToString();
                 }
             }
             catch (Exception ex) { Debug.WriteLine($"UpdateLabelWithValue error: {ex.Message}"); }

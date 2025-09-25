@@ -29,11 +29,11 @@ namespace krrTools.tools.Get_files
             // Initialize control UI
             BuildUI();
             var viewModel = new GetFilesViewModel();
-            DataContext = viewModel;
+            this.DataContext = viewModel;
             // Subscribe to language change
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
             // Unsubscribe when unloaded
-            Unloaded += (_,_) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
+            this.Unloaded += (_,_) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
         }
 
         private void BuildUI()
@@ -45,9 +45,9 @@ namespace krrTools.tools.Get_files
             {
                 // Apply app-level font settings by setting Control dependency properties so we avoid direct type refs
                 if (appRes.Contains("AppFontFamily"))
-                    rootGrid.SetValue(FontFamilyProperty, appRes["AppFontFamily"]);
+                    rootGrid.SetValue(System.Windows.Controls.Control.FontFamilyProperty, appRes["AppFontFamily"]);
                 if (appRes.Contains("AppFontSize"))
-                    rootGrid.SetValue(FontSizeProperty, appRes["AppFontSize"]);
+                    rootGrid.SetValue(System.Windows.Controls.Control.FontSizeProperty, appRes["AppFontSize"]);
             }
             rootGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             rootGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -106,10 +106,10 @@ namespace krrTools.tools.Get_files
             _progressBarControl = new ProgressBar { Width = 200, Height = 20 };
             _progressBarControl.SetBinding(RangeBase.ValueProperty, new Binding("ProgressValue"));
             _progressBarControl.SetBinding(RangeBase.MaximumProperty, new Binding("ProgressMaximum"));
-            BindingOperations.SetBinding(_progressBarControl, VisibilityProperty, new Binding("IsProcessing") { Converter = new BooleanToVisibilityConverter() });
+            BindingOperations.SetBinding(_progressBarControl, System.Windows.UIElement.VisibilityProperty, new Binding("IsProcessing") { Converter = new BooleanToVisibilityConverter() });
             _progressTextBlockControl = new TextBlock { Foreground = new SolidColorBrush(Color.FromRgb(0x21, 0x21, 0x21)), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10,0,0,0) };
             _progressTextBlockControl.SetBinding(TextBlock.TextProperty, new Binding("ProgressText"));
-            BindingOperations.SetBinding(_progressTextBlockControl, VisibilityProperty, new Binding("IsProcessing") { Converter = new BooleanToVisibilityConverter() });
+            BindingOperations.SetBinding(_progressTextBlockControl, System.Windows.UIElement.VisibilityProperty, new Binding("IsProcessing") { Converter = new BooleanToVisibilityConverter() });
             progressPanel.Children.Add(_progressBarControl);
             progressPanel.Children.Add(_progressTextBlockControl);
             Grid.SetColumn(progressPanel, 0);
@@ -127,7 +127,7 @@ namespace krrTools.tools.Get_files
             rootGrid.Children.Add(bottomGrid);
 
             // Set control content
-            Content = rootGrid;
+            this.Content = rootGrid;
         }
 
         private FrameworkElement PlaceInGrid(UIElement element, int column)
@@ -198,9 +198,9 @@ namespace krrTools.tools.Get_files
             try
             {
                 // Rebuild UI on language change
-                Dispatcher.BeginInvoke(new Action(() =>
+                this.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    var dc = DataContext;
+                    var dc = this.DataContext;
                     Content = null;
                     BuildUI();
                     DataContext = dc;

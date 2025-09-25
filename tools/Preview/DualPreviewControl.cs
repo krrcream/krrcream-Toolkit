@@ -14,7 +14,7 @@ public partial class DualPreviewControl : UserControl
 {
     // Named controls that were previously defined in XAML
     // initialize with null-forgiving to avoid nullable warnings (they are assigned in ctor)
-    private TextBlock PreviewTitle;
+    private TextBlock PreviewTitle = null!;
     private TextBlock OriginalHint = null!;
     private TextBlock ConvertedHint = null!;
     private ContentControl OriginalContent = null!;
@@ -389,8 +389,8 @@ public partial class DualPreviewControl : UserControl
 
             DropZone?.InvalidateMeasure();
             DropZone?.UpdateLayout();
-            InvalidateMeasure();
-            UpdateLayout();
+            this.InvalidateMeasure();
+            this.UpdateLayout();
             return;
         }
 
@@ -409,8 +409,8 @@ public partial class DualPreviewControl : UserControl
 
         DropZone?.InvalidateMeasure();
         DropZone?.UpdateLayout();
-        InvalidateMeasure();
-        UpdateLayout();
+        this.InvalidateMeasure();
+        this.UpdateLayout();
     }
 
     private void DualPreviewControl_Loaded(object sender, RoutedEventArgs e)

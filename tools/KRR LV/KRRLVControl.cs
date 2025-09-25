@@ -15,17 +15,17 @@ namespace krrTools.tools.KRR_LV
             // Initialize view and ViewModel
             BuildUI();
             _viewModel = new KRRLVViewModel();
-            DataContext = _viewModel;
+            this.DataContext = _viewModel;
             // subscribe to language changes
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
             // unsubscribe when unloaded
-            Unloaded += (_,_) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
+            this.Unloaded += (_,_) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
         }
 
         private void BuildUI()
         {
             // control layout only; host sets size and location
-            AllowDrop = true;
+            this.AllowDrop = true;
 
             var root = new Grid();
             var info = new TextBlock
@@ -39,8 +39,8 @@ namespace krrTools.tools.KRR_LV
             root.Children.Add(info);
             Content = root;
 
-            Drop += Window_Drop;
-            DragEnter += Window_DragEnter;
+            this.Drop += Window_Drop;
+            this.DragEnter += Window_DragEnter;
         }
 
         private void Window_Drop(object sender, DragEventArgs e)
@@ -69,10 +69,10 @@ namespace krrTools.tools.KRR_LV
         private void OnLanguageChanged()
         {
 
-                Dispatcher.BeginInvoke(new Action(() =>
+                this.Dispatcher.BeginInvoke(new Action(() =>
                 {
 
-                        var dc = DataContext;
+                        var dc = this.DataContext;
                         Content = null;
                         BuildUI();
                         DataContext = dc;
