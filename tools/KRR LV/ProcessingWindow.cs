@@ -29,7 +29,7 @@ namespace krrTools.tools.KRR_LV
             SourceInitialized += OnSourceInitialized;
 
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
-            this.Closed += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
+            Closed += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
         }
 
         private void OnSourceInitialized(object? sender, EventArgs e)
@@ -188,7 +188,7 @@ namespace krrTools.tools.KRR_LV
         {
             try
             {
-                this.Dispatcher.BeginInvoke(new Action(() =>
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
                     try
                     {

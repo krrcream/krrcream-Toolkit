@@ -18,10 +18,6 @@ namespace krrTools.tools.Shared
         {
             var outer = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 10, 0, 10) };
             
-            var label = SharedUIComponents.CreateHeaderLabel(Strings.Localize(Strings.PresetsLabel));
-            label.Margin = new Thickness(0, 0, 0, 6);
-            outer.Children.Add(label);
-
             var list = new StackPanel { Orientation = Orientation.Vertical };
 
             // Load current presets
@@ -34,14 +30,15 @@ namespace krrTools.tools.Shared
 
                     // Apply button uses shared button (handles language hooks internally)
                     var btn = SharedUIComponents.CreateStandardButton(name);
-                    btn.MinWidth = 120;
                     btn.HorizontalAlignment = HorizontalAlignment.Left;
+                    btn.Width = 120; // 设置固定宽度以保持按钮大小一致
                     btn.Click += (_, _) => applyOptions(opt);
                     row.Children.Add(btn);
 
                     // Delete button - localized content using shared helper
                     var del = SharedUIComponents.CreateStandardButton("Delete|删除");
                     del.Margin = new Thickness(8, 0, 0, 0);
+                    del.Width = 80; // 设置固定宽度以保持按钮大小一致
                     del.Click += (_, _) =>
                     {
                         var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), OptionsManager.BaseAppFolderName, toolName, OptionsManager.PresetsFolderName);
@@ -69,11 +66,11 @@ namespace krrTools.tools.Shared
 
             Refresh();
 
-            var controlRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0) };
+            var controlRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Left, Width = 250 };
 
             // Save as preset button - localized and uses shared button behavior
             var saveBtn = SharedUIComponents.CreateStandardButton("Save as Preset|保存为预设");
-            saveBtn.MinWidth = 120;
+            saveBtn.Width = 140; // 设置固定宽度以保持按钮大小一致
             saveBtn.Click += (_, _) =>
             {
                 var current = getCurrentOptions();
@@ -92,6 +89,7 @@ namespace krrTools.tools.Shared
 
             var refreshBtn = SharedUIComponents.CreateStandardButton("Refresh|刷新");
             refreshBtn.Margin = new Thickness(8, 0, 0, 0);
+            refreshBtn.Width = 90; // 设置固定宽度以保持按钮大小一致
             refreshBtn.Click += (_, _) => Refresh();
             controlRow.Children.Add(saveBtn);
             controlRow.Children.Add(refreshBtn);
@@ -147,9 +145,8 @@ namespace krrTools.tools.Shared
 
                 var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
                 var ok = SharedUIComponents.CreateStandardButton("OK|确定");
-                ok.Width = 80; ok.Margin = new Thickness(0, 0, 8, 0);
+                ok.Margin = new Thickness(0, 0, 8, 0);
                 var cancel = SharedUIComponents.CreateStandardButton("Cancel|取消");
-                cancel.Width = 80;
                 ok.Click += (_, _) => { DialogResult = true; Close(); };
                 cancel.Click += (_, _) => { DialogResult = false; Close(); };
                 row.Children.Add(ok);

@@ -1,12 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Diagnostics.CodeAnalysis;
-using krrTools.Tools.OsuParser;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using krrTools.tools.Shared;
@@ -52,9 +49,9 @@ public static class Setting
             // Initialize control UI
             BuildUI();
             SharedUIComponents.LanguageChanged += HandleLanguageChanged;
-            this.Unloaded += (_, _) => {
+            Unloaded += (_, _) => {
                 SharedUIComponents.LanguageChanged -= HandleLanguageChanged;
-                this.Content = null;
+                Content = null;
             };
         }
 
@@ -98,7 +95,7 @@ public static class Setting
             // 将内容放入滚动容器并设置为控制的内容
             root.Content = stack;
             
-            this.Content = root;
+            Content = root;
         }
 
         private ScrollViewer CreateRootScrollViewer()
@@ -114,7 +111,7 @@ public static class Setting
         private FrameworkElement CreateLevelPanel()
         {
             var levelStack = new StackPanel { Margin = new Thickness(0, 0, 0, 15) };
-            var levelLabel = SharedUIComponents.CreateHeaderLabel(Strings.Localize(Strings.LevelHeader));
+            var levelLabel = SharedUIComponents.CreateHeaderLabel(Strings.LevelHeader);
             LevelValue = SharedUIComponents.CreateStandardSlider(-3, 10, double.NaN, true);
             LevelValue.Name = "LevelValue"; // 添加Name属性以便预览功能查找
             LevelValue.Value = 3;
@@ -205,10 +202,7 @@ public static class Setting
             Grid.SetColumn(odLabel, 0);
             OverallDifficulty = SharedUIComponents.CreateStandardTextBox();
             OverallDifficulty.Name = "OverallDifficulty"; // 添加Name属性以便预览功能查找
-            OverallDifficulty.Text = "0";
-            OverallDifficulty.Width = 100;
-            OverallDifficulty.Height = 30;
-            OverallDifficulty.Padding = new Thickness(0);
+            OverallDifficulty.HorizontalAlignment = HorizontalAlignment.Stretch;
             OverallDifficulty.TextChanged += OverallDifficulty_TextChanged;
             Grid.SetColumn(OverallDifficulty, 1);
             odGrid.Children.Add(odLabel);
@@ -266,7 +260,7 @@ public static class Setting
                 {
                     MessageBox.Show(SharedUIComponents.IsChineseLanguage() ? 
                         $"未找到文件: {filePath}" : $"File not found: {filePath}", 
-                        SharedUIComponents.IsChineseLanguage() ? "文件未找到" : "File Not Found",
+                        SharedUIComponents.IsChineseLanguage() ? "文件未找到|File Not Found" : "File Not Found|文件未找到",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
@@ -276,126 +270,33 @@ public static class Setting
                 {
                     MessageBox.Show(SharedUIComponents.IsChineseLanguage() ? 
                         "所选文件不是有效的.osu文件" : "The selected file is not a valid .osu file", 
-                        SharedUIComponents.IsChineseLanguage() ? "无效文件" : "Invalid File",
+                        SharedUIComponents.IsChineseLanguage() ? "无效文件|Invalid File" : "Invalid File|无效文件",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
-                Task.Run(() =>
+                // 创建包含单个文件的列表
+                var allFiles = new List<string> { filePath };
+
+                // 收集参数
+                var parameters = new LNTransformerOptions
                 {
-                    // 创建包含单个文件的列表
-                    var allFiles = new List<string> { filePath };
+                    SeedText = Setting.Seed,
+                    LevelValue = LevelValue.Dispatcher.Invoke(() => LevelValue.Value),
+                    PercentageValue = PercentageValue.Dispatcher.Invoke(() => PercentageValue.Value),
+                    DivideValue = DivideValue.Dispatcher.Invoke(() => DivideValue.Value),
+                    ColumnValue = ColumnValue.Dispatcher.Invoke(() => ColumnValue.Value),
+                    GapValue = GapValue.Dispatcher.Invoke(() => GapValue.Value),
+                    IgnoreIsChecked = Ignore.Dispatcher.Invoke(() => Ignore.IsChecked == true),
+                    OriginalLNIsChecked = OriginalLN.Dispatcher.Invoke(() => OriginalLN.IsChecked == true),
+                    FixErrorIsChecked = FixError.Dispatcher.Invoke(() => FixError.IsChecked == true),
+                    OverallDifficulty = double.Parse(OverallDifficulty.Dispatcher.Invoke(() => OverallDifficulty.Text)),
+                    CreatorText = Setting.Creator,
+                    CheckKeys = Setting.KeyFilter
+                };
 
-                    // 收集参数
-                    var parameters = new LNTransformParameters
-                    {
-                        SeedText = Setting.Seed,
-                        LevelValue = LevelValue.Dispatcher.Invoke(() => LevelValue.Value),
-                        PercentageValue = PercentageValue.Dispatcher.Invoke(() => PercentageValue.Value),
-                        DivideValue = DivideValue.Dispatcher.Invoke(() => DivideValue.Value),
-                        ColumnValue = ColumnValue.Dispatcher.Invoke(() => ColumnValue.Value),
-                        GapValue = GapValue.Dispatcher.Invoke(() => GapValue.Value),
-                        IgnoreIsChecked = Ignore.Dispatcher.Invoke(() => Ignore.IsChecked == true),
-                        OriginalLNIsChecked = OriginalLN.Dispatcher.Invoke(() => OriginalLN.IsChecked == true),
-                        FixErrorIsChecked = FixError.Dispatcher.Invoke(() => FixError.IsChecked == true),
-                        OverallDifficulty = double.Parse(OverallDifficulty.Dispatcher.Invoke(() => OverallDifficulty.Text)),
-                        CreatorText = Setting.Creator,
-                        CheckKeys = Setting.KeyFilter
-                    };
-
-                    var osuFiles = OsuFileProcessor.ReadMultipleFiles(allFiles, (line) =>
-                    {
-                        if (line.StartsWith("Mode"))
-                        {
-                            string str = line.Substring(line.IndexOf(':') + 1).Trim();
-                            if (str != "3")
-                            {
-                                return true;
-                            }
-                        }
-
-                        if (line.StartsWith("CircleSize"))
-                        {
-                            string str = line.Substring(line.IndexOf(':') + 1).Trim();
-                            if (int.TryParse(str, out int cs))
-                            {
-                                if (cs > 10)
-                                {
-                                    return true;
-                                }
-
-                                if (parameters.CheckKeys.Count > 0 && !parameters.CheckKeys.Contains(cs))
-                                {
-                                    return true;
-                                }
-                            }
-                            else
-                            {
-                                return true;
-                            }
-                        }
-                        else
-                        {
-                            if (parameters.IgnoreIsChecked && line.StartsWith("Creator"))
-                            {
-                                var str = line.Substring(line.IndexOf(':') + 1).Trim();
-                                if (str.Contains("LNTransformer"))
-                                {
-                                    return true;
-                                }
-                            }
-
-                            if (parameters.IgnoreIsChecked && line.StartsWith("Version"))
-                            {
-                                var str = line.Substring(line.IndexOf(':') + 1).Trim();
-                                if (str.Contains("[LN"))
-                                {
-                                    return true;
-                                }
-                            }
-                        }
-
-                        return false;
-                    });
-
-                    foreach (var osuFile in osuFiles)
-                    {
-                        try
-                        {
-                            ApplyToBeatmap(osuFile, parameters);
-                            string newFilepath = osuFile.path + "\\" + osuFile.FileName + ".osu";
-                            // 仅当监听器（监视器）打开时才打包为.osz；否则保留.osu文件
-                            if (Listener.ListenerControl.IsOpen)
-                            {
-                                OsuAnalyzer.AddNewBeatmapToSongFolder(newFilepath);
-                            }
-                            else
-                            {
-                                // 不做任何操作：.osu文件已通过ApplyToBeatmap/Save保存到源文件夹中
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-#if DEBUG
-                            Task.Run(() =>
-                            {
-                                MessageBox.Show(
-                                    $"处理 {osuFile.OriginalFile!.FullName} 时出错: {ex.Message}\n\n堆栈跟踪:\n{ex.StackTrace}",
-                                    "转换错误", MessageBoxButton.OK, MessageBoxImage.Error,
-                                    MessageBoxResult.None, MessageBoxOptions.DefaultDesktopOnly);
-                            });
-#endif
-                        }
-                    }
-
-                    Task.Run(() =>
-                    {
-                        MessageBox.Show(SharedUIComponents.IsChineseLanguage() ? 
-                            "文件处理成功！" : "File processed successfully!", 
-                            SharedUIComponents.IsChineseLanguage() ? "成功" : "Success",
-                            MessageBoxButton.OK, MessageBoxImage.Information);
-                    });
-                });
+                // 使用统一的TransformService处理文件
+                TransformService.ProcessFiles(allFiles, parameters);
             }
             catch (Exception ex)
             {
@@ -407,372 +308,6 @@ public static class Setting
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 });
             }
-        }
-
-        private void ApplyToBeatmap(OsuFileV14 osu, LNTransformParameters parameters)
-        {
-            bool canBeConverted = !(IsConverted(osu) && parameters.IgnoreIsChecked);
-
-            if (!canBeConverted)
-            {
-                return;
-            }
-
-            var Rng = new Random(int.TryParse(parameters.SeedText, out var seed) ? seed : 114514);
-            var originalLNObjects = new List<ManiaHitObject>();
-            var afterObjects = new List<ManiaHitObject>();
-
-            var timeDivide = 4 * Math.Pow(2, -parameters.DivideValue);
-            var transformColumnNum = (int)parameters.ColumnValue;
-            var gapValue = (int)parameters.GapValue;
-            var percentage = parameters.PercentageValue / 100.0;
-            var level = parameters.LevelValue;
-            var originalLNIsChecked = parameters.OriginalLNIsChecked;
-
-            if (parameters.FixErrorIsChecked)
-            {
-                osu.Recalculate();
-            }
-
-            if (Math.Abs(parameters.OverallDifficulty - 0) > 1e-6)
-            {
-                osu.General.OverallDifficulty = parameters.OverallDifficulty;
-            }
-
-            if (!string.IsNullOrEmpty(parameters.CreatorText))
-            {
-                osu.Metadata.Creator = parameters.CreatorText + " & LNTransformer";
-            }
-            else
-            {
-                osu.Metadata.Creator += " & LNTransformer";
-            }
-
-            osu.Metadata.Difficulty += " [LN Level " + parameters.LevelValue + "]";
-
-            foreach (var obj in osu.HitObjects)
-            {
-                if (Math.Abs(obj.StartTime - obj.EndTime) < 1e-6)
-                {
-                    afterObjects.Add(obj);
-                }
-                else
-                {
-                    originalLNObjects.Add(obj);
-                    if (originalLNIsChecked)
-                    {
-                        afterObjects.Add(obj);
-                    }
-                }
-            }
-
-            var resultObjects = new List<ManiaHitObject>();
-            var originalLNSet = new HashSet<ManiaHitObject>(originalLNObjects);
-            int keys = (int)osu.General.CircleSize;
-            int maxGap = gapValue;
-            int gap = maxGap;
-
-            if (transformColumnNum > keys) transformColumnNum = keys;
-
-            var randomColumnSet = Enumerable.Range(0, keys).SelectRandom(Rng,
-                transformColumnNum == 0 ? keys : transformColumnNum).ToHashSet();
-
-            foreach (var timeGroup in afterObjects.OrderBy(h => h.StartTime).GroupBy(h => h.StartTime))
-            {
-                foreach (var note in timeGroup)
-                    if (originalLNSet.Contains(note) && originalLNIsChecked)
-                        resultObjects.Add(note);
-                    else if (randomColumnSet.Contains(note.Column) && Math.Abs(note.StartTime - note.EndTime) > 1e-6)
-                        resultObjects.Add(note);
-                    else
-                        resultObjects.Add(note.ToNote());
-
-                gap--;
-                if (gap == 0)
-                {
-                    randomColumnSet = Enumerable.Range(0, keys).SelectRandom(Rng, transformColumnNum)
-                        .ToHashSet();
-                    gap = maxGap;
-                }
-            }
-
-            osu.HitObjects = resultObjects.OrderBy(h => h.StartTime).ToList();
-            osu.WriteFile();
-        }
-
-        // Transform：根据分布生成长条，返回原始长条列表
-        private List<ManiaHitObject> Transform(Random Rng, double mu, double sigmaDivisor, double divide,
-            OsuFileV14 osu,
-            List<ManiaHitObject> newObjects,
-            IGrouping<int, ManiaHitObject> column, bool originalLNIsChecked, double percentageValue,
-            bool fixErrorIsChecked, int? divide2 = null, double? mu2 = null, double? mu1Dmu2 = null)
-        {
-            var originalLNObjects = new List<ManiaHitObject>();
-            var newColumnObjects = new List<ManiaHitObject>();
-            var locations = column.OrderBy(h => h.StartTime).ToList();
-
-            if (locations.Count == 0)
-            {
-                return originalLNObjects;
-            }
-
-            for (var i = 0; i < locations.Count - 1; i++)
-            {
-                double fullDuration = locations[i + 1].StartTime - locations[i].StartTime; // 两个音之间的完整间隔
-                var duration = GetDurationByDistribution(Rng, osu, locations[i].StartTime, fullDuration, mu,
-                    sigmaDivisor, divide, divide2, mu2, mu1Dmu2);
-
-                var obj = locations[i];
-                obj.Column = column.Key;
-                if (originalLNIsChecked && Math.Abs(locations[i].StartTime - locations[i].EndTime) > 1e-6)
-                {
-                    newColumnObjects.Add(obj);
-                    originalLNObjects.Add(obj);
-                }
-                else if (Rng.Next(100) < percentageValue && !double.IsNaN(duration))
-                {
-                    var endTime = obj.StartTime + duration;
-                    if (fixErrorIsChecked)
-                    {
-                        var point = osu.TimingPointAt(endTime);
-                        endTime = Helper.PreciseTime(endTime, point.BeatLength, point.Time);
-                    }
-
-                    obj.EndTime = (int)endTime;
-                    newColumnObjects.Add(obj);
-                }
-                else
-                {
-                    newColumnObjects.Add(obj.ToNote());
-                }
-            }
-
-            // 处理该列最后一个音
-            if (Math.Abs(locations[^1].StartTime - locations[^1].EndTime) <= ERROR + 1e-6 ||
-                Rng.Next(100) >= percentageValue)
-                newColumnObjects.Add(locations[^1].ToNote());
-            else
-                newColumnObjects.Add(locations[^1]);
-
-            newObjects.AddRange(newColumnObjects);
-
-            return originalLNObjects;
-        }
-
-        private double GetDurationByDistribution(Random Rng, OsuFileV14 osu, int startTime, double limitDuration,
-            double mu, double sigmaDivisor, double divide, int? divide2 = null, double? mu2 = null,
-            double? mu1Dmu2 = null)
-        {
-            var beatLength = osu.TimingPointAt(startTime).BeatLength; // 节拍长度
-            var timeDivide = beatLength / divide;
-            var flag = true; // 是否可转换为长条
-            var sigma = timeDivide / sigmaDivisor;
-            var timeNum = (int)Math.Round(limitDuration / timeDivide, 0);
-            var duration = TimeRound(timeDivide, RandDistribution(Rng, limitDuration * mu / 100, sigma));
-
-            if (mu1Dmu2.HasValue)
-                if (Rng.Next(100) >= mu1Dmu2.Value && mu2.HasValue)
-                {
-                    timeDivide = beatLength / (divide2 ?? (int)divide);
-                    sigma = timeDivide / sigmaDivisor;
-                    timeNum = (int)Math.Round(limitDuration / timeDivide, 0);
-                    duration = TimeRound(timeDivide, RandDistribution(Rng, limitDuration * mu2.Value / 100, sigma));
-                }
-
-            if (Math.Abs(mu + 1.0) < 1e-6)
-            {
-                if (timeNum < 1)
-                {
-                    duration = timeDivide;
-                }
-                else
-                {
-                    var rdTime = Rng.Next(1, timeNum);
-                    duration = rdTime * timeDivide;
-                    duration = TimeRound(timeDivide, duration);
-                }
-            }
-
-            if (duration > limitDuration - timeDivide)
-            {
-                duration = limitDuration - timeDivide;
-                duration = TimeRound(timeDivide, duration);
-            }
-
-            if (duration <= timeDivide) duration = timeDivide;
-
-            if (duration >= limitDuration - ERROR) // 过长则认为不可转换
-                flag = false;
-
-            return flag ? duration : double.NaN;
-        }
-
-        private List<ManiaHitObject> Invert(OsuFileV14 osu, List<ManiaHitObject> newObjects, Random Rng,
-            IGrouping<int, ManiaHitObject> column, double divideValue, bool originalLNIsChecked, double percentageValue,
-            bool fixErrorIsChecked)
-        {
-            var locations = column.OrderBy(h => h.StartTime).ToList();
-
-            var newColumnObjects = new List<ManiaHitObject>();
-            var originalLNObjects = new List<ManiaHitObject>();
-
-            for (var i = 0; i < locations.Count - 1; i++)
-            {
-                double fullDuration = locations[i + 1].StartTime - locations[i].StartTime;
-                var beatLength = osu.TimingPointAt(locations[i + 1].StartTime).BeatLength;
-                var flag = true;
-                var duration = fullDuration - beatLength / divideValue;
-
-                if (duration < beatLength / divideValue) duration = beatLength / divideValue;
-
-                if (duration > fullDuration - 3) flag = false;
-
-                var obj = locations[i];
-                obj.Column = column.Key;
-
-                if (originalLNIsChecked && Math.Abs(locations[i].StartTime - locations[i].EndTime) > 1e-6)
-                {
-                    newColumnObjects.Add(obj);
-                    originalLNObjects.Add(obj);
-                }
-                else if (Rng.Next(100) < percentageValue && flag)
-                {
-                    var endTime = locations[i].StartTime + duration;
-                    if (fixErrorIsChecked)
-                        endTime = Helper.PreciseTime(endTime, osu.TimingPointAt(endTime).BeatLength,
-                            osu.TimingPoints.First().Time);
-
-                    obj.EndTime = (int)endTime;
-                    newColumnObjects.Add(obj);
-                }
-                else
-                {
-                    newColumnObjects.Add(obj.ToNote());
-                }
-            }
-
-            double lastStartTime = locations[^1].StartTime;
-            double lastEndTime = locations[^1].EndTime;
-            if (originalLNIsChecked && Math.Abs(lastStartTime - lastEndTime) > 1e-6)
-            {
-                var obj = locations[^1];
-                obj.Column = column.Key;
-                newColumnObjects.Add(obj);
-                originalLNObjects.Add(obj);
-            }
-            else
-            {
-                var obj = locations[^1];
-                obj.Column = column.Key;
-                newColumnObjects.Add(obj.ToNote());
-            }
-
-            newObjects.AddRange(newColumnObjects);
-
-            return originalLNObjects;
-        }
-
-        private void TrueRandom(List<ManiaHitObject> newObjects, Random Rng,
-            IGrouping<int, ManiaHitObject> column, bool originalLNIsChecked, double percentageValue)
-        {
-            var locations = column.OrderBy(h => h.StartTime).ToList();
-
-            var newColumnObjects = new List<ManiaHitObject>();
-
-            for (int i = 0; i < locations.Count - 1; i++)
-            {
-                // 长条的完整持续时间
-                double fullDuration = locations[i + 1].StartTime - locations[i].StartTime;
-
-                double duration = Rng.Next((int)fullDuration) + Rng.NextDouble();
-                while (duration > fullDuration)
-                    duration--;
-
-                var obj = locations[i];
-                obj.Column = column.Key;
-
-                if (originalLNIsChecked && locations[i].StartTime != locations[i].EndTime)
-                {
-                    newColumnObjects.Add(obj);
-                }
-                else if (Rng.Next(100) < percentageValue)
-                {
-                    obj.EndTime = obj.StartTime + (int)duration;
-                    newColumnObjects.Add(obj);
-                }
-                else
-                {
-                    newColumnObjects.Add(obj.ToNote());
-                }
-            }
-
-            newObjects.AddRange(newColumnObjects);
-        }
-
-        private void AfterTransform(List<ManiaHitObject> afterObjects, List<ManiaHitObject> originalLNObjects,
-            OsuFileV14 osu, Random Rng, int transformColumnNum, bool originalLNIsChecked, int gapValue)
-        {
-            var resultObjects = new List<ManiaHitObject>();
-            var originalLNSet = new HashSet<ManiaHitObject>(originalLNObjects);
-            int keys = (int)osu.General.CircleSize;
-            int maxGap = gapValue;
-            int gap = maxGap;
-
-            if (transformColumnNum > keys) transformColumnNum = keys;
-
-            var randomColumnSet = Enumerable.Range(0, keys).SelectRandom(Rng,
-                transformColumnNum == 0 ? keys : transformColumnNum).ToHashSet();
-
-            foreach (var timeGroup in afterObjects.OrderBy(h => h.StartTime).GroupBy(h => h.StartTime))
-            {
-                foreach (var note in timeGroup)
-                    if (originalLNSet.Contains(note) && originalLNIsChecked)
-                        resultObjects.Add(note);
-                    else if (randomColumnSet.Contains(note.Column) && Math.Abs(note.StartTime - note.EndTime) > 1e-6)
-                        resultObjects.Add(note);
-                    else
-                        resultObjects.Add(note.ToNote());
-
-                gap--;
-                if (gap == 0)
-                {
-                    randomColumnSet = Enumerable.Range(0, keys).SelectRandom(Rng, transformColumnNum)
-                        .ToHashSet();
-                    gap = maxGap;
-                }
-            }
-
-            osu.HitObjects = resultObjects.OrderBy(h => h.StartTime).ToList();
-        }
-
-        private double RandDistribution(Random Rng, double u, double d)
-        {
-            if (d <= 0) return u;
-
-            var u1 = Rng.NextDouble();
-            var u2 = Rng.NextDouble();
-            var z = Math.Sqrt(-2 * Math.Log(u1)) * Math.Sin(2 * Math.PI * u2);
-            var x = u + d * z;
-            return x;
-        }
-
-        private double TimeRound(double timeDivide, double num)
-        {
-            var remainder = num % timeDivide;
-            if (remainder < timeDivide / 2)
-                return num - remainder;
-            return num + timeDivide - remainder;
-        }
-
-        private bool IsConverted(OsuFileV14 osu)
-        {
-            var creator = osu.Metadata.Creator;
-            if (!string.IsNullOrEmpty(creator) && creator.Contains("LNTransformer")) return true;
-
-            var difficulty = osu.Metadata.Difficulty;
-            if (!string.IsNullOrEmpty(difficulty) && Regex.IsMatch(difficulty, @"\[LN.*\]")) return true;
-
-            return false;
         }
 
         private void InstructionButton_Click(object sender, RoutedEventArgs e)
@@ -798,7 +333,7 @@ public static class Setting
 
         private void HandleLanguageChanged()
         {
-            this.Content = null;
+            Content = null;
             BuildUI();
         }
     }

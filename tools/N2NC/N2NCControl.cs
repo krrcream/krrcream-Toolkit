@@ -34,22 +34,14 @@ namespace krrTools.tools.N2NC
 
         private void OnLanguageChanged()
         {
-            try
+            // Rebuild UI on UI thread to refresh labels/tooltips
+            Dispatcher.BeginInvoke(new Action(() =>
             {
-                // Rebuild UI on UI thread to refresh labels/tooltips
-                Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    try
-                    {
-                        var dm = DataContext;
-                        Content = null;
-                        BuildConverterUI();
-                        DataContext = dm;
-                    }
-                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"N2NCWindow inner rebuild failed: {ex.Message}"); }
-                }));
-            }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"N2NCWindow OnLanguageChanged failed: {ex.Message}"); }
+                var dm = DataContext;
+                Content = null;
+                BuildConverterUI();
+                DataContext = dm;
+            }));
         }
 
         private void BuildConverterUI()
@@ -117,11 +109,15 @@ namespace krrTools.tools.N2NC
             var targetKeysText = SharedUIComponents.CreateStandardTextBlock();
             targetKeysText.SetBinding(TextBlock.TextProperty, new Binding("TargetKeys") { Source = _viewModel, StringFormat = "{0}" });
             
-            var targetKeysPanel = new StackPanel { Orientation = Orientation.Horizontal };
-            targetKeysPanel.Children.Add(targetKeysSlider);
-            targetKeysPanel.Children.Add(targetKeysText);
+            var sliderPanel = new Grid();
+            sliderPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            sliderPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            Grid.SetColumn(targetKeysSlider, 0);
+            Grid.SetColumn(targetKeysText, 1);
+            sliderPanel.Children.Add(targetKeysSlider);
+            sliderPanel.Children.Add(targetKeysText);
             
-            var targetKeysRow = SharedUIComponents.CreateLabeledRow(label, targetKeysPanel, rowMargin);
+            var targetKeysRow = SharedUIComponents.CreateLabeledRow(label, sliderPanel, rowMargin);
             SharedUIComponents.LanguageChanged += UpdateTargetKeysLabel;
             Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= UpdateTargetKeysLabel;
 
@@ -187,6 +183,7 @@ namespace krrTools.tools.N2NC
             SeedTextBox.Width = 160;
             SeedTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(N2NCViewModel.Seed)) { Mode = BindingMode.TwoWay });
             GenerateSeedButton = SharedUIComponents.CreateStandardButton(Strings.N2NCGenerateSeedLabel.Localize());
+            GenerateSeedButton.Width = 100; // 设置固定宽度以保持按钮大小一致
             GenerateSeedButton.Click += GenerateSeedButton_Click;
             GenerateSeedButton.ToolTip = Strings.N2NCGenerateSeedTooltip.Localize();
             
@@ -205,7 +202,7 @@ namespace krrTools.tools.N2NC
             seedGrid.Children.Add(SeedTextBox);
             seedGrid.Children.Add(GenerateSeedButton);
             
-            return SharedUIComponents.CreateLabeledRow("种子:", seedGrid, rowMargin);
+            return SharedUIComponents.CreateLabeledRow("Seed|种子", seedGrid, rowMargin);
         }
 
         private FrameworkElement CreateKeySelectionPanel(Thickness rowMargin)
@@ -234,21 +231,23 @@ namespace krrTools.tools.N2NC
             }
 
             // 添加全选/取消全选按钮
-            var selectAllButton = SharedUIComponents.CreateStandardButton("全选");
+            var selectAllButton = SharedUIComponents.CreateStandardButton("Select All|全选");
+            selectAllButton.Width = 100; // 设置固定宽度以保持按钮大小一致
             selectAllButton.Click += (_, _) =>
             {
                 foreach (var kvp in checkboxMap)
                     kvp.Value.IsChecked = true;
             };
 
-            var clearAllButton = SharedUIComponents.CreateStandardButton("清空");
+            var clearAllButton = SharedUIComponents.CreateStandardButton("Clear All|清空");
+            clearAllButton.Width = 100; // 设置固定宽度以保持按钮大小一致
             clearAllButton.Click += (_, _) =>
             {
                 foreach (var kvp in checkboxMap)
                     kvp.Value.IsChecked = false;
             };
 
-            var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 10, 0, 0) };
+            var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 10, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
             buttonPanel.Children.Add(selectAllButton);
             buttonPanel.Children.Add(clearAllButton);
 

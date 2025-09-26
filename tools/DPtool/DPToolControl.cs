@@ -44,7 +44,7 @@ namespace krrTools.tools.DPtool
                 Debug.WriteLine($"DPToolControl initialization error: {ex.Message}");
                 Content = new TextBlock
                 {
-                    Text = "DP Tool 加载失败: " + ex.Message,
+                    Text = (SharedUIComponents.IsChineseLanguage() ? "DP Tool 加载失败: " : "DP Tool failed to load: ") + ex.Message,
                     TextWrapping = TextWrapping.Wrap,
                     Margin = new Thickness(12),
                     VerticalAlignment = VerticalAlignment.Center,
@@ -86,7 +86,7 @@ namespace krrTools.tools.DPtool
 
         private void BuildDPToolUI()
         {
-            var enumProvider = new krrTools.Tools.Shared.EnumSettingsProviderDelegate(
+            var enumProvider = new EnumSettingsProviderDelegate(
                 getter: key =>
                 {
                     try { return _viewModel.Options.GetType().GetProperty(key.ToString())?.GetValue(_viewModel.Options); }
@@ -140,9 +140,11 @@ namespace krrTools.tools.DPtool
             // Left
             var leftLabel = SharedUIComponents.CreateHeaderLabel(Strings.DPLeftLabel);
             LMirrorCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.DPMirrorLabel, Strings.DPMirrorTooltipLeft);
+            LMirrorCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
             LDensityCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.DPDensityLabel, Strings.DPDensityTooltipLeft);
+            LDensityCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
 
-            var leftChecks = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 10) };
+            var leftChecks = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 6, 0, 10), HorizontalAlignment = HorizontalAlignment.Left };
             leftChecks.Children.Add(LMirrorCheckBox);
             leftChecks.Children.Add(LDensityCheckBox);
 
@@ -182,9 +184,11 @@ namespace krrTools.tools.DPtool
             // Right
             var rightLabel = SharedUIComponents.CreateHeaderLabel(Strings.DPRightLabel);
             RMirrorCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.DPMirrorLabel, Strings.DPMirrorTooltipRight);
+            RMirrorCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
             RDensityCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.DPDensityLabel, Strings.DPDensityTooltipRight);
+            RDensityCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
 
-            var rightChecks = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 10) };
+            var rightChecks = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 6, 0, 10), HorizontalAlignment = HorizontalAlignment.Left };
             rightChecks.Children.Add(RMirrorCheckBox);
             rightChecks.Children.Add(RDensityCheckBox);
 

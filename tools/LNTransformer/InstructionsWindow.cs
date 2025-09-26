@@ -20,8 +20,8 @@ namespace krrTools.tools.LNTransformer
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
 
             // Subscribe to language changes to update content dynamically
-            krrTools.Tools.Shared.SharedUIComponents.LanguageChanged += OnLanguageChanged;
-            this.Closed += (_, _) => krrTools.Tools.Shared.SharedUIComponents.LanguageChanged -= OnLanguageChanged;
+            SharedUIComponents.LanguageChanged += OnLanguageChanged;
+            Closed += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
 
             var root = new Grid { Margin = new Thickness(15) };
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -37,7 +37,7 @@ namespace krrTools.tools.LNTransformer
             {
                 var run1 = new Run("移植自");
                 header.Inlines.Add(run1);
-                var hyperlink = new Hyperlink(new Run("HeavenUsurper")) { NavigateUri = new System.Uri("https://osu.ppy.sh/users/15889644") };
+                var hyperlink = new Hyperlink(new Run("HeavenUsurper")) { NavigateUri = new Uri("https://osu.ppy.sh/users/15889644") };
                 hyperlink.RequestNavigate += Hyperlink_RequestNavigate;
                 header.Inlines.Add(hyperlink);
                 header.Inlines.Add(new Run("的LNTransformer工具"));
@@ -48,7 +48,7 @@ namespace krrTools.tools.LNTransformer
             {
                 var run1 = new Run("Ported from ");
                 header.Inlines.Add(run1);
-                var hyperlink = new Hyperlink(new Run("HeavenUsurper")) { NavigateUri = new System.Uri("https://osu.ppy.sh/users/15889644") };
+                var hyperlink = new Hyperlink(new Run("HeavenUsurper")) { NavigateUri = new Uri("https://osu.ppy.sh/users/15889644") };
                 hyperlink.RequestNavigate += Hyperlink_RequestNavigate;
                 header.Inlines.Add(hyperlink);
                 header.Inlines.Add(new Run("'s LNTransformer tool"));
@@ -116,7 +116,7 @@ namespace krrTools.tools.LNTransformer
                 }
 
                 // Rebuild minimal UI to reflect language change
-                var dc = this.DataContext;
+                var dc = DataContext;
                 Content = null;
                 try
                 {
@@ -135,13 +135,13 @@ namespace krrTools.tools.LNTransformer
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"InstructionsWindow rebuild failed: {ex.Message}");
+                    Debug.WriteLine($"InstructionsWindow rebuild failed: {ex.Message}");
                 }
                 DataContext = dc;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"InstructionsWindow OnLanguageChanged failed: {ex.Message}");
+                Debug.WriteLine($"InstructionsWindow OnLanguageChanged failed: {ex.Message}");
             }
         }
 

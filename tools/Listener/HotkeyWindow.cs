@@ -23,13 +23,13 @@ namespace krrTools.tools.Listener
         {
             try
             {
-                this.Dispatcher.BeginInvoke(new Action(() =>
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
                     try
                     {
                         Title = SharedUIComponents.IsChineseLanguage() ? "设置热键" : "Set Hotkey";
                         // update any labels/buttons by rebuilding
-                        var dc = this.DataContext;
+                        var dc = DataContext;
                         Content = null;
                         BuildUI();
                         DataContext = dc;
@@ -73,10 +73,12 @@ namespace krrTools.tools.Listener
 
             var saveBtn = SharedUIComponents.CreateStandardButton("Save|保存");
             saveBtn.Background = System.Windows.Media.Brushes.LightBlue;
+            saveBtn.Width = 80; // 设置固定宽度以保持按钮大小一致
             saveBtn.Margin = new Thickness(0, 0, 10, 0);
             saveBtn.Click += SaveButton_Click;
             var cancelBtn = SharedUIComponents.CreateStandardButton("Cancel|取消");
             cancelBtn.Background = System.Windows.Media.Brushes.LightGray;
+            cancelBtn.Width = 80; // 设置固定宽度以保持按钮大小一致
             cancelBtn.Click += CancelButton_Click;
 
             sp.Children.Add(saveBtn);

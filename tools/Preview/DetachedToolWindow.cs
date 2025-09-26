@@ -126,6 +126,7 @@ namespace krrTools.tools.Preview
             var toolbar = new DockPanel { Margin = new Thickness(6, 6, 6, 0) };
             Grid.SetRow(toolbar, 0);
             var mergeBtn = SharedUIComponents.CreateStandardButton("Merge back|合并回主界面");
+            mergeBtn.Width = 140; // 设置固定宽度以保持按钮大小一致
             mergeBtn.Padding = new Thickness(10, 4, 10, 4);
             mergeBtn.HorizontalAlignment = HorizontalAlignment.Right;
             mergeBtn.Margin = new Thickness(0, 0, 0, 4);
@@ -156,8 +157,16 @@ namespace krrTools.tools.Preview
                 Margin = new Thickness(8),
                 Padding = new Thickness(0)
             };
-            var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = settingsContent };
-            settingsBorder.Child = scroll;
+            // If settingsContent is already a ScrollViewer, use it directly to avoid nesting
+            if (settingsContent is ScrollViewer existingScroll)
+            {
+                settingsBorder.Child = existingScroll;
+            }
+            else
+            {
+                var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = settingsContent };
+                settingsBorder.Child = scroll;
+            }
             main.Children.Add(settingsBorder);
 
             Grid.SetColumn(_previewControl, 1);
@@ -189,7 +198,7 @@ namespace krrTools.tools.Preview
         {
             try
             {
-                this.Dispatcher.BeginInvoke(new Action(() => { Title = _headerText + " (Detached)"; }));
+                Dispatcher.BeginInvoke(new Action(() => { Title = _headerText + " (Detached)"; }));
             }
             catch (Exception ex)
             {

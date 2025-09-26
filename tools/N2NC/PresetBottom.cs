@@ -40,7 +40,7 @@ namespace krrTools.tools.N2NC
 
             // Subscribe to language changes so preset button labels update
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
-            this.Closed += (_, _) => { SharedUIComponents.LanguageChanged -= OnLanguageChanged; };
+            Closed += (_, _) => { SharedUIComponents.LanguageChanged -= OnLanguageChanged; };
         }
 
         private void OnLanguageChanged()
@@ -52,7 +52,7 @@ namespace krrTools.tools.N2NC
                     Dispatcher.BeginInvoke(new Action(OnLanguageChanged));
                     return;
                 }
-                var dc = this.DataContext;
+                var dc = DataContext;
                 Content = null;
                 BuildUI();
                 DataContext = dc;

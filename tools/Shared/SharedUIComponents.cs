@@ -266,7 +266,7 @@ namespace krrTools.Tools.Shared
          public static FrameworkElement CreateLabeledRow(string labelText, UIElement control, Thickness rowMargin)
          {
              var panel = new StackPanel { Orientation = Orientation.Vertical, Margin = rowMargin };
-             var label = CreateStandardTextBlock();
+             var label = CreateHeaderLabel(labelText);
              if (!string.IsNullOrEmpty(labelText) && labelText.Contains('|'))
              {
                  void Update()
@@ -408,7 +408,7 @@ namespace krrTools.Tools.Shared
               if (!string.IsNullOrEmpty(content) && content.Contains('|'))
               {
                  var parts = content.Split('|', 2);
-                 var tb = new TextBlock { Text = IsChineseLanguage() && parts.Length > 1 ? parts[1] : parts[0], FontSize = ComFontSize };
+                 var tb = new TextBlock { Text = IsChineseLanguage() && parts.Length > 1 ? parts[1] : parts[0], FontSize = ComFontSize, TextWrapping = TextWrapping.Wrap };
                   cb.Content = tb;
                  void UpdateText() { var p = content.Split('|', 2); tb.Text = IsChineseLanguage() && p.Length > 1 ? p[1] : p[0]; }
                  LanguageChanged += UpdateText;
@@ -416,7 +416,7 @@ namespace krrTools.Tools.Shared
               }
               else
               {
-                  cb.Content = content;
+                  cb.Content = new TextBlock { Text = content, FontSize = ComFontSize, TextWrapping = TextWrapping.Wrap };
               }
               SetLocalizedToolTip(cb, tooltip);
               return cb;
@@ -442,9 +442,9 @@ namespace krrTools.Tools.Shared
                   btnStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(10, 6, 10, 6)));
                   btnStyle.Setters.Add(new Setter(Control.HorizontalContentAlignmentProperty, HorizontalAlignment.Center));
                   btnStyle.Setters.Add(new Setter(Control.VerticalContentAlignmentProperty, VerticalAlignment.Center));
-                  btnStyle.Setters.Add(new Setter(Control.BackgroundProperty, SharedUIComponents.PanelBackgroundBrush));
-                  btnStyle.Setters.Add(new Setter(Control.ForegroundProperty, SharedUIComponents.UiTextBrush));
-                  btnStyle.Setters.Add(new Setter(Control.BorderBrushProperty, SharedUIComponents.PanelBorderBrush));
+                  btnStyle.Setters.Add(new Setter(Control.BackgroundProperty, PanelBackgroundBrush));
+                  btnStyle.Setters.Add(new Setter(Control.ForegroundProperty, UiTextBrush));
+                  btnStyle.Setters.Add(new Setter(Control.BorderBrushProperty, PanelBorderBrush));
                   btnStyle.Setters.Add(new Setter(Control.BorderThicknessProperty, new Thickness(1)));
                   appRes[typeof(Button)] = btnStyle;
               }

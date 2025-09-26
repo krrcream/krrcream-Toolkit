@@ -8,7 +8,6 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Documents;
 using System.Windows.Shell;
 using krrTools.Tools.Shared;
 using krrTools.tools.Preview;
@@ -22,7 +21,6 @@ using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 using Button = Wpf.Ui.Controls.Button;
 using MessageBox = System.Windows.MessageBox;
-using MessageBoxButton = System.Windows.MessageBoxButton;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 using TextBox = Wpf.Ui.Controls.TextBox;
 
@@ -34,13 +32,12 @@ public class MainWindow : FluentWindow
     private readonly Dictionary<string, ContentControl> _settingsHosts = new();
     private readonly Dictionary<string, DualPreviewControl> _previewControls = new();
     private Button? GlobalOsuListenerButton;
+    public FileDispatcher? _fileDispatcher;
 
-    // 标题栏控件
-    private Button _minimizeButton = null!;
-    private Button _maximizeButton = null!;
-    private Button _closeButton = null!;
-    private Border _titleBar = null!;
-    private TextBlock? _titleTextBlock;
+    public FileDispatcher? FileDispatcher => _fileDispatcher;
+    public TabControl TabControl => MainTabControl;
+
+
 
     // 跟踪选项卡拖动/分离
     private Point _dragStartPoint;
@@ -109,6 +106,7 @@ public class MainWindow : FluentWindow
         PreviewKeyDown += MainWindow_PreviewKeyDown;
         LoadToolSettingsHosts();
         SetupPreviewProcessors();
+        _fileDispatcher = new FileDispatcher(_previewControls, MainTabControl);
         if (_previewControls.TryGetValue(OptionsManager.ConverterToolName, out var cp))
             cp.StartConversionRequested += ConverterPreview_StartConversionRequested;
         if (_previewControls.TryGetValue(OptionsManager.LNToolName, out var lp))
@@ -129,9 +127,9 @@ public class MainWindow : FluentWindow
         root.RowDefinitions.Add(row2);
 
         // 创建自定义标题栏
-        CreateTitleBar();
-        Grid.SetRow(_titleBar, 0);
-        root.Children.Add(_titleBar);
+        var titleBar = UIComponents.CreateTitleBar(this, Title);
+        Grid.SetRow(titleBar, 0);
+        root.Children.Add(titleBar);
 
         // TabControl
         MainTabControl = new TabControl
@@ -169,7 +167,9 @@ public class MainWindow : FluentWindow
         root.Children.Add(GlobalOsuListenerButton);
 
         // Footer
-        BuildFooter(root);
+        var footer = UIComponents.CreateStatusBar();
+        Grid.SetRow(footer, 2);
+        root.Children.Add(footer);
 
         Content = root;
 
@@ -177,333 +177,9 @@ public class MainWindow : FluentWindow
         Drop += (_, e) => GlobalDropArea_Drop(e);
     }
 
-    private void CreateTitleBar()
-    {
-        // 创建标题栏容器
-        _titleBar = new Border
-        {
-            Background = new SolidColorBrush(Color.FromRgb(240, 240, 240)),
-            Height = 32,
-            BorderThickness = new Thickness(0, 0, 0, 1),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200)),
-            Margin = new Thickness(0, 0, 0, 0)
-        };
-        // 确保标题栏在左侧和右侧留出系统按钮的空间
-        _titleBar.SetValue(WindowChrome.IsHitTestVisibleInChromeProperty, true);
 
-        var titleGrid = new Grid();
-        titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // 标题文本
-        titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // 按钮区域
 
-        // 标题文本
-        _titleTextBlock = new TextBlock
-        {
-            Text = Title,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Left,
-            Margin = new Thickness(10, 0, 0, 0),
-            FontWeight = FontWeights.Medium
-        };
-        Grid.SetColumn(_titleTextBlock, 0);
-        titleGrid.Children.Add(_titleTextBlock);
 
-        // 按钮容器
-        var buttonPanel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Margin = new Thickness(0, 0, 0, 0),
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Top
-        };
-        Grid.SetColumn(buttonPanel, 1);
-
-        // 最小化按钮
-        _minimizeButton = new Button
-        {
-            Content = "—",
-            Width = 46,
-            Height = 32,
-            Margin = new Thickness(0),
-            Background = Brushes.Transparent,
-            BorderBrush = Brushes.Transparent,
-            Foreground = Brushes.Black,
-            FontSize = 16,
-            FontWeight = FontWeights.Bold,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            Padding = new Thickness(0)
-        };
-        // 确保按钮在标题栏区域内可点击
-        _minimizeButton.SetValue(WindowChrome.IsHitTestVisibleInChromeProperty, true);
-        _minimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
-        buttonPanel.Children.Add(_minimizeButton);
-
-        // 最大化/还原按钮
-        _maximizeButton = new Button
-        {
-            Content = "□",
-            Width = 46,
-            Height = 32,
-            Margin = new Thickness(0),
-            Background = Brushes.Transparent,
-            BorderBrush = Brushes.Transparent,
-            Foreground = Brushes.Black,
-            FontSize = 16,
-            FontWeight = FontWeights.Bold,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            Padding = new Thickness(0)
-        };
-        // 确保按钮在标题栏区域内可点击
-        _maximizeButton.SetValue(WindowChrome.IsHitTestVisibleInChromeProperty, true);
-        _maximizeButton.Click += (_, _) => 
-        {
-            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
-            _maximizeButton.Content = WindowState == WindowState.Maximized ? "❐" : "□";
-        };
-        buttonPanel.Children.Add(_maximizeButton);
-
-        // 关闭按钮
-        _closeButton = new Button
-        {
-            Content = "×",
-            Width = 46,
-            Height = 32,
-            Margin = new Thickness(0),
-            Background = Brushes.Transparent,
-            BorderBrush = Brushes.Transparent,
-            Foreground = Brushes.Black,
-            FontSize = 16,
-            FontWeight = FontWeights.Bold,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            Padding = new Thickness(0)
-        };
-        // 确保按钮在标题栏区域内可点击
-        _closeButton.SetValue(WindowChrome.IsHitTestVisibleInChromeProperty, true);
-        
-        // 为关闭按钮添加悬停效果
-        _closeButton.MouseEnter += (s, e) => _closeButton.Background = new SolidColorBrush(Color.FromRgb(232, 17, 35));
-        _closeButton.MouseLeave += (s, e) => _closeButton.Background = Brushes.Transparent;
-        _closeButton.Foreground = new SolidColorBrush(Colors.Black);
-        
-        // 为最小化和最大化按钮添加悬停效果
-        _minimizeButton.MouseEnter += (s, e) => _minimizeButton.Background = new SolidColorBrush(Color.FromRgb(220, 220, 220));
-        _minimizeButton.MouseLeave += (s, e) => _minimizeButton.Background = Brushes.Transparent;
-        
-        _maximizeButton.MouseEnter += (s, e) => _maximizeButton.Background = new SolidColorBrush(Color.FromRgb(220, 220, 220));
-        _maximizeButton.MouseLeave += (s, e) => _maximizeButton.Background = Brushes.Transparent;
-        _closeButton.Click += (s, e) => Close();
-        buttonPanel.Children.Add(_closeButton);
-        
-        // 添加按钮的按下效果
-        _minimizeButton.PreviewMouseDown += (s, e) => _minimizeButton.Background = new SolidColorBrush(Color.FromRgb(180, 180, 180));
-        _minimizeButton.PreviewMouseUp += (s, e) => _minimizeButton.Background = new SolidColorBrush(Color.FromRgb(220, 220, 220));
-        
-        _maximizeButton.PreviewMouseDown += (s, e) => _maximizeButton.Background = new SolidColorBrush(Color.FromRgb(180, 180, 180));
-        _maximizeButton.PreviewMouseUp += (s, e) => _maximizeButton.Background = new SolidColorBrush(Color.FromRgb(220, 220, 220));
-        
-        _closeButton.PreviewMouseDown += (s, e) => _closeButton.Background = new SolidColorBrush(Color.FromRgb(200, 15, 30));
-        _closeButton.PreviewMouseUp += (s, e) => _closeButton.Background = new SolidColorBrush(Color.FromRgb(232, 17, 35));
-
-        titleGrid.Children.Add(buttonPanel);
-
-        // 添加鼠标事件以支持拖拽窗口
-        titleGrid.MouseLeftButtonDown += (s, e) =>
-        {
-            if (e.ChangedButton == MouseButton.Left)
-            {
-                if (e.ClickCount == 2)
-                {
-                    // 双击标题栏切换最大化状态
-                    WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
-                    _maximizeButton.Content = WindowState == WindowState.Maximized ? "❐" : "□";
-                }
-                else
-                {
-                    // 拖拽窗口
-                    try
-                    {
-                        DragMove();
-                    }
-                    catch (InvalidOperationException)
-                    {
-                        // 忽略拖拽异常
-                    }
-                }
-            }
-        };
-        
-        // 为标题文本也添加拖拽支持
-        _titleTextBlock.MouseLeftButtonDown += (s, e) =>
-        {
-            if (e.ChangedButton == MouseButton.Left && e.ClickCount == 1)
-            {
-                try
-                {
-                    DragMove();
-                }
-                catch (InvalidOperationException)
-                {
-                    // 忽略拖拽异常
-                }
-            }
-        };
-
-        // Ensure the entire title bar supports dragging
-        _titleBar.MouseLeftButtonDown += (s, e) =>
-        {
-            if (e.ChangedButton == MouseButton.Left && e.ClickCount == 1)
-            {
-                try
-                {
-                    DragMove();
-                }
-                catch (InvalidOperationException)
-                {
-                    // Ignore drag exceptions
-                }
-            }
-        };
-
-        _titleBar.Child = titleGrid;
-        
-        // 当窗口状态改变时更新按钮内容
-        StateChanged += (s, e) =>
-        {
-            _maximizeButton.Content = WindowState == WindowState.Maximized ? "❐" : "□";
-        };
-        
-        // 初始化按钮内容
-        _maximizeButton.Content = WindowState == WindowState.Maximized ? "❐" : "□";
-    }
-
-    private void BuildFooter(Grid root)
-    {
-        var footer = new Border
-        {
-            Background = SharedUIComponents.PanelBackgroundBrush,
-            BorderBrush = SharedUIComponents.PanelBorderBrush,
-            BorderThickness = new Thickness(1),
-            Height = double.NaN, // 动态高度
-            MinHeight = 24,
-            Padding = new Thickness(0, 4, 0, 4),
-            Margin = new Thickness(0, 4, 0, 0),
-            CornerRadius = SharedUIComponents.PanelCornerRadius
-        };
-
-        var footerGrid = new Grid
-        {
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        footerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        footerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        footerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-        // 左侧：版权信息
-        var copyrightText = new TextBlock
-        {
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(12, 0, 0, 0)
-        };
-        
-        void UpdateCopyrightText()
-        {
-            copyrightText.Text = SharedUIComponents.IsChineseLanguage() ? Strings.FooterCopyrightCN : Strings.FooterCopyright;
-        }
-        
-        UpdateCopyrightText(); // 初始化文本
-        SharedUIComponents.LanguageChanged += UpdateCopyrightText;
-        copyrightText.Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= UpdateCopyrightText;
-        
-        Grid.SetColumn(copyrightText, 0);
-        footerGrid.Children.Add(copyrightText);
-
-        // 中间：GitHub链接
-        var githubLink = new Hyperlink(new Run(Strings.GitHubLinkText))
-        {
-            NavigateUri = new Uri(Strings.GitHubLinkUrl)
-        };
-        githubLink.RequestNavigate += Hyperlink_RequestNavigate;
-        var githubTextBlock = new TextBlock
-        {
-            Margin = new Thickness(0, 10, 150, 0)
-        };
-        githubTextBlock.Inlines.Add(githubLink);
-        Grid.SetColumn(githubTextBlock, 1);
-        footerGrid.Children.Add(githubTextBlock);
-
-        var themeComboBox = new ComboBox
-        {
-            ItemsSource = Enum.GetValues(typeof(ApplicationTheme)),
-            SelectedItem = ApplicationTheme.Light,
-            Margin = new Thickness(4, 0, 4, 0)
-        };
-        var backdropComboBox = new ComboBox
-        {
-            ItemsSource = Enum.GetValues(typeof(WindowBackdropType)),
-            SelectedItem = WindowBackdropType.Mica,
-            Margin = new Thickness(4, 0, 4, 0)
-        };
-        var accentSwitch = new ToggleSwitch
-        {
-            IsChecked = false,
-            Content = Strings.Localize(Strings.UpdateAccent),
-            Margin = new Thickness(4, 0, 4, 0)
-        };
-        
-        // 统一应用主题和背景效果的方法
-        void ApplyThemeSettings(bool updateAccent = false)
-        {
-            if (themeComboBox.SelectedItem is ApplicationTheme selectedTheme &&
-                backdropComboBox.SelectedItem is WindowBackdropType selectedBackdrop)
-            {
-                ApplicationThemeManager.Apply(selectedTheme, selectedBackdrop, updateAccent);
-            }
-        }
-
-        themeComboBox.SelectionChanged += (_, _) => { ApplyThemeSettings(); };
-        backdropComboBox.SelectionChanged += (_, _) => { ApplyThemeSettings(); };
-        accentSwitch.Checked += (_, _) => { ApplyThemeSettings(updateAccent: true); };
-        accentSwitch.Unchecked += (_, _) => { ApplyThemeSettings(updateAccent: false); };
-
-        var langSwitch = new ToggleSwitch
-        {
-            IsChecked = SharedUIComponents.IsChineseLanguage(),
-            Margin = new Thickness(4, 0, 12, 0)
-        };
-        
-        void UpdateLanguageSwitchText()
-        {
-            langSwitch.Content = SharedUIComponents.IsChineseLanguage() ? "EN" : "中文";
-        }
-        
-        UpdateLanguageSwitchText();
-        SharedUIComponents.LanguageChanged += UpdateLanguageSwitchText;
-        langSwitch.Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= UpdateLanguageSwitchText;
-        
-        langSwitch.Checked += (_, _) => SharedUIComponents.ToggleLanguage();
-        langSwitch.Unchecked += (_, _) => SharedUIComponents.ToggleLanguage();
-
-        var settingsPanel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        settingsPanel.Children.Add(themeComboBox);
-        settingsPanel.Children.Add(backdropComboBox);
-        settingsPanel.Children.Add(accentSwitch);
-        settingsPanel.Children.Add(langSwitch);
-
-        Grid.SetColumn(settingsPanel, 2);
-        footerGrid.Children.Add(settingsPanel);
-
-        footer.Child = footerGrid;
-        Grid.SetRow(footer, 2);
-        root.Children.Add(footer);
-    }
 
     private void BuildPreviewTabs()
     {
@@ -737,7 +413,6 @@ public class MainWindow : FluentWindow
         }
 
         // DP Tool 嵌入
-        try
         {
             _dpWindowInstance = new DPToolControl();
             var dp = _dpWindowInstance;
@@ -777,27 +452,8 @@ public class MainWindow : FluentWindow
                 DPSettingsHost.Content = placeholder;
             }
         }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to load DP tool settings: {ex.Message}");
-            if (DPSettingsHost != null)
-            {
-                DPSettingsHost.DataContext = _dpWindowInstance?.DataContext;
-                var placeholder = new TextBlock
-                {
-                    Text =
-                        "DP settings failed to load here — showing fallback.\nIf this persists, try reopening the DP tool.",
-                    TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(12),
-                    VerticalAlignment = VerticalAlignment.Center,
-                    HorizontalAlignment = HorizontalAlignment.Center
-                };
-                DPSettingsHost.Content = placeholder;
-            }
-        }
 
         // LV Calculator 嵌入
-        try
         {
             var lvWin = new KRRLVControl();
             if (lvWin.Content is UIElement lvContent && LVSettingsHost != null)
@@ -832,13 +488,8 @@ public class MainWindow : FluentWindow
                 LVSettingsHost.Content = placeholder;
             }
         }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to load LV Calculator settings: {ex.Message}");
-        }
 
         // osu! file manager 嵌入
-        try
         {
             var getFilesWin = new GetFilesControl();
             if (getFilesWin.Content is UIElement gfContent && GetFilesHost != null)
@@ -874,17 +525,9 @@ public class MainWindow : FluentWindow
                 GetFilesHost.Content = placeholder;
             }
         }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to load GetFiles settings: {ex.Message}");
-        }
     }
 
-    private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
-    {
-        Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
-        e.Handled = true;
-    }
+
 
     // 窗口级别拖放：转发到全局处理器
 
@@ -915,31 +558,8 @@ public class MainWindow : FluentWindow
             return;
         }
 
-        // Determine tool key from tab Tag
-        if ((MainTabControl.SelectedItem as TabItem)?.Tag is string toolKey && _previewControls.TryGetValue(toolKey, out var control))
-        {
-            control.LoadFiles(allOsu.ToArray());
-            try
-            {
-                control.StageFiles(allOsu.ToArray());
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"StageFiles error ({toolKey}): {ex.Message}");
-            }
-        }
-        else
-        {
-            var getFilesControl = new GetFilesControl();
-            var getFilesWindow = new Window
-            {
-                Title = Strings.TabGetFiles,
-                Content = getFilesControl,
-                Width = 800,
-                Height = 600
-            };
-            getFilesWindow.Show();
-        }
+        // Use FileDispatcher to load files
+        _fileDispatcher?.LoadFiles(allOsu.ToArray());
     }
 
     // 选项卡拖动/分离处理 - 改进：克隆内容用于分离窗口，保持原选项卡不变
@@ -992,109 +612,81 @@ public class MainWindow : FluentWindow
         ResourceDictionary? settingsResources = null;
         if (isPreviewTool && createFreshWindow != null)
         {
-            try
+            // Try to reuse the existing settings host content from the main window so the detached preview
+            // uses the same settings instance (DataContext) instead of creating a fresh copy.
+            host = header switch
             {
-                // Try to reuse the existing settings host content from the main window so the detached preview
-                // uses the same settings instance (DataContext) instead of creating a fresh copy.
-                host = header switch
-                {
-                    "Converter" => _settingsHosts.GetValueOrDefault("Converter"),
-                    "LN Transformer" => _settingsHosts.GetValueOrDefault("LNTransformer"),
-                    "DP tool" => _settingsHosts.GetValueOrDefault("DPTool"),
-                    _ => null
-                };
+                "Converter" => _settingsHosts.GetValueOrDefault("Converter"),
+                "LN Transformer" => _settingsHosts.GetValueOrDefault("LNTransformer"),
+                "DP tool" => _settingsHosts.GetValueOrDefault("DPTool"),
+                _ => null
+            };
 
-                if (host != null)
+            if (host != null)
+            {
+                settingsContent = host.Content as UIElement;
+                if (settingsContent != null)
                 {
-                    settingsContent = host.Content as UIElement;
-                    if (settingsContent != null)
-                    {
-                        // Detach the content from the host and preserve its DataContext for the detached window
-                        host.Content = null;
-                        ClearFixedSizes(settingsContent);
-                        if (settingsContent is FrameworkElement fe)
-                            fe.DataContext = host.DataContext; // preserve the VM on the content itself
+                    // Detach the content from the host and preserve its DataContext for the detached window
+                    host.Content = null;
+                    ClearFixedSizes(settingsContent);
+                    if (settingsContent is FrameworkElement fe)
+                        fe.DataContext = host.DataContext; // preserve the VM on the content itself
 
-                        settingsResources = host.Resources;
-                    }
+                    settingsResources = host.Resources;
+                }
+            }
+
+            // Fallback: if host had no content (shouldn't normally happen), create fresh window as before
+            if (settingsContent == null)
+            {
+                var fresh = createFreshWindow();
+                settingsContent = fresh.Content as UIElement;
+                if (settingsContent != null)
+                {
+                    ClearFixedSizes(settingsContent);
+                    fresh.Content = null;
                 }
 
-                // Fallback: if host had no content (shouldn't normally happen), create fresh window as before
-                if (settingsContent == null)
-                {
-                    var fresh = createFreshWindow();
-                    settingsContent = fresh.Content as UIElement;
-                    if (settingsContent != null)
-                    {
-                        ClearFixedSizes(settingsContent);
-                        fresh.Content = null;
-                    }
-
-                    settingsResources = fresh.Resources;
-                }
-
-                IPreviewProcessor proc = header switch
-                {
-                    "Converter" => new ConverterPreviewProcessor(),
-                    "LN Transformer" => new LNPreviewProcessor(),
-                    _ => new DPPreviewProcessor()
-                };
-
-                var det = new DetachedToolWindow(header, settingsContent, settingsResources, proc);
-
-                // When the detached window requests merge, restore the content back to its original host and close
-                det.MergeRequested += (_, _) =>
-                {
-                    try
-                    {
-                        if (host != null && settingsContent != null && host.Content == null)
-                            host.Content = settingsContent;
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Failed to restore host content on merge: {ex.Message}");
-                    }
-
-                    det.Close();
-                };
-
-                win = det;
+                settingsResources = fresh.Resources;
             }
-            catch (Exception ex)
+
+            IPreviewProcessor proc = header switch
             {
-                Debug.WriteLine($"Failed detached preview window: {ex.Message}");
-                win = new Window
-                {
-                    Title = header + " (Detached)", Width = 900, Height = 650,
-                    Content = new TextBlock { Text = header }
-                };
-            }
+                "Converter" => new ConverterPreviewProcessor(),
+                "LN Transformer" => new LNPreviewProcessor(),
+                _ => new DPPreviewProcessor()
+            };
+
+            var det = new DetachedToolWindow(header, settingsContent, settingsResources, proc);
+
+            // When the detached window requests merge, restore the content back to its original host and close
+            det.MergeRequested += (_, _) =>
+            {
+                if (host != null && settingsContent != null && host.Content == null)
+                    host.Content = settingsContent;
+                det.Close();
+            };
+
+            win = det;
         }
         else
         {
             if (createFreshWindow != null)
-                try
+            {
+                var control = createFreshWindow();
+                win = new Window
                 {
-                    var control = createFreshWindow();
-                    win = new Window
-                    {
-                        Title = header,
-                        Content = control,
-                        Width = 800,
-                        Height = 600
-                    };
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Failed to create fresh window: {ex.Message}");
-                    win = new Window
-                        { Title = header, Width = 800, Height = 600, Content = new TextBlock { Text = header } };
-                }
+                    Title = header,
+                    Content = control,
+                    Width = 800,
+                    Height = 600
+                };
+            }
             else
                 win = new Window
                     { Title = header, Width = 800, Height = 600, Content = new TextBlock { Text = header } };
 
-            try
             {
                 var existingContent = win.Content as UIElement;
                 var dock = new DockPanel();
@@ -1115,21 +707,12 @@ public class MainWindow : FluentWindow
 
                 win.Content = dock;
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to inject merge UI: {ex.Message}");
-            }
         }
 
-        try
         {
             var cursor = System.Windows.Forms.Cursor.Position;
             win.Left = cursor.X - 40;
             win.Top = cursor.Y - 10;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to position detached window: {ex.Message}");
         }
 
         var insertIndex = MainTabControl.Items.IndexOf(tab);
@@ -1137,46 +720,31 @@ public class MainWindow : FluentWindow
         var followTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
         followTimer.Tick += (_, _) =>
         {
-            try
+            var p = System.Windows.Forms.Cursor.Position;
+            win.Left = p.X - 40;
+            win.Top = p.Y - 10;
+            if ((System.Windows.Forms.Control.MouseButtons & System.Windows.Forms.MouseButtons.Left) !=
+                System.Windows.Forms.MouseButtons.Left)
             {
-                var p = System.Windows.Forms.Cursor.Position;
-                win.Left = p.X - 40;
-                win.Top = p.Y - 10;
-                if ((System.Windows.Forms.Control.MouseButtons & System.Windows.Forms.MouseButtons.Left) !=
-                    System.Windows.Forms.MouseButtons.Left)
+                var tabPanel = FindVisualChild<TabPanel>(MainTabControl);
+                Rect headerRect;
+                if (tabPanel != null)
                 {
-                    try
-                    {
-                        var tabPanel = FindVisualChild<TabPanel>(MainTabControl);
-                        Rect headerRect;
-                        if (tabPanel != null)
-                        {
-                            var panelTopLeft = tabPanel.PointToScreen(new Point(0, 0));
-                            headerRect = new Rect(panelTopLeft.X, panelTopLeft.Y, tabPanel.ActualWidth,
-                                tabPanel.ActualHeight);
-                        }
-                        else
-                        {
-                            var topLeft = MainTabControl.PointToScreen(new Point(0, 0));
-                            headerRect = new Rect(topLeft.X, topLeft.Y, MainTabControl.ActualWidth,
-                                Math.Min(80, MainTabControl.ActualHeight));
-                        }
-
-                        var winRect = new Rect(win.Left, win.Top, win.ActualWidth > 0 ? win.ActualWidth : win.Width,
-                            win.ActualHeight > 0 ? win.ActualHeight : win.Height);
-                        if (headerRect.IntersectsWith(winRect)) win.Close();
-                    }
-                    catch (Exception ex2)
-                    {
-                        Debug.WriteLine($"Merge check error: {ex2.Message}");
-                    }
-
-                    followTimer.Stop();
+                    var panelTopLeft = tabPanel.PointToScreen(new Point(0, 0));
+                    headerRect = new Rect(panelTopLeft.X, panelTopLeft.Y, tabPanel.ActualWidth,
+                        tabPanel.ActualHeight);
                 }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Follow timer tick error: {ex.Message}");
+                else
+                {
+                    var topLeft = MainTabControl.PointToScreen(new Point(0, 0));
+                    headerRect = new Rect(topLeft.X, topLeft.Y, MainTabControl.ActualWidth,
+                        Math.Min(80, MainTabControl.ActualHeight));
+                }
+
+                var winRect = new Rect(win.Left, win.Top, win.ActualWidth > 0 ? win.ActualWidth : win.Width,
+                    win.ActualHeight > 0 ? win.ActualHeight : win.Height);
+                if (headerRect.IntersectsWith(winRect)) win.Close();
+
                 followTimer.Stop();
             }
         };
@@ -1187,39 +755,27 @@ public class MainWindow : FluentWindow
         };
         win.Closing += (_, _) =>
         {
-            try
+            if (followTimer.IsEnabled) followTimer.Stop();
+
+            // If this was a preview tool detachment, try to restore the original settings content
+            // back into its host so the main window doesn't end up with an empty settings area.
             {
-                if (followTimer.IsEnabled) followTimer.Stop();
-
-                // If this was a preview tool detachment, try to restore the original settings content
-                // back into its host so the main window doesn't end up with an empty settings area.
-                try
+                if (host != null && settingsContent != null && host.Content == null)
                 {
-                    if (host != null && settingsContent != null && host.Content == null)
-                    {
-                        // Unparent the settingsContent from any current parent in the detached window
-                        UnparentElement(settingsContent);
-                        host.Content = settingsContent;
-                    }
+                    // Unparent the settingsContent from any current parent in the detached window
+                    UnparentElement(settingsContent);
+                    host.Content = settingsContent;
                 }
-                catch (Exception exInner)
-                {
-                    Debug.WriteLine($"Error while restoring detached settings content: {exInner.Message}");
-                }
-
-                if (!MainTabControl.Items.Contains(tab))
-                {
-                    if (insertIndex >= 0 && insertIndex <= MainTabControl.Items.Count)
-                        MainTabControl.Items.Insert(insertIndex, tab);
-                    else MainTabControl.Items.Add(tab);
-                }
-
-                MainTabControl.SelectedItem = tab;
             }
-            catch (Exception ex3)
+
+            if (!MainTabControl.Items.Contains(tab))
             {
-                Debug.WriteLine($"Error reinserting original tab: {ex3.Message}");
+                if (insertIndex >= 0 && insertIndex <= MainTabControl.Items.Count)
+                    MainTabControl.Items.Insert(insertIndex, tab);
+                else MainTabControl.Items.Add(tab);
             }
+
+            MainTabControl.SelectedItem = tab;
         };
 
         win.Show();
@@ -1280,29 +836,21 @@ public class MainWindow : FluentWindow
         // or visual tree not realized after reparenting), defer wiring until Loaded/Dispatcher idle.
         bool AttachHandlersOnce()
         {
-            try
-            {
-                // Attach handlers; note Attach* methods are no-ops if control not found
-                AttachSliderHandler("LevelValue", updateAndRefresh);
-                AttachSliderHandler("PercentageValue", updateAndRefresh);
-                AttachSliderHandler("DivideValue", updateAndRefresh);
-                AttachSliderHandler("ColumnValue", updateAndRefresh);
-                AttachSliderHandler("GapValue", updateAndRefresh);
-                AttachCheckBoxHandler("OriginalLN", updateAndRefresh);
-                AttachCheckBoxHandler("FixError", updateAndRefresh);
-                AttachTextBoxHandler("OverallDifficulty", updateAndRefresh);
+            // Attach handlers; note Attach* methods are no-ops if control not found
+            AttachSliderHandler("LevelValue", updateAndRefresh);
+            AttachSliderHandler("PercentageValue", updateAndRefresh);
+            AttachSliderHandler("DivideValue", updateAndRefresh);
+            AttachSliderHandler("ColumnValue", updateAndRefresh);
+            AttachSliderHandler("GapValue", updateAndRefresh);
+            AttachCheckBoxHandler("OriginalLN", updateAndRefresh);
+            AttachCheckBoxHandler("FixError", updateAndRefresh);
+            AttachTextBoxHandler("OverallDifficulty", updateAndRefresh);
 
-                // Check whether at least one key control was found and wired (LevelValue slider is a good sentinel)
-                var sentinel = FindInLNHost<Slider>("LevelValue");
-                var found = sentinel != null;
-                Debug.WriteLine("AttachHandlersOnce: sentinel found = " + found);
-                return found;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("AttachHandlersOnce failed: " + ex.Message);
-                return false;
-            }
+            // Check whether at least one key control was found and wired (LevelValue slider is a good sentinel)
+            var sentinel = FindInLNHost<Slider>("LevelValue");
+            var found = sentinel != null;
+            Debug.WriteLine("AttachHandlersOnce: sentinel found = " + found);
+            return found;
         }
 
         // Try immediately
@@ -1310,69 +858,51 @@ public class MainWindow : FluentWindow
         {
             UpdateLNLabels();
             if (LNPreview != null) DebouncedRefresh(LNPreview);
+            // Subscribe to language changes to update labels
+            SharedUIComponents.LanguageChanged += () => Dispatcher.BeginInvoke(UpdateLNLabels);
             return;
         }
 
         // If immediate wiring failed, defer until the LN settings content is loaded / layout completed
-        try
-        {
+
             if (LNSettingsHost is { Content: FrameworkElement fe })
             {
                 RoutedEventHandler? loadedHandler = null;
                 loadedHandler = (_, _) =>
                 {
-                    try
-                    {
-                        // Remove handler
-                        fe.Loaded -= loadedHandler;
-                    }
-                    catch (Exception exRemove)
-                    {
-                        Debug.WriteLine("Failed removing Loaded handler: " + exRemove.Message);
-                    }
+                    // Remove handler
+                    fe.Loaded -= loadedHandler;
 
                     // Schedule a retry at Render priority to ensure templates/visual tree are ready
-                    try
-                    {
-                        Debug.WriteLine("LN settings Loaded - scheduling deferred attach of handlers.");
-                        var disp = fe.Dispatcher;
-                        if (disp != null)
-                            disp.BeginInvoke(new Action(() =>
+                    Debug.WriteLine("LN settings Loaded - scheduling deferred attach of handlers.");
+                    var disp = fe.Dispatcher;
+                    if (disp != null)
+                        disp.BeginInvoke(new Action(() =>
+                        {
+                            var ok = AttachHandlersOnce();
+                            Debug.WriteLine("AttachHandlersOnce after Loaded returned: " + ok);
+                            if (ok)
                             {
-                                try
+                                UpdateLNLabels();
+                                if (LNPreview != null) DebouncedRefresh(LNPreview);
+                                SharedUIComponents.LanguageChanged += () => Dispatcher.BeginInvoke(UpdateLNLabels);
+                            }
+                            else
+                            {
+                                // Final fallback: small delayed retry
+                                disp.BeginInvoke(new Action(() =>
                                 {
-                                    var ok = AttachHandlersOnce();
-                                    Debug.WriteLine("AttachHandlersOnce after Loaded returned: " + ok);
-                                    if (ok)
+                                    var ok2 = AttachHandlersOnce();
+                                    Debug.WriteLine("Final AttachHandlersOnce retry returned: " + ok2);
+                                    if (ok2)
                                     {
                                         UpdateLNLabels();
                                         if (LNPreview != null) DebouncedRefresh(LNPreview);
+                                        SharedUIComponents.LanguageChanged += () => Dispatcher.BeginInvoke(UpdateLNLabels);
                                     }
-                                    else
-                                    {
-                                        // Final fallback: small delayed retry
-                                        disp.BeginInvoke(new Action(() =>
-                                        {
-                                            var ok2 = AttachHandlersOnce();
-                                            Debug.WriteLine("Final AttachHandlersOnce retry returned: " + ok2);
-                                            if (ok2)
-                                            {
-                                                UpdateLNLabels();
-                                                if (LNPreview != null) DebouncedRefresh(LNPreview);
-                                            }
-                                        }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    Debug.WriteLine("Deferred AttachHandlersOnce failed: " + ex.Message);
-                                }
-                            }), System.Windows.Threading.DispatcherPriority.Render);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine("Dispatcher retry scheduling failed: " + ex.Message);
-                    }
+                                }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                            }
+                        }), System.Windows.Threading.DispatcherPriority.Render);
                 };
 
                 // Subscribe to Loaded to attempt wiring when element becomes part of the visual tree
@@ -1381,49 +911,31 @@ public class MainWindow : FluentWindow
             else
             {
                 // As a last resort, schedule a dispatcher retry even if we don't have a FrameworkElement
-                try
-                {
-                    Dispatcher.BeginInvoke(new Action(() => AttachHandlersOnce()),
-                        System.Windows.Threading.DispatcherPriority.ApplicationIdle);
-                    Debug.WriteLine("Scheduled AttachHandlersOnce on main dispatcher as fallback.");
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("Failed scheduling fallback dispatcher attach: " + ex.Message);
-                }
+                Dispatcher.BeginInvoke(new Action(() => AttachHandlersOnce()),
+                    System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                Debug.WriteLine("Scheduled AttachHandlersOnce on main dispatcher as fallback.");
             }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine("WireLNControlEvents deferred wiring failed: " + ex.Message);
-        }
+        
     }
 
     // 更新 LN embedded 设置页上方的标签（因为 ElementName 绑定在被重parent 后失效）
     private void UpdateLNLabels()
     {
-        try
-        {
-            // Level
-            if (FindInLNHost<TextBlock>("LevelLabel") is { } level)
-                level.Text = $"Level {GetSliderValue("LevelValue"):N0}";
+        // Level
+        if (FindInLNHost<TextBlock>("LevelLabel") is { } level)
+            level.Text = string.Format(Strings.LevelLabel.Localize(), GetSliderValue("LevelValue"));
 
-            if (FindInLNHost<TextBlock>("PercentageLabel") is { } perc)
-                perc.Text = $"LN {GetSliderValue("PercentageValue"):N0}%";
+        if (FindInLNHost<TextBlock>("PercentageLabel") is { } perc)
+            perc.Text = string.Format(Strings.LNPercentageLabel.Localize(), GetSliderValue("PercentageValue"));
 
-            if (FindInLNHost<TextBlock>("DivideLabel") is { } div)
-                div.Text = $"Divide 1/{GetSliderValue("DivideValue"):N0}";
+        if (FindInLNHost<TextBlock>("DivideLabel") is { } div)
+            div.Text = string.Format(Strings.DivideLabel.Localize(), GetSliderValue("DivideValue"));
 
-            if (FindInLNHost<TextBlock>("ColumnLabel") is { } col)
-                col.Text = $"Column {GetSliderValue("ColumnValue"):N0}";
+        if (FindInLNHost<TextBlock>("ColumnLabel") is { } col)
+            col.Text = string.Format(Strings.ColumnLabel.Localize(), GetSliderValue("ColumnValue"));
 
-            if (FindInLNHost<TextBlock>("GapLabel") is { } gap)
-                gap.Text = $"Gap {GetSliderValue("GapValue"):N0}";
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine("UpdateLNLabels failed: " + ex.Message);
-        }
+        if (FindInLNHost<TextBlock>("GapLabel") is { } gap)
+            gap.Text = string.Format(Strings.GapLabel.Localize(), GetSliderValue("GapValue"));
     }
 
     private double GetSliderValue(string name)
@@ -1504,52 +1016,44 @@ public class MainWindow : FluentWindow
     // Helper to remove an element from its logical/visual parent so it can be reparented elsewhere.
     private void UnparentElement(UIElement element)
     {
-        try
+        var logicalParent = LogicalTreeHelper.GetParent(element);
+        if (logicalParent is ContentControl cc && Equals(cc.Content, element))
         {
-            var logicalParent = LogicalTreeHelper.GetParent(element);
-            if (logicalParent is ContentControl cc && Equals(cc.Content, element))
-            {
-                cc.Content = null;
-                return;
-            }
-
-            if (logicalParent is ScrollViewer sv && Equals(sv.Content, element))
-            {
-                sv.Content = null;
-                return;
-            }
-
-            if (logicalParent is Border b && Equals(b.Child, element))
-            {
-                b.Child = null;
-                return;
-            }
-
-            if (logicalParent is Panel p && p.Children.Contains(element))
-            {
-                p.Children.Remove(element);
-                return;
-            }
-
-            var visualParent = VisualTreeHelper.GetParent(element);
-            if (visualParent is ContentControl vcc && Equals(vcc.Content, element))
-                vcc.Content = null;
-            else if (visualParent is ScrollViewer vsv && Equals(vsv.Content, element))
-                vsv.Content = null;
-            else if (visualParent is Border vb && vb.Child == element)
-                vb.Child = null;
-            else if (visualParent is Panel vp && vp.Children.Contains(element)) vp.Children.Remove(element);
+            cc.Content = null;
+            return;
         }
-        catch (Exception ex)
+
+        if (logicalParent is ScrollViewer sv && Equals(sv.Content, element))
         {
-            Debug.WriteLine($"UnparentElement failed: {ex.Message}");
+            sv.Content = null;
+            return;
         }
+
+        if (logicalParent is Border b && Equals(b.Child, element))
+        {
+            b.Child = null;
+            return;
+        }
+
+        if (logicalParent is Panel p && p.Children.Contains(element))
+        {
+            p.Children.Remove(element);
+            return;
+        }
+
+        var visualParent = VisualTreeHelper.GetParent(element);
+        if (visualParent is ContentControl vcc && Equals(vcc.Content, element))
+            vcc.Content = null;
+        else if (visualParent is ScrollViewer vsv && Equals(vsv.Content, element))
+            vsv.Content = null;
+        else if (visualParent is Border vb && vb.Child == element)
+            vb.Child = null;
+        else if (visualParent is Panel vp && vp.Children.Contains(element)) vp.Children.Remove(element);
     }
 
     private void ConverterPreview_StartConversionRequested(object? sender, string[]? paths)
     {
         if (paths == null || paths.Length == 0) return;
-        if (_convWindowInstance == null) return;
 
         // Filter out internal sample (preview default) so it is never converted
         var toProcess = paths.Where(p => !string.Equals(p, _internalOsuPath, StringComparison.OrdinalIgnoreCase))
@@ -1557,79 +1061,12 @@ public class MainWindow : FluentWindow
             .ToArray();
         if (toProcess.Length == 0) return;
 
-        var created = new List<string>();
-        var failed = new List<string>();
-
-        // Process each staged .osu file using the converter's public single-file API
-        foreach (var p in toProcess)
-            try
-            {
-                var result = _convWindowInstance.ProcessSingleFile(p);
-                if (!string.IsNullOrEmpty(result))
-                    created.Add(result);
-                else
-                    failed.Add(p);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Converter processing error for {p}: {ex.Message}");
-                failed.Add(p);
-            }
-
-        // If any succeeded, clear staged UI and show success; otherwise keep staged UI so user can retry
-        if (created.Count > 0)
-        {
-            try
-            {
-                // Clear staged state across previews
-                DualPreviewControl.BroadcastStagedPaths(null);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"BroadcastStagedPaths error: {ex.Message}");
-            }
-
-            // Show summary with the created files (or directories)
-            try
-            {
-                var sb = new System.Text.StringBuilder();
-                sb.AppendLine("Conversion finished. Created files:");
-                foreach (var c in created) sb.AppendLine(c);
-                if (failed.Count > 0)
-                {
-                    sb.AppendLine();
-                    sb.AppendLine("The following source files failed to convert:");
-                    foreach (var f in failed) sb.AppendLine(f);
-                }
-
-                MessageBox.Show(sb.ToString(), "Conversion Result", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to show conversion result message: {ex.Message}");
-            }
-        }
-        else
-        {
-            // Nothing created: report failure and keep staged UI so user can retry
-            try
-            {
-                var msg = failed.Count > 0
-                    ? "Conversion failed for the selected files. The staged files remain so you can retry."
-                    : "Conversion did not produce any output.";
-                MessageBox.Show(msg, "Conversion Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to show conversion failure message: {ex.Message}");
-            }
-        }
+        _fileDispatcher?.ConvertFiles(toProcess, OptionsManager.ConverterToolName);
     }
 
     private void LNPreview_StartConversionRequested(object? sender, string[]? paths)
     {
         if (paths == null || paths.Length == 0) return;
-        if (_lnWindowInstance == null) return;
 
         // Filter out internal sample and invalid files
         var toProcess = paths.Where(p => !string.Equals(p, _internalOsuPath, StringComparison.OrdinalIgnoreCase))
@@ -1637,21 +1074,12 @@ public class MainWindow : FluentWindow
             .ToArray();
         if (toProcess.Length == 0) return;
 
-        foreach (var p in toProcess)
-            try
-            {
-                _lnWindowInstance.ProcessSingleFile(p);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"LN processing error for {p}: {ex.Message}");
-            }
+        _fileDispatcher?.ConvertFiles(toProcess, OptionsManager.LNToolName);
     }
 
     private void DPPreview_StartConversionRequested(object? sender, string[]? paths)
     {
         if (paths == null || paths.Length == 0) return;
-        if (_dpWindowInstance == null) return;
 
         // Filter out internal sample and invalid files
         var toProcess = paths.Where(p => !string.Equals(p, _internalOsuPath, StringComparison.OrdinalIgnoreCase))
@@ -1659,15 +1087,7 @@ public class MainWindow : FluentWindow
             .ToArray();
         if (toProcess.Length == 0) return;
 
-        foreach (var p in toProcess)
-            try
-            {
-                _dpWindowInstance.ProcessSingleFile(p);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"DP processing error for {p}: {ex.Message}");
-            }
+        _fileDispatcher?.ConvertFiles(toProcess, OptionsManager.DPToolName);
     }
 
     private void GlobalOsuListenerButton_Click(object sender, RoutedEventArgs e)
