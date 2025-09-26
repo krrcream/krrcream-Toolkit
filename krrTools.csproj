@@ -7,6 +7,9 @@
         <UseWPF>true</UseWPF>
         <ApplicationIcon>fq.ico</ApplicationIcon>
         <LangVersion>latest</LangVersion>
+        <PublishSingleFile>true</PublishSingleFile>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <SelfContained>true</SelfContained>
     </PropertyGroup>
 
     <ItemGroup>
