@@ -22,8 +22,22 @@ namespace krrTools.tools.Shared
         public const string GitHubLinkText = "github";
         public const string GitHubLinkUrl = "https://github.com/krrcream/krrcream-Toolkit";
         
-        // Language button labels
+        // Settings menu
+        public const string SettingsMenuTheme = "Theme|主题";
+        public const string SettingsMenuBackdrop = "Backdrop|背景效果";
         public const string UpdateAccent = "Update Accent|系统调色";
+        public const string SettingsMenuLanguage = "切换到中文|Switch to English";
+        
+        // Theme options
+        public const string ThemeLight = "Light|浅色";
+        public const string ThemeDark = "Dark|深色";
+        public const string ThemeHighContrast = "HighContrast|高对比度";
+        
+        // Backdrop options
+        public const string BackdropNone = "None|无";
+        public const string BackdropMica = "Mica|云母";
+        public const string BackdropAcrylic = "Acrylic|亚克力";
+        public const string BackdropTabbed = "Tabbed|标签页";
         
         // Listener
         public const string OSUListenerButton = "OSU Listener|osu 侦听";

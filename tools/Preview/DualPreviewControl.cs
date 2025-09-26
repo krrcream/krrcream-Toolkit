@@ -33,8 +33,7 @@ public class DualPreviewControl : UserControl
     private Button StartConversionButton;
     private Border OriginalBorder;
     private Border ConvertedBorder;
-    private Image? _originalBgImage;
-    private Image? _convertedBgImage;
+    private Image? _sharedBgImage;
 
     // Event used to broadcast loaded paths to other preview controls so they stay in sync.
     public static event EventHandler<string[]?>? SharedPathsChanged;
@@ -113,10 +112,14 @@ public class DualPreviewControl : UserControl
                 bgBitmap = new BitmapImage();
                 bgBitmap.BeginInit();
                 bgBitmap.UriSource = new Uri(bgPath);
+                bgBitmap.CacheOption = BitmapCacheOption.OnLoad;
                 bgBitmap.EndInit();
             }
-            if (_originalBgImage != null) _originalBgImage.Source = bgBitmap;
-            if (_convertedBgImage != null) _convertedBgImage.Source = bgBitmap;
+            if (_sharedBgImage != null)
+            {
+                _sharedBgImage.Source = bgBitmap;
+                _sharedBgImage.Visibility = Visibility.Collapsed; // 背景统一由窗口处理
+            }
 
             ApplyColumnOverrideToProcessor();
             try
@@ -158,7 +161,7 @@ public class DualPreviewControl : UserControl
 
         var rootBorder = new Border
         {
-            Background = SharedUIComponents.PanelBackgroundBrush,
+            Background = Brushes.Transparent,
             BorderBrush = SharedUIComponents.PanelBorderBrush,
             BorderThickness = new Thickness(1),
             CornerRadius = SharedUIComponents.PanelCornerRadius,
@@ -176,11 +179,20 @@ public class DualPreviewControl : UserControl
         Grid.SetRow(PreviewTitle, 0);
         grid.Children.Add(PreviewTitle);
 
+        // Shared background image
+        _sharedBgImage = new Image { Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch, Opacity = PreviewBackgroundOpacity,
+            Effect = new BlurEffect { Radius = PreviewBackgroundBlurRadius }, Visibility = Visibility.Collapsed
+        };
+        Grid.SetRow(_sharedBgImage, 1);
+        Grid.SetRowSpan(_sharedBgImage, 3);
+        Grid.SetZIndex(_sharedBgImage, -1);
+        grid.Children.Add(_sharedBgImage);
+
         // Original Border
         OriginalBorder = new Border
         {
             AllowDrop = true,
-            Background = SharedUIComponents.PanelBackgroundBrush,
+            Background = Brushes.Transparent,
             BorderBrush = SharedUIComponents.PanelBorderBrush,
             BorderThickness = new Thickness(1),
             CornerRadius = SharedUIComponents.PanelCornerRadius,
@@ -199,13 +211,8 @@ public class DualPreviewControl : UserControl
         OriginalHint = new TextBlock { FontWeight = FontWeights.SemiBold, Foreground = new SolidColorBrush(Color.FromRgb(0x33,0x33,0x33)), Margin = new Thickness(2,0,2,4), Text = "原始预览 (Original)" };
         Grid.SetRow(OriginalHint, 0);
         obGrid.Children.Add(OriginalHint);
-        _originalBgImage = new Image { Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch, Opacity = PreviewBackgroundOpacity,
-            Effect = new BlurEffect { Radius = PreviewBackgroundBlurRadius }
-        };
-        Grid.SetRow(_originalBgImage, 1);
-        obGrid.Children.Add(_originalBgImage);
         OriginalContent = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch, Visibility = Visibility.Collapsed };
-        Grid.SetRow(OriginalContent, 2);
+        Grid.SetRow(OriginalContent, 1);
         obGrid.Children.Add(OriginalContent);
         OriginalBorder.Child = obGrid;
         Grid.SetRow(OriginalBorder, 1);
@@ -221,7 +228,7 @@ public class DualPreviewControl : UserControl
         ConvertedBorder = new Border
         {
             AllowDrop = true,
-            Background = SharedUIComponents.PanelBackgroundBrush,
+            Background = Brushes.Transparent,
             BorderBrush = SharedUIComponents.PanelBorderBrush,
             BorderThickness = new Thickness(1),
             CornerRadius = SharedUIComponents.PanelCornerRadius,
@@ -240,13 +247,8 @@ public class DualPreviewControl : UserControl
         ConvertedHint = new TextBlock { FontWeight = FontWeights.SemiBold, Foreground = new SolidColorBrush(Color.FromRgb(0x33,0x33,0x33)), Margin = new Thickness(2,0,2,4), Text = "结果预览 (Converted)" };
         Grid.SetRow(ConvertedHint, 0);
         cbGrid.Children.Add(ConvertedHint);
-        _convertedBgImage = new Image { Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch, Opacity = PreviewBackgroundOpacity,
-            Effect = new BlurEffect { Radius = PreviewBackgroundBlurRadius }
-        };
-        Grid.SetRow(_convertedBgImage, 1);
-        cbGrid.Children.Add(_convertedBgImage);
         ConvertedContent = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch, Visibility = Visibility.Collapsed };
-        Grid.SetRow(ConvertedContent, 2);
+        Grid.SetRow(ConvertedContent, 1);
         cbGrid.Children.Add(ConvertedContent);
         ConvertedBorder.Child = cbGrid;
         Grid.SetRow(ConvertedBorder, 3);

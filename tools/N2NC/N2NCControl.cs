@@ -99,7 +99,7 @@ namespace krrTools.tools.N2NC
         private FrameworkElement CreateTargetKeysPanel(Thickness rowMargin)
         {
             // Target keys
-            var targetKeysSlider = SharedUIComponents.CreateStandardSlider(1, 15, double.NaN, true);
+            var targetKeysSlider = SharedUIComponents.CreateStandardSlider(1, 18, double.NaN, true);
             targetKeysSlider.SetBinding(RangeBase.ValueProperty, new Binding("TargetKeys") { Source = _viewModel });
             TargetKeysSlider = targetKeysSlider;
             
@@ -199,7 +199,7 @@ namespace krrTools.tools.N2NC
 
         private FrameworkElement CreateKeySelectionPanel(Thickness rowMargin)
         {
-            var keysWrap = new WrapPanel { Orientation = Orientation.Horizontal, ItemHeight = 28 };
+            var keysWrap = new WrapPanel { Orientation = Orientation.Horizontal, ItemHeight = 33 };
             var flagOrder = new[] { KeySelectionFlags.K4, KeySelectionFlags.K5, KeySelectionFlags.K6, KeySelectionFlags.K7, KeySelectionFlags.K8, KeySelectionFlags.K9, KeySelectionFlags.K10, KeySelectionFlags.K10Plus };
             var flagLabels = new Dictionary<KeySelectionFlags, string>
             {

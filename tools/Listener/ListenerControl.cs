@@ -21,6 +21,16 @@ namespace krrTools.tools.Listener
 
         internal static bool IsOpen { get; private set; }
 
+        public bool RealTimePreview
+        {
+            get => _viewModel.Config.RealTimePreview;
+            set
+            {
+                _viewModel.Config.RealTimePreview = value;
+                _viewModel.SaveConfig();
+            }
+        }
+
         internal ListenerControl(object? sourceWindow = null, int sourceId = 0)
         {
             // Initialize control UI
@@ -124,13 +134,6 @@ namespace krrTools.tools.Listener
             Grid.SetColumn(browseBtn, 1);
             songsGrid.Children.Add(browseBtn);
             songsPanel.Children.Add(songsGrid);
-
-            var realTimeChk = SharedUIComponents.CreateStandardCheckBox(Strings.RealTimePreviewLabel);
-            realTimeChk.Margin = new Thickness(5,8,5,0);
-            realTimeChk.Foreground = Brushes.White;
-            realTimeChk.Background = Brushes.Transparent;
-            realTimeChk.SetBinding(ToggleButton.IsCheckedProperty, new Binding("Config.RealTimePreview") { Mode = BindingMode.TwoWay });
-            songsPanel.Children.Add(realTimeChk);
 
             Grid.SetRow(songsPanel, 0);
             contentGrid.Children.Add(songsPanel);

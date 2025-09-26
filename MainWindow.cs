@@ -3,17 +3,19 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Linq;
 using System.Collections.Generic;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Media;
 using System.Windows.Shell;
 using krrTools.Tools.Shared;
 using krrTools.tools.Preview;
 using krrTools.tools.DPtool;
 using krrTools.tools.Get_files;
 using krrTools.tools.KRR_LV;
+using krrTools.tools.Listener;
 using krrTools.tools.LNTransformer;
 using krrTools.tools.N2NC;
 using krrTools.tools.Shared;
@@ -21,8 +23,11 @@ using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 using Button = Wpf.Ui.Controls.Button;
 using MessageBox = System.Windows.MessageBox;
+using Point = System.Windows.Point;
+using Size = System.Windows.Size;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 using TextBox = Wpf.Ui.Controls.TextBox;
+using ToggleSwitch = Wpf.Ui.Controls.ToggleSwitch;
 
 namespace krrTools;
 
@@ -40,8 +45,6 @@ public class MainWindow : FluentWindow
     // 工具调度器
     public ToolScheduler ToolScheduler { get; } = new ToolScheduler();
 
-
-
     // 跟踪选项卡拖动/分离
     private Point _dragStartPoint;
     private TabItem? _draggedTab;
@@ -49,13 +52,61 @@ public class MainWindow : FluentWindow
     private N2NCViewModel? _converterVM;
     private DPToolViewModel? _dpVM;
     private DateTime _lastPreviewRefresh = DateTime.MinValue;
-    private string _internalOsuPath;
+    private string? _internalOsuPath;
 
 
     private byte _currentAlpha = 102;
     private readonly byte[] _alphaCycle = [0x22, 0x33, 0x44, 0x55, 0x66, 0x88, 0xAA, 0xCC, 0xEE];
     private int _alphaIndex;
     private Slider? _alphaSlider;
+
+    private bool _realTimePreview;
+    public bool RealTimePreview
+    {
+        get => _realTimePreview;
+        set
+        {
+            if (_realTimePreview != value)
+            {
+                _realTimePreview = value;
+                SaveRealTimePreview();
+                OnRealTimePreviewChanged();
+            }
+        }
+    }
+
+    private ListenerViewModel? _listenerVM;
+
+    private void SaveRealTimePreview()
+    {
+        try
+        {
+            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "realTimePreview.txt");
+            File.WriteAllText(path, _realTimePreview.ToString());
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Failed to save RealTimePreview: {ex.Message}");
+        }
+    }
+
+    private void LoadRealTimePreview()
+    {
+        try
+        {
+            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "realTimePreview.txt");
+            if (File.Exists(path))
+            {
+                bool.TryParse(File.ReadAllText(path), out var val);
+                _realTimePreview = val;
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Failed to load RealTimePreview: {ex.Message}");
+        }
+    }
+    private ToggleSwitch? _realTimeToggle;
 
     private void DebouncedRefresh(DualPreviewControl control, int ms = 150)
     {
@@ -65,9 +116,9 @@ public class MainWindow : FluentWindow
         control.Refresh();
     }
 
-    private N2NCControl? _convWindowInstance;
-    private LNTransformerControl? _lnWindowInstance;
-    private DPToolControl? _dpWindowInstance;
+    private N2NCControl _convWindowInstance = null!;
+    private LNTransformerControl _lnWindowInstance = null!;
+    private DPToolControl _dpWindowInstance = null!;
 
     private ContentControl? ConverterSettingsHost =>
         _settingsHosts.GetValueOrDefault(OptionsManager.ConverterToolName);
@@ -85,6 +136,8 @@ public class MainWindow : FluentWindow
 
     public MainWindow()
     {
+        LoadRealTimePreview();
+
         Title = Strings.WindowTitle;
         Width = 1000;
         Height = 750;
@@ -97,8 +150,7 @@ public class MainWindow : FluentWindow
             CaptionHeight = 32,
             CornerRadius = new CornerRadius(0),
             GlassFrameThickness = new Thickness(0),
-            UseAeroCaptionButtons = false,
-            NonClientFrameEdges = NonClientFrameEdges.Left | NonClientFrameEdges.Right | NonClientFrameEdges.Bottom,
+            UseAeroCaptionButtons = true,
             ResizeBorderThickness = new Thickness(4)
         };
         WindowChrome.SetWindowChrome(this, windowChrome);
@@ -139,9 +191,10 @@ public class MainWindow : FluentWindow
         // TabControl
         MainTabControl = new TabControl
         {
-            Background = Brushes.Transparent,
+            Background = new VisualBrush(),
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
             VerticalContentAlignment = VerticalAlignment.Stretch,
+            ItemsPanel = new ItemsPanelTemplate(new FrameworkElementFactory(typeof(CustomTabPanel)))
         };
         MainTabControl.PreviewMouseLeftButtonDown += TabControl_PreviewMouseLeftButtonDown;
         MainTabControl.PreviewMouseMove += TabControl_PreviewMouseMove;
@@ -160,19 +213,15 @@ public class MainWindow : FluentWindow
         Grid.SetRow(MainTabControl, 1);
         root.Children.Add(MainTabControl);
 
-        // Global OSU Listener button (右上)
-        GlobalOsuListenerButton = SharedUIComponents.CreateStandardButton(Strings.OSUListenerButton);
-        GlobalOsuListenerButton.HorizontalAlignment = HorizontalAlignment.Right;
-        GlobalOsuListenerButton.VerticalAlignment = VerticalAlignment.Top;
-        GlobalOsuListenerButton.Margin = new Thickness(0, 8, 12, 0);
-        GlobalOsuListenerButton.Width = 110;
-        GlobalOsuListenerButton.Click += GlobalOsuListenerButton_Click;
-        // 放在同一格(1)，通过 Canvas.ZIndex/对齐实现覆盖
-        Grid.SetRow(GlobalOsuListenerButton, 1);
-        root.Children.Add(GlobalOsuListenerButton);
-
         // Footer
-        var footer = UIComponents.CreateStatusBar(this);
+        _realTimeToggle = new ToggleSwitch { Content = "实时预览", IsChecked = RealTimePreview };
+        _realTimeToggle.Checked += (s,e) => RealTimePreview = true;
+        _realTimeToggle.Unchecked += (s,e) => RealTimePreview = false;
+
+        GlobalOsuListenerButton = SharedUIComponents.CreateStandardButton(Strings.OSUListenerButton);
+        GlobalOsuListenerButton.Click += GlobalOsuListenerButton_Click;
+
+        var footer = UIComponents.CreateStatusBar(this, _realTimeToggle, GlobalOsuListenerButton);
         Grid.SetRow(footer, 2);
         root.Children.Add(footer);
 
@@ -199,11 +248,14 @@ public class MainWindow : FluentWindow
         var savedBackdrop = SharedUIComponents.GetSavedWindowBackdropType() != null && Enum.TryParse<WindowBackdropType>(SharedUIComponents.GetSavedWindowBackdropType(), out var backdrop) ? backdrop : WindowBackdropType.Acrylic;
         var savedAccent = SharedUIComponents.GetSavedUpdateAccent() ?? true;
         ApplicationThemeManager.Apply(savedTheme, savedBackdrop, savedAccent);
+
+        // 设置窗口背景为虚化的osu背景图片
+        this.Background = new ImageBrush
+        {
+            Stretch = Stretch.UniformToFill,
+            Opacity = 0.3,
+        };
     }
-
-
-
-
 
     private void BuildPreviewTabs()
     {
@@ -221,17 +273,16 @@ public class MainWindow : FluentWindow
                 OptionsManager.ConverterToolName => Strings.TabConverter,
                 OptionsManager.LNToolName => Strings.TabLNTransformer,
                 OptionsManager.DPToolName => Strings.TabDPTool,
-                OptionsManager.LVToolName => Strings.TabLV,
-                OptionsManager.GetFilesToolName => Strings.TabGetFiles,
                 _ => cfg.ToolKey
             };
             var headerLabel = SharedUIComponents.CreateHeaderLabel(headerText);
-            headerLabel.FontSize = 14; // 减小字体大小
+            headerLabel.FontSize = 14;
             var tab = new TabItem
             {
                 Header = headerLabel,
                 Tag = cfg.ToolKey,
-                // 移除MinWidth，让宽度适应文字
+                Width = double.NaN, // Auto width
+                MinWidth = 0,
                 HorizontalAlignment = HorizontalAlignment.Left
             };
             var grid = new Grid();
@@ -253,7 +304,6 @@ public class MainWindow : FluentWindow
             Grid.SetColumn(preview, 1);
             grid.Children.Add(preview);
             tab.Content = grid;
-            Debug.Assert(MainTabControl != null, nameof(MainTabControl) + " != null");
             MainTabControl.Items.Add(tab);
         }
     }
@@ -275,7 +325,8 @@ public class MainWindow : FluentWindow
             {
                 Header = headerLabel,
                 Tag = cfg.ToolKey,
-                // 移除MinWidth，让宽度适应文字
+                Width = double.NaN, // Auto width
+                MinWidth = 0,
                 HorizontalAlignment = HorizontalAlignment.Left
             };
             var settingsHost = new ContentControl();
@@ -467,7 +518,7 @@ public class MainWindow : FluentWindow
             else if (DPSettingsHost != null)
             {
                 // fallback placeholder
-                DPSettingsHost.DataContext = _dpWindowInstance?.DataContext;
+                DPSettingsHost.DataContext = _dpWindowInstance.DataContext;
                 var placeholder = new TextBlock
                 {
                     Text =
@@ -590,7 +641,7 @@ public class MainWindow : FluentWindow
         _fileDispatcher?.LoadFiles(allOsu.ToArray());
     }
 
-    // 选项卡拖动/分离处理 - 改进：克隆内容用于分离窗口，保持原选项卡不变
+    // 选项卡拖动/分离处理 - 克隆内容用于分离窗口，保持原选项卡不变
     private void TabControl_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         _dragStartPoint = e.GetPosition(this);
@@ -633,7 +684,7 @@ public class MainWindow : FluentWindow
             OptionsManager.LNToolName => () => new LNTransformerControl(),
             OptionsManager.DPToolName => () => new DPToolControl(),
             OptionsManager.LVToolName => () => new KRRLVControl(),
-            "osu! file manager" => () => new GetFilesControl(),
+            OptionsManager.GetFilesToolName => () => new GetFilesControl(),
             _ => null
         };
 
@@ -643,8 +694,7 @@ public class MainWindow : FluentWindow
         ResourceDictionary? settingsResources = null;
         if (isPreviewTool && createFreshWindow != null)
         {
-            // Try to reuse the existing settings host content from the main window so the detached preview
-            // uses the same settings instance (DataContext) instead of creating a fresh copy.
+            // 尝试从现有宿主 ContentControl 分离内容
             host = toolKey switch
             {
                 OptionsManager.ConverterToolName => _settingsHosts.GetValueOrDefault(OptionsManager.ConverterToolName),
@@ -658,17 +708,17 @@ public class MainWindow : FluentWindow
                 settingsContent = host.Content as UIElement;
                 if (settingsContent != null)
                 {
-                    // Detach the content from the host and preserve its DataContext for the detached window
+                    // 代理分离内容
                     host.Content = null;
                     ClearFixedSizes(settingsContent);
                     if (settingsContent is FrameworkElement fe)
-                        fe.DataContext = host.DataContext; // preserve the VM on the content itself
+                        fe.DataContext = host.DataContext;
 
                     settingsResources = host.Resources;
                 }
             }
 
-            // Fallback: if host had no content (shouldn't normally happen), create fresh window as before
+            // 如果无法从宿主获取内容，则创建一个新的窗口实例并提取其内容
             if (settingsContent == null)
             {
                 var fresh = createFreshWindow();
@@ -692,7 +742,7 @@ public class MainWindow : FluentWindow
 
             var det = new DetachedToolWindow(header, settingsContent, settingsResources, proc);
 
-            // When the detached window requests merge, restore the content back to its original host and close
+            // 处理合并请求
             det.MergeRequested += (_, _) =>
             {
                 if (host != null && settingsContent != null && host.Content == null)
@@ -813,12 +863,12 @@ public class MainWindow : FluentWindow
         win.Show();
     }
 
-    private string ResolveInternalSample()
+    private string? ResolveInternalSample()
     {
         try
         {
             var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            if (string.IsNullOrEmpty(baseDir)) return null;
+
             var direct = Path.Combine(baseDir, "mania-last-object-not-latest.osu");
             if (File.Exists(direct)) return direct;
             var dir = new DirectoryInfo(baseDir);
@@ -833,7 +883,7 @@ public class MainWindow : FluentWindow
         }
         catch (Exception ex)
         {
-            Debug.WriteLine("ResolveInternalSample error: " + ex.Message);
+            Debug.WriteLine("未找到内置.osu预览文件" + ex.Message);
         }
 
         return null;
@@ -1130,21 +1180,24 @@ public class MainWindow : FluentWindow
         var sourceId = 0;
         switch (selectedTab?.Tag as string)
         {
-            case OptionsManager.ConverterToolName when _convWindowInstance != null:
+            case OptionsManager.ConverterToolName:
                 source = _convWindowInstance;
                 sourceId = 1;
                 break;
-            case OptionsManager.LNToolName when _lnWindowInstance != null:
+            case OptionsManager.LNToolName:
                 source = _lnWindowInstance;
                 sourceId = 2;
                 break;
-            case OptionsManager.DPToolName when _dpWindowInstance != null:
+            case OptionsManager.DPToolName:
                 source = _dpWindowInstance;
                 sourceId = 3;
                 break;
         }
 
-        var listenerControl = new tools.Listener.ListenerControl(source, sourceId);
+        var listenerControl = new ListenerControl(source, sourceId)
+        {
+            RealTimePreview = RealTimePreview
+        };
         var listenerWindow = new Window
         {
             Title = Strings.ListenerTitlePrefix,
@@ -1173,5 +1226,95 @@ public class MainWindow : FluentWindow
             if (_alphaSlider != null) _alphaSlider.Value = next;
             e.Handled = true;
         }
+    }
+
+    // Custom TabPanel that allows dynamic widths
+    private class CustomTabPanel : TabPanel
+    {
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            double totalWidth = 0;
+            double maxHeight = 0;
+            foreach (UIElement child in InternalChildren)
+            {
+                child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
+                totalWidth += child.DesiredSize.Width;
+                maxHeight = Math.Max(maxHeight, child.DesiredSize.Height);
+            }
+            return new Size(totalWidth, maxHeight);
+        }
+    }
+
+    private void OnRealTimePreviewChanged()
+    {
+        if (_realTimePreview)
+        {
+            if (_listenerVM == null)
+            {
+                _listenerVM = new ListenerViewModel();
+                _listenerVM.BeatmapSelected += OnBeatmapSelected;
+            }
+            if (string.IsNullOrEmpty(_listenerVM.Config.SongsPath))
+            {
+                _listenerVM.SetSongsPath();
+            }
+        }
+        else
+        {
+            if (_listenerVM != null)
+            {
+                _listenerVM.Cleanup();
+                _listenerVM = null;
+            }
+        }
+    }
+
+    private void OnBeatmapSelected(object? sender, string osuPath)
+    {
+        if (string.IsNullOrEmpty(osuPath)) return;
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            try
+            {
+                if (!File.Exists(osuPath)) return;
+
+                // 更新窗口背景
+                string? bgPath = PreviewTransformation.GetBackgroundImagePath(osuPath);
+                if (!string.IsNullOrEmpty(bgPath) && File.Exists(bgPath))
+                {
+                    var bgBitmap = new BitmapImage();
+                    bgBitmap.BeginInit();
+                    bgBitmap.UriSource = new Uri(bgPath);
+                    bgBitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bgBitmap.EndInit();
+                    if (this.Background is ImageBrush ib)
+                    {
+                        ib.ImageSource = bgBitmap;
+                    }
+                }
+
+                var arr = new[] { osuPath };
+                DualPreviewControl.BroadcastStagedPaths(arr);
+                if (ConverterPreview != null)
+                {
+                    ConverterPreview.LoadFiles(arr, suppressBroadcast: true);
+                    ConverterPreview.ApplyStagedUI(arr);
+                }
+                if (LNPreview != null)
+                {
+                    LNPreview.LoadFiles(arr, suppressBroadcast: true);
+                    LNPreview.ApplyStagedUI(arr);
+                }
+                if (DPPreview != null)
+                {
+                    DPPreview.LoadFiles(arr, suppressBroadcast: true);
+                    DPPreview.ApplyStagedUI(arr);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Listener preview broadcast failed: {ex.Message}");
+            }
+        }));
     }
 }

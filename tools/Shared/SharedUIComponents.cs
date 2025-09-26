@@ -197,8 +197,8 @@ namespace krrTools.tools.Shared
         }
 
         // Preview background settings
-        private static double _previewBackgroundOpacity = 0.6;
-        private static double _previewBackgroundBlurRadius = 10.0;
+        private static double _previewBackgroundOpacity = 1.0;
+        private static double _previewBackgroundBlurRadius = 2.0;
 
         public static double PreviewBackgroundOpacity
         {
@@ -405,7 +405,7 @@ namespace krrTools.tools.Shared
                  // small default margin to match app style
                  Margin = new Thickness(5, 0, 0, 0),
                  FontSize = ComFontSize,
-                 Background = Brushes.Transparent,
+                 Background = PanelBackgroundBrush,
                  BorderBrush = PanelBorderBrush,
                  BorderThickness = new Thickness(1),
                  Foreground = UiTextBrush
@@ -542,6 +542,16 @@ namespace krrTools.tools.Shared
                   dgStyle.Setters.Add(new Setter(DataGrid.RowHeightProperty, 20.0));
                   dgStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(4)));
                   appRes[typeof(DataGrid)] = dgStyle;
+              }
+
+              // TabItem style for dynamic width
+              if (!appRes.Contains(typeof(TabItem)))
+              {
+                  var tabStyle = new Style(typeof(TabItem));
+                  tabStyle.Setters.Add(new Setter(TabItem.WidthProperty, double.NaN)); // Auto width
+                  tabStyle.Setters.Add(new Setter(TabItem.MinWidthProperty, 0.0));
+                  tabStyle.Setters.Add(new Setter(TabItem.HorizontalAlignmentProperty, HorizontalAlignment.Left));
+                  appRes[typeof(TabItem)] = tabStyle;
               }
           }
      }

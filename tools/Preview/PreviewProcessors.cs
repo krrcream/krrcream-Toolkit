@@ -84,59 +84,16 @@ namespace krrTools.tools.Preview
             var bgImagePath = PreviewTransformation.GetBackgroundImagePath(path);
             if (!string.IsNullOrEmpty(bgImagePath) && File.Exists(bgImagePath))
             {
-                System.Diagnostics.Debug.WriteLine($"Applying background image: {bgImagePath}");
+                System.Diagnostics.Debug.WriteLine($"Background image found: {bgImagePath}");
                 
-                // 创建背景图片画笔
-                var bgImageBrush = new ImageBrush
-                {
-                    ImageSource = new System.Windows.Media.Imaging.BitmapImage(new Uri(bgImagePath)),
-                    Stretch = Stretch.UniformToFill,
-                    Opacity = SharedUIComponents.PreviewBackgroundOpacity
-                };
-                
-                // 应用模糊效果
-                var blurEffect = new System.Windows.Media.Effects.BlurEffect
-                {
-                    Radius = SharedUIComponents.PreviewBackgroundBlurRadius,
-                    KernelType = System.Windows.Media.Effects.KernelType.Gaussian
-                };
-                
-                // 创建一个包含背景和内容的Border
-                var bgBorder = new Border
-                {
-                    Background = bgImageBrush,
-                    Effect = blurEffect,
-                    Child = previewElement,
-                    CornerRadius = new CornerRadius(4)
-                };
-                
-                System.Diagnostics.Debug.WriteLine("Background image applied successfully");
-                return bgBorder;
+                // 不在这里应用背景，统一由DualPreviewControl处理
+                return previewElement;
             }
             else
             {
                 System.Diagnostics.Debug.WriteLine($"No background image found for {path}");
-                // 创建一个显示背景图状态的Border
-                var statusBorder = new Border
-                {
-                    Background = SharedUIComponents.PanelBackgroundBrush,
-                    Child = new TextBlock 
-                    { 
-                        Text = $"预览内容\n(无背景图)\n路径: {Path.GetFileName(path)}", 
-                        Foreground = SharedUIComponents.UiTextBrush,
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        TextWrapping = TextWrapping.Wrap
-                    },
-                    CornerRadius = new CornerRadius(4),
-                    Padding = new Thickness(10)
-                };
-                
-                var grid = new Grid();
-                grid.Children.Add(statusBorder);
-                grid.Children.Add(previewElement);
-                
-                return grid;
+                // 直接返回预览元素，无背景
+                return previewElement;
             }
         }
 
