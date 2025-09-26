@@ -97,8 +97,7 @@ public class MainWindow : FluentWindow
             CaptionHeight = 32,
             CornerRadius = new CornerRadius(0),
             GlassFrameThickness = new Thickness(0),
-            UseAeroCaptionButtons = false,
-            NonClientFrameEdges = NonClientFrameEdges.Left | NonClientFrameEdges.Right | NonClientFrameEdges.Bottom,
+            UseAeroCaptionButtons = true,
             ResizeBorderThickness = new Thickness(4)
         };
         WindowChrome.SetWindowChrome(this, windowChrome);

@@ -9,7 +9,6 @@ using Wpf.Ui.Controls;
 using Button = Wpf.Ui.Controls.Button;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 using ToggleSwitch = Wpf.Ui.Controls.ToggleSwitch;
-using krrTools.Tools.Shared;
 using krrTools.tools.Shared;
 
 namespace krrTools;
@@ -28,10 +27,10 @@ public static class UIComponents
         // 创建标题栏容器
         _titleBar = new Border
         {
-            Background = new SolidColorBrush(Color.FromRgb(240, 240, 240)),
+            Background = Brushes.Transparent,
             Height = 32,
-            BorderThickness = new Thickness(0, 0, 0, 1),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200)),
+            BorderThickness = new Thickness(0),
+            BorderBrush = SharedUIComponents.PanelBorderBrush,
             Margin = new Thickness(0, 0, 0, 0)
         };
         // 确保标题栏在左侧和右侧留出系统按钮的空间
@@ -66,17 +65,17 @@ public static class UIComponents
         // 最小化按钮
         _minimizeButton = new Button
         {
-            Content = "—",
+            Content = "_",
             Width = 46,
             Height = 32,
             Margin = new Thickness(0),
             Background = Brushes.Transparent,
             BorderBrush = Brushes.Transparent,
             Foreground = Brushes.Black,
-            FontSize = 16,
+            FontSize = 14,
             FontWeight = FontWeights.Bold,
             HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Top,
             Padding = new Thickness(0)
         };
         // 确保按钮在标题栏区域内可点击
