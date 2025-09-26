@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using krrTools.tools.Listener;
+using krrTools.tools.Shared;
 using krrTools.Tools.OsuParser;
-using krrTools.Tools.Shared;
+using static krrTools.tools.Shared.SharedUIComponents;
 
 namespace krrTools.tools.LNTransformer
 {
@@ -85,8 +87,8 @@ namespace krrTools.tools.LNTransformer
                 // Notify user on UI thread that processing finished
                 Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                 {
-                    MessageBox.Show(SharedUIComponents.IsChineseLanguage() ? "文件处理成功！" : "File processed successfully!",
-                        SharedUIComponents.IsChineseLanguage() ? "成功" : "Success",
+                    MessageBox.Show(IsChineseLanguage() ? "文件处理成功！" : "File processed successfully!",
+                        IsChineseLanguage() ? "成功" : "Success",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }));
             });
@@ -181,6 +183,86 @@ namespace krrTools.tools.LNTransformer
             var difficulty = osu.Metadata.Difficulty;
             if (!string.IsNullOrEmpty(difficulty) && Regex.IsMatch(difficulty, @"\[LN.*\]")) return true;
             return false;
+        }
+
+        // Process a single file and return the output path
+        public static string? ProcessSingleFile(string filePath, LNTransformerOptions parameters)
+        {
+            try
+            {
+                var osuFiles = OsuFileProcessor.ReadMultipleFiles([filePath], (line) =>
+                {
+                    if (line.StartsWith("Mode"))
+                    {
+                        string str = line.Substring(line.IndexOf(':') + 1).Trim();
+                        if (str != "3") return true;
+                    }
+
+                    if (line.StartsWith("CircleSize"))
+                    {
+                        string str = line.Substring(line.IndexOf(':') + 1).Trim();
+                        if (int.TryParse(str, out int cs))
+                        {
+                            if (cs > 10) return true;
+                            if (parameters.CheckKeys is { Count: > 0 } && !parameters.CheckKeys.Contains(cs)) return true;
+                        }
+                        else
+                        {
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        if (parameters.IgnoreIsChecked && line.StartsWith("Creator"))
+                        {
+                            var str = line.Substring(line.IndexOf(':') + 1).Trim();
+                            if (str.Contains("LNTransformer")) return true;
+                        }
+
+                        if (parameters.IgnoreIsChecked && line.StartsWith("Version"))
+                        {
+                            var str = line.Substring(line.IndexOf(':') + 1).Trim();
+                            if (str.Contains("[LN")) return true;
+                        }
+                    }
+
+                    return false;
+                });
+
+                foreach (var osuFile in osuFiles)
+                {
+                    try
+                    {
+                        ApplyToBeatmap(osuFile, parameters);
+                        var basePath = string.IsNullOrEmpty(osuFile.path) ? string.Empty : osuFile.path;
+                        var newFilepath = string.IsNullOrEmpty(basePath)
+                            ? osuFile.FileName + ".osu"
+                            : Path.Combine(basePath, osuFile.FileName + ".osu");
+
+                        if (ListenerControl.IsOpen)
+                        {
+                            var oszPath = OsuAnalyzer.AddNewBeatmapToSongFolder(newFilepath);
+                            return oszPath;
+                        }
+                        else
+                        {
+                            return newFilepath;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"TransformService.ProcessSingleFile - error for {osuFile.OriginalFile?.FullName}: {ex.Message}");
+                        return null;
+                    }
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"TransformService.ProcessSingleFile - error: {ex.Message}");
+                return null;
+            }
         }
     }
 }

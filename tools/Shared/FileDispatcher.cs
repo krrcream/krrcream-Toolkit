@@ -30,7 +30,7 @@ namespace krrTools.Tools.Shared
             };
         }
 
-        public void LoadFiles(string[] paths, string? activeTabTag = null)
+        public void LoadFiles(string[]? paths, string? activeTabTag = null)
         {
             activeTabTag ??= GetActiveTabTag();
             if (_previewControls.TryGetValue(activeTabTag, out var control))

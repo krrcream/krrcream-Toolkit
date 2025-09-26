@@ -5,7 +5,7 @@ namespace krrTools.tools.DPtool
     /// <summary>
     /// DP工具选项类，用于封装所有DP参数
     /// </summary>
-    public class DPToolOptions : ObservableObject
+    public class DPToolOptions : ObservableObject, IToolOptions
     {
         private bool _modifySingleSideKeyCount;
         private int _singleSideKeyCount = 5;
@@ -90,6 +90,14 @@ namespace krrTools.tools.DPtool
         {
             get => Right.MinKeys;
             set => Right.MinKeys = value;
+        }
+
+        public void Validate()
+        {
+            Left.Validate();
+            Right.Validate();
+            if (SingleSideKeyCount < 1) SingleSideKeyCount = 1;
+            if (SingleSideKeyCount > 16) SingleSideKeyCount = 16;
         }
     }
 }

@@ -37,6 +37,9 @@ public class MainWindow : FluentWindow
     public FileDispatcher? FileDispatcher => _fileDispatcher;
     public TabControl TabControl => MainTabControl;
 
+    // 工具调度器
+    public ToolScheduler ToolScheduler { get; } = new ToolScheduler();
+
 
 
     // 跟踪选项卡拖动/分离
@@ -46,7 +49,7 @@ public class MainWindow : FluentWindow
     private N2NCViewModel? _converterVM;
     private DPToolViewModel? _dpVM;
     private DateTime _lastPreviewRefresh = DateTime.MinValue;
-    private string? _internalOsuPath;
+    private string _internalOsuPath;
 
 
     private byte _currentAlpha = 102;
@@ -175,6 +178,17 @@ public class MainWindow : FluentWindow
 
         AllowDrop = true;
         Drop += (_, e) => GlobalDropArea_Drop(e);
+
+        // 初始化工具调度器
+        InitializeToolScheduler();
+    }
+
+    // 注册工具到调度器
+    private void InitializeToolScheduler()
+    {
+        ToolScheduler.RegisterTool(new N2NCTool());
+        ToolScheduler.RegisterTool(new LNTransformerTool());
+        ToolScheduler.RegisterTool(new DPTool());
     }
 
 
@@ -194,18 +208,21 @@ public class MainWindow : FluentWindow
             // Create localized header label
             var headerText = cfg.ToolKey switch
             {
-                "Converter" => Strings.TabConverter,
-                "LNTransformer" => Strings.TabLNTransformer,
-                "DPTool" => Strings.TabDPTool,
+                OptionsManager.ConverterToolName => Strings.TabConverter,
+                OptionsManager.LNToolName => Strings.TabLNTransformer,
+                OptionsManager.DPToolName => Strings.TabDPTool,
+                OptionsManager.LVToolName => Strings.TabLV,
+                OptionsManager.GetFilesToolName => Strings.TabGetFiles,
                 _ => cfg.ToolKey
             };
             var headerLabel = SharedUIComponents.CreateHeaderLabel(headerText);
+            headerLabel.FontSize = 14; // 减小字体大小
             var tab = new TabItem
             {
                 Header = headerLabel,
                 Tag = cfg.ToolKey,
-                MinWidth = 50,
-                HorizontalAlignment = HorizontalAlignment.Stretch
+                // 移除MinWidth，让宽度适应文字
+                HorizontalAlignment = HorizontalAlignment.Left
             };
             var grid = new Grid();
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(360) });
@@ -243,12 +260,13 @@ public class MainWindow : FluentWindow
         {
             var headerText = cfg.ToolKey == Strings.TabLV ? Strings.TabLV : Strings.TabGetFiles;
             var headerLabel = SharedUIComponents.CreateHeaderLabel(headerText);
+            headerLabel.FontSize = 14; // 减小字体大小
             var tab = new TabItem
             {
                 Header = headerLabel,
                 Tag = cfg.ToolKey,
-                MinWidth = 50,
-                HorizontalAlignment = HorizontalAlignment.Stretch
+                // 移除MinWidth，让宽度适应文字
+                HorizontalAlignment = HorizontalAlignment.Left
             };
             var settingsHost = new ContentControl();
             _settingsHosts[cfg.ToolKey] = settingsHost;
@@ -593,15 +611,18 @@ public class MainWindow : FluentWindow
         // Prevent crash if tab is no longer in the control
         if (!MainTabControl.Items.Contains(tab)) return;
 
+        var toolKey = tab.Tag as string ?? "";
         var header = tab.Header?.ToString() ?? "Detached";
-        var isPreviewTool = header == "Converter" || header == "LN Transformer" || header == "DP tool";
+        var isPreviewTool = toolKey == OptionsManager.ConverterToolName || 
+                           toolKey == OptionsManager.LNToolName || 
+                           toolKey == OptionsManager.DPToolName;
 
-        Func<ContentControl>? createFreshWindow = header switch
+        Func<ContentControl>? createFreshWindow = toolKey switch
         {
-            "Converter" => () => new N2NCControl(),
-            "LN Transformer" => () => new LNTransformerControl(),
-            "DP tool" => () => new DPToolControl(),
-            "LV Calculator" => () => new KRRLVControl(),
+            OptionsManager.ConverterToolName => () => new N2NCControl(),
+            OptionsManager.LNToolName => () => new LNTransformerControl(),
+            OptionsManager.DPToolName => () => new DPToolControl(),
+            OptionsManager.LVToolName => () => new KRRLVControl(),
             "osu! file manager" => () => new GetFilesControl(),
             _ => null
         };
@@ -614,11 +635,11 @@ public class MainWindow : FluentWindow
         {
             // Try to reuse the existing settings host content from the main window so the detached preview
             // uses the same settings instance (DataContext) instead of creating a fresh copy.
-            host = header switch
+            host = toolKey switch
             {
-                "Converter" => _settingsHosts.GetValueOrDefault("Converter"),
-                "LN Transformer" => _settingsHosts.GetValueOrDefault("LNTransformer"),
-                "DP tool" => _settingsHosts.GetValueOrDefault("DPTool"),
+                OptionsManager.ConverterToolName => _settingsHosts.GetValueOrDefault(OptionsManager.ConverterToolName),
+                OptionsManager.LNToolName => _settingsHosts.GetValueOrDefault(OptionsManager.LNToolName),
+                OptionsManager.DPToolName => _settingsHosts.GetValueOrDefault(OptionsManager.DPToolName),
                 _ => null
             };
 
@@ -651,10 +672,11 @@ public class MainWindow : FluentWindow
                 settingsResources = fresh.Resources;
             }
 
-            IPreviewProcessor proc = header switch
+            IPreviewProcessor proc = toolKey switch
             {
-                "Converter" => new ConverterPreviewProcessor(),
-                "LN Transformer" => new LNPreviewProcessor(),
+                OptionsManager.ConverterToolName => new ConverterPreviewProcessor(),
+                OptionsManager.LNToolName => new LNPreviewProcessor(),
+                OptionsManager.DPToolName => new DPPreviewProcessor(),
                 _ => new DPPreviewProcessor()
             };
 
@@ -781,7 +803,7 @@ public class MainWindow : FluentWindow
         win.Show();
     }
 
-    private string? ResolveInternalSample()
+    private string ResolveInternalSample()
     {
         try
         {

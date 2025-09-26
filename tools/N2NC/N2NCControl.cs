@@ -99,9 +99,6 @@ namespace krrTools.tools.N2NC
         private FrameworkElement CreateTargetKeysPanel(Thickness rowMargin)
         {
             // Target keys
-            var label = Strings.Localize(Strings.N2NCTargetKeysLabel);
-            void UpdateTargetKeysLabel() => label = Strings.Localize(Strings.N2NCTargetKeysLabel);
-            
             var targetKeysSlider = SharedUIComponents.CreateStandardSlider(1, 15, double.NaN, true);
             targetKeysSlider.SetBinding(RangeBase.ValueProperty, new Binding("TargetKeys") { Source = _viewModel });
             TargetKeysSlider = targetKeysSlider;
@@ -117,9 +114,7 @@ namespace krrTools.tools.N2NC
             sliderPanel.Children.Add(targetKeysSlider);
             sliderPanel.Children.Add(targetKeysText);
             
-            var targetKeysRow = SharedUIComponents.CreateLabeledRow(label, sliderPanel, rowMargin);
-            SharedUIComponents.LanguageChanged += UpdateTargetKeysLabel;
-            Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= UpdateTargetKeysLabel;
+            var targetKeysRow = SharedUIComponents.CreateLabeledRow(Strings.N2NCTargetKeysLabel, sliderPanel, rowMargin);
 
             return targetKeysRow;
         }
@@ -138,8 +133,7 @@ namespace krrTools.tools.N2NC
             maxValue.SetBinding(TextBlock.TextProperty, new Binding(nameof(N2NCViewModel.MaxKeys)) { StringFormat = "{0:0}" });
             Grid.SetColumn(maxValue, 1);
             maxInner.Children.Add(maxValue);
-            var label = Strings.N2NCMaxKeysLabel.Localize();
-            return SharedUIComponents.CreateLabeledRow(label, maxInner, rowMargin);
+            return SharedUIComponents.CreateLabeledRow(Strings.N2NCMaxKeysLabel, maxInner, rowMargin);
         }
 
         private FrameworkElement CreateMinKeysPanel(Thickness rowMargin)
@@ -155,8 +149,7 @@ namespace krrTools.tools.N2NC
             minValue.SetBinding(TextBlock.TextProperty, new Binding(nameof(N2NCViewModel.MinKeys)) { StringFormat = "{0:0}" });
             Grid.SetColumn(minValue, 1);
             minInner.Children.Add(minValue);
-            var label = Strings.N2NCMinKeysLabel.Localize();
-            return SharedUIComponents.CreateLabeledRow(label, minInner, rowMargin);
+            return SharedUIComponents.CreateLabeledRow(Strings.N2NCMinKeysLabel, minInner, rowMargin);
         }
 
         private FrameworkElement CreateTransformSpeedPanel(Thickness rowMargin)
@@ -173,8 +166,7 @@ namespace krrTools.tools.N2NC
             transformDisplay.SetBinding(TextBlock.TextProperty, new Binding(nameof(N2NCViewModel.TransformSpeedDisplay)));
             Grid.SetColumn(transformDisplay, 1);
             transformInner.Children.Add(transformDisplay);
-            var label = Strings.N2NCTransformSpeedLabel.Localize();
-            return SharedUIComponents.CreateLabeledRow(label, transformInner, rowMargin);
+            return SharedUIComponents.CreateLabeledRow(Strings.N2NCTransformSpeedLabel, transformInner, rowMargin);
         }
 
         private FrameworkElement CreateSeedPanel(Thickness rowMargin)

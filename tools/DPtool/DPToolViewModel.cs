@@ -19,12 +19,16 @@ namespace krrTools.tools.DPtool
             {
                 // best-effort load; ignore errors
             }
+
         }
+
+        private bool _isProcessing;
+        private DPToolOptions _options = new DPToolOptions();
 
         public bool IsProcessing
         {
-            get;
-            set => SetProperty(ref field, value);
+            get => _isProcessing;
+            set => SetProperty(ref _isProcessing, value);
         }
 
         /// <summary>
@@ -32,8 +36,8 @@ namespace krrTools.tools.DPtool
         /// </summary>
         public DPToolOptions Options
         {
-            get;
-            set => SetProperty(ref field, value);
-        } = new DPToolOptions();
+            get => _options;
+            set => SetProperty(ref _options, value);
+        }
     }
 }

@@ -9,6 +9,7 @@ using System.Windows.Data;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using krrTools.tools.Shared;
 using krrTools.Tools.Shared;
 
 #pragma warning disable CS8618 // Non-nullable fields are initialized in BuildUI

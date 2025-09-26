@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using krrTools.tools.Shared;
 using krrTools.Tools.Shared;
 
 namespace krrTools.tools.Listener

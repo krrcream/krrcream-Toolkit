@@ -4,7 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Navigation;
-using krrTools.Tools.Shared; // 添加共享UI组件库的引用
+using krrTools.tools.Shared;
 
 namespace krrTools.tools.LNTransformer
 {

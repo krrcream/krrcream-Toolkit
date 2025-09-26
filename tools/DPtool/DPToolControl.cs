@@ -132,8 +132,7 @@ namespace krrTools.tools.DPtool
 
             // Placeholder keys panel
             var keysPanel = new StackPanel { Margin = new Thickness(0, 0, 0, 15) };
-            var keysExpl = SharedUIComponents.CreateStandardTextBlock();
-            keysExpl.Text = Strings.Localize(Strings.DPKeysTooltip);
+            var keysExpl = SharedUIComponents.CreateHeaderLabel(Strings.DPKeysTooltip);
             keysPanel.Children.Add(keysExpl);
 
             // Left/Right panels

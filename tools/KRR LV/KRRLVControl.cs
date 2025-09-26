@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using krrTools.tools.Shared;
 using krrTools.Tools.Shared;
 
 namespace krrTools.tools.KRR_LV

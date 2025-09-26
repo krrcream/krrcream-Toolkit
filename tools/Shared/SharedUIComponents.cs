@@ -8,11 +8,10 @@ using System.IO;
 using System.Text.Json;
 using System.Diagnostics;
 using System.Windows.Controls;
-using krrTools.tools.Shared;
 using Button = Wpf.Ui.Controls.Button;
 using TextBox = Wpf.Ui.Controls.TextBox;
 
-namespace krrTools.Tools.Shared
+namespace krrTools.tools.Shared
 {
     /// <summary>
     /// 统一的UI控件库，为所有工具提供一致的界面组件和样式
@@ -145,6 +144,22 @@ namespace krrTools.Tools.Shared
                 _panelBackgroundBrush = _panelBackgroundBrush.Clone();
             var c = _panelBackgroundBrush.Color;
             _panelBackgroundBrush.Color = Color.FromArgb(alpha, c.R, c.G, c.B);
+        }
+
+        // Preview background settings
+        private static double _previewBackgroundOpacity = 0.6;
+        private static double _previewBackgroundBlurRadius = 10.0;
+
+        public static double PreviewBackgroundOpacity
+        {
+            get => _previewBackgroundOpacity;
+            set => _previewBackgroundOpacity = Math.Clamp(value, 0.0, 1.0);
+        }
+
+        public static double PreviewBackgroundBlurRadius
+        {
+            get => _previewBackgroundBlurRadius;
+            set => _previewBackgroundBlurRadius = Math.Max(0.0, value);
         }
          // Softer border for the frosted look
          public static readonly Brush PanelBorderBrush = new SolidColorBrush(Color.FromArgb(0x33, 0x00, 0x00, 0x00)); // subtle dark border ~20%
@@ -347,7 +362,7 @@ namespace krrTools.Tools.Shared
              };
 
              // Attach auto-shrink behavior so long text reduces font to fit available width
-             AttachAutoShrinkBehavior(btn, tb);
+             var adjustFont = AttachAutoShrinkBehavior(btn, tb);
 
              // Set tooltip
              SetLocalizedToolTip(btn, tooltip);
@@ -359,6 +374,7 @@ namespace krrTools.Tools.Shared
                  {
                      var parts = content.Split('|', 2);
                      tb.Text = IsChineseLanguage() && parts.Length > 1 ? parts[1] : parts[0];
+                     adjustFont(); // Adjust font after text change
                  }
                  LanguageChanged += UpdateText;
                  btn.Unloaded += (_, _) => LanguageChanged -= UpdateText;
@@ -367,7 +383,7 @@ namespace krrTools.Tools.Shared
              return btn;
          }
 
-         private static void AttachAutoShrinkBehavior(Button btn, TextBlock tb)
+         private static Action AttachAutoShrinkBehavior(Button btn, TextBlock tb)
          {
              // btn and tb are non-nullable parameters
               double minFont = 8.0;
@@ -398,9 +414,8 @@ namespace krrTools.Tools.Shared
              btn.Loaded += (_, _) => Adjust();
 
              // Also respond to language changes (text may change) so we re-measure and shrink if needed
-             LanguageChanged += Adjust;
-             btn.Unloaded += (_, _) => LanguageChanged -= Adjust;
-          }
+             return Adjust;
+         }
 
           public static CheckBox CreateStandardCheckBox(string content, string? tooltip = null)
           {

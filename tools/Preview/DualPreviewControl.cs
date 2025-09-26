@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -7,24 +7,30 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Collections.Generic;
 using System.Text;
+using System.Windows.Media.Effects;
+using System.Windows.Media.Imaging;
+using krrTools.tools.Shared;
+using static krrTools.tools.Shared.SharedUIComponents;
 
 namespace krrTools.tools.Preview;
 
-public partial class DualPreviewControl : UserControl
+public class DualPreviewControl : UserControl
 {
     // Named controls that were previously defined in XAML
     // initialize with null-forgiving to avoid nullable warnings (they are assigned in ctor)
     private TextBlock PreviewTitle;
-    private TextBlock OriginalHint = null!;
-    private TextBlock ConvertedHint = null!;
-    private ContentControl OriginalContent = null!;
-    private ContentControl ConvertedContent = null!;
-    private Border DropZone = null!;
-    private TextBlock DropHintCn = null!;
-    private TextBlock DropHintEn = null!;
-    private Button StartConversionButton = null!;
-    private Border OriginalBorder = null!;
-    private Border ConvertedBorder = null!;
+    private TextBlock OriginalHint;
+    private TextBlock ConvertedHint;
+    private ContentControl OriginalContent;
+    private ContentControl ConvertedContent;
+    private Border DropZone;
+    private TextBlock DropHintCn;
+    private TextBlock DropHintEn;
+    private Button StartConversionButton;
+    private Border OriginalBorder;
+    private Border ConvertedBorder;
+    private Image? _originalBgImage;
+    private Image? _convertedBgImage;
 
     // Event used to broadcast loaded paths to other preview controls so they stay in sync.
     public static event EventHandler<string[]?>? SharedPathsChanged;
@@ -32,12 +38,9 @@ public partial class DualPreviewControl : UserControl
     private static string[]? _sharedStagedPaths;
     public static event EventHandler<string[]?>? StagedPathsChanged;
 
-    // Track live instances so we can apply global operations (e.g., enable/disable dropzones)
     private static readonly List<DualPreviewControl> _instances = new List<DualPreviewControl>();
 
-    // staged paths for user-confirmed conversion
     private string[]? _stagedPaths;
-    // Event raised when user clicks the Start Conversion button in the drop zone
     public event EventHandler<string[]?>? StartConversionRequested;
 
     private bool _autoLoadedSample;
@@ -98,14 +101,27 @@ public partial class DualPreviewControl : UserControl
             // Update title and attempt to rebuild visuals. Keep a focused try/catch only around the build
             UpdatePreviewTitleFromPaths(_lastPaths);
 
+            // Set background image
+            string? bgPath = PreviewTransformation.GetBackgroundImagePath(_lastPaths[0]);
+            BitmapImage? bgBitmap = null;
+            if (bgPath != null && File.Exists(bgPath))
+            {
+                bgBitmap = new BitmapImage();
+                bgBitmap.BeginInit();
+                bgBitmap.UriSource = new Uri(bgPath);
+                bgBitmap.EndInit();
+            }
+            if (_originalBgImage != null) _originalBgImage.Source = bgBitmap;
+            if (_convertedBgImage != null) _convertedBgImage.Source = bgBitmap;
+
             ApplyColumnOverrideToProcessor();
             try
             {
                 var originalVisual = Processor.BuildOriginalVisual(_lastPaths);
                 var convertedVisual = Processor.BuildConvertedVisual(_lastPaths);
 
-                if (originalVisual is FrameworkElement ofe) EnsureStretch(ofe);
-                if (convertedVisual is FrameworkElement cfe) EnsureStretch(cfe);
+                if (originalVisual is { } ofe) EnsureStretch(ofe);
+                if (convertedVisual is { } cfe) EnsureStretch(cfe);
 
                 OriginalContent.Content = originalVisual;
                 ConvertedContent.Content = convertedVisual;
@@ -160,7 +176,6 @@ public partial class DualPreviewControl : UserControl
         OriginalBorder = new Border
         {
             AllowDrop = true,
-            Background = new SolidColorBrush(Color.FromRgb(0xFA, 0xFA, 0xFB)),
             BorderBrush = new SolidColorBrush(Color.FromRgb(0xE2, 0xE5, 0xEA)),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),
@@ -175,11 +190,17 @@ public partial class DualPreviewControl : UserControl
         var obGrid = new Grid();
         obGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         obGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        obGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         OriginalHint = new TextBlock { FontWeight = FontWeights.SemiBold, Foreground = new SolidColorBrush(Color.FromRgb(0x33,0x33,0x33)), Margin = new Thickness(2,0,2,4), Text = "原始预览 (Original)" };
         Grid.SetRow(OriginalHint, 0);
         obGrid.Children.Add(OriginalHint);
+        _originalBgImage = new Image { Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch, Opacity = PreviewBackgroundOpacity,
+            Effect = new BlurEffect { Radius = PreviewBackgroundBlurRadius }
+        };
+        Grid.SetRow(_originalBgImage, 1);
+        obGrid.Children.Add(_originalBgImage);
         OriginalContent = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch, Visibility = Visibility.Collapsed };
-        Grid.SetRow(OriginalContent, 1);
+        Grid.SetRow(OriginalContent, 2);
         obGrid.Children.Add(OriginalContent);
         OriginalBorder.Child = obGrid;
         Grid.SetRow(OriginalBorder, 1);
@@ -195,7 +216,6 @@ public partial class DualPreviewControl : UserControl
         ConvertedBorder = new Border
         {
             AllowDrop = true,
-            Background = new SolidColorBrush(Color.FromRgb(0xFA,0xFA,0xFB)),
             BorderBrush = new SolidColorBrush(Color.FromRgb(0xE2,0xE5,0xEA)),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),
@@ -210,11 +230,17 @@ public partial class DualPreviewControl : UserControl
         var cbGrid = new Grid();
         cbGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         cbGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        cbGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         ConvertedHint = new TextBlock { FontWeight = FontWeights.SemiBold, Foreground = new SolidColorBrush(Color.FromRgb(0x33,0x33,0x33)), Margin = new Thickness(2,0,2,4), Text = "结果预览 (Converted)" };
         Grid.SetRow(ConvertedHint, 0);
         cbGrid.Children.Add(ConvertedHint);
+        _convertedBgImage = new Image { Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch, Opacity = PreviewBackgroundOpacity,
+            Effect = new BlurEffect { Radius = PreviewBackgroundBlurRadius }
+        };
+        Grid.SetRow(_convertedBgImage, 1);
+        cbGrid.Children.Add(_convertedBgImage);
         ConvertedContent = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch, Visibility = Visibility.Collapsed };
-        Grid.SetRow(ConvertedContent, 1);
+        Grid.SetRow(ConvertedContent, 2);
         cbGrid.Children.Add(ConvertedContent);
         ConvertedBorder.Child = cbGrid;
         Grid.SetRow(ConvertedBorder, 3);
@@ -264,7 +290,7 @@ public partial class DualPreviewControl : UserControl
         StagedPathsChanged += OnSharedStagedPathsChanged;
 
         // Subscribe to language changes to update localized UI elements
-        Tools.Shared.SharedUIComponents.LanguageChanged += OnLanguageChanged;
+        LanguageChanged += OnLanguageChanged;
 
         // Register instance in a thread-safe manner
         lock (_instances)
@@ -284,7 +310,7 @@ public partial class DualPreviewControl : UserControl
         // Unsubscribe static events to avoid leaks
         SharedPathsChanged -= OnSharedPathsChanged;
         StagedPathsChanged -= OnSharedStagedPathsChanged;
-        Tools.Shared.SharedUIComponents.LanguageChanged -= OnLanguageChanged;
+        LanguageChanged -= OnLanguageChanged;
     }
 
     private void OnLanguageChanged()
@@ -303,7 +329,7 @@ public partial class DualPreviewControl : UserControl
         // Preview title base
         if (_lastPaths == null || _lastPaths.Length == 0)
         {
-            PreviewTitle.Text = Tools.Shared.SharedUIComponents.IsChineseLanguage() ? "\u9884\u89c8" : "Preview";
+            PreviewTitle.Text = IsChineseLanguage() ? "\u9884\u89c8" : "Preview";
         }
         else
         {
@@ -313,13 +339,13 @@ public partial class DualPreviewControl : UserControl
         // Hints for original/converted
         if (Processor is BasePreviewProcessor bp)
         {
-            OriginalHint.Text = (Tools.Shared.SharedUIComponents.IsChineseLanguage() ? "原始预览" : "Original") + (bp.LastOriginalStartMs.HasValue ? " - start " + bp.LastOriginalStartMs.Value.ToString() + " ms" : string.Empty);
-            ConvertedHint.Text = (Tools.Shared.SharedUIComponents.IsChineseLanguage() ? "结果预览" : "Converted") + (bp.LastConvertedStartMs.HasValue ? " - start " + bp.LastConvertedStartMs.Value.ToString() + " ms" : string.Empty);
+            OriginalHint.Text = (IsChineseLanguage() ? "原始预览" : "Original") + (bp.LastOriginalStartMs.HasValue ? " - start " + bp.LastOriginalStartMs.Value.ToString() + " ms" : string.Empty);
+            ConvertedHint.Text = (IsChineseLanguage() ? "结果预览" : "Converted") + (bp.LastConvertedStartMs.HasValue ? " - start " + bp.LastConvertedStartMs.Value.ToString() + " ms" : string.Empty);
         }
         else
         {
-            OriginalHint.Text = Tools.Shared.SharedUIComponents.IsChineseLanguage() ? "原始预览" : "Original";
-            ConvertedHint.Text = Tools.Shared.SharedUIComponents.IsChineseLanguage() ? "结果预览" : "Converted";
+            OriginalHint.Text = IsChineseLanguage() ? "原始预览" : "Original";
+            ConvertedHint.Text = IsChineseLanguage() ? "结果预览" : "Converted";
         }
 
         // Drop hints and Start button
@@ -327,13 +353,13 @@ public partial class DualPreviewControl : UserControl
         {
             DropHintEn.Text = "Drag & Drop .osu files in here";
             DropHintCn.Text = "将 .osu 文件拖到此区域";
-            StartConversionButton.Content = Tools.Shared.SharedUIComponents.IsChineseLanguage() ? "开始转换" : "Start";
+            StartConversionButton.Content = IsChineseLanguage() ? "开始转换" : "Start";
         }
         else
         {
             DropHintEn.Text = $"{_stagedPaths.Length} file(s) staged. Click Start to convert.";
             DropHintCn.Text = $"已暂存 {_stagedPaths.Length} 个文件，点击开始转换。";
-            StartConversionButton.Content = Tools.Shared.SharedUIComponents.IsChineseLanguage() ? "开始转换" : "Start";
+            StartConversionButton.Content = IsChineseLanguage() ? "开始转换" : "Start";
         }
     }
 
@@ -387,8 +413,8 @@ public partial class DualPreviewControl : UserControl
             DropHintEn.Text = "Drag & Drop .osu files in here";
             DropHintCn.Text = "将 .osu 文件拖到此区域";
 
-            DropZone?.InvalidateMeasure();
-            DropZone?.UpdateLayout();
+            DropZone.InvalidateMeasure();
+            DropZone.UpdateLayout();
             InvalidateMeasure();
             UpdateLayout();
             return;
@@ -407,8 +433,8 @@ public partial class DualPreviewControl : UserControl
         DropHintEn.Text = $"{_stagedPaths.Length} file(s) staged. Click Start to convert.";
         DropHintCn.Text = $"已暂存 {_stagedPaths.Length} 个文件，点击开始转换。";
 
-        DropZone?.InvalidateMeasure();
-        DropZone?.UpdateLayout();
+        DropZone.InvalidateMeasure();
+        DropZone.UpdateLayout();
         InvalidateMeasure();
         UpdateLayout();
     }
@@ -474,9 +500,9 @@ public partial class DualPreviewControl : UserControl
         set => SetValue(ProcessorProperty, value);
     }
 
-    public void LoadFiles(string[] paths, bool suppressBroadcast = false)
+    public void LoadFiles(string[]? paths, bool suppressBroadcast = false)
     {
-        if (paths.Length == 0) return;
+        if (paths == null || paths.Length == 0) return;
         var osu = paths.Where(p => File.Exists(p) && Path.GetExtension(p).Equals(".osu", StringComparison.OrdinalIgnoreCase)).ToArray();
         if (osu.Length == 0) return;
         _lastPaths = osu; // 存储以便刷新使用
@@ -605,7 +631,7 @@ public partial class DualPreviewControl : UserControl
     }
 
     // Public helper so host windows can stage files programmatically (and notify other previews)
-    public void StageFiles(string[] osuFiles)
+    public void StageFiles(string[]? osuFiles)
     {
         if (osuFiles == null || osuFiles.Length == 0) return;
         BroadcastStagedPaths(osuFiles.ToArray());
@@ -613,7 +639,7 @@ public partial class DualPreviewControl : UserControl
     }
 
     // Force-apply staged UI locally (sets internal state and updates visuals) — safe to call from host.
-    public void ApplyStagedUI(string[] osuFiles)
+    public void ApplyStagedUI(string[]? osuFiles)
     {
         if (osuFiles == null || osuFiles.Length == 0) return;
         _stagedPaths = osuFiles.ToArray();
@@ -627,8 +653,8 @@ public partial class DualPreviewControl : UserControl
         DropHintEn.Text = $"{_stagedPaths.Length} file(s) staged. Click Start to convert.";
         DropHintCn.Text = $"已暂存 {_stagedPaths.Length} 个文件，点击开始转换。";
 
-        DropZone?.InvalidateMeasure();
-        DropZone?.UpdateLayout();
+        DropZone.InvalidateMeasure();
+        DropZone.UpdateLayout();
         InvalidateMeasure();
         UpdateLayout();
     }
@@ -654,7 +680,7 @@ public partial class DualPreviewControl : UserControl
     }
 
     // Ensure drag-over signals we accept file drops (helps when other visuals overlay the drop zone)
-    private void UserControl_PreviewDragOver(object sender, DragEventArgs e)
+    private void UserControl_PreviewDragOver(DragEventArgs e)
     {
         if (e.Data.GetDataPresent(DataFormats.FileDrop))
         {
@@ -770,10 +796,7 @@ public partial class DualPreviewControl : UserControl
     // Public helper to enable/disable the drop zone accepting drops (host windows may call this)
     public void SetDropEnabled(bool enabled)
     {
-        if (DropZone != null)
-        {
-            DropZone.IsHitTestVisible = enabled;
-            DropZone.Opacity = enabled ? 1.0 : 0.65;
-        }
+        DropZone.IsHitTestVisible = enabled;
+        DropZone.Opacity = enabled ? 1.0 : 0.65;
     }
 }

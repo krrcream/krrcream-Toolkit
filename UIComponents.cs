@@ -169,7 +169,7 @@ public static class UIComponents
                 else
                 {
                     // 拖拽窗口
-                    if (window.WindowState == WindowState.Normal && window.IsVisible)
+                    if (window is { WindowState: WindowState.Normal, IsVisible: true })
                         window.DragMove();
                 }
             }
@@ -180,7 +180,7 @@ public static class UIComponents
         {
             if (e.ChangedButton == MouseButton.Left && e.ClickCount == 1)
             {
-                if (window.WindowState == WindowState.Normal && window.IsVisible)
+                if (window is { WindowState: WindowState.Normal, IsVisible: true })
                     window.DragMove();
             }
         };
@@ -190,7 +190,7 @@ public static class UIComponents
         {
             if (e.ChangedButton == MouseButton.Left && e.ClickCount == 1)
             {
-                if (window.WindowState == WindowState.Normal && window.IsVisible)
+                if (window is { WindowState: WindowState.Normal, IsVisible: true })
                     window.DragMove();
             }
         };

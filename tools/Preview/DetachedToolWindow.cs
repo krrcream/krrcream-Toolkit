@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using krrTools.tools.DPtool;
 using krrTools.tools.N2NC;
+using krrTools.tools.Shared;
 using krrTools.Tools.Shared;
 
 namespace krrTools.tools.Preview

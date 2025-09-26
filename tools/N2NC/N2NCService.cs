@@ -2,6 +2,7 @@
 using System.Windows;
 using krrTools.tools.Listener;
 using krrTools.Tools.OsuParser;
+using krrTools.tools.Shared;
 using krrTools.Tools.Shared;
 
 namespace krrTools.tools.N2NC

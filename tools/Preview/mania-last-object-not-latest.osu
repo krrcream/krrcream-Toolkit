@@ -5,6 +5,10 @@ SampleSet: Normal
 StackLeniency: 0.7
 Mode: 3
 
+[Events]
+//Background and Video events
+0,0,"bg.jpg",0,0
+
 [Difficulty]
 HPDrainRate:3
 CircleSize:5

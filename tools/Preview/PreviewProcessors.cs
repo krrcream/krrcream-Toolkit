@@ -7,6 +7,8 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using krrTools.tools.DPtool;
 using krrTools.tools.N2NC;
+using krrTools.tools.Shared;
+using krrTools.Tools.Shared;
 
 namespace krrTools.tools.Preview
 {
@@ -76,7 +78,66 @@ namespace krrTools.tools.Preview
                 data = PreviewTransformation.BuildOriginalWindow(path, startMs, endMs);
             }
 
-            return BuildFromRealNotes(data);
+            var previewElement = BuildFromRealNotes(data);
+            
+            // 检查是否有背景图
+            var bgImagePath = PreviewTransformation.GetBackgroundImagePath(path);
+            if (!string.IsNullOrEmpty(bgImagePath) && File.Exists(bgImagePath))
+            {
+                System.Diagnostics.Debug.WriteLine($"Applying background image: {bgImagePath}");
+                
+                // 创建背景图片画笔
+                var bgImageBrush = new ImageBrush
+                {
+                    ImageSource = new System.Windows.Media.Imaging.BitmapImage(new Uri(bgImagePath)),
+                    Stretch = Stretch.UniformToFill,
+                    Opacity = SharedUIComponents.PreviewBackgroundOpacity
+                };
+                
+                // 应用模糊效果
+                var blurEffect = new System.Windows.Media.Effects.BlurEffect
+                {
+                    Radius = SharedUIComponents.PreviewBackgroundBlurRadius,
+                    KernelType = System.Windows.Media.Effects.KernelType.Gaussian
+                };
+                
+                // 创建一个包含背景和内容的Border
+                var bgBorder = new Border
+                {
+                    Background = bgImageBrush,
+                    Effect = blurEffect,
+                    Child = previewElement,
+                    CornerRadius = new CornerRadius(4)
+                };
+                
+                System.Diagnostics.Debug.WriteLine("Background image applied successfully");
+                return bgBorder;
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"No background image found for {path}");
+                // 创建一个显示背景图状态的Border
+                var statusBorder = new Border
+                {
+                    Background = SharedUIComponents.PanelBackgroundBrush,
+                    Child = new TextBlock 
+                    { 
+                        Text = $"预览内容\n(无背景图)\n路径: {Path.GetFileName(path)}", 
+                        Foreground = SharedUIComponents.UiTextBrush,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        TextWrapping = TextWrapping.Wrap
+                    },
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(10)
+                };
+                
+                var grid = new Grid();
+                grid.Children.Add(statusBorder);
+                grid.Children.Add(previewElement);
+                
+                return grid;
+            }
         }
 
         // 从实际音符构建显示

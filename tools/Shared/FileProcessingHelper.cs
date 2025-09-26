@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.IO.Compression;
 using System.Linq;
 using System.Windows.Forms;
+using krrTools.tools.Shared;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;

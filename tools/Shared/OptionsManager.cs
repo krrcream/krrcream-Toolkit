@@ -15,6 +15,8 @@ namespace krrTools.tools.Shared
         // common filenames and folder names
         public const string PresetsFolderName = "presets";
         public const string OptionsFileName = "options.json";
+        public const string PipelinesFolderName = "pipelines";
+        public const string PipelineOptionsFileName = "pipeline-options.json";
 
         // tool identifiers
         public const string DPToolName = "DPTool";
@@ -115,6 +117,52 @@ namespace krrTools.tools.Shared
         {
             foreach (var c in Path.GetInvalidFileNameChars()) name = name.Replace(c, '_');
             return name;
+        }
+
+        // Pipeline preset helpers
+        public static void SavePipelinePreset(string presetName, PipelineOptions pipelineOptions)
+        {
+            string folder = GetToolFolder(PipelinesFolderName);
+            Directory.CreateDirectory(folder);
+            string safe = MakeSafeFilename(presetName) + ".json";
+            string path = Path.Combine(folder, safe);
+            var opts = new JsonSerializerOptions { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
+            string json = JsonSerializer.Serialize(pipelineOptions, opts);
+            File.WriteAllText(path, json);
+        }
+
+        public static IEnumerable<(string Name, PipelineOptions? Options)> LoadPipelinePresets()
+        {
+            string folder = GetToolFolder(PipelinesFolderName);
+            if (!Directory.Exists(folder)) yield break;
+            foreach (var file in Directory.GetFiles(folder, "*.json"))
+            {
+                string name = Path.GetFileNameWithoutExtension(file);
+                if (string.IsNullOrWhiteSpace(name)) continue;
+                PipelineOptions? opt = default;
+                try
+                {
+                    string json = File.ReadAllText(file);
+                    var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    opt = JsonSerializer.Deserialize<PipelineOptions>(json, opts);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to load pipeline preset '{file}': {ex.Message}");
+                }
+                yield return (name, opt);
+            }
+        }
+
+        public static void DeletePipelinePreset(string presetName)
+        {
+            string folder = GetToolFolder(PipelinesFolderName);
+            string safe = MakeSafeFilename(presetName) + ".json";
+            string path = Path.Combine(folder, safe);
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
         }
     }
 }

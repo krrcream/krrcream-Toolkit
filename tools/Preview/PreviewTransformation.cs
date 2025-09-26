@@ -541,4 +541,45 @@ public static class PreviewTransformation
          var res = MatrixToNotes(mSlice, tSlice, columns, int.MaxValue);
          return (res.columns, res.notes, quarterMs);
      }
+
+     // 获取osu文件的背景图路径
+     public static string? GetBackgroundImagePath(string osuPath)
+     {
+         if (!File.Exists(osuPath)) return null;
+         
+         // 跳过内置测试文件，不加载背景图
+         var fileName = Path.GetFileName(osuPath);
+         if (fileName == "mania-last-object-not-latest.osu")
+         {
+             Debug.WriteLine($"Skipping background image for built-in test file: {osuPath}");
+             return null;
+         }
+         
+         try
+         {
+             var beatmap = BeatmapDecoder.Decode(osuPath);
+             var bgImage = beatmap.EventsSection.BackgroundImage;
+             if (!string.IsNullOrWhiteSpace(bgImage))
+             {
+                 // 背景图路径相对于osu文件所在目录
+                 var osuDir = Path.GetDirectoryName(osuPath);
+                 if (osuDir != null)
+                 {
+                     var fullPath = Path.Combine(osuDir, bgImage);
+                     Debug.WriteLine($"Found background image: {fullPath}");
+                     return fullPath;
+                 }
+             }
+             else
+             {
+                 Debug.WriteLine($"No background image found in {osuPath}");
+             }
+         }
+         catch (Exception ex)
+         {
+             Debug.WriteLine($"Failed to get background image from {osuPath}: {ex.Message}");
+         }
+         
+         return null;
+     }
 }
