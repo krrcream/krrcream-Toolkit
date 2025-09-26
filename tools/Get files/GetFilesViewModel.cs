@@ -1,33 +1,31 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Microsoft.Win32;
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.IO;
+using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Data;
-using OsuParsers.Beatmaps;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using OsuParsers.Decoders;
-using System.Windows.Forms;
 using Application = System.Windows.Application;
+using krrTools.Tools.Shared;
 
-namespace krrTools.Tools.GetFiles
+namespace krrTools.tools.Get_files
 {
     
     public class OsuFileInfo
     {
-        public string Title { get; set; }
-        public string Diff { get; set; }
-        public string Artist { get; set; }
-        public string Creator { get; set; }
+        public string? Title { get; set; }
+        public string? Diff { get; set; }
+        public string? Artist { get; set; }
+        public string? Creator { get; set; }
+        public string? FilePath { get; set; }
         public int Keys { get; set; }
         public double OD { get; set; }
         public double HP { get; set; }
         public int BeatmapID { get; set; }
         public int BeatmapSetID { get; set; }
-        public string FilePath { get; set; }
     }
     
     public partial class GetFilesViewModel : ObservableObject
@@ -36,6 +34,7 @@ namespace krrTools.Tools.GetFiles
         public GetFilesViewModel()
         {
             // 初始化过滤视图
+            _progressValue = 0;
             FilteredOsuFiles = CollectionViewSource.GetDefaultView(OsuFiles);
             FilteredOsuFiles.Filter = FilterPredicate;
         }
@@ -78,10 +77,10 @@ namespace krrTools.Tools.GetFiles
         private string _filePathFilter = "";
         
         [ObservableProperty]
-        private bool _isProcessing = false;
+        private bool _isProcessing;
 
         [ObservableProperty]
-        private int _progressValue = 0;
+        private int _progressValue;
 
         [ObservableProperty]
         private int _progressMaximum = 100;
@@ -93,16 +92,11 @@ namespace krrTools.Tools.GetFiles
         
         
         [RelayCommand]
-        
         private async Task SetSongsFolderAsync()
         {
-            var folderDialog = new FolderBrowserDialog();
-            folderDialog.Description = "Please select the osu! Songs folder";
-            folderDialog.RootFolder = Environment.SpecialFolder.MyComputer;
-
-            if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            var selectedPath = FileProcessingHelper.ShowFolderBrowserDialog("Please select the osu! Songs folder");
+            if (!string.IsNullOrEmpty(selectedPath))
             {
-                string selectedPath = folderDialog.SelectedPath;
                 await ProcessAsync(selectedPath);
             }
         }
@@ -115,14 +109,13 @@ namespace krrTools.Tools.GetFiles
 
             try
             {
-                // 在后台线程获取文件列表
-                string[] files = await Task.Run(() => 
-                    Directory.GetFiles(doPath, "*.osu", SearchOption.AllDirectories));
+                // 在后台线程获取文件列表（包括.osz包内osu）
+                var files = await Task.Run(() => FileProcessingHelper.EnumerateOsuFiles([doPath]).ToArray());
 
                 ProgressMaximum = files.Length;
                 ProgressText = $"Found {files.Length} files, processing...";
 
-                // 清空现有数据
+                // Clear existing data
                 OsuFiles.Clear();
 
                 // 分批处理文件，避免UI冻结
@@ -154,13 +147,13 @@ namespace krrTools.Tools.GetFiles
                     if (batch.Count >= batchSize || i == files.Length - 1)
                     {
                         // 在UI线程上更新数据
-                        Application.Current.Dispatcher.Invoke(() =>
+                        Application.Current.Dispatcher.Invoke((Action)(() =>
                         {
                             foreach (var item in batch)
                             {
                                 OsuFiles.Add(item);
                             }
-                        });
+                        }));
                         
                         batch.Clear();
                         
@@ -183,7 +176,7 @@ namespace krrTools.Tools.GetFiles
             }
         }
 
-        private OsuFileInfo ParseOsuFile(string filePath)
+        private OsuFileInfo? ParseOsuFile(string filePath)
         {
             try
             {
@@ -224,8 +217,8 @@ namespace krrTools.Tools.GetFiles
             string artist = fileInfo.Artist?.ToLower() ?? "";
             string creator = fileInfo.Creator?.ToLower() ?? "";
             string keys = fileInfo.Keys.ToString();
-            string od = fileInfo.OD.ToString();
-            string hp = fileInfo.HP.ToString();
+            string od = fileInfo.OD.ToString(CultureInfo.InvariantCulture);
+            string hp = fileInfo.HP.ToString(CultureInfo.InvariantCulture);
             string beatmapId = fileInfo.BeatmapID.ToString();
             string beatmapSetId = fileInfo.BeatmapSetID.ToString();
             string filePath = fileInfo.FilePath?.ToLower() ?? "";
@@ -241,6 +234,42 @@ namespace krrTools.Tools.GetFiles
                    (string.IsNullOrEmpty(BeatmapIdFilter) || beatmapId.Contains(BeatmapIdFilter)) &&
                    (string.IsNullOrEmpty(BeatmapSetIdFilter) || beatmapSetId.Contains(BeatmapSetIdFilter)) &&
                    (string.IsNullOrEmpty(FilePathFilter) || filePath.Contains(FilePathFilter.ToLower()));
+        }
+
+        // 当任一筛选属性发生变化时，刷新过滤视图以更新UI。
+        // CommunityToolkit 的 [ObservableProperty] 会生成以下形式的局部方法：
+        // partial void On<PropertyName>Changed(<type> value)
+        // 在这里实现这些方法以在属性变更时触发过滤刷新。
+        partial void OnTitleFilterChanged(string value) { _ = value; RefreshFilter(); }
+        partial void OnDiffFilterChanged(string value) { _ = value; RefreshFilter(); }
+        partial void OnArtistFilterChanged(string value) { _ = value; RefreshFilter(); }
+        partial void OnCreatorFilterChanged(string value) { _ = value; RefreshFilter(); }
+        partial void OnKeysFilterChanged(string value) { _ = value; RefreshFilter(); }
+        partial void OnOdFilterChanged(string value) { _ = value; RefreshFilter(); }
+        partial void OnHpFilterChanged(string value) { _ = value; RefreshFilter(); }
+        partial void OnBeatmapIdFilterChanged(string value) { _ = value; RefreshFilter(); }
+        partial void OnBeatmapSetIdFilterChanged(string value) { _ = value; RefreshFilter(); }
+        partial void OnFilePathFilterChanged(string value) { _ = value; RefreshFilter(); }
+
+        // 在 UI 线程上安全地刷新 ICollectionView
+        private void RefreshFilter()
+        {
+            try
+            {
+                // FilteredOsuFiles 为非空成员（在构造函数中初始化），因此不再进行重复的 null 检查。
+                if (Application.Current?.Dispatcher?.CheckAccess() == true)
+                {
+                    FilteredOsuFiles.Refresh();
+                }
+                else
+                {
+                    Application.Current?.Dispatcher?.Invoke(() => FilteredOsuFiles.Refresh());
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("RefreshFilter error: " + ex.Message);
+            }
         }
     }
 }

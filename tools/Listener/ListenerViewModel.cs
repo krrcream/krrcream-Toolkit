@@ -1,92 +1,67 @@
 ﻿using System;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Timers;
 using System.Diagnostics;
-using System.Windows;
 using OsuMemoryDataProvider;
 using System.IO;
 using System.Text.Json;
-using Microsoft.Win32;
 using System.Windows.Forms;
-using System.Windows.Threading;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 using Application = System.Windows.Application;
+using krrTools.tools.DPtool; // for ObservableObject
 
 namespace krrTools.tools.Listener
 {
-    public class ListenerViewModel : INotifyPropertyChanged
+    internal sealed class ListenerViewModel : ObservableObject
     {
-        private string _currentOsuFilePath;
-        private string _statusMessage;
-        private System.Timers.Timer _checkTimer; // 明确指定命名空间
+        private string _currentOsuFilePath = string.Empty;
+        private string _statusMessage = string.Empty;
+        private System.Timers.Timer? _checkTimer; // 明确指定命名空间
+#pragma warning disable CS0618 // IOsuMemoryReader is obsolete but kept for compatibility
         private readonly IOsuMemoryReader _memoryReader;
+#pragma warning restore CS0618
         private string _lastBeatmapId = string.Empty;
-        private string _songsPath;
-        private string _bgPath;
+        private string _bgPath = string.Empty;
         private string _windowTitle = "osu!Listener";
-        private string _configPath;
-        private string _hotkeyText = "Ctrl+Shift+Alt+X";
-        private GlobalHotkey _globalHotkey;
-        
-        // 添加事件，用于通知主窗口热键已更改
-        public event EventHandler HotkeyChanged;
-        
-        // 添加事件，用于通知DPTool有新的文件被选中
-        public event EventHandler<string> BeatmapSelected;
+        private readonly string _configPath;
 
-        public void SetHotkey(string hotkey)
+        // Config object centralizes related settings (SongsPath, Hotkey, RealTimePreview)
+        internal ListenerConfig Config { get; }
+
+        // Suppress config saving during load to avoid unnecessary writes or recursion
+        private bool _suppressConfigSave;
+
+        internal event EventHandler? HotkeyChanged;
+
+        internal event EventHandler<string>? BeatmapSelected;
+
+        internal void SetHotkey(string hotkey)
         {
-            HotkeyText = hotkey;
-            HotkeyChanged?.Invoke(this, EventArgs.Empty);
-    
-            // 保存到配置
-            SaveConfig();
+            Config.Hotkey = hotkey;
         }
-        
+
         public string WindowTitle
         {
             get => _windowTitle;
-            set
-            {
-                _windowTitle = value;
-                OnPropertyChanged();
-            }
+            set => SetProperty(ref _windowTitle, value);
         }
         public string BGPath
         {
             get => _bgPath;
-            set
-            {
-                _bgPath = value;
-                OnPropertyChanged();
-            }
+            set => SetProperty(ref _bgPath, value);
         }
-        public string HotkeyText
-        {
-            get => _hotkeyText;
-            set
-            {
-                _hotkeyText = value;
-                OnPropertyChanged();
-            }
-        }
-        
-        
+
         public string CurrentOsuFilePath
         {
             get => _currentOsuFilePath;
-            set
+            private set
             {
-                _currentOsuFilePath = value;
-                OnPropertyChanged();
-                
-                // 当文件路径改变时触发事件
-                if (!string.IsNullOrEmpty(value))
+                if (SetProperty(ref _currentOsuFilePath, value))
                 {
-                    BeatmapSelected
-                        ?.Invoke(this, value);
+                    // 当文件路径改变时触发事件
+                    if (!string.IsNullOrEmpty(value))
+                    {
+                        BeatmapSelected?.Invoke(this, value);
+                    }
                 }
             }
         }
@@ -94,34 +69,44 @@ namespace krrTools.tools.Listener
         public string StatusMessage
         {
             get => _statusMessage;
-            set
-            {
-                _statusMessage = value;
-                OnPropertyChanged();
-            }
+            set => SetProperty(ref _statusMessage, value);
         }
 
-        public string SongsPath
-        {
-            get => _songsPath;
-            set
-            {
-                _songsPath = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public ListenerViewModel()
+        internal ListenerViewModel()
         {
             // 初始化内存读取器
+            // OsuMemoryReader is marked obsolete by the package; suppress the warning for the assignment
+#pragma warning disable CS0618
             _memoryReader = OsuMemoryReader.Instance;
+#pragma warning restore CS0618
+
+            // 初始化配置对象并订阅变化
+            Config = new ListenerConfig();
+            Config.PropertyChanged += Config_PropertyChanged;
+
             // 获取项目根目录并构建配置文件路径
             string projectDirectory = AppDomain.CurrentDomain.BaseDirectory;
             _configPath = Path.Combine(projectDirectory, "listenerConfig.fq");
+
             // 尝试加载已保存的配置
             LoadConfig();
             InitializeOsuMonitoring();
         }
+
+        private void Config_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (_suppressConfigSave) return;
+
+            // Persist all config changes centrally
+            SaveConfig();
+
+            // Raise HotkeyChanged when hotkey property changes
+            if (e.PropertyName == nameof(ListenerConfig.Hotkey))
+            {
+                HotkeyChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
         // 在 LoadConfig 方法中加载热键
         private void LoadConfig()
         {
@@ -131,48 +116,74 @@ namespace krrTools.tools.Listener
                 {
                     string json = File.ReadAllText(_configPath);
                     var config = JsonSerializer.Deserialize<ListenerConfig>(json);
-                    if (!string.IsNullOrEmpty(config.SongsPath) && Directory.Exists(config.SongsPath))
+                    if (config != null)
                     {
-                        SongsPath = config.SongsPath;
-                    }
-            
-                    // 加载热键
-                    if (!string.IsNullOrEmpty(config.Hotkey))
-                    {
-                        HotkeyText = config.Hotkey;
+                        _suppressConfigSave = true;
+
+                        if (!string.IsNullOrEmpty(config.SongsPath) && Directory.Exists(config.SongsPath))
+                        {
+                            Config.SongsPath = config.SongsPath;
+                        }
+
+                        if (!string.IsNullOrEmpty(config.Hotkey))
+                        {
+                            Config.Hotkey = config.Hotkey;
+                        }
+
+                        // Assign RealTimePreview directly; missing field will default to false
+                        Config.RealTimePreview = config.RealTimePreview;
+
+                        _suppressConfigSave = false;
                     }
                 }
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                Debug.WriteLine($"Failed to load config: {ex.Message}");
+                Debug.WriteLine($"Failed to load config (IO): {ex.Message}");
+            }
+            catch (JsonException ex)
+            {
+                Debug.WriteLine($"Failed to load config (JSON): {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Debug.WriteLine($"Failed to load config (unauthorized): {ex.Message}");
             }
         }
     
-        public void SaveConfig()
+        internal void SaveConfig()
         {
             try
             {
-                var config = new ListenerConfig 
-                { 
-                    SongsPath = _songsPath,
-                    Hotkey = _hotkeyText  // 添加这一行
-                };
-                string json = JsonSerializer.Serialize(config);
+                // Serialize the Config object directly
+                string json = JsonSerializer.Serialize(Config);
                 File.WriteAllText(_configPath, json);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                Debug.WriteLine($"Failed to save config: {ex.Message}");
+                Debug.WriteLine($"Failed to save config (IO): {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Debug.WriteLine($"Failed to save config (unauthorized): {ex.Message}");
+            }
+            catch (JsonException ex)
+            {
+                Debug.WriteLine($"Failed to save config (JSON): {ex.Message}");
             }
         }
     
-        // 配置类
-        private class ListenerConfig
-        {
-            public string SongsPath { get; set; }
-            public string Hotkey { get; set; }  // 添加这一行
-        }
+        // 配置类：现在是一个可观察对象，便于集中订阅变化并保存
+        internal class ListenerConfig : ObservableObject
+          {
+              private string? _songsPath;
+              private string? _hotkey = "Ctrl+Shift+Alt+X";
+              private bool _realTimePreview;
+
+              public string? SongsPath { get => _songsPath; set => SetProperty(ref _songsPath, value); }
+              public string? Hotkey { get => _hotkey; set => SetProperty(ref _hotkey, value); }
+              public bool RealTimePreview { get => _realTimePreview; set => SetProperty(ref _realTimePreview, value); }
+          }
         
         private void InitializeOsuMonitoring()
         {
@@ -185,14 +196,15 @@ namespace krrTools.tools.Listener
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Initialization failed: {ex.Message}";
+                Debug.WriteLine($"InitializeOsuMonitoring failed: {ex.Message}");
+                Application.Current?.Dispatcher?.BeginInvoke(new Action(() => StatusMessage = "Initialization failed"));
             }
         }
 
         private void SetupTimer()
         {
-            _checkTimer = new System.Timers.Timer(1000); // 每秒检查一次
-            _checkTimer.Elapsed += (sender, e) => CheckOsuBeatmap();
+            _checkTimer = new System.Timers.Timer(1000);
+            _checkTimer.Elapsed += (_, _) => CheckOsuBeatmap();
             _checkTimer.Start();
         }
 
@@ -200,15 +212,14 @@ namespace krrTools.tools.Listener
         {
             try
             {
-                // 检查osu!进程是否存在
                 var osuProcesses = Process.GetProcessesByName("osu!");
                 if (osuProcesses.Length == 0)
                 {
-                    Application.Current.Dispatcher.Invoke(() =>
+                    Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                     {
                         StatusMessage = "osu! is not running";
                         CurrentOsuFilePath = string.Empty;
-                    });
+                    }));
                     return;
                 }
 
@@ -216,7 +227,7 @@ namespace krrTools.tools.Listener
                 var beatmapFile = _memoryReader.GetOsuFileName();
                 var mapFolderName = _memoryReader.GetMapFolderName();
 
-                Application.Current.Dispatcher.Invoke(() =>
+                Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                 {
                     if (!string.IsNullOrEmpty(beatmapFile) && !string.IsNullOrEmpty(mapFolderName))
                     {
@@ -224,9 +235,9 @@ namespace krrTools.tools.Listener
                         if (_lastBeatmapId != beatmapFile)
                         {
                             // 构建完整的文件路径
-                            if (!string.IsNullOrEmpty(SongsPath))
+                            if (!string.IsNullOrEmpty(Config.SongsPath))
                             {
-                                CurrentOsuFilePath = Path.Combine(SongsPath, mapFolderName, beatmapFile);
+                                CurrentOsuFilePath = Path.Combine(Config.SongsPath, mapFolderName, beatmapFile);
 
                                 string Mes = $"Detected selected beatmap:\n{beatmapFile}\n" +
                                              "\n" + $"OD:{_memoryReader.GetMapOd()}" + 
@@ -239,7 +250,7 @@ namespace krrTools.tools.Listener
                                 String BG = beatmap.EventsSection.BackgroundImage;
                                 if (!string.IsNullOrWhiteSpace(BG))
                                 {
-                                    BGPath = Path.Combine(SongsPath, mapFolderName, BG);
+                                    BGPath = Path.Combine(Config.SongsPath, mapFolderName, BG);
                                 }
                             }
                             else
@@ -254,18 +265,16 @@ namespace krrTools.tools.Listener
                     {
                         StatusMessage = "osu! is running, waiting for beatmap selection...";
                     }
-                });
+                }));
             }
             catch (Exception ex)
             {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    StatusMessage = $"Failed to read osu! memory: {ex.Message}";
-                });
+                Debug.WriteLine($"CheckOsuBeatmap failed: {ex.Message}");
+                Application.Current?.Dispatcher?.BeginInvoke(new Action(() => StatusMessage = "Failed to read osu! memory"));
             }
         }
 
-        public void SetSongsPath()
+        internal void SetSongsPath()
         {
             var dialog = new FolderBrowserDialog
             {
@@ -275,22 +284,15 @@ namespace krrTools.tools.Listener
 
             if (dialog.ShowDialog() == DialogResult.OK)
             {
-                SongsPath = dialog.SelectedPath;
-                StatusMessage = $"Songs directory set: {SongsPath}";
+                Config.SongsPath = dialog.SelectedPath;
+                StatusMessage = $"Songs directory set: {Config.SongsPath}";
             }
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        public void Cleanup()
-        {
-            _checkTimer?.Stop();
-            _checkTimer?.Dispose();
-        }
-    }
-}
+          internal void Cleanup()
+          {
+              _checkTimer?.Stop();
+              _checkTimer?.Dispose();
+          }
+      }
+  }

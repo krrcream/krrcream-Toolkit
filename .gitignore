@@ -11,3 +11,4 @@ obj/
 # VS IDE files
 *.sln.DotSettings.user
 *.vs/
+/.idea/

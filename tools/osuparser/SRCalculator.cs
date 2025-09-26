@@ -7,18 +7,11 @@ using OsuParsers.Beatmaps;
 
 namespace krrTools.Tools.OsuParser;
 
-public struct Note
+public struct Note(int k, int h, int t)
 {
-    public int K;
-    public int H;
-    public int T;
-
-    public Note(int k, int h, int t)
-    {
-        K = k;
-        H = h;
-        T = t;
-    }
+    public readonly int K = k;
+    public readonly int H = h;
+    public readonly int T = t;
 }
 
 public class SRCalculator
@@ -38,27 +31,28 @@ public class SRCalculator
     private readonly int granularity = 1;
     
 
-    private readonly double[][] crossMatrix = new double[][] {
-        new double[] { -1 },
-        new double[] { 0.075, 0.075 },
-        new double[] { 0.125, 0.05, 0.125 },
-        new double[] { 0.125, 0.125, 0.125, 0.125 },
-        new double[] { 0.175, 0.25, 0.05, 0.25, 0.175 },
-        new double[] { 0.175, 0.25, 0.175, 0.175, 0.25, 0.175 },
-        new double[] { 0.225, 0.35, 0.25, 0.05, 0.25, 0.35, 0.225 },
-        new double[] { 0.225, 0.35, 0.25, 0.225, 0.225, 0.25, 0.35, 0.225 },
-        new double[] { 0.275, 0.45, 0.35, 0.25, 0.05, 0.25, 0.35, 0.45, 0.275 },
-        new double[] { 0.275, 0.45, 0.35, 0.25, 0.275, 0.275, 0.25, 0.35, 0.45, 0.275 },
-        new double[] { 0.625, 0.55, 0.45, 0.35, 0.25, 0.05, 0.25, 0.35, 0.45, 0.55, 0.625 }
-    };
+    private readonly double[][] crossMatrix =
+    [
+        [-1],
+        [0.075, 0.075],
+        [0.125, 0.05, 0.125],
+        [0.125, 0.125, 0.125, 0.125],
+        [0.175, 0.25, 0.05, 0.25, 0.175],
+        [0.175, 0.25, 0.175, 0.175, 0.25, 0.175],
+        [0.225, 0.35, 0.25, 0.05, 0.25, 0.35, 0.225],
+        [0.225, 0.35, 0.25, 0.225, 0.225, 0.25, 0.35, 0.225],
+        [0.275, 0.45, 0.35, 0.25, 0.05, 0.25, 0.35, 0.45, 0.275],
+        [0.275, 0.45, 0.35, 0.25, 0.275, 0.275, 0.25, 0.35, 0.45, 0.275],
+        [0.625, 0.55, 0.45, 0.35, 0.25, 0.05, 0.25, 0.35, 0.45, 0.55, 0.625]
+    ];
 
 
     private int T;
     private int K;
-    private Note[] noteSeq = Array.Empty<Note>();
-    private Note[][] noteSeqByColumn = Array.Empty<Note[]>();
-    private Note[] LNSeq = Array.Empty<Note>();
-    private Note[] tailSeq = Array.Empty<Note>();
+    private Note[] noteSeq = [];
+    private Note[][] noteSeqByColumn = [];
+    private Note[] LNSeq = [];
+    private Note[] tailSeq = [];
         
     public double Calculate(List<Note> noteSequence, int keyCount, double od)
     {
@@ -130,7 +124,7 @@ public class SRCalculator
 
             stopwatch.Restart();
             var task26 = Task.Run(() => CalculateSection26(deltaKs));
-            var task27 = Task.Run(() => CalculateSection27());
+            var task27 = Task.Run(CalculateSection27);
 
             // Wait for both tasks to complete
             Task.WaitAll(task26, task27);
@@ -316,7 +310,7 @@ public class SRCalculator
         double B(double delta)
         {
             var val = 7.5 / delta;
-            if (160 < val && val < 360)
+            if (val is > 160 and < 360)
                 return 1 + 1.4 * Math.Pow(10, -7) * (val - 160) * Math.Pow(val - 360, 2);
             return 1;
         }
@@ -463,7 +457,7 @@ public class SRCalculator
         return (Smooth(R), Is);
     }
 
-    public void ForwardFill(double[] array)
+    private void ForwardFill(double[] array)
     {
         double lastValidValue = 0;  // Use initialValue for leading NaNs and 0s
 
@@ -545,8 +539,8 @@ public class SRCalculator
         foreach (var hitobject in beatmap.HitObjects)
         {
             var col = (int)Math.Floor(hitobject.Position.X * cs / 512.0);
-            var time = (int)hitobject.StartTime;
-            var tail = hitobject.EndTime > hitobject.StartTime ? (int)hitobject.EndTime : -1;
+            var time = hitobject.StartTime;
+            var tail = hitobject.EndTime > hitobject.StartTime ? hitobject.EndTime : -1;
             notes.Add(new Note(col, time, tail));
         }
         
