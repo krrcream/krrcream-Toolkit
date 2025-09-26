@@ -21,6 +21,11 @@ namespace krrTools.tools.Shared
         // Optional override for language selection. If null, the system culture is used.
         private static bool? ForceChinese { get; set; }
 
+        // Saved theme settings
+        private static string? _savedApplicationTheme;
+        private static string? _savedWindowBackdropType;
+        private static bool? _savedUpdateAccent;
+
         // Event raised when the effective language selection changes (so UI can update)
         public static event Action? LanguageChanged;
 
@@ -44,10 +49,37 @@ namespace krrTools.tools.Shared
             SetForceChinese(!(ForceChinese ?? !IsChineseLanguage()));
         }
 
+        // Set saved theme settings
+        public static void SetSavedApplicationTheme(string theme)
+        {
+            _savedApplicationTheme = theme;
+            SaveAppSettings();
+        }
+
+        public static void SetSavedWindowBackdropType(string backdropType)
+        {
+            _savedWindowBackdropType = backdropType;
+            SaveAppSettings();
+        }
+
+        public static void SetSavedUpdateAccent(bool updateAccent)
+        {
+            _savedUpdateAccent = updateAccent;
+            SaveAppSettings();
+        }
+
+        // Get saved theme settings
+        public static string? GetSavedApplicationTheme() => _savedApplicationTheme;
+        public static string? GetSavedWindowBackdropType() => _savedWindowBackdropType;
+        public static bool? GetSavedUpdateAccent() => _savedUpdateAccent;
+
         // Simple app-level settings persisted to LocalAppData/krrTools/appsettings.json
         private class AppSettings
         {
             public bool? ForceChineseValue { get; init; }
+            public string? ApplicationTheme { get; init; }
+            public string? WindowBackdropType { get; init; }
+            public bool? UpdateAccent { get; init; }
         }
 
         private static readonly string _appSettingsPath;
@@ -80,6 +112,18 @@ namespace krrTools.tools.Shared
                 {
                     ForceChinese = s.ForceChineseValue;
                 }
+                if (s is { ApplicationTheme: not null })
+                {
+                    _savedApplicationTheme = s.ApplicationTheme;
+                }
+                if (s is { WindowBackdropType: not null })
+                {
+                    _savedWindowBackdropType = s.WindowBackdropType;
+                }
+                if (s is { UpdateAccent: not null })
+                {
+                    _savedUpdateAccent = s.UpdateAccent;
+                }
             }
             catch (IOException ex)
             {
@@ -100,7 +144,13 @@ namespace krrTools.tools.Shared
             try
             {
                 if (string.IsNullOrEmpty(_appSettingsPath)) return;
-                var s = new AppSettings { ForceChineseValue = ForceChinese };
+                var s = new AppSettings 
+                { 
+                    ForceChineseValue = ForceChinese,
+                    ApplicationTheme = _savedApplicationTheme,
+                    WindowBackdropType = _savedWindowBackdropType,
+                    UpdateAccent = _savedUpdateAccent
+                };
                 var opts = new JsonSerializerOptions { WriteIndented = true };
                 var json = JsonSerializer.Serialize(s, opts);
                 File.WriteAllText(_appSettingsPath, json);

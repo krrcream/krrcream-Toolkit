@@ -60,7 +60,7 @@ namespace krrTools.tools.LNTransformer
             var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
             Grid.SetRow(scroll, 1);
             var body = SharedUIComponents.CreateStandardTextBlock();
-            body.FontSize = SharedUIComponents.ComFontSize - 2; // 略小一点的字体
+            body.FontSize = SharedUIComponents.ComFontSize - 2;
             body.TextWrapping = TextWrapping.Wrap;
 
             // 根据语言设置显示内容

@@ -98,12 +98,12 @@ public class MainWindow : FluentWindow
             CornerRadius = new CornerRadius(0),
             GlassFrameThickness = new Thickness(0),
             UseAeroCaptionButtons = false,
-            NonClientFrameEdges = NonClientFrameEdges.None
+            NonClientFrameEdges = NonClientFrameEdges.Left | NonClientFrameEdges.Right | NonClientFrameEdges.Bottom,
+            ResizeBorderThickness = new Thickness(4)
         };
         WindowChrome.SetWindowChrome(this, windowChrome);
 
         BuildUI();
-        ApplicationThemeManager.Apply(ApplicationTheme.Light, WindowBackdropType.Acrylic, updateAccent: true);
         SharedUIComponents.SetPanelBackgroundAlpha(102);
 
         PreviewKeyDown += MainWindow_PreviewKeyDown;
@@ -116,6 +116,8 @@ public class MainWindow : FluentWindow
             lp.StartConversionRequested += LNPreview_StartConversionRequested;
         if (_previewControls.TryGetValue(OptionsManager.DPToolName, out var dp))
             dp.StartConversionRequested += DPPreview_StartConversionRequested;
+
+        Loaded += MainWindow_Loaded;
     }
 
     private void BuildUI()
@@ -170,7 +172,7 @@ public class MainWindow : FluentWindow
         root.Children.Add(GlobalOsuListenerButton);
 
         // Footer
-        var footer = UIComponents.CreateStatusBar();
+        var footer = UIComponents.CreateStatusBar(this);
         Grid.SetRow(footer, 2);
         root.Children.Add(footer);
 
@@ -189,6 +191,14 @@ public class MainWindow : FluentWindow
         ToolScheduler.RegisterTool(new N2NCTool());
         ToolScheduler.RegisterTool(new LNTransformerTool());
         ToolScheduler.RegisterTool(new DPTool());
+    }
+
+    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        var savedTheme = SharedUIComponents.GetSavedApplicationTheme() != null && Enum.TryParse<ApplicationTheme>(SharedUIComponents.GetSavedApplicationTheme(), out var theme) ? theme : ApplicationTheme.Light;
+        var savedBackdrop = SharedUIComponents.GetSavedWindowBackdropType() != null && Enum.TryParse<WindowBackdropType>(SharedUIComponents.GetSavedWindowBackdropType(), out var backdrop) ? backdrop : WindowBackdropType.Acrylic;
+        var savedAccent = SharedUIComponents.GetSavedUpdateAccent() ?? true;
+        ApplicationThemeManager.Apply(savedTheme, savedBackdrop, savedAccent);
     }
 
 

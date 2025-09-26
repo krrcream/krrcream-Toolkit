@@ -11,6 +11,10 @@ using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using krrTools.tools.Shared;
 using static krrTools.tools.Shared.SharedUIComponents;
+using Wpf.Ui.Controls;
+using TextBlock = Wpf.Ui.Controls.TextBlock;
+using Button = Wpf.Ui.Controls.Button;
+using Image = System.Windows.Controls.Image;
 
 namespace krrTools.tools.Preview;
 
@@ -154,10 +158,10 @@ public class DualPreviewControl : UserControl
 
         var rootBorder = new Border
         {
-            Background = new SolidColorBrush(Color.FromRgb(255, 255, 255)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0xE0, 0xE0, 0xE0)),
+            Background = SharedUIComponents.PanelBackgroundBrush,
+            BorderBrush = SharedUIComponents.PanelBorderBrush,
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(6),
+            CornerRadius = SharedUIComponents.PanelCornerRadius,
             Padding = new Thickness(12)
         };
 
@@ -176,9 +180,10 @@ public class DualPreviewControl : UserControl
         OriginalBorder = new Border
         {
             AllowDrop = true,
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0xE2, 0xE5, 0xEA)),
+            Background = SharedUIComponents.PanelBackgroundBrush,
+            BorderBrush = SharedUIComponents.PanelBorderBrush,
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(4),
+            CornerRadius = SharedUIComponents.PanelCornerRadius,
             Margin = new Thickness(0,4,0,4),
             Padding = new Thickness(6),
             ClipToBounds = true
@@ -216,9 +221,10 @@ public class DualPreviewControl : UserControl
         ConvertedBorder = new Border
         {
             AllowDrop = true,
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0xE2,0xE5,0xEA)),
+            Background = SharedUIComponents.PanelBackgroundBrush,
+            BorderBrush = SharedUIComponents.PanelBorderBrush,
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(4),
+            CornerRadius = SharedUIComponents.PanelCornerRadius,
             Margin = new Thickness(0,4,0,4),
             Padding = new Thickness(6),
             ClipToBounds = true
@@ -679,19 +685,7 @@ public class DualPreviewControl : UserControl
         return _sharedStagedPaths?.ToArray();
     }
 
-    // Ensure drag-over signals we accept file drops (helps when other visuals overlay the drop zone)
-    private void UserControl_PreviewDragOver(DragEventArgs e)
-    {
-        if (e.Data.GetDataPresent(DataFormats.FileDrop))
-        {
-            e.Effects = DragDropEffects.Copy;
-            e.Handled = true;
-        }
-        else
-        {
-            e.Effects = DragDropEffects.None;
-        }
-    }
+
 
     private void HighlightEnter(object sender, DragEventArgs e)
     {

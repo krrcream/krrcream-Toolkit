@@ -209,7 +209,7 @@ public static class UIComponents
         return _titleBar;
     }
 
-    public static Border CreateStatusBar()
+    public static Border CreateStatusBar(Window window)
     {
         var footer = new Border
         {
@@ -268,18 +268,18 @@ public static class UIComponents
         var themeComboBox = new ComboBox
         {
             ItemsSource = Enum.GetValues(typeof(ApplicationTheme)),
-            SelectedItem = ApplicationTheme.Light,
+            SelectedItem = SharedUIComponents.GetSavedApplicationTheme() != null && Enum.TryParse<ApplicationTheme>(SharedUIComponents.GetSavedApplicationTheme(), out var savedTheme) ? savedTheme : ApplicationTheme.Light,
             Margin = new Thickness(4, 0, 4, 0)
         };
         var backdropComboBox = new ComboBox
         {
             ItemsSource = Enum.GetValues(typeof(WindowBackdropType)),
-            SelectedItem = WindowBackdropType.Mica,
+            SelectedItem = SharedUIComponents.GetSavedWindowBackdropType() != null && Enum.TryParse<WindowBackdropType>(SharedUIComponents.GetSavedWindowBackdropType(), out var savedBackdrop) ? savedBackdrop : WindowBackdropType.Mica,
             Margin = new Thickness(4, 0, 4, 0)
         };
         var accentSwitch = new ToggleSwitch
         {
-            IsChecked = false,
+            IsChecked = SharedUIComponents.GetSavedUpdateAccent() ?? false,
             Content = Strings.Localize(Strings.UpdateAccent),
             Margin = new Thickness(4, 0, 4, 0)
         };
@@ -291,13 +291,26 @@ public static class UIComponents
                 backdropComboBox.SelectedItem is WindowBackdropType selectedBackdrop)
             {
                 ApplicationThemeManager.Apply(selectedTheme, selectedBackdrop, updateAccent);
+                window.InvalidateVisual();
             }
         }
 
-        themeComboBox.SelectionChanged += (_, _) => { ApplyThemeSettings(); };
-        backdropComboBox.SelectionChanged += (_, _) => { ApplyThemeSettings(); };
-        accentSwitch.Checked += (_, _) => { ApplyThemeSettings(updateAccent: true); };
-        accentSwitch.Unchecked += (_, _) => { ApplyThemeSettings(updateAccent: false); };
+        themeComboBox.SelectionChanged += (_, _) => { 
+            Application.Current.Dispatcher.BeginInvoke(() => ApplyThemeSettings(accentSwitch.IsChecked == true));
+            if (themeComboBox.SelectedItem is ApplicationTheme theme) SharedUIComponents.SetSavedApplicationTheme(theme.ToString());
+        };
+        backdropComboBox.SelectionChanged += (_, _) => { 
+            Application.Current.Dispatcher.BeginInvoke(() => ApplyThemeSettings(accentSwitch.IsChecked == true));
+            if (backdropComboBox.SelectedItem is WindowBackdropType backdrop) SharedUIComponents.SetSavedWindowBackdropType(backdrop.ToString());
+        };
+        accentSwitch.Checked += (_, _) => { 
+            ApplyThemeSettings(updateAccent: true); 
+            SharedUIComponents.SetSavedUpdateAccent(true);
+        };
+        accentSwitch.Unchecked += (_, _) => { 
+            ApplyThemeSettings(updateAccent: false); 
+            SharedUIComponents.SetSavedUpdateAccent(false);
+        };
 
         var langSwitch = new ToggleSwitch
         {
