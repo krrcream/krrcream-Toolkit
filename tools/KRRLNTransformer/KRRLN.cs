@@ -6,13 +6,17 @@ using krrTools.tools.Shared;
 using krrTools.Tools.OsuParser;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.tools.KRRLNTransformer
 {
     public class KRRLN
     {
+        private static readonly ILogger<KRRLN> _logger = LoggerFactoryHolder.CreateLogger<KRRLN>();
+
         public Beatmap ProcessFiles(string filepath, KRRLNTransformerOptions parameters)
         {
+            _logger.LogInformation("转换器读取转换: {FilePath}", filepath);
             if (!File.Exists(filepath))
             {
                 throw new FileNotFoundException($"文件未找到: {filepath}");

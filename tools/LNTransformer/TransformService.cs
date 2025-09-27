@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -9,14 +8,21 @@ using krrTools.tools.Listener;
 using krrTools.tools.Shared;
 using krrTools.Tools.OsuParser;
 using static krrTools.tools.Shared.SharedUIComponents;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.tools.LNTransformer
 {
     public static class TransformService
     {
+        private static readonly ILogger _logger = LoggerFactoryHolder.CreateLogger<string>();
+
         // Public entrypoint: process a list of osu files with given parameters.
         public static void ProcessFiles(IEnumerable<string> allFiles, LNTransformerOptions parameters)
         {
+            foreach (var file in allFiles)
+            {
+                _logger.LogInformation("转换器读取转换: {FilePath}", file);
+            }
             var osuFiles = OsuFileProcessor.ReadMultipleFiles(allFiles, (line) =>
             {
                 if (line.StartsWith("Mode"))
@@ -77,7 +83,7 @@ namespace krrTools.tools.LNTransformer
                     MessageBox.Show($"处理 {osuFile.OriginalFile?.FullName} 时出错: {ex.Message}\n\n堆栈跟踪:\n{ex.StackTrace}", "转换错误", MessageBoxButton.OK, MessageBoxImage.Error,
                         MessageBoxResult.None, MessageBoxOptions.DefaultDesktopOnly);
 #else
-                    Debug.WriteLine($"TransformService.ProcessFiles - per-file error for {osuFile?.OriginalFile?.FullName}: {ex.Message}");
+                    _logger.LogError(ex, "处理文件时出错: {FileName}", osuFile.OriginalFile?.FullName);
 #endif
                 }
             }
@@ -239,7 +245,7 @@ namespace krrTools.tools.LNTransformer
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"TransformService.ProcessSingleFile - error for {osuFile.OriginalFile?.FullName}: {ex.Message}");
+                _logger.LogError(ex, "处理单文件时出错: {FileName}", osuFile.OriginalFile?.FullName);
                         return null;
                     }
                 }
@@ -248,7 +254,7 @@ namespace krrTools.tools.LNTransformer
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"TransformService.ProcessSingleFile - error: {ex.Message}");
+                _logger.LogError(ex, "处理单文件出错");
                 return null;
             }
         }
@@ -305,13 +311,13 @@ namespace krrTools.tools.LNTransformer
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"TransformService.ProcessSingleFileToData - error for {osuFile.OriginalFile?.FullName}: {ex.Message}");
+                        _logger.LogError(ex, "处理单文件到数据时出错: {FileName}", osuFile.OriginalFile?.FullName);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"TransformService.ProcessSingleFileToData - error: {ex.Message}");
+                _logger.LogError(ex, "处理单文件到数据出错");
             }
 
             return null;

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -54,7 +55,7 @@ namespace krrTools.tools.N2NC
                 throw new ArgumentException("目标键位与当前键位相同且不降低密度");
             }
             double BPM = beatmap.GetBPM();
-            // Console.WriteLine("BPM：" + BPM);
+            // Debug.WriteLine("BPM：" + BPM);
             double beatLength = 60000 / BPM * 4;
 
             double convertTime = Math.Max(1, options.TransformSpeed * beatLength - 10);
@@ -439,8 +440,8 @@ namespace krrTools.tools.N2NC
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"convert方法发生异常: {ex.Message}");
-                Console.WriteLine($"异常堆栈: {ex.StackTrace}");
+                System.Diagnostics.Debug.WriteLine($"convert方法发生异常: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"异常堆栈: {ex.StackTrace}");
                 throw;
             }
         }
@@ -1343,7 +1344,7 @@ namespace krrTools.tools.N2NC
             }
 
             double BPM = beatmap.GetBPM();
-            Console.WriteLine("BPM：" + BPM);
+            Debug.WriteLine("BPM：" + BPM);
             double beatLength = 60000 / BPM * 4;
 
             double convertTime = Math.Max(1, options.TransformSpeed * beatLength - 10);

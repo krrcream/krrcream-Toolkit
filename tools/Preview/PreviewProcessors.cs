@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -13,11 +12,14 @@ using krrTools.tools.N2NC;
 using krrTools.tools.Shared;
 using krrTools.Tools.Shared;
 using OsuParsers.Beatmaps;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.tools.Preview
 {
     public class BasePreviewProcessor : IPreviewProcessor
     {
+        private static readonly ILogger<BasePreviewProcessor> _logger = LoggerFactoryHolder.CreateLogger<BasePreviewProcessor>();
+
         public virtual string ToolKey => "Preview";
         public string? CurrentTool { get; set; }
         public int? ColumnOverride { get; set; }
@@ -49,7 +51,7 @@ namespace krrTools.tools.Preview
             Func<string, string, int, int, object?>? conversionProvider, string? toolName)
         {
             var path = filePaths is { Length: > 0 } ? filePaths[0] : string.Empty;
-            Debug.WriteLine($"Building preview for path: {path}, converted: {converted}");
+            _logger.LogInformation("预览器读取转换: {Path}, 转换: {Converted}", path, converted);
             if (string.IsNullOrEmpty(path) || !File.Exists(path)) return new TextBlock { Text = "(无文件)" };
 
             int? first = PreviewTransformation.GetFirstNonEmptyTime(path);

@@ -6,7 +6,6 @@ using System.Windows.Controls;
 using krrTools.tools.KRRLNTransformer;
 using krrTools.tools.Preview;
 using krrTools.tools.Shared;
-using System.Diagnostics;
 using krrTools.tools.DPtool;
 using krrTools.tools.LNTransformer;
 using krrTools.tools.N2NC;
@@ -14,11 +13,14 @@ using System.IO;
 using Wpf.Ui.Controls;
 using MessageBox = System.Windows.MessageBox;
 using MessageBoxButton = System.Windows.MessageBoxButton;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.Tools.Shared
 {
     public class FileDispatcher(Dictionary<string, DualPreviewControl> previewControls, TabView mainTabControl)
     {
+        private static readonly ILogger<FileDispatcher> _logger = LoggerFactoryHolder.CreateLogger<FileDispatcher>();
+
         private readonly Dictionary<string, IConverter> _converters = new()
         {
             { OptionsManager.N2NCToolName, new N2NCConverterWrapper() },
@@ -41,7 +43,6 @@ namespace krrTools.Tools.Shared
         public void ConvertFiles(string[] paths, string? activeTabTag = null)
         {
             activeTabTag ??= GetActiveTabTag();
-            MessageBox.Show($"Converting {paths.Length} files for {activeTabTag}");
             if (activeTabTag == OptionsManager.N2NCToolName)
             {
                 // Special handling for Converter with result reporting
@@ -64,32 +65,13 @@ namespace krrTools.Tools.Shared
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"Error converting {path}: {ex.Message}");
+                        _logger.LogError(ex, "转换文件时出错: {Path}", path);
                         failed.Add(path);
                     }
                 }
 
-                // Notify user on UI thread that processing finished
-                if (created.Count > 0)
-                {
-                    var sb = new System.Text.StringBuilder();
-                    sb.AppendLine("Conversion finished. Created files:");
-                    foreach (var c in created) sb.AppendLine(c);
-                    if (failed.Count > 0)
-                    {
-                        sb.AppendLine();
-                        sb.AppendLine("The following source files failed to convert:");
-                        foreach (var f in failed) sb.AppendLine(f);
-                    }
-                    MessageBox.Show(sb.ToString(), "Conversion Result", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    var msg = failed.Count > 0
-                        ? "Conversion failed for the selected files."
-                        : "Conversion did not produce any output.";
-                    MessageBox.Show(msg, "Conversion Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
+                _logger.LogInformation("转换器: {Converter}, 生成文件数量: {CreatedCount}", activeTabTag, created.Count);
+                ShowConversionResult(created, failed, paths.Length);
             }
         }
 
@@ -102,7 +84,7 @@ namespace krrTools.Tools.Shared
             {
                 // Fallback: create new instance if not found
                 conv = new N2NCControl();
-                Debug.WriteLine("Warning: Using fallback N2NCControl instance - options may not be loaded correctly");
+                _logger.LogWarning("使用备用N2NCControl实例 - 选项可能未正确加载");
             }
 
             var created = new List<string>();
@@ -112,9 +94,7 @@ namespace krrTools.Tools.Shared
             {
                 try
                 {
-                    Debug.WriteLine($"Processing file: {p}");
                     var result = conv.ProcessSingleFile(p);
-                    Debug.WriteLine($"ProcessSingleFile result: {result}");
                     if (!string.IsNullOrEmpty(result))
                         created.Add(result);
                     else
@@ -122,7 +102,7 @@ namespace krrTools.Tools.Shared
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Converter processing error for {p}: {ex.Message}");
+                    _logger.LogError(ex, "转换器处理错误: {Path}", p);
                     failed.Add(p);
                 }
             }
@@ -135,27 +115,61 @@ namespace krrTools.Tools.Shared
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"BroadcastStagedPaths error: {ex.Message}");
+                    _logger.LogError(ex, "BroadcastStagedPaths错误");
                 }
+            }
 
-                var sb = new System.Text.StringBuilder();
-                sb.AppendLine("Conversion finished. Created files:");
-                foreach (var c in created) sb.AppendLine(c);
-                if (failed.Count > 0)
+            _logger.LogInformation("转换器: {Converter}, 生成文件数量: {CreatedCount}", OptionsManager.N2NCToolName, created.Count);
+            ShowConversionResult(created, failed, paths.Length);
+        }
+
+        private void ShowConversionResult(List<string> created, List<string> failed, int totalFiles)
+        {
+            string message;
+            string title;
+            MessageBoxImage icon;
+
+            if (created.Count > 0)
+            {
+                // 转换成功
+                title = "转换成功";
+                icon = MessageBoxImage.Information;
+                
+                if (totalFiles == 1 && created.Count == 1)
                 {
-                    sb.AppendLine();
-                    sb.AppendLine("The following source files failed to convert:");
-                    foreach (var f in failed) sb.AppendLine(f);
+                    // 只转换了一个文件且成功
+                    message = $"转换成功！\n\n生成的文件：{created[0]}";
                 }
-                MessageBox.Show(sb.ToString(), "Conversion Result", MessageBoxButton.OK, MessageBoxImage.Information);
+                else
+                {
+                    // 转换了多个文件
+                    var sb = new System.Text.StringBuilder();
+                    sb.AppendLine($"成功转换 {created.Count} 个文件：");
+                    foreach (var file in created)
+                        sb.AppendLine($"• {System.IO.Path.GetFileName(file)}");
+                    
+                    if (failed.Count > 0)
+                    {
+                        sb.AppendLine();
+                        sb.AppendLine($"失败 {failed.Count} 个文件：");
+                        foreach (var file in failed)
+                            sb.AppendLine($"• {System.IO.Path.GetFileName(file)}");
+                    }
+                    
+                    message = sb.ToString();
+                }
             }
             else
             {
-                var msg = failed.Count > 0
-                    ? "Conversion failed for the selected files. The staged files remain so you can retry."
-                    : "Conversion did not produce any output.";
-                MessageBox.Show(msg, "Conversion Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                // 转换失败
+                title = "转换失败";
+                icon = MessageBoxImage.Warning;
+                message = failed.Count > 0 
+                    ? "转换失败，所有文件都未能成功转换。" 
+                    : "转换未产生任何输出。";
             }
+
+            MessageBox.Show(message, title, MessageBoxButton.OK, icon);
         }
 
         private string GetActiveTabTag()
@@ -216,7 +230,9 @@ namespace krrTools.Tools.Shared
                 };
                 var LN = new KRRLN();
                 var beatmap = LN.ProcessFiles(path, parameters);
-                string outputPath = Path.Combine(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path) + "_KRRLN.osu");
+                string? dir = Path.GetDirectoryName(path);
+                if (string.IsNullOrEmpty(dir)) dir = ".";
+                string outputPath = Path.Combine(dir, Path.GetFileNameWithoutExtension(path) + "_KRRLN.osu");
                 File.WriteAllText(outputPath, beatmap.ToString());
                 return outputPath;
             }

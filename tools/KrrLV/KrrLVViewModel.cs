@@ -14,6 +14,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using krrTools.Tools.OsuParser;
 using krrTools.Tools.Shared;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.tools.KrrLV
 {
@@ -163,147 +164,168 @@ namespace krrTools.tools.KrrLV
     }
     
     public partial class KrrLVViewModel : ObservableObject
-{
-    [ObservableProperty]
-    private string _pathInput = null!;
-
-    [ObservableProperty]
-    private ObservableCollection<OsuFileItem> _osuFiles = new ObservableCollection<OsuFileItem>();
-
-    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(4, 4); // 最多4个并发线程
-    private readonly DispatcherTimer _updateTimer;
-    private ProcessingWindow? _processingWindow;
-    private readonly List<OsuFileItem> _pendingItems = new List<OsuFileItem>();
-    private readonly Lock _pendingItemsLock = new Lock();
-
-    private int _totalCount;
-    private int _processedCount;
-    
-    private int _currentProcessedCount;
-
-    private int TotalCount
     {
-        get => _totalCount;
-        set => SetProperty(ref _totalCount, value);
-    }
-
-    public int ProcessedCount
-    {
-        get => _processedCount;
-        set => SetProperty(ref _processedCount, value);
-    }
-
-    public KrrLVViewModel()
-    {
-        // 初始化定时器，每100毫秒批量更新一次UI
-        _updateTimer = new DispatcherTimer
-        {
-            Interval = TimeSpan.FromMilliseconds(100)
-        };
-        _updateTimer.Tick += UpdateTimer_Tick;
-    }
-
-    private void UpdateTimer_Tick(object? sender, EventArgs e)
-    {
-        List<OsuFileItem> itemsToAdd;
-        lock (_pendingItemsLock)
-        {
-            if (_pendingItems.Count == 0) return;
-            itemsToAdd = new List<OsuFileItem>(_pendingItems);
-            _pendingItems.Clear();
-        }
+        private static readonly ILogger<KrrLVViewModel> _logger = LoggerFactoryHolder.CreateLogger<KrrLVViewModel>();
         
-        foreach (var item in itemsToAdd)
-        {
-            OsuFiles.Add(item);
-        }
-    }
+        [ObservableProperty]
+        private string _pathInput = null!;
 
-    [RelayCommand]
-    private void Browse()
-    {
-        var selected = FilesHelper.ShowOpenFileOrFolderDialog("选择文件或文件夹");
-        if (!string.IsNullOrEmpty(selected))
-        {
-            PathInput = selected;
-            ProcessDroppedFiles([selected]);
-        }
-    }
+        [ObservableProperty]
+        private ObservableCollection<OsuFileItem> _osuFiles = new ObservableCollection<OsuFileItem>();
 
-    [RelayCommand]
-    private void Save()
-    {
-        var savePath = FilesHelper.ShowSaveFileDialog("保存为CSV文件", "CSV文件|*.csv", "csv");
-        if (!string.IsNullOrEmpty(savePath))
+        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(4, 4); // 最多4个并发线程
+        private readonly DispatcherTimer _updateTimer;
+        private ProcessingWindow? _processingWindow;
+        private readonly List<OsuFileItem> _pendingItems = new List<OsuFileItem>();
+        private readonly Lock _pendingItemsLock = new Lock();
+
+        private int _totalCount;
+        private int _processedCount;
+        
+        private int _currentProcessedCount;
+
+        private int TotalCount
+        {
+            get => _totalCount;
+            set => SetProperty(ref _totalCount, value);
+        }
+
+        public int ProcessedCount
+        {
+            get => _processedCount;
+            set => SetProperty(ref _processedCount, value);
+        }
+
+        public KrrLVViewModel()
+        {
+            // 初始化定时器，每100毫秒批量更新一次UI
+            _updateTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(100)
+            };
+            _updateTimer.Tick += UpdateTimer_Tick;
+        }
+
+        private void UpdateTimer_Tick(object? sender, EventArgs e)
+        {
+            List<OsuFileItem> itemsToAdd;
+            lock (_pendingItemsLock)
+            {
+                if (_pendingItems.Count == 0) return;
+                itemsToAdd = new List<OsuFileItem>(_pendingItems);
+                _pendingItems.Clear();
+            }
+            
+            foreach (var item in itemsToAdd)
+            {
+                OsuFiles.Add(item);
+            }
+        }
+
+        [RelayCommand]
+        private void Browse()
+        {
+            var selected = FilesHelper.ShowOpenFileOrFolderDialog("选择文件或文件夹");
+            if (!string.IsNullOrEmpty(selected))
+            {
+                PathInput = selected;
+                ProcessDroppedFiles([selected]);
+            }
+        }
+
+        [RelayCommand]
+        private void Save()
+        {
+            var savePath = FilesHelper.ShowSaveFileDialog("保存为CSV文件", "CSV文件|*.csv", "csv");
+            if (!string.IsNullOrEmpty(savePath))
+            {
+                try
+                {
+                    var csv = new StringBuilder();
+                    
+                    // 添加CSV头部
+                    csv.AppendLine("KRR_LV,XXY_SR,Title,Diff,Artist,Creator,Keys,BPM,OD,HP,LN%,beatmapID,beatmapSetId,filePath");
+                    
+                    // 添加数据行
+                    foreach (var file in OsuFiles)
+                    {
+                        var line = $"\"{file.KrrLV:F2}\",\"{file.XxySR:F2}\",\"{file.Title}\",\"{file.Diff}\",\"{file.Artist}\",\"{file.Creator}\",{file.Keys},\"{file.BPM}\",{file.OD},{file.HP},\"{file.LNPercent:F2}\",{file.BeatmapID},{file.BeatmapSetID},\"{file.FilePath}\"";
+                        csv.AppendLine(line);
+                    }
+            
+                    File.WriteAllText(savePath, csv.ToString(), Encoding.UTF8);
+                    var processStartInfo = new ProcessStartInfo(savePath)
+                    {
+                        UseShellExecute = true
+                    };
+                    Process.Start(processStartInfo);
+
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "保存文件时出错");
+                }
+            }
+        }
+
+        public async void ProcessDroppedFiles(string[] files)
         {
             try
             {
-                var csv = new StringBuilder();
-                
-                // 添加CSV头部
-                csv.AppendLine("KRR_LV,XXY_SR,Title,Diff,Artist,Creator,Keys,BPM,OD,HP,LN%,beatmapID,beatmapSetId,filePath");
-                
-                // 添加数据行
-                foreach (var file in OsuFiles)
+                // 计算总文件数（包括.osz中的.osu文件）
+                TotalCount = FilesHelper.GetOsuFilesCount(files);
+                _currentProcessedCount = 0;
+    
+                // 显示进度窗口
+                Application.Current.Dispatcher.Invoke(() =>
                 {
-                    var line = $"\"{file.KrrLV:F2}\",\"{file.XxySR:F2}\",\"{file.Title}\",\"{file.Diff}\",\"{file.Artist}\",\"{file.Creator}\",{file.Keys},\"{file.BPM}\",{file.OD},{file.HP},\"{file.LNPercent:F2}\",{file.BeatmapID},{file.BeatmapSetID},\"{file.FilePath}\"";
-                    csv.AppendLine(line);
-                }
+                    _processingWindow = new ProcessingWindow();
+                    _processingWindow.Show();
+                });
+    
+                _updateTimer.Start();
+    
+                await Task.Run(async () =>
+                {
+                    var tasks = new List<Task>();
         
-                File.WriteAllText(savePath, csv.ToString(), Encoding.UTF8);
-                var processStartInfo = new ProcessStartInfo(savePath)
-                {
-                    UseShellExecute = true
-                };
-                Process.Start(processStartInfo);
-
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"保存文件时出错: {ex.Message}");
-            }
-        }
-    }
-
-    public async void ProcessDroppedFiles(string[] files)
-    {
-        try
-        {
-            // 计算总文件数（包括.osz中的.osu文件）
-            TotalCount = FilesHelper.GetOsuFilesCount(files);
-            _currentProcessedCount = 0;
-    
-            // 显示进度窗口
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                _processingWindow = new ProcessingWindow();
-                _processingWindow.Show();
-            });
-    
-            _updateTimer.Start();
-    
-            await Task.Run(async () =>
-            {
-                var tasks = new List<Task>();
-        
-                foreach (var file in files)
-                {
-                    if (Directory.Exists(file))
+                    foreach (var file in files)
                     {
-                        // 处理文件夹
-                        var osuFiles = Directory.GetFiles(file, "*.osu", SearchOption.AllDirectories)
-                            .Where(f => Path.GetExtension(f).Equals(".osu", StringComparison.OrdinalIgnoreCase));
+                        if (Directory.Exists(file))
+                        {
+                            // 处理文件夹
+                            var osuFiles = Directory.GetFiles(file, "*.osu", SearchOption.AllDirectories)
+                                .Where(f => Path.GetExtension(f).Equals(".osu", StringComparison.OrdinalIgnoreCase));
                 
-                        foreach (var osuFile in osuFiles)
+                            foreach (var osuFile in osuFiles)
+                            {
+                                await _semaphore.WaitAsync();
+                                var task = Task.Run(() => ProcessOsuFile(osuFile))
+                                    .ContinueWith(_ => 
+                                    {
+                                        _semaphore.Release();
+                                        // 使用原子操作更新计数器
+                                        Interlocked.Increment(ref _currentProcessedCount);
+                            
+                                        // 更新UI进度
+                                        Application.Current.Dispatcher.Invoke(() =>
+                                        {
+                                            UpdateProgress(_currentProcessedCount, TotalCount);
+                                        });
+                                    });
+                            tasks.Add(task);
+                            }
+                        }
+                        else if (File.Exists(file) && Path.GetExtension(file).Equals(".osu", StringComparison.OrdinalIgnoreCase))
                         {
                             await _semaphore.WaitAsync();
-                            var task = Task.Run(() => ProcessOsuFile(osuFile))
+                            var task = Task.Run(() => ProcessOsuFile(file))
                                 .ContinueWith(_ => 
                                 {
                                     _semaphore.Release();
                                     // 使用原子操作更新计数器
                                     Interlocked.Increment(ref _currentProcessedCount);
-                            
+                        
                                     // 更新UI进度
                                     Application.Current.Dispatcher.Invoke(() =>
                                     {
@@ -312,111 +334,92 @@ namespace krrTools.tools.KrrLV
                                 });
                             tasks.Add(task);
                         }
-                    }
-                    else if (File.Exists(file) && Path.GetExtension(file).Equals(".osu", StringComparison.OrdinalIgnoreCase))
-                    {
-                        await _semaphore.WaitAsync();
-                        var task = Task.Run(() => ProcessOsuFile(file))
-                            .ContinueWith(_ => 
-                            {
-                                _semaphore.Release();
-                                // 使用原子操作更新计数器
-                                Interlocked.Increment(ref _currentProcessedCount);
-                        
-                                // 更新UI进度
-                                Application.Current.Dispatcher.Invoke(() =>
-                                {
-                                    UpdateProgress(_currentProcessedCount, TotalCount);
-                                });
-                            });
-                        tasks.Add(task);
-                    }
-                    // 添加对.osz文件的支持
-                    else if (File.Exists(file) && Path.GetExtension(file).Equals(".osz", StringComparison.OrdinalIgnoreCase))
-                    {
-                        try
+                        // 添加对.osz文件的支持
+                        else if (File.Exists(file) && Path.GetExtension(file).Equals(".osz", StringComparison.OrdinalIgnoreCase))
                         {
-                            using var archive = ZipFile.OpenRead(file);
-                            var osuEntries = archive.Entries.Where(e => e.Name.EndsWith(".osu", StringComparison.OrdinalIgnoreCase));
-                        
-                            foreach (var entry in osuEntries)
+                            try
                             {
-                                await _semaphore.WaitAsync();
-                                var task = Task.Run(() => ProcessOszEntry(entry, file))
-                                    .ContinueWith(_ => 
-                                    {
-                                        _semaphore.Release();
-                                        // 使用原子操作更新计数器
-                                        Interlocked.Increment(ref _currentProcessedCount);
-                                    
-                                        // 更新UI进度
-                                        Application.Current.Dispatcher.Invoke(() =>
+                                using var archive = ZipFile.OpenRead(file);
+                                var osuEntries = archive.Entries.Where(e => e.Name.EndsWith(".osu", StringComparison.OrdinalIgnoreCase));
+                        
+                                foreach (var entry in osuEntries)
+                                {
+                                    await _semaphore.WaitAsync();
+                                    var task = Task.Run(() => ProcessOszEntry(entry, file))
+                                        .ContinueWith(_ => 
                                         {
-                                            UpdateProgress(_currentProcessedCount, TotalCount);
+                                            _semaphore.Release();
+                                            // 使用原子操作更新计数器
+                                            Interlocked.Increment(ref _currentProcessedCount);
+                                    
+                                            // 更新UI进度
+                                            Application.Current.Dispatcher.Invoke(() =>
+                                            {
+                                                UpdateProgress(_currentProcessedCount, TotalCount);
+                                            });
                                         });
-                                    });
-                                tasks.Add(task);
+                                    tasks.Add(task);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "处理.osz文件时出错");
                             }
                         }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"处理.osz文件时出错: {ex.Message}");
-                        }
                     }
-                }
         
-                await Task.WhenAll(tasks);
-            });
+                    await Task.WhenAll(tasks);
+                });
     
-            // 等待所有任务完成后，确保剩余的项目也被添加
-            await Task.Delay(200); // 给最后一次更新留出时间
-            _updateTimer.Stop();
+                // 等待所有任务完成后，确保剩余的项目也被添加
+                await Task.Delay(200); // 给最后一次更新留出时间
+                _updateTimer.Stop();
     
-            // 关闭进度窗口
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                _processingWindow?.Close();
-                _processingWindow = null;
-            });
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine(ex);
-        }
-    }
-
-    private void ProcessOszEntry(ZipArchiveEntry entry, string oszFilePath)
-    {
-        try
-        {
-            // 创建一个唯一的标识符，包含.osz文件路径和条目名称
-            string uniqueId = $"{oszFilePath}|{entry.FullName}";
-        
-            // 检查是否已存在于列表中
-            if (OsuFiles.Any(f => f.FilePath != null && f.FilePath.Equals(uniqueId, StringComparison.OrdinalIgnoreCase)))
-                return;
-
-            var item = new OsuFileItem
-            {
-                FileName = entry.Name,
-                FilePath = uniqueId, // 使用唯一标识符
-                Status = "待处理"
-            };
-
-            // 添加到待处理列表
-            lock (_pendingItemsLock)
-            {
-                _pendingItems.Add(item);
+                // 关闭进度窗口
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    _processingWindow?.Close();
+                    _processingWindow = null;
+                });
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "处理文件时发生异常");
+            }
+        }
 
-            // 执行分析方法
-            AnalyzeOszEntry(item, entry);
-        }
-        catch (Exception ex)
+        private void ProcessOszEntry(ZipArchiveEntry entry, string oszFilePath)
         {
-            Console.WriteLine($"处理.osz条目时出错: {ex.Message}");
+            try
+            {
+                // 创建一个唯一的标识符，包含.osz文件路径和条目名称
+                string uniqueId = $"{oszFilePath}|{entry.FullName}";
+        
+                // 检查是否已存在于列表中
+                if (OsuFiles.Any(f => f.FilePath != null && f.FilePath.Equals(uniqueId, StringComparison.OrdinalIgnoreCase)))
+                    return;
+
+                var item = new OsuFileItem
+                {
+                    FileName = entry.Name,
+                    FilePath = uniqueId, // 使用唯一标识符
+                    Status = "待处理"
+                };
+
+                // 添加到待处理列表
+                lock (_pendingItemsLock)
+                {
+                    _pendingItems.Add(item);
+                }
+
+                // 执行分析方法
+                AnalyzeOszEntry(item, entry);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "处理.osz条目时出错");
+            }
         }
-    }
     
     private void AnalyzeOszEntry(OsuFileItem item, ZipArchiveEntry entry)
 {
@@ -481,6 +484,7 @@ namespace krrTools.tools.KrrLV
     }
     catch (Exception ex)
     {
+        _logger.LogError(ex, "分析.osz条目时发生异常");
         Application.Current.Dispatcher.Invoke(() =>
         {
             item.Status = $"错误: {ex.Message}";

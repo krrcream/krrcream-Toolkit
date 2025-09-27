@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using krrTools.Tools.Shared;
 using System.Diagnostics;
 
 namespace krrTools.tools.Shared
