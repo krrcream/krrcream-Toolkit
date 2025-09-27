@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using krrTools.tools.DPtool;
+using OsuParsers.Beatmaps;
 
 namespace krrTools.tools.Shared
 {
@@ -28,20 +29,16 @@ namespace krrTools.tools.Shared
 
         public object? ProcessFileToData(string filePath, IToolOptions options)
         {
-            if (options is not DPToolOptions dpOptions)
-                return null;
-
-            var dp = new DP();
-            return dp.ProcessFileToData(filePath, dpOptions);
+            throw new System.NotImplementedException();
         }
 
-        public OsuParsers.Beatmaps.Beatmap? ProcessBeatmapToData(OsuParsers.Beatmaps.Beatmap inputBeatmap, IToolOptions options)
+        public Beatmap? ProcessBeatmapToData(Beatmap inputBeatmap, IToolOptions options)
         {
             if (options is not DPToolOptions dpOptions)
                 return null;
 
             var dp = new DP();
-            return dp.ProcessBeatmapToData(inputBeatmap, dpOptions);
+            return dp.DPBeatmapToData(inputBeatmap, dpOptions);
         }
     }
 }

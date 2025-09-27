@@ -7,7 +7,6 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using krrTools.tools.Shared;
-using krrTools.Tools.Shared;
 
 namespace krrTools.tools.N2NC
 {
@@ -20,7 +19,7 @@ namespace krrTools.tools.N2NC
                 string valStr;
                 if (values[1] == DependencyProperty.UnsetValue)
                 {
-                    valStr = "0"; // Default value for initialization
+                    valStr = "0";
                 }
                 else
                 {
@@ -35,10 +34,12 @@ namespace krrTools.tools.N2NC
                     return Strings.Localize(labelStr) + ": " + valStr;
                 }
             }
-            else if (values.Length >= 1 && values[0] is string lbl)
+            
+            if (values.Length >= 1 && values[0] is string lbl)
             {
                 return Strings.Localize(lbl);
             }
+            
             return string.Empty;
         }
 

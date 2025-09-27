@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using krrTools.tools.N2NC;
+using krrTools.Tools.Shared;
 
 namespace krrTools.tools.Shared
 {
@@ -30,10 +31,7 @@ namespace krrTools.tools.Shared
             if (options is not N2NCOptions n2ncOptions)
                 return null;
 
-            // Get Beatmap from path using unified scheduler
-            var beatmap = BeatmapScheduler.GetBeatmapFromPath(filePath);
-            if (beatmap == null)
-                return null;
+            var beatmap = FilesHelper.GetManiaBeatmap(filePath);
 
             var converter = new krrTools.tools.N2NC.N2NC { options = n2ncOptions };
             return converter.NToNCToData(beatmap);

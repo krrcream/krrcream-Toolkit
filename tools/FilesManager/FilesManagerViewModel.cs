@@ -94,7 +94,7 @@ namespace krrTools.tools.FilesManager
         [RelayCommand]
         private async Task SetSongsFolderAsync()
         {
-            var selectedPath = FileProcessingHelper.ShowFolderBrowserDialog("Please select the osu! Songs folder");
+            var selectedPath = FilesHelper.ShowFolderBrowserDialog("Please select the osu! Songs folder");
             if (!string.IsNullOrEmpty(selectedPath))
             {
                 await ProcessAsync(selectedPath);
@@ -110,7 +110,7 @@ namespace krrTools.tools.FilesManager
             try
             {
                 // 在后台线程获取文件列表（包括.osz包内osu）
-                var files = await Task.Run(() => FileProcessingHelper.EnumerateOsuFiles([doPath]).ToArray());
+                var files = await Task.Run(() => FilesHelper.EnumerateOsuFiles([doPath]).ToArray());
 
                 ProgressMaximum = files.Length;
                 ProgressText = $"Found {files.Length} files, processing...";

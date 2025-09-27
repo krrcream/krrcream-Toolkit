@@ -267,7 +267,7 @@ namespace krrTools.tools.DPtool
             {
                 try { _viewModel.IsProcessing = true; } catch (Exception ex) { Debug.WriteLine($"Failed to set IsProcessing=true: {ex.Message}"); }
 
-                FileProcessingHelper.ValidateAndRunWithPackaging(filePath, (fp) =>
+                FilesHelper.ValidateAndRunWithPackaging(filePath, (fp) =>
                 {
                     var dp = new DP();
                     string newFilepath = dp.ProcessFile(fp, _viewModel.Options);

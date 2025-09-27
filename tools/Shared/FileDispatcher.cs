@@ -36,7 +36,7 @@ namespace krrTools.Tools.Shared
             if (_previewControls.TryGetValue("Global", out var control))
             {
                 control.CurrentTool = activeTabTag;
-                control.LoadFiles(paths);
+                control.LoadPreview(paths);
                 control.StageFiles(paths);
             }
         }

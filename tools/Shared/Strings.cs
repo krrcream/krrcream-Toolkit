@@ -60,7 +60,6 @@ namespace krrTools.tools.Shared
         
         // LN Transformer
         public const string LevelTooltip = "Density Level (hover to see detailed description)\n-3: Very Low 0: Low 3: Medium 6: High 10: Very High|密度等级（鼠标悬停查看详细说明）\n-3: 极低 0: 低 3: 中等 6: 高 10: 极高";
-
         public const string LevelLabel = "Level {0}|强度 {0}";
         public const string LNPercentageLabel = "LN {0}%|LN占比 {0}%";
         public const string DivideLabel = "Divide 1/{0}|面尾量化 1/{0}";

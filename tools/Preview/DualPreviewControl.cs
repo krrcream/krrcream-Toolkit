@@ -11,7 +11,6 @@ using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using krrTools.tools.Shared;
 using static krrTools.tools.Shared.SharedUIComponents;
-using Wpf.Ui.Controls;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 using Button = Wpf.Ui.Controls.Button;
 using Image = System.Windows.Controls.Image;
@@ -20,8 +19,6 @@ namespace krrTools.tools.Preview;
 
 public class DualPreviewControl : UserControl
 {
-    // Named controls that were previously defined in XAML
-    // initialize with null-forgiving to avoid nullable warnings (they are assigned in ctor)
     private TextBlock PreviewTitle;
     private TextBlock OriginalHint;
     private TextBlock ConvertedHint;
@@ -34,23 +31,20 @@ public class DualPreviewControl : UserControl
     private Border OriginalBorder;
     private Border ConvertedBorder;
     private Image? _sharedBgImage;
-
-    // Event used to broadcast loaded paths to other preview controls so they stay in sync.
-    public static event EventHandler<string[]?>? SharedPathsChanged;
-    // Shared staged paths across previews so Start button/state persists when switching tabs
-    private static string[]? _sharedStagedPaths;
-    public static event EventHandler<string[]?>? StagedPathsChanged;
-
-    private static readonly List<DualPreviewControl> _instances = new List<DualPreviewControl>();
-
-    private string[]? _stagedPaths;
-    public event EventHandler<string[]?>? StartConversionRequested;
-
-    private bool _autoLoadedSample;
-    private string[]? _lastPaths;
+    
     private INotifyPropertyChanged? _observedDc;
     private DateTime _lastRefresh = DateTime.MinValue;
-
+    
+    private static readonly List<DualPreviewControl> Instances = new();
+    private static string[]? _sharedStagedPaths;
+    private string[]? _stagedPaths;
+    private string[]? _lastPaths;
+    private bool _autoLoadedSample;
+    
+    public static event EventHandler<string[]?>? SharedPathsChanged;
+    public static event EventHandler<string[]?>? StagedPathsChanged;
+    public event EventHandler<string[]?>? StartConversionRequested;
+    
     // 列数覆盖：用于转换后的预览（可能改变列数）
     public static readonly DependencyProperty ColumnOverrideProperty = DependencyProperty.Register(
         nameof(ColumnOverride), typeof(int?), typeof(DualPreviewControl),
@@ -156,7 +150,6 @@ public class DualPreviewControl : UserControl
 
     public DualPreviewControl()
     {
-        // Build the UI in code to replace XAML
         AllowDrop = true;
 
         var rootBorder = new Border
@@ -185,7 +178,7 @@ public class DualPreviewControl : UserControl
         };
         Grid.SetRow(_sharedBgImage, 1);
         Grid.SetRowSpan(_sharedBgImage, 3);
-        Grid.SetZIndex(_sharedBgImage, -1);
+        Panel.SetZIndex(_sharedBgImage, -1);
         grid.Children.Add(_sharedBgImage);
 
         // Original Border
@@ -201,8 +194,6 @@ public class DualPreviewControl : UserControl
             ClipToBounds = true
         };
         OriginalBorder.Drop += OnDrop;
-        OriginalBorder.DragEnter += HighlightEnter;
-        OriginalBorder.DragLeave += HighlightLeave;
 
         var obGrid = new Grid();
         obGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -237,8 +228,6 @@ public class DualPreviewControl : UserControl
             ClipToBounds = true
         };
         ConvertedBorder.Drop += OnDrop;
-        ConvertedBorder.DragEnter += HighlightEnter;
-        ConvertedBorder.DragLeave += HighlightLeave;
 
         var cbGrid = new Grid();
         cbGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -266,8 +255,6 @@ public class DualPreviewControl : UserControl
             Padding = new Thickness(12)
         };
         DropZone.Drop += OnDrop;
-        DropZone.DragEnter += HighlightEnter;
-        DropZone.DragLeave += HighlightLeave;
 
         var dzGrid = new Grid();
         var centerTexts = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
@@ -288,35 +275,29 @@ public class DualPreviewControl : UserControl
         rootBorder.Child = grid;
         Content = rootBorder;
 
-        // Wire existing behaviors
         Loaded += DualPreviewControl_Loaded;
         Unloaded += DualPreviewControl_Unloaded;
+        
         DataContextChanged += DualPreviewControl_DataContextChanged;
-
-        // Subscribe to shared path broadcasts so this control follows other previews.
-        SharedPathsChanged += OnSharedPathsChanged;
-        StagedPathsChanged += OnSharedStagedPathsChanged;
-
-        // Subscribe to language changes to update localized UI elements
+        SharedPathsChanged += OnSharedPathToPreviewChanged; // 统一所有控件的预览
+        StagedPathsChanged += OnSharedStagedPathsChanged; // 统一所有控件的暂存路径
         LanguageChanged += OnLanguageChanged;
 
-        // Register instance in a thread-safe manner
-        lock (_instances)
+        lock (Instances)
         {
-            _instances.Add(this);
+            Instances.Add(this);
         }
     }
 
-    // Ensure we unregister instances when collected/unloaded
     private void DualPreviewControl_Unloaded(object? sender, RoutedEventArgs e)
     {
-        lock (_instances)
+        lock (Instances)
         {
-            _instances.Remove(this);
+            Instances.Remove(this);
         }
 
         // Unsubscribe static events to avoid leaks
-        SharedPathsChanged -= OnSharedPathsChanged;
+        SharedPathsChanged -= OnSharedPathToPreviewChanged;
         StagedPathsChanged -= OnSharedStagedPathsChanged;
         LanguageChanged -= OnLanguageChanged;
     }
@@ -334,7 +315,6 @@ public class DualPreviewControl : UserControl
 
     private void UpdateLanguageTexts()
     {
-        // Preview title base
         if (_lastPaths == null || _lastPaths.Length == 0)
         {
             PreviewTitle.Text = IsChineseLanguage() ? "\u9884\u89c8" : "Preview";
@@ -371,34 +351,12 @@ public class DualPreviewControl : UserControl
         }
     }
 
-    // Public static helper to enable/disable drop on all existing preview instances
-    public static void SetGlobalDropEnabled(bool enabled)
-    {
-        DualPreviewControl[] snapshot;
-        lock (_instances)
-        {
-            snapshot = _instances.ToArray();
-        }
-        foreach (var inst in snapshot)
-        {
-            try
-            {
-                inst.SetDropEnabled(enabled);
-            }
-            catch (Exception ex)
-            {
-                AppendPreviewLog($"SetGlobalDropEnabled failed on an instance: {ex.Message}");
-            }
-        }
-    }
-
-    private void OnSharedPathsChanged(object? sender, string[]? paths)
+    private void OnSharedPathToPreviewChanged(object? sender, string[]? paths)
     {
         if (paths == null) return;
         if (_lastPaths != null && paths.Length == _lastPaths.Length && paths.SequenceEqual(_lastPaths)) return;
 
-        // Load without re-broadcasting to avoid loops.
-        LoadFiles(paths, suppressBroadcast: true);
+        LoadPreview(paths, suppressBroadcast: true);
     }
 
     private void OnSharedStagedPathsChanged(object? sender, string[]? paths)
@@ -479,7 +437,7 @@ public class DualPreviewControl : UserControl
         {
             try
             {
-                LoadFiles([samplePath]);
+                LoadPreview([samplePath]);
                 _autoLoadedSample = true;
             }
             catch (Exception ex)
@@ -508,7 +466,7 @@ public class DualPreviewControl : UserControl
         set => SetValue(ProcessorProperty, value);
     }
 
-    public void LoadFiles(string[]? paths, bool suppressBroadcast = false)
+    public void LoadPreview(string[]? paths, bool suppressBroadcast = false)
     {
         if (paths == null || paths.Length == 0) return;
         var osu = paths.Where(p => File.Exists(p) && Path.GetExtension(p).Equals(".osu", StringComparison.OrdinalIgnoreCase)).ToArray();
@@ -613,10 +571,8 @@ public class DualPreviewControl : UserControl
 
         if (osuFiles.Count == 0) return;
 
-        // Load files into preview (this will broadcast to other previews)
-        LoadFiles(osuFiles.ToArray());
+        LoadPreview(osuFiles.ToArray());
 
-        // Stage files for conversion and show start button: broadcast first
         _sharedStagedPaths = osuFiles.ToArray();
         try
         {
@@ -627,7 +583,6 @@ public class DualPreviewControl : UserControl
             AppendPreviewLog("StagedPathsChanged broadcast failed: " + ex.Message);
         }
 
-        // Also attempt a synchronous local update in case static event handlers aren't invoked synchronously
         try
         {
             OnSharedStagedPathsChanged(this, _sharedStagedPaths);
@@ -638,7 +593,6 @@ public class DualPreviewControl : UserControl
         }
     }
 
-    // Public helper so host windows can stage files programmatically (and notify other previews)
     public void StageFiles(string[]? osuFiles)
     {
         if (osuFiles == null || osuFiles.Length == 0) return;
@@ -646,8 +600,7 @@ public class DualPreviewControl : UserControl
         try { OnSharedStagedPathsChanged(this, osuFiles.ToArray()); } catch (Exception ex) { AppendPreviewLog("StageFiles local update failed: " + ex.Message); }
     }
 
-    // Force-apply staged UI locally (sets internal state and updates visuals) — safe to call from host.
-    public void ApplyStagedUI(string[]? osuFiles)
+    public void ApplyDropZoneStagedUI(string[]? osuFiles)
     {
         if (osuFiles == null || osuFiles.Length == 0) return;
         _stagedPaths = osuFiles.ToArray();
@@ -667,42 +620,23 @@ public class DualPreviewControl : UserControl
         UpdateLayout();
     }
 
-    // Public static helper so hosts can broadcast staged files to all preview instances reliably
+    // 公开的静态方法，允许外部广播暂存的路径（例如文件调度器）
     public static void BroadcastStagedPaths(string[]? paths)
     {
-        AppendPreviewLog($"BroadcastStagedPaths invoked, count={paths?.Length ?? 0}");
         try
         {
             StagedPathsChanged?.Invoke(null, paths);
         }
         catch (Exception ex)
         {
-            AppendPreviewLog("BroadcastStagedPaths failed: " + ex.Message);
+            AppendPreviewLog("公开暂存路径失败: " + ex.Message);
         }
     }
 
-    // New: public getter to read currently staged paths (safe copy)
+    // 共享暂存路径
     public static string[]? GetSharedStagedPaths()
     {
         return _sharedStagedPaths?.ToArray();
-    }
-
-
-
-    private void HighlightEnter(object sender, DragEventArgs e)
-    {
-        if (sender is Border b) b.Background = new SolidColorBrush(Color.FromRgb(245, 247, 252));
-    }
-
-    private void HighlightLeave(object sender, DragEventArgs e)
-    {
-        if (sender is Border b)
-        {
-            if (b == OriginalBorder || b == ConvertedBorder)
-                b.Background = new SolidColorBrush(Color.FromRgb(250, 250, 251));
-            else if (b == DropZone)
-                b.Background = new SolidColorBrush(Color.FromRgb(245, 248, 255));
-        }
     }
 
     private void DualPreviewControl_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -722,7 +656,6 @@ public class DualPreviewControl : UserControl
         Refresh();
     }
 
-    // Update the preview title to include the first filename (with count) and truncate if too long.
     private void UpdatePreviewTitleFromPaths(string[]? paths)
     {
         if (paths == null || paths.Length == 0)
@@ -739,7 +672,7 @@ public class DualPreviewControl : UserControl
         PreviewTitle.ToolTip = paths.Length == 1 ? paths[0] : string.Join("\n", paths);
     }
 
-    // Truncate a filename in the middle, attempting to preserve the file extension.
+    // 防止文件名过长，进行中间截断
     private static string TruncateFileNameMiddle(string name, int maxLen)
     {
         if (string.IsNullOrEmpty(name) || name.Length <= maxLen) return name;
@@ -770,7 +703,6 @@ public class DualPreviewControl : UserControl
 
     private void StartConversionButton_Click(object sender, RoutedEventArgs e)
     {
-        // Raise event to notify host (MainWindow) to perform conversion using staged files.
         StartConversionRequested?.Invoke(this, _stagedPaths);
     }
 
@@ -778,22 +710,10 @@ public class DualPreviewControl : UserControl
 
     private static void AppendPreviewLog(string msg)
     {
-        try
-        {
+#if DEBUG
             var line = DateTime.Now.ToString("s") + " " + msg + Environment.NewLine;
             File.AppendAllText(_previewLogPath, line, Encoding.UTF8);
-        }
-        catch
-        {
-            // ignore logging failures
-        }
-    }
-
-    // Public helper to enable/disable the drop zone accepting drops (host windows may call this)
-    public void SetDropEnabled(bool enabled)
-    {
-        DropZone.IsHitTestVisible = enabled;
-        DropZone.Opacity = enabled ? 1.0 : 0.65;
+#endif
     }
 
     public string? CurrentTool { get; set; }

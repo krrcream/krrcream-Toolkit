@@ -9,6 +9,10 @@ using System.Windows.Data;
 using krrTools.tools.Preview;
 using krrTools.tools.Shared;
 using krrTools.Tools.Shared;
+using Wpf.Ui.Controls;
+using MessageBox = System.Windows.MessageBox;
+using MessageBoxButton = System.Windows.MessageBoxButton;
+using TextBlock = System.Windows.Controls.TextBlock;
 
 namespace krrTools.tools.Listener
 {
@@ -62,7 +66,6 @@ namespace krrTools.tools.Listener
 
         private void BuildUI()
         {
-            // Control styling: background and sizing handled by host
             Background = new SolidColorBrush(Color.FromRgb(0xBD, 0xBD, 0xBD));
 
             // Root grid
@@ -85,7 +88,7 @@ namespace krrTools.tools.Listener
 
             var createBtn = SharedUIComponents.CreateStandardButton(Strings.CreateMapLabel);
             createBtn.Background = Brushes.LightBlue;
-            createBtn.Width = 120; // 设置固定宽度以保持按钮大小一致
+            createBtn.Width = 120;
             createBtn.Margin = new Thickness(5);
             createBtn.Click += ConvertButton_Click;
             Grid.SetColumn(createBtn, 1);
@@ -99,7 +102,7 @@ namespace krrTools.tools.Listener
 
             var hotkeyBtn = SharedUIComponents.CreateStandardButton(Strings.SetHotkeyLabel);
             hotkeyBtn.Background = Brushes.LightYellow;
-            hotkeyBtn.Width = 100; // 设置固定宽度以保持按钮大小一致
+            hotkeyBtn.Width = 100;
             hotkeyBtn.Margin = new Thickness(5);
             hotkeyBtn.Click += HotkeySetButton_Click;
             Grid.SetColumn(hotkeyBtn, 3);
@@ -128,7 +131,7 @@ namespace krrTools.tools.Listener
             Grid.SetColumn(songsPathText, 0);
             songsGrid.Children.Add(songsPathText);
             var browseBtn = SharedUIComponents.CreateStandardButton(Strings.BrowseLabel);
-            browseBtn.Width = 80; // 设置固定宽度以保持按钮大小一致
+            browseBtn.Width = 80;
             browseBtn.Padding = new Thickness(10,2,10,2);
             browseBtn.Click += BrowseButton_Click;
             Grid.SetColumn(browseBtn, 1);
@@ -153,8 +156,6 @@ namespace krrTools.tools.Listener
             Grid.SetRow(statusText, 0);
             grpGrid.Children.Add(statusText);
 
-            // DualPreviewControl intentionally omitted per previous XAML comment
-
             group.Content = grpGrid;
             Grid.SetRow(group, 1);
             contentGrid.Children.Add(group);
@@ -162,10 +163,8 @@ namespace krrTools.tools.Listener
             Grid.SetRow(contentGrid, 1);
             root.Children.Add(contentGrid);
 
-            // Set control content
             Content = root;
 
-            // Wire lifecycle events
             Loaded += (_,_) => InitializeHotkey();
             Unloaded += Window_Closing;
         }
@@ -180,7 +179,7 @@ namespace krrTools.tools.Listener
             _viewModel.SaveConfig();
             _viewModel.Cleanup();
             UnregisterHotkey();
-            // mark closed
+
             IsOpen = false;
         }
         
@@ -197,8 +196,8 @@ namespace krrTools.tools.Listener
             }
 
             // Get current active tab from MainWindow
-            var mainWindow = Application.Current?.MainWindow as MainWindow;
-            var activeTab = mainWindow?.TabControl.SelectedItem as TabItem;
+            var mainWindow = Application.Current.MainWindow as MainWindow;
+            var activeTab = mainWindow?.TabControl.SelectedItem as TabViewItem;
             var activeTag = activeTab?.Tag as string;
 
             if (string.IsNullOrEmpty(activeTag))
@@ -305,7 +304,7 @@ namespace krrTools.tools.Listener
 
                      var arr = new[] { osuPath };
 
-                     // 广播到所有预览并尝试把文件加载进主窗口的预览控件（尽量一次性处理，减少多层 try/catch）
+                     // 广播到所有预览并尝试把文件加载进主窗口的预览控件
                      DualPreviewControl.BroadcastStagedPaths(arr);
 
                      if (Application.Current?.MainWindow is MainWindow main)
@@ -313,23 +312,22 @@ namespace krrTools.tools.Listener
                          // Use null-guards and log any exceptions at top level
                          if (main.N2NCPreview != null)
                          {
-                             main.N2NCPreview.LoadFiles(arr, suppressBroadcast: true);
-                             main.N2NCPreview.ApplyStagedUI(arr);
+                             main.N2NCPreview.LoadPreview(arr, suppressBroadcast: true);
+                             main.N2NCPreview.ApplyDropZoneStagedUI(arr);
                          }
 
                          if (main.LNPreview != null)
                          {
-                             main.LNPreview.LoadFiles(arr, suppressBroadcast: true);
-                             main.LNPreview.ApplyStagedUI(arr);
+                             main.LNPreview.LoadPreview(arr, suppressBroadcast: true);
+                             main.LNPreview.ApplyDropZoneStagedUI(arr);
                          }
 
                          if (main.DPPreview != null)
                          {
-                             main.DPPreview.LoadFiles(arr, suppressBroadcast: true);
-                             main.DPPreview.ApplyStagedUI(arr);
+                             main.DPPreview.LoadPreview(arr, suppressBroadcast: true);
+                             main.DPPreview.ApplyDropZoneStagedUI(arr);
                          }
                      }
-                     // Removed: DualPreviewControl.SetGlobalDropEnabled(false);
                  }
                  catch (Exception ex)
                  {

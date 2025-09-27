@@ -135,30 +135,6 @@ namespace krrTools.Tools.OsuParser
             }
             return BPM;
         }
-        
-        public double GetBPM(Beatmap beatmap)
-        {
-            var tp = beatmap.TimingPoints
-                .Where(p => p.BeatLength > 0)
-                .OrderBy(p => p.Offset)
-                .ToList();
-            if (tp.Count == 0)
-                return 0;
-
-            double maxDuration = -1;
-            var longestPoint = tp[0];
-            for (int i = 0; i < tp.Count - 1; i++)
-            {
-                double duration = tp[i + 1].Offset - tp[i].Offset;
-                if (duration > maxDuration)
-                {
-                    maxDuration = duration;
-                    longestPoint = tp[i];
-                }
-            }
-
-            return Math.Round(60000 / longestPoint.BeatLength, 2);
-        }
 
         public static string? AddNewBeatmapToSongFolder(string newBeatmapFile, bool openOsz = false)
         {
@@ -249,8 +225,8 @@ namespace krrTools.Tools.OsuParser
             // return the created osz path as success indicator
             return fullOutputPath;
         }
-                
-        public Dictionary<double, double> GetBeatlengthList(Beatmap beatmap)
+
+        public Dictionary<double, double> GetBeatLengthList(Beatmap beatmap)
         {
             var tp = beatmap.TimingPoints
                 .Where(p => p.BeatLength > 0)
@@ -268,7 +244,7 @@ namespace krrTools.Tools.OsuParser
             return beatLengthDict;
         }
 
-        public List<double> GetbeatlengthAxis(Dictionary<double, double> beatLengthDict, double mainBPM,
+        public List<double> GetbeatLengthAxis(Dictionary<double, double> beatLengthDict, double mainBPM,
             List<int> timeAxis)
         {
             double defaultLength = 60000 / mainBPM;
@@ -293,9 +269,9 @@ namespace krrTools.Tools.OsuParser
                 }
         
                 // 处理边界情况：时间点在最后一个时间点之后
-                if (currentTime >= sortedKeys[sortedKeys.Count - 1])
+                if (currentTime >= sortedKeys[^1])
                 {
-                    bLAxis[i] = beatLengthDict[sortedKeys[sortedKeys.Count - 1]];
+                    bLAxis[i] = beatLengthDict[sortedKeys[^1]];
                     continue;
                 }
         

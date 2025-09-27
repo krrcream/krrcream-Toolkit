@@ -13,7 +13,7 @@ namespace krrTools.tools.N2NC
         {
             try
             {
-                if (!FileProcessingHelper.EnsureIsOsuFile(filePath)) return null;
+                if (!FilesHelper.EnsureIsOsuFile(filePath)) return null;
 
                 var converter = new N2NC { options = options };
                 string newFilepath = converter.NToNC(filePath);

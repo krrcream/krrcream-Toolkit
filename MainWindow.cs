@@ -35,38 +35,40 @@ public class MainWindow : FluentWindow
 {
     private readonly Dictionary<string, ContentControl> _settingsHosts = new();
     private readonly Dictionary<string, DualPreviewControl> _previewControls = new();
-    private TabControl MainTabControl = null!;
-    private Button? GlobalOsuListenerButton;
-    public readonly FileDispatcher? _fileDispatcher;
+
+
+
     private ContentControl? _currentSettingsContainer;
     private Grid _mainGrid = null!;
-
-    public FileDispatcher? FileDispatcher => _fileDispatcher;
-    public TabControl TabControl => MainTabControl;
-    private Slider? _alphaSlider;
-    private ListenerViewModel? _listenerVM;
-
-    private Window? _currentListenerWindow;
+    private TabControl MainTabControl = null!;
+    private Button GlobalOsuListenerButton = null!;
     private ToggleSwitch _realTimeToggle = null!;
     
-    // 工具调度器
-    public ToolScheduler ToolScheduler { get; } = new();
-
+    private Slider? _alphaSlider;
+    private ListenerViewModel? _listenerVM;
+    private Window? _currentListenerWindow;
+    
     // 跟踪选项卡拖动/分离
     private Point _dragStartPoint;
-    private TabItem? _draggedTab;
+    private TabViewItem? _draggedTab;
 
     private N2NCViewModel? _converterVM;
     private DPToolViewModel? _dpVM;
     private LNTransformerViewModel? _lnVM;
     private DateTime _lastPreviewRefresh = DateTime.MinValue;
-    private string? _internalOsuPath;
     
+    private string? _internalOsuPath;
     private byte _currentAlpha = 102;
     private readonly byte[] _alphaCycle = [0x22, 0x33, 0x44, 0x55, 0x66, 0x88, 0xAA, 0xCC, 0xEE];
     private int _alphaIndex;
-
     private bool _realTimePreview;
+
+    public readonly FileDispatcher _fileDispatcher;
+    public TabControl TabControl => MainTabControl;
+    public FileDispatcher FileDispatcher => _fileDispatcher;
+    
+    // 工具调度器
+    private ToolScheduler ToolScheduler { get; } = new();
 
     private bool RealTimePreview
     {
@@ -82,15 +84,8 @@ public class MainWindow : FluentWindow
         }
     }
     
-    private void SaveRealTimePreview()
-    {
-        OptionsManager.SetRealTimePreview(_realTimePreview);
-    }
-
-    private void LoadRealTimePreview()
-    {
-        _realTimePreview = OptionsManager.GetRealTimePreview();
-    }
+    private void SaveRealTimePreview() => OptionsManager.SetRealTimePreview(_realTimePreview);
+    private void LoadRealTimePreview() => _realTimePreview = OptionsManager.GetRealTimePreview();
 
     private void DebouncedRefresh(DualPreviewControl control, int ms = 150)
     {
@@ -116,7 +111,7 @@ public class MainWindow : FluentWindow
     public DualPreviewControl? LNPreview => _previewControls.GetValueOrDefault(OptionsManager.LNToolName);
     public DualPreviewControl? DPPreview => _previewControls.GetValueOrDefault(OptionsManager.DPToolName);
     public DualPreviewControl? KRRLNPreview => _previewControls.GetValueOrDefault(OptionsManager.KRRLNToolName);
-    
+
     public MainWindow()
     {
         LoadRealTimePreview();
@@ -157,7 +152,6 @@ public class MainWindow : FluentWindow
 
     private void BuildUI()
     {
-        // 根 Grid - 改为4行
         var root = new Grid()
         {
             RowDefinitions =
@@ -175,25 +169,17 @@ public class MainWindow : FluentWindow
         root.Children.Add(titleBar);
 
         // 选项卡TabControl - 只显示选项卡头
-        MainTabControl = new TabControl
+        MainTabControl = new TabView
         {
-            Background = new VisualBrush(),
+            Background = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)),
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
             VerticalContentAlignment = VerticalAlignment.Stretch,
             ItemsPanel = new ItemsPanelTemplate(new FrameworkElementFactory(typeof(CustomTabPanel))),
-            Height = 32 // 只显示选项卡头
+            Height = 30 // 只显示选项卡头
         };
         MainTabControl.PreviewMouseLeftButtonDown += TabControl_PreviewMouseLeftButtonDown;
         MainTabControl.PreviewMouseMove += TabControl_PreviewMouseMove;
         MainTabControl.SelectionChanged += MainTabControl_SelectionChanged;
-
-        // 尝试从全局主题应用现代 TabItem 样式（浏览器标签页风格），若不可用则忽略
-        var appRes = Application.Current?.Resources;
-        var modernKey = nameof(ResourceKeys.ModernTabItemStyle);
-        if (appRes != null && appRes.Contains(modernKey) && appRes[modernKey] is Style tabStyle)
-            MainTabControl.ItemContainerStyle = tabStyle;
-
-        if (appRes != null) SharedUIComponents.ApplyDefaultControlStyles(appRes);
 
         Grid.SetRow(MainTabControl, 1);
         Grid.SetColumnSpan(MainTabControl, 2); // 跨越两列
@@ -223,7 +209,7 @@ public class MainWindow : FluentWindow
 
         // 预览器
         BuildPreviewTabs();
-        BuildSimpleTabs();
+        BuildNoPreveiwTabs();
 
         // 全局预览器
         var globalPreview = new DualPreviewControl { Margin = new Thickness(8), Visibility = Visibility.Collapsed };
@@ -290,6 +276,7 @@ public class MainWindow : FluentWindow
         };
     }
 
+    #region 创建带预览器选项卡
     private void BuildPreviewTabs()
     {
         var previewConfigs = new[] { OptionsManager.N2NCToolName,OptionsManager.KRRLNToolName ,OptionsManager.LNToolName, OptionsManager.DPToolName };
@@ -305,13 +292,11 @@ public class MainWindow : FluentWindow
             };
             var headerLabel = SharedUIComponents.CreateHeaderLabel(headerText);
             headerLabel.FontSize = 14;
-            var tab = new TabItem
+            var tab = new TabViewItem
             {
                 Header = headerLabel,
                 Tag = cfg,
                 Width = double.NaN,
-                MinWidth = 0,
-                MaxWidth = 120,
                 HorizontalAlignment = HorizontalAlignment.Left
             };
             var settingsHost = new ContentControl();
@@ -323,9 +308,10 @@ public class MainWindow : FluentWindow
             MainTabControl.Items.Add(tab);
         }
     }
-
-    // Create simple tool tabs with only settings host
-    private void BuildSimpleTabs()
+    #endregion
+    
+    #region 创建简单选项卡（无预览器）
+    private void BuildNoPreveiwTabs()
     {
         var simpleConfigs = new[]
         {
@@ -334,16 +320,14 @@ public class MainWindow : FluentWindow
         };
         foreach (var cfg in simpleConfigs)
         {
-            var headerText = cfg.ToolKey == OptionsManager.LVCalToolName ? "LV Calculator" : Strings.TabFilesManager;
+            var headerText = cfg.ToolKey == OptionsManager.LVCalToolName ? Strings.TabKrrLV : Strings.TabFilesManager;
             var headerLabel = SharedUIComponents.CreateHeaderLabel(headerText);
             headerLabel.FontSize = 14;
-            var tab = new TabItem
+            var tab = new TabViewItem
             {
                 Header = headerLabel,
                 Tag = cfg.ToolKey,
-                Width = double.NaN, // Auto width
-                MinWidth = 0,
-                MaxWidth = 120, // 限制最大宽度
+                Width = double.NaN,
                 HorizontalAlignment = HorizontalAlignment.Left
             };
             var settingsHost = new ContentControl();
@@ -356,7 +340,8 @@ public class MainWindow : FluentWindow
             MainTabControl.Items.Add(tab);
         }
     }
-
+    #endregion
+    
     private void SetupPreviewProcessors()
     {
         _internalOsuPath = ResolveInternalSample();
@@ -404,11 +389,11 @@ public class MainWindow : FluentWindow
         {
             var arr = new[] { _internalOsuPath };
             if (_previewControls.TryGetValue(OptionsManager.N2NCToolName, out var convControl))
-                convControl.LoadFiles(arr, true);
+                convControl.LoadPreview(arr, true);
             if (_previewControls.TryGetValue(OptionsManager.LNToolName, out var lnControl))
-                lnControl.LoadFiles(arr, true);
+                lnControl.LoadPreview(arr, true);
             if (_previewControls.TryGetValue(OptionsManager.DPToolName, out var dpControl))
-                dpControl.LoadFiles(arr, true);
+                dpControl.LoadPreview(arr, true);
         }
     }
 
@@ -479,7 +464,7 @@ public class MainWindow : FluentWindow
             // 清空原窗口内容，使元素只有一个父级
             conv.Content = null;
         }
-        
+
         // KRRLNTransformer 嵌入
         _krrLnTransformerInstance = new KRRLNTransformerControl();
         var krrLn = _krrLnTransformerInstance;
@@ -555,7 +540,6 @@ public class MainWindow : FluentWindow
             DPSettingsHost.Content = dpContent;
             dp.Content = null;
         }
-        
 
         // LV Calculator 嵌入
         var lvWin = new KrrLVControl();
@@ -628,18 +612,18 @@ public class MainWindow : FluentWindow
             return;
         }
 
-        _fileDispatcher?.LoadFiles(allOsu.ToArray());
+        _fileDispatcher.LoadFiles(allOsu.ToArray());
     }
 
     // 选项卡拖动/分离处理 - 克隆内容用于分离窗口，保持原选项卡不变
     private void TabControl_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         _dragStartPoint = e.GetPosition(this);
-        // 查找鼠标下的 TabItem
+        // 查找鼠标下的 Tab
         var source = e.OriginalSource as DependencyObject;
-        while (source != null && !(source is TabItem)) source = VisualTreeHelper.GetParent(source);
+        while (source != null && !(source is TabViewItem)) source = VisualTreeHelper.GetParent(source);
 
-        _draggedTab = source as TabItem;
+        _draggedTab = source as TabViewItem;
     }
 
     private void TabControl_PreviewMouseMove(object sender, MouseEventArgs e)
@@ -656,7 +640,7 @@ public class MainWindow : FluentWindow
         }
     }
 
-    private void DetachTab(TabItem tab)
+    private void DetachTab(TabViewItem tab)
     {
         if (!MainTabControl.Items.Contains(tab)) return;
 
@@ -780,7 +764,7 @@ public class MainWindow : FluentWindow
             .ToArray();
         if (toProcess.Length == 0) return;
 
-        _fileDispatcher?.ConvertFiles(toProcess, OptionsManager.N2NCToolName);
+        _fileDispatcher.ConvertFiles(toProcess, OptionsManager.N2NCToolName);
     }
 
     private void LNPreview_StartConversionRequested(object? sender, string[]? paths)
@@ -793,7 +777,7 @@ public class MainWindow : FluentWindow
             .ToArray();
         if (toProcess.Length == 0) return;
 
-        _fileDispatcher?.ConvertFiles(toProcess, OptionsManager.LNToolName);
+        _fileDispatcher.ConvertFiles(toProcess, OptionsManager.LNToolName);
     }
 
     private void DPPreview_StartConversionRequested(object? sender, string[]? paths)
@@ -806,7 +790,7 @@ public class MainWindow : FluentWindow
             .ToArray();
         if (toProcess.Length == 0) return;
 
-        _fileDispatcher?.ConvertFiles(toProcess, OptionsManager.DPToolName);
+        _fileDispatcher.ConvertFiles(toProcess, OptionsManager.DPToolName);
     }
 
     private void GlobalOsuListenerButton_Click(object sender, RoutedEventArgs e)
@@ -818,7 +802,7 @@ public class MainWindow : FluentWindow
             return;
         }
 
-        var selectedTab = MainTabControl.SelectedItem as TabItem;
+        var selectedTab = MainTabControl.SelectedItem as TabViewItem;
 
         object? source = null;
         var sourceId = 0;
@@ -932,7 +916,7 @@ public class MainWindow : FluentWindow
                     bgBitmap.UriSource = new Uri(bgPath);
                     bgBitmap.CacheOption = BitmapCacheOption.OnLoad;
                     bgBitmap.EndInit();
-                    if (this.Background is ImageBrush ib)
+                    if (Background is ImageBrush ib)
                     {
                         ib.ImageSource = bgBitmap;
                     }
@@ -942,18 +926,18 @@ public class MainWindow : FluentWindow
                 DualPreviewControl.BroadcastStagedPaths(arr);
                 if (N2NCPreview != null)
                 {
-                    N2NCPreview.LoadFiles(arr, suppressBroadcast: true);
-                    N2NCPreview.ApplyStagedUI(arr);
+                    N2NCPreview.LoadPreview(arr, suppressBroadcast: true);
+                    N2NCPreview.ApplyDropZoneStagedUI(arr);
                 }
                 if (LNPreview != null)
                 {
-                    LNPreview.LoadFiles(arr, suppressBroadcast: true);
-                    LNPreview.ApplyStagedUI(arr);
+                    LNPreview.LoadPreview(arr, suppressBroadcast: true);
+                    LNPreview.ApplyDropZoneStagedUI(arr);
                 }
                 if (DPPreview != null)
                 {
-                    DPPreview.LoadFiles(arr, suppressBroadcast: true);
-                    DPPreview.ApplyStagedUI(arr);
+                    DPPreview.LoadPreview(arr, suppressBroadcast: true);
+                    DPPreview.ApplyDropZoneStagedUI(arr);
                 }
             }
             catch (Exception ex)

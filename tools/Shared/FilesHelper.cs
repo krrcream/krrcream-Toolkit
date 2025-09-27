@@ -1,17 +1,17 @@
 ﻿using System;
-using System.IO;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Diagnostics;
-using krrTools.tools.Listener;
-using krrTools.Tools.OsuParser;
-using OsuParsers.Beatmaps;
-using OsuParsers.Decoders;
-using System.Collections.Generic;
+using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using krrTools.tools.Listener;
 using System.Windows.Forms;
+using krrTools.Tools.OsuParser;
 using krrTools.tools.Shared;
+using OsuParsers.Beatmaps;
+using OsuParsers.Decoders;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
@@ -19,58 +19,8 @@ using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 
 namespace krrTools.Tools.Shared
 {
-    public static class FileProcessingHelper
+    public static class FilesHelper
     {
-        public static Beatmap LoadValidatedBeatmap(string filePath)
-        {
-            if (!EnsureIsOsuFile(filePath))
-            {
-                throw new FileNotFoundException($"Invalid or missing .osu file: {filePath}");
-            }
-
-            var beatmap = BeatmapDecoder.Decode(filePath);
-            if (beatmap == null)
-                throw new InvalidDataException("Failed to decode beatmap file.");
-
-            if (beatmap.GeneralSection.ModeId != 3)
-                throw new ArgumentException("Beatmap is not in Mania mode (ModeId != 3)");
-
-            return beatmap;
-        }
-
-        public static void ValidateAndRun(string filePath, Action<string> action, Action? onCompleted = null, bool showSuccessMessage = true)
-        {
-            if (!EnsureIsOsuFile(filePath)) return;
-
-            Task.Run(() =>
-            {
-                try
-                {
-                    action(filePath);
-                    Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
-                    {
-                        if (showSuccessMessage)
-                        {
-                            MessageBoxResultHelper.TryShowSuccess(SharedUIComponents.IsChineseLanguage());
-                        }
-                        onCompleted?.Invoke();
-                    }));
-                }
-                catch (Exception ex)
-                {
-                    // Keep user-facing error message; internal logging only via Debug
-                    Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
-                    {
-                        MessageBox.Show((SharedUIComponents.IsChineseLanguage() ? "处理文件时出错: " : "Error processing file: ") + ex.Message,
-                            SharedUIComponents.IsChineseLanguage() ? "处理错误|Processing Error" : "Processing Error|处理错误",
-                            MessageBoxButton.OK, MessageBoxImage.Error);
-                        onCompleted?.Invoke();
-                    }));
-                    Debug.WriteLine($"ValidateAndRun processing error: {ex.Message}");
-                }
-            });
-        }
-
         public static void ValidateAndRunWithPackaging(string filePath, Func<string, string?> processor, bool openOsz = false, Action? onCompleted = null, bool showSuccessMessage = true)
         {
             if (!EnsureIsOsuFile(filePath)) return;
@@ -126,27 +76,6 @@ namespace krrTools.Tools.Shared
             });
         }
 
-        public static bool EnsureIsOsuFile(string filePath)
-         {
-             if (!File.Exists(filePath))
-             {
-                 MessageBox.Show((SharedUIComponents.IsChineseLanguage() ? "未找到文件: " : "File not found: ") + filePath,
-                     SharedUIComponents.IsChineseLanguage() ? "文件未找到|File Not Found" : "File Not Found|文件未找到",
-                     MessageBoxButton.OK, MessageBoxImage.Warning);
-                 return false;
-             }
-
-             if (!string.Equals(Path.GetExtension(filePath), ".osu", StringComparison.OrdinalIgnoreCase))
-             {
-                 MessageBox.Show(SharedUIComponents.IsChineseLanguage() ? "所选文件不是有效的.osu文件" : "The selected file is not a valid .osu file",
-                     SharedUIComponents.IsChineseLanguage() ? "无效文件|Invalid File" : "Invalid File|无效文件",
-                     MessageBoxButton.OK, MessageBoxImage.Warning);
-                 return false;
-             }
-
-             return true;
-         }
-
         /// <summary>
         /// Shows a dialog to select a file or folder.
         /// </summary>
@@ -176,9 +105,29 @@ namespace krrTools.Tools.Shared
         }
 
         /// <summary>
-        /// Counts the number of .osu files in the given paths, including within .osz archives.
+        /// 弹出选择文件夹对话框
         /// </summary>
-        public static int CountOsuFiles(IEnumerable<string> paths)
+        public static string? ShowFolderBrowserDialog(string description)
+        {
+            using var dialog = new FolderBrowserDialog();
+            dialog.Description = description;
+            dialog.RootFolder = Environment.SpecialFolder.MyComputer;
+            dialog.ShowNewFolderButton = true;
+            return dialog.ShowDialog() == DialogResult.OK ? dialog.SelectedPath : null;
+        }
+        
+        /// <summary>
+        /// 判断文件路径是否为有效的 .osu 文件
+        /// </summary>
+        public static bool EnsureIsOsuFile(string? filePath)
+        {
+            return !string.IsNullOrEmpty(filePath) && File.Exists(filePath) && Path.GetExtension(filePath).Equals(".osu", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// 统计路径集合中的 .osu 文件数量（包括 .osz 压缩包）
+        /// </summary>
+        public static int GetOsuFilesCount(IEnumerable<string> paths)
         {
             int count = 0;
             foreach (var path in paths)
@@ -193,8 +142,7 @@ namespace krrTools.Tools.Shared
                         try
                         {
                             using var archive = ZipFile.OpenRead(path);
-                            count += archive.Entries.Count(e =>
-                                e.Name.EndsWith(".osu", StringComparison.OrdinalIgnoreCase));
+                            count += archive.Entries.Count(e => e.Name.EndsWith(".osu", StringComparison.OrdinalIgnoreCase));
                         }
                         catch
                         {
@@ -211,7 +159,7 @@ namespace krrTools.Tools.Shared
         }
 
         /// <summary>
-        /// Enumerates .osu files in given paths, including within directories.
+        /// 遍历路径集合中的所有 .osu 文件
         /// </summary>
         public static IEnumerable<string> EnumerateOsuFiles(IEnumerable<string> paths)
         {
@@ -228,17 +176,52 @@ namespace krrTools.Tools.Shared
                 }
             }
         }
+        
+        public static Beatmap GetManiaBeatmap(string? filePath)
+        {
+            if (!EnsureIsOsuFile(filePath))
+                throw new FileNotFoundException($"Invalid or missing .osu file: {filePath}");
+            
+            var beatmap = BeatmapDecoder.Decode(filePath);
+            
+            if (beatmap.GeneralSection.ModeId != 3)
+                throw new ArgumentException("Beatmap is not in Mania mode (ModeId != 3)");
+            
+            return beatmap;
+        }
 
         /// <summary>
-        /// Shows a folder browser dialog.
+        /// 验证并异步处理 .osu 文件
         /// </summary>
-        public static string? ShowFolderBrowserDialog(string description)
+        public static void ValidateAndRun(string filePath, Action<string> action, Action? onCompleted = null, bool showSuccessMessage = true)
         {
-            using var dialog = new FolderBrowserDialog();
-            dialog.Description = description;
-            dialog.RootFolder = Environment.SpecialFolder.MyComputer;
-            dialog.ShowNewFolderButton = true;
-            return dialog.ShowDialog() == DialogResult.OK ? dialog.SelectedPath : null;
+            if (!FilesHelper.EnsureIsOsuFile(filePath)) return;
+            Task.Run(() =>
+            {
+                try
+                {
+                    action(filePath);
+                    Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                    {
+                        if (showSuccessMessage)
+                        {
+                            MessageBoxResultHelper.TryShowSuccess(SharedUIComponents.IsChineseLanguage());
+                        }
+                        onCompleted?.Invoke();
+                    }));
+                }
+                catch (Exception ex)
+                {
+                    Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                    {
+                        MessageBox.Show((SharedUIComponents.IsChineseLanguage() ? "处理文件时出错: " : "Error processing file: ") + ex.Message,
+                            SharedUIComponents.IsChineseLanguage() ? "处理错误|Processing Error" : "Processing Error|处理错误",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                        onCompleted?.Invoke();
+                    }));
+                    Debug.WriteLine($"ValidateAndRun processing error: {ex.Message}");
+                }
+            });
         }
     }
 }
