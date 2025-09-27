@@ -302,11 +302,11 @@ public static class UIComponents
         }
 
         themeComboBox.SelectionChanged += (_, _) => { 
-            Application.Current.Dispatcher.BeginInvoke(() => ApplyThemeSettings(accentSwitch.IsChecked == true));
+            ApplyThemeSettings(accentSwitch.IsChecked == true);
             if (themeComboBox.SelectedItem is ApplicationTheme theme) SharedUIComponents.SetSavedApplicationTheme(theme.ToString());
         };
         backdropComboBox.SelectionChanged += (_, _) => { 
-            Application.Current.Dispatcher.BeginInvoke(() => ApplyThemeSettings(accentSwitch.IsChecked == true));
+            ApplyThemeSettings(accentSwitch.IsChecked == true);
             if (backdropComboBox.SelectedItem is WindowBackdropType backdrop) SharedUIComponents.SetSavedWindowBackdropType(backdrop.ToString());
         };
         accentSwitch.Checked += (_, _) => { 
@@ -327,7 +327,8 @@ public static class UIComponents
 
         void UpdateLanguageSwitchText()
         {
-            langSwitch.Content = SharedUIComponents.IsChineseLanguage() ? "EN" : "中文";
+            langSwitch.Content = Strings.Localize(Strings.SettingsMenuLanguage);
+            langSwitch.InvalidateVisual();
         }
 
         UpdateLanguageSwitchText();
@@ -365,8 +366,11 @@ public static class UIComponents
                 ApplicationTheme.HighContrast => Strings.Localize(Strings.ThemeHighContrast),
                 _ => theme.ToString()
             };
-            var themeItem = new System.Windows.Controls.MenuItem { Header = themeHeader, IsCheckable = true };
-            themeItem.IsChecked = theme == (themeComboBox.SelectedItem as ApplicationTheme? ?? ApplicationTheme.Light);
+            var themeItem = new System.Windows.Controls.MenuItem
+            {
+                Header = themeHeader, IsCheckable = true,
+                IsChecked = theme == (themeComboBox.SelectedItem as ApplicationTheme? ?? ApplicationTheme.Light)
+            };
             themeItem.Click += (s, e) => {
                 // 取消其他主题项的选中
                 foreach (var item in themeMenuItem.Items)
@@ -393,8 +397,11 @@ public static class UIComponents
                 WindowBackdropType.Tabbed => Strings.Localize(Strings.BackdropTabbed),
                 _ => backdrop.ToString()
             };
-            var backdropItem = new System.Windows.Controls.MenuItem { Header = backdropHeader, IsCheckable = true };
-            backdropItem.IsChecked = backdrop == (backdropComboBox.SelectedItem as WindowBackdropType? ?? WindowBackdropType.Mica);
+            var backdropItem = new System.Windows.Controls.MenuItem
+            {
+                Header = backdropHeader, IsCheckable = true,
+                IsChecked = backdrop == (backdropComboBox.SelectedItem as WindowBackdropType? ?? WindowBackdropType.Mica)
+            };
             backdropItem.Click += (s, e) => {
                 // 取消其他背景效果项的选中
                 foreach (var item in backdropMenuItem.Items)
@@ -410,8 +417,11 @@ public static class UIComponents
         settingsMenu.Items.Add(backdropMenuItem);
 
         // 强调色开关
-        var accentMenuItem = new System.Windows.Controls.MenuItem { Header = Strings.Localize(Strings.UpdateAccent), IsCheckable = true };
-        accentMenuItem.IsChecked = accentSwitch.IsChecked == true;
+        var accentMenuItem = new System.Windows.Controls.MenuItem
+        {
+            Header = Strings.Localize(Strings.UpdateAccent), IsCheckable = true,
+            IsChecked = accentSwitch.IsChecked == true
+        };
         accentMenuItem.Click += (s, e) => {
             accentSwitch.IsChecked = !accentSwitch.IsChecked;
         };
@@ -511,6 +521,9 @@ public static class UIComponents
         
         // 清理事件（当footer卸载时）
         footer.Unloaded += (s, e) => SharedUIComponents.LanguageChanged -= UpdateMenuItemTexts;
+        
+        // 应用初始主题设置
+        ApplyThemeSettings(accentSwitch.IsChecked == true);
         
         return footer;
     }

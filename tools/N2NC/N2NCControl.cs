@@ -146,8 +146,7 @@ namespace krrTools.tools.N2NC
 
             var labelRow = new Grid();
             labelRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            var targetLabel = SharedUIComponents.CreateStandardTextBlock();
-            targetLabel.FontWeight = FontWeights.Bold;
+            var targetLabel = SharedUIComponents.CreateHeaderLabel("");
             targetLabel.Margin = new Thickness(0, 0, 8, 0);
             Grid.SetColumn(targetLabel, 0);
             labelRow.Children.Add(targetLabel);
@@ -178,8 +177,7 @@ namespace krrTools.tools.N2NC
             // 创建标签行：标签 + 数值 合并为一个标签显示 "标签: 值"
             var labelRow = new Grid();
             labelRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            var maxLabel = SharedUIComponents.CreateStandardTextBlock();
-            maxLabel.FontWeight = FontWeights.Bold;
+            var maxLabel = SharedUIComponents.CreateHeaderLabel("");
             maxLabel.Margin = new Thickness(0, 0, 8, 0);
             Grid.SetColumn(maxLabel, 0);
             labelRow.Children.Add(maxLabel);
@@ -211,8 +209,7 @@ namespace krrTools.tools.N2NC
             // 创建标签行：标签 + 数值 合并为一个标签显示 "标签: 值"
             var labelRow = new Grid();
             labelRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            var minLabel = SharedUIComponents.CreateStandardTextBlock();
-            minLabel.FontWeight = FontWeights.Bold;
+            var minLabel = SharedUIComponents.CreateHeaderLabel("");
             minLabel.Margin = new Thickness(0, 0, 8, 0);
             Grid.SetColumn(minLabel, 0);
             labelRow.Children.Add(minLabel);
@@ -244,8 +241,7 @@ namespace krrTools.tools.N2NC
             // 创建标签行：标签 + 数值
             var labelRow = new Grid();
             labelRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            var transformLabel = SharedUIComponents.CreateStandardTextBlock();
-            transformLabel.FontWeight = FontWeights.Bold;
+            var transformLabel = SharedUIComponents.CreateHeaderLabel("");
             transformLabel.Margin = new Thickness(0, 0, 8, 0);
             Grid.SetColumn(transformLabel, 0);
             labelRow.Children.Add(transformLabel);
