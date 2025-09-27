@@ -40,7 +40,7 @@ public class MainWindow : FluentWindow
 
     private ContentControl? _currentSettingsContainer;
     private Grid _mainGrid = null!;
-    private TabControl MainTabControl = null!;
+    private TabView MainTabControl = null!;
     private Button GlobalOsuListenerButton = null!;
     private ToggleSwitch _realTimeToggle = null!;
     
@@ -64,7 +64,7 @@ public class MainWindow : FluentWindow
     private bool _realTimePreview;
 
     public readonly FileDispatcher _fileDispatcher;
-    public TabControl TabControl => MainTabControl;
+    public TabView TabControl => MainTabControl;
     public FileDispatcher FileDispatcher => _fileDispatcher;
     
     // 工具调度器
@@ -110,7 +110,7 @@ public class MainWindow : FluentWindow
     public DualPreviewControl? N2NCPreview => _previewControls.GetValueOrDefault(OptionsManager.N2NCToolName);
     public DualPreviewControl? LNPreview => _previewControls.GetValueOrDefault(OptionsManager.LNToolName);
     public DualPreviewControl? DPPreview => _previewControls.GetValueOrDefault(OptionsManager.DPToolName);
-    public DualPreviewControl? KRRLNPreview => _previewControls.GetValueOrDefault(OptionsManager.KRRLNToolName);
+    public N2NCControl ConvWindowInstance => _convWindowInstance;
 
     public MainWindow()
     {
@@ -140,12 +140,11 @@ public class MainWindow : FluentWindow
         LoadToolSettingsHosts();
         SetupPreviewProcessors();
         _fileDispatcher = new FileDispatcher(_previewControls, MainTabControl);
-        if (_previewControls.TryGetValue(OptionsManager.N2NCToolName, out var cp))
-            cp.StartConversionRequested += ConverterPreview_StartConversionRequested;
-        if (_previewControls.TryGetValue(OptionsManager.LNToolName, out var lp))
-            lp.StartConversionRequested += LNPreview_StartConversionRequested;
-        if (_previewControls.TryGetValue(OptionsManager.DPToolName, out var dp))
-            dp.StartConversionRequested += DPPreview_StartConversionRequested;
+        // Connect conversion events to the global preview control
+        if (_previewControls.TryGetValue("Global", out var globalPreview))
+        {
+            globalPreview.StartConversionRequested += GlobalPreview_StartConversionRequested;
+        }
 
         Loaded += MainWindow_Loaded;
     }
@@ -253,6 +252,7 @@ public class MainWindow : FluentWindow
         ToolScheduler.RegisterTool(new N2NCTool());
         ToolScheduler.RegisterTool(new LNTransformerTool());
         ToolScheduler.RegisterTool(new DPTool());
+        ToolScheduler.RegisterTool(new KRRLNTool());
     }
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -345,6 +345,7 @@ public class MainWindow : FluentWindow
     private void SetupPreviewProcessors()
     {
         _internalOsuPath = ResolveInternalSample();
+        Debug.WriteLine($"Resolved internal osu path: {_internalOsuPath}");
         
         // 统一分配预览处理器
         if (_previewControls.TryGetValue(OptionsManager.N2NCToolName, out var converterPreview) &&
@@ -361,6 +362,16 @@ public class MainWindow : FluentWindow
             _settingsHosts.TryGetValue(OptionsManager.DPToolName, out var dpHost))
             dpPreview.Processor = new DPPreviewProcessor(null,
                 () => (dpHost.DataContext as DPToolViewModel)?.Options ?? new DPToolOptions());
+
+        if (_previewControls.TryGetValue(OptionsManager.KRRLNToolName, out var krrlnPreview) &&
+            _settingsHosts.TryGetValue(OptionsManager.KRRLNToolName, out var krrlnHost))
+        {
+            var processor = new ConverterPreviewProcessor(null, null)
+            {
+                KRRLNOptionsProvider = () => _krrLnTransformerInstance.GetOptions()
+            };
+            krrlnPreview.Processor = processor;
+        }
 
         _converterVM = N2NCSettingsHost?.DataContext as N2NCViewModel;
         if (_converterVM != null && N2NCPreview?.Processor is ConverterPreviewProcessor cpp)
@@ -394,6 +405,8 @@ public class MainWindow : FluentWindow
                 lnControl.LoadPreview(arr, true);
             if (_previewControls.TryGetValue(OptionsManager.DPToolName, out var dpControl))
                 dpControl.LoadPreview(arr, true);
+            if (_previewControls.TryGetValue(OptionsManager.KRRLNToolName, out var krrlnControl))
+                krrlnControl.LoadPreview(arr, true);
         }
     }
 
@@ -754,43 +767,25 @@ public class MainWindow : FluentWindow
         return null;
     }
 
-    private void ConverterPreview_StartConversionRequested(object? sender, string[]? paths)
+    private void GlobalPreview_StartConversionRequested(object? sender, string[]? paths)
     {
+        Debug.WriteLine($"GlobalPreview_StartConversionRequested called with {paths?.Length ?? 0} paths");
         if (paths == null || paths.Length == 0) return;
 
-        // Filter out internal sample (preview default) so it is never converted
-        var toProcess = paths.Where(p => !string.Equals(p, _internalOsuPath, StringComparison.OrdinalIgnoreCase))
-            .Where(p => File.Exists(p) && Path.GetExtension(p).Equals(".osu", StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-        if (toProcess.Length == 0) return;
+        // Get the currently active tool from the selected tab
+        var selectedTag = (MainTabControl.SelectedItem as TabViewItem)?.Tag as string;
+        if (string.IsNullOrEmpty(selectedTag)) return;
 
-        _fileDispatcher.ConvertFiles(toProcess, OptionsManager.N2NCToolName);
-    }
-
-    private void LNPreview_StartConversionRequested(object? sender, string[]? paths)
-    {
-        if (paths == null || paths.Length == 0) return;
+        Debug.WriteLine($"Active tool: {selectedTag}");
 
         // Filter out internal sample and invalid files
         var toProcess = paths.Where(p => !string.Equals(p, _internalOsuPath, StringComparison.OrdinalIgnoreCase))
             .Where(p => File.Exists(p) && Path.GetExtension(p).Equals(".osu", StringComparison.OrdinalIgnoreCase))
             .ToArray();
+        Debug.WriteLine($"Filtered to {toProcess.Length} files for {selectedTag}");
         if (toProcess.Length == 0) return;
 
-        _fileDispatcher.ConvertFiles(toProcess, OptionsManager.LNToolName);
-    }
-
-    private void DPPreview_StartConversionRequested(object? sender, string[]? paths)
-    {
-        if (paths == null || paths.Length == 0) return;
-
-        // Filter out internal sample and invalid files
-        var toProcess = paths.Where(p => !string.Equals(p, _internalOsuPath, StringComparison.OrdinalIgnoreCase))
-            .Where(p => File.Exists(p) && Path.GetExtension(p).Equals(".osu", StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-        if (toProcess.Length == 0) return;
-
-        _fileDispatcher.ConvertFiles(toProcess, OptionsManager.DPToolName);
+        _fileDispatcher.ConvertFiles(toProcess, selectedTag);
     }
 
     private void GlobalOsuListenerButton_Click(object sender, RoutedEventArgs e)
@@ -949,11 +944,17 @@ public class MainWindow : FluentWindow
 
     private void MainTabControl_SelectionChanged(object? sender, SelectionChangedEventArgs? e)
     {
-        var selectedTag = (MainTabControl.SelectedItem as TabItem)?.Tag as string;
-        var isConverter = selectedTag is OptionsManager.N2NCToolName or OptionsManager.LNToolName or OptionsManager.DPToolName;
+        var selectedTag = (MainTabControl.SelectedItem as TabViewItem)?.Tag as string;
+        // 判断是否为转换工具，配套增加预览器
+        var isConverter = selectedTag is OptionsManager.N2NCToolName or OptionsManager.LNToolName or OptionsManager.DPToolName or OptionsManager.KRRLNToolName;
         if (_previewControls.TryGetValue("Global", out var preview))
         {
             preview.Visibility = isConverter ? Visibility.Visible : Visibility.Collapsed;
+            preview.CurrentTool = selectedTag; // Set the current tool for the global preview
+            if (isConverter && selectedTag != null && _previewControls.TryGetValue(selectedTag, out var toolPreview))
+            {
+                preview.Processor = toolPreview.Processor;
+            }
         }
         // 动态调整列宽度
         if (isConverter)

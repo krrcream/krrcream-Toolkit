@@ -6,8 +6,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using krrTools.tools.DPtool;
-using krrTools.tools.N2NC;
+using krrTools.tools.KRRLNTransformer;
 using krrTools.tools.LNTransformer;
+using krrTools.tools.N2NC;
 using krrTools.tools.Shared;
 using krrTools.Tools.Shared;
 using OsuParsers.Beatmaps;
@@ -57,7 +58,7 @@ namespace krrTools.tools.Preview
             }
             if (!first.HasValue) return new TextBlock { Text = "(无可用音符)" };
 
-            Beatmap beatmapMeta = FilesHelper.GetManiaBeatmap(path) ?? new Beatmap();
+            Beatmap beatmapMeta = FilesHelper.GetManiaBeatmap(path);
             
             var quarterMs = beatmapMeta.GetBPM(true);
             int startMs = first.Value;
@@ -148,6 +149,7 @@ namespace krrTools.tools.Preview
         public Func<N2NCOptions?>? ConverterOptionsProvider { get; set; }
         public Func<DPToolOptions?>? DPOptionsProvider { get; set; }
         public Func<LNTransformerOptions?>? LNOptionsProvider { get; set; }
+        public Func<KRRLNTransformerOptions?>? KRRLNOptionsProvider { get; set; }
         public ConverterPreviewProcessor()
         {
             ConversionProvider = (toolName, path, start, end) =>
@@ -180,6 +182,22 @@ namespace krrTools.tools.Preview
                     return tool.ProcessBeatmapToData(originalBeatmap, opt);
                 }
 
+                if (toolName == OptionsManager.KRRLNToolName)
+                {
+                    try
+                    {
+                        var tool = new KRRLNTool();
+                        var opt = KRRLNOptionsProvider?.Invoke();
+                        if (opt == null) return null;
+                        return tool.ProcessBeatmapToData(originalBeatmap, opt);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Return null to indicate no preview available
+                        return null;
+                    }
+                }
+
                 return originalBeatmap;
             };
         }
@@ -191,6 +209,7 @@ namespace krrTools.tools.Preview
         }
     }
 
+    // TODO： 下面的继承类预览器在未来删除，改成统一的中央预览器
     internal sealed class LNPreviewProcessor : BasePreviewProcessor
     {
         public override string ToolKey => "LN Transformer";

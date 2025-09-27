@@ -17,79 +17,76 @@ namespace krrTools.tools.LNTransformer
         // Public entrypoint: process a list of osu files with given parameters.
         public static void ProcessFiles(IEnumerable<string> allFiles, LNTransformerOptions parameters)
         {
-            Task.Run(() =>
+            var osuFiles = OsuFileProcessor.ReadMultipleFiles(allFiles, (line) =>
             {
-                var osuFiles = OsuFileProcessor.ReadMultipleFiles(allFiles, (line) =>
+                if (line.StartsWith("Mode"))
                 {
-                    if (line.StartsWith("Mode"))
-                    {
-                        string str = line.Substring(line.IndexOf(':') + 1).Trim();
-                        if (str != "3") return true;
-                    }
+                    string str = line.Substring(line.IndexOf(':') + 1).Trim();
+                    if (str != "3") return true;
+                }
 
-                    if (line.StartsWith("CircleSize"))
+                if (line.StartsWith("CircleSize"))
+                {
+                    string str = line.Substring(line.IndexOf(':') + 1).Trim();
+                    if (int.TryParse(str, out int cs))
                     {
-                        string str = line.Substring(line.IndexOf(':') + 1).Trim();
-                        if (int.TryParse(str, out int cs))
-                        {
-                            if (cs > 10) return true;
-                            // 移除CheckKeys检查，因为这个属性已移除
-                        }
-                        else
-                        {
-                            return true;
-                        }
+                        if (cs > 10) return true;
+                        // 移除CheckKeys检查，因为这个属性已移除
                     }
                     else
                     {
-                        if (parameters.IgnoreIsChecked && line.StartsWith("Creator"))
-                        {
-                            var str = line.Substring(line.IndexOf(':') + 1).Trim();
-                            if (str.Contains("LNTransformer")) return true;
-                        }
-
-                        if (parameters.IgnoreIsChecked && line.StartsWith("Version"))
-                        {
-                            var str = line.Substring(line.IndexOf(':') + 1).Trim();
-                            if (str.Contains("[LN")) return true;
-                        }
+                        return true;
                     }
-
-                    return false;
-                });
-
-                foreach (var osuFile in osuFiles)
+                }
+                else
                 {
-                    try
+                    if (parameters.IgnoreIsChecked && line.StartsWith("Creator"))
                     {
-                        ApplyToBeatmap(osuFile, parameters);
-                        var basePath = string.IsNullOrEmpty(osuFile.path) ? string.Empty : osuFile.path;
-                        var newFilepath = string.IsNullOrEmpty(basePath)
-                            ? osuFile.FileName + ".osu"
-                            : Path.Combine(basePath, osuFile.FileName + ".osu");
-
-                        if (ListenerControl.IsOpen)
-                        {
-                            OsuAnalyzer.AddNewBeatmapToSongFolder(newFilepath);
-                        }
+                        var str = line.Substring(line.IndexOf(':') + 1).Trim();
+                        if (str.Contains("LNTransformer")) return true;
                     }
-                    catch (Exception ex)
+
+                    if (parameters.IgnoreIsChecked && line.StartsWith("Version"))
                     {
-#if DEBUG
-                        MessageBox.Show($"处理 {osuFile.OriginalFile?.FullName} 时出错: {ex.Message}\n\n堆栈跟踪:\n{ex.StackTrace}", "转换错误", MessageBoxButton.OK, MessageBoxImage.Error,
-                            MessageBoxResult.None, MessageBoxOptions.DefaultDesktopOnly);
-#else
-                        Debug.WriteLine($"TransformService.ProcessFiles - per-file error for {osuFile?.OriginalFile?.FullName}: {ex.Message}");
-#endif
+                        var str = line.Substring(line.IndexOf(':') + 1).Trim();
+                        if (str.Contains("[LN")) return true;
                     }
                 }
 
-                // Notify user on UI thread that processing finished
-                Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
-                {
-                    // Removed MessageBox.Show to avoid duplicate notifications; FileDispatcher handles it now
-                }));
+                return false;
             });
+
+            foreach (var osuFile in osuFiles)
+            {
+                try
+                {
+                    ApplyToBeatmap(osuFile, parameters);
+                    var basePath = string.IsNullOrEmpty(osuFile.path) ? string.Empty : osuFile.path;
+                    var newFilepath = string.IsNullOrEmpty(basePath)
+                        ? osuFile.FileName + ".osu"
+                        : Path.Combine(basePath, osuFile.FileName + ".osu");
+
+                    if (ListenerControl.IsOpen)
+                    {
+                        OsuAnalyzer.AddNewBeatmapToSongFolder(newFilepath);
+                    }
+                }
+                catch (Exception ex)
+                {
+#if DEBUG
+                    MessageBox.Show($"处理 {osuFile.OriginalFile?.FullName} 时出错: {ex.Message}\n\n堆栈跟踪:\n{ex.StackTrace}", "转换错误", MessageBoxButton.OK, MessageBoxImage.Error,
+                        MessageBoxResult.None, MessageBoxOptions.DefaultDesktopOnly);
+#else
+                    Debug.WriteLine($"TransformService.ProcessFiles - per-file error for {osuFile?.OriginalFile?.FullName}: {ex.Message}");
+#endif
+                }
+            }
+
+            // Notify user on UI thread that processing finished
+            Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+            {
+                // Removed MessageBox.Show to avoid duplicate notifications; FileDispatcher handles it now
+            }));
         }
 
         // Apply the LN transformation to a single OsuFileV14 instance and save

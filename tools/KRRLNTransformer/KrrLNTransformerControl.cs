@@ -410,7 +410,28 @@ public static class Setting
                 };
                 var LN = new KRRLN();  
                 
-                LN.ProcessFiles(filePath,parameters);
+                var beatmap = LN.ProcessFiles(filePath,parameters);
+                
+                string outputPath = Path.Combine(Path.GetDirectoryName(filePath), Path.GetFileNameWithoutExtension(filePath) + "_KRRLN.osu");
+                File.WriteAllText(outputPath, beatmap.ToString());
+
+                // 检查文件是否实际生成
+                if (!File.Exists(outputPath))
+                {
+                    MessageBox.Show(SharedUIComponents.IsChineseLanguage() ? 
+                        $"转换完成但文件未找到: {outputPath}" : 
+                        $"Conversion completed but file not found: {outputPath}", 
+                        SharedUIComponents.IsChineseLanguage() ? "文件未生成|File Not Generated" : "File Not Generated|文件未生成",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // 显示成功消息
+                MessageBox.Show(SharedUIComponents.IsChineseLanguage() ? 
+                    $"文件转换成功！\n输出文件: {outputPath}" : 
+                    $"File conversion successful!\nOutput file: {outputPath}", 
+                    SharedUIComponents.IsChineseLanguage() ? "转换成功|Conversion Successful" : "Conversion Successful|转换成功",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
 
             }
             catch (Exception ex)
@@ -430,6 +451,60 @@ public static class Setting
         {
             Content = null;
             BuildUI();
+        }
+
+        public KRRLNTransformerOptions GetOptions()
+        {
+            try
+            {
+                return new KRRLNTransformerOptions
+                {
+                    // 短面条设置
+                    ShortPercentageValue = ShortPercentageValue.Value,
+                    ShortLevelValue = ShortLevelValue.Value,
+                    ShortLimitValue = ShortLimitValue.Value,
+                    ShortRandomValue = ShortRandomValue.Value,
+
+                    // 长面条设置
+                    LongPercentageValue = LongPercentageValue.Value,
+                    LongLevelValue = LongLevelValue.Value,
+                    LongLimitValue = LongLimitValue.Value,
+                    LongRandomValue = LongRandomValue.Value,
+
+                    // 对齐设置
+                    AlignIsChecked = AlignCheckBox.IsChecked == true,
+                    AlignValue = AlignValue.Value,
+
+                    // 处理原始面条
+                    ProcessOriginalIsChecked = ProcessOriginalCheckBox.IsChecked == true,
+
+                    // OD设置
+                    ODValue = ODValue.Value,
+
+                    // 种子值
+                    SeedText = SeedTextBox.Text,
+                };
+            }
+            catch
+            {
+                // 如果控件未初始化，返回默认选项
+                return new KRRLNTransformerOptions
+                {
+                    ShortPercentageValue = 50,
+                    ShortLevelValue = 5,
+                    ShortLimitValue = 20,
+                    ShortRandomValue = 50,
+                    LongPercentageValue = 50,
+                    LongLevelValue = 5,
+                    LongLimitValue = 20,
+                    LongRandomValue = 50,
+                    AlignIsChecked = false,
+                    AlignValue = 4,
+                    ProcessOriginalIsChecked = false,
+                    ODValue = 8,
+                    SeedText = "114514"
+                };
+            }
         }
     }
 
