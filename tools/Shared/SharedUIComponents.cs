@@ -1,15 +1,16 @@
 using System;
 using System.Windows;
 using System.Windows.Media;
-using System.Reflection; // 添加此引用以支持反射获取特性
-using System.ComponentModel; // 添加此引用以支持DescriptionAttribute
-using System.Globalization; // 添加此引用以支持区域性设置
+using System.Reflection;
+using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Diagnostics;
 using System.Windows.Controls;
 using Button = Wpf.Ui.Controls.Button;
 using TextBox = Wpf.Ui.Controls.TextBox;
+using TextBlock = Wpf.Ui.Controls.TextBlock;
 
 namespace krrTools.tools.Shared
 {
@@ -21,11 +22,6 @@ namespace krrTools.tools.Shared
         // Optional override for language selection. If null, the system culture is used.
         private static bool? ForceChinese { get; set; }
 
-        // Saved theme settings
-        private static string? _savedApplicationTheme;
-        private static string? _savedWindowBackdropType;
-        private static bool? _savedUpdateAccent;
-
         // Event raised when the effective language selection changes (so UI can update)
         public static event Action? LanguageChanged;
 
@@ -34,10 +30,10 @@ namespace krrTools.tools.Shared
         {
             ForceChinese = forceChinese;
             // Persist immediately
-            SaveAppSettings();
+            OptionsManager.SetForceChinese(forceChinese);
 
             // Asynchronous notification to avoid blocking UI
-            Application.Current.Dispatcher.BeginInvoke(() => 
+            Application.Current.Dispatcher.BeginInvoke(() =>
             {
                 LanguageChanged?.Invoke();
             });
@@ -52,128 +48,30 @@ namespace krrTools.tools.Shared
         // Set saved theme settings
         public static void SetSavedApplicationTheme(string theme)
         {
-            _savedApplicationTheme = theme;
-            SaveAppSettings();
+            OptionsManager.SetApplicationTheme(theme);
         }
 
         public static void SetSavedWindowBackdropType(string backdropType)
         {
-            _savedWindowBackdropType = backdropType;
-            SaveAppSettings();
+            OptionsManager.SetWindowBackdropType(backdropType);
         }
 
         public static void SetSavedUpdateAccent(bool updateAccent)
         {
-            _savedUpdateAccent = updateAccent;
-            SaveAppSettings();
+            OptionsManager.SetUpdateAccent(updateAccent);
         }
 
         // Get saved theme settings
-        public static string? GetSavedApplicationTheme() => _savedApplicationTheme;
-        public static string? GetSavedWindowBackdropType() => _savedWindowBackdropType;
-        public static bool? GetSavedUpdateAccent() => _savedUpdateAccent;
-
-        // Simple app-level settings persisted to LocalAppData/krrTools/appsettings.json
-        private class AppSettings
-        {
-            public bool? ForceChineseValue { get; init; }
-            public string? ApplicationTheme { get; init; }
-            public string? WindowBackdropType { get; init; }
-            public bool? UpdateAccent { get; init; }
-        }
-
-        private static readonly string _appSettingsPath;
-
-        static SharedUIComponents()
-        {
-            try
-            {
-                var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), OptionsManager.BaseAppFolderName);
-                Directory.CreateDirectory(folder);
-                _appSettingsPath = Path.Combine(folder, "appsettings.json");
-                LoadAppSettings();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"SharedUIComponents static ctor failed: {ex.Message}");
-                _appSettingsPath = string.Empty;
-            }
-        }
-
-        private static void LoadAppSettings()
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(_appSettingsPath) || !File.Exists(_appSettingsPath)) return;
-                var json = File.ReadAllText(_appSettingsPath);
-                var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var s = JsonSerializer.Deserialize<AppSettings>(json, opts);
-                if (s is { ForceChineseValue: not null })
-                {
-                    ForceChinese = s.ForceChineseValue;
-                }
-                if (s is { ApplicationTheme: not null })
-                {
-                    _savedApplicationTheme = s.ApplicationTheme;
-                }
-                if (s is { WindowBackdropType: not null })
-                {
-                    _savedWindowBackdropType = s.WindowBackdropType;
-                }
-                if (s is { UpdateAccent: not null })
-                {
-                    _savedUpdateAccent = s.UpdateAccent;
-                }
-            }
-            catch (IOException ex)
-            {
-                Debug.WriteLine($"Failed to load app settings (IO): {ex.Message}");
-            }
-            catch (JsonException ex)
-            {
-                Debug.WriteLine($"Failed to load app settings (JSON): {ex.Message}");
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                Debug.WriteLine($"Failed to load app settings (unauthorized): {ex.Message}");
-            }
-        }
-
-        private static void SaveAppSettings()
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(_appSettingsPath)) return;
-                var s = new AppSettings 
-                { 
-                    ForceChineseValue = ForceChinese,
-                    ApplicationTheme = _savedApplicationTheme,
-                    WindowBackdropType = _savedWindowBackdropType,
-                    UpdateAccent = _savedUpdateAccent
-                };
-                var opts = new JsonSerializerOptions { WriteIndented = true };
-                var json = JsonSerializer.Serialize(s, opts);
-                File.WriteAllText(_appSettingsPath, json);
-            }
-            catch (IOException ex)
-            {
-                Debug.WriteLine($"Failed to save app settings (IO): {ex.Message}");
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                Debug.WriteLine($"Failed to save app settings (unauthorized): {ex.Message}");
-            }
-            catch (JsonException ex)
-            {
-                Debug.WriteLine($"Failed to save app settings (JSON): {ex.Message}");
-            }
-        }
+        public static string? GetSavedApplicationTheme() => OptionsManager.GetApplicationTheme();
+        public static string? GetSavedWindowBackdropType() => OptionsManager.GetWindowBackdropType();
+        public static bool? GetSavedUpdateAccent() => OptionsManager.GetUpdateAccent();
+        public static bool? GetForceChinese() => OptionsManager.GetForceChinese();
 
         // 统一UI样式相关常量，参考LN工具的字体风格
         // Text color used throughout the Fluent-like UI — exposed public so other parts of the app can reuse it
         public static readonly Brush UiTextBrush = new SolidColorBrush(Color.FromRgb(0x21, 0x21, 0x21));
-        public const double HeaderFontSize = 20.0;
-        public const double ComFontSize = 18.0;
+        public const double HeaderFontSize = 18.0;
+        public const double ComFontSize = 16.0;
         // Fluent / acrylic visual tokens
         // Use a lighter translucent tint so the underlying acrylic blur is visible (less opaque)
         private static SolidColorBrush _panelBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF)); // ~40% white tint
@@ -552,7 +450,56 @@ namespace krrTools.tools.Shared
                   tabStyle.Setters.Add(new Setter(TabItem.MinWidthProperty, 0.0));
                   tabStyle.Setters.Add(new Setter(TabItem.HorizontalAlignmentProperty, HorizontalAlignment.Left));
                   appRes[typeof(TabItem)] = tabStyle;
-              }
-          }
      }
  }
+
+     /// <summary>
+     /// A class that provides localized strings with automatic updates when language changes.
+     /// </summary>
+     public class LocalizedString : INotifyPropertyChanged
+     {
+         private string _localizedText;
+
+         public LocalizedString(string key)
+         {
+             Key = key;
+             _localizedText = key.Localize();
+             SharedUIComponents.LanguageChanged += OnLanguageChanged;
+         }
+
+         public string Key { get; }
+
+         public string Value
+         {
+             get => _localizedText;
+             private set
+             {
+                 if (_localizedText != value)
+                 {
+                     _localizedText = value;
+                     OnPropertyChanged(nameof(Value));
+                 }
+             }
+         }
+
+         private void OnLanguageChanged()
+         {
+             Value = Key.Localize();
+         }
+
+         public event PropertyChangedEventHandler? PropertyChanged;
+
+         protected virtual void OnPropertyChanged(string propertyName)
+         {
+             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+         }
+
+         public static implicit operator string(LocalizedString ls) => ls.Value;
+
+         ~LocalizedString()
+         {
+             SharedUIComponents.LanguageChanged -= OnLanguageChanged;
+         }
+     }
+}
+}

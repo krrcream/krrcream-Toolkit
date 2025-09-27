@@ -14,12 +14,12 @@ namespace krrTools.tools.N2NC
         public double TargetKeys { get; set; }
 
         /// <summary>
-        /// 最大键数
+        /// 最大键数权重
         /// </summary>
         public double MaxKeys { get; set; }
 
         /// <summary>
-        /// 最小键数
+        /// 最小键数权重
         /// </summary>
         public double MinKeys { get; set; }
 
@@ -43,11 +43,13 @@ namespace krrTools.tools.N2NC
         /// </summary>
         public KeySelectionFlags? SelectedKeyFlags { get; set; }
 
+        /// <summary>
+        /// 选中的预设
+        /// </summary>
+        public PresetKind SelectedPreset { get; set; } = PresetKind.Default;
+
         public void Validate()
         {
-            if (MinKeys < 1) MinKeys = 1;
-            if (MaxKeys < MinKeys) MaxKeys = MinKeys;
-            if (TargetKeys < MinKeys) TargetKeys = MinKeys;
             if (TransformSpeed <= 0) TransformSpeed = 1.0;
         }
     }

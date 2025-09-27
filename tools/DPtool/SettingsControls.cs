@@ -84,6 +84,7 @@ namespace krrTools.tools.DPtool
 
             InnerSlider.Minimum = Min;
             InnerSlider.Maximum = Max;
+            InnerSlider.LargeChange = 1.0;
             if (!double.IsNaN(TickFrequency)) InnerSlider.TickFrequency = TickFrequency;
             InnerSlider.SmallChange = KeyboardStep;
             InnerSlider.IsSnapToTickEnabled = !double.IsNaN(TickFrequency);
@@ -214,6 +215,10 @@ namespace krrTools.tools.DPtool
                     {
                         var binding = new Binding(Path!) { Source = Source, Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
                         InnerSlider.SetBinding(RangeBase.ValueProperty, binding);
+                        // Ensure label updates with value changes
+                        InnerSlider.ValueChanged += (_, ev) => UpdateLabelWithValue(ev.NewValue);
+                        // Update label with initial value
+                        UpdateLabelWithValue(InnerSlider.Value);
                     }
                     catch (Exception ex) { Debug.WriteLine($"SettingsSlider binding fallback error: {ex.Message}"); }
                 }
@@ -222,16 +227,20 @@ namespace krrTools.tools.DPtool
 
         private void UpdateLabelWithValue(double value)
         {
-            try
+            if (!string.IsNullOrEmpty(_labelText))
             {
-                if (!string.IsNullOrEmpty(_labelText))
+                if (_labelText.Contains("{0}"))
                 {
-                    // Get the current localized label text and append numeric value
+                    // Use template formatting
+                    LabelTextBlock.Text = Strings.FormatLocalized(_labelText, (int)value);
+                }
+                else
+                {
+                    // Use legacy formatting
                     string localizedLabel = Strings.Localize(_labelText);
-                    LabelTextBlock.Text = localizedLabel + " " + ((int)value).ToString();
+                    LabelTextBlock.Text = localizedLabel + ": " + ((int)value).ToString();
                 }
             }
-            catch (Exception ex) { Debug.WriteLine($"UpdateLabelWithValue error: {ex.Message}"); }
         }
     }
 

@@ -9,6 +9,18 @@ public static class LNTransformerCore
 {
     private const double ERROR = 2.0;
 
+    public struct LNPreviewParameters
+    {
+        public double LevelValue;
+        public double PercentageValue;
+        public double DivideValue;
+        public double ColumnValue;
+        public double GapValue;
+        public bool OriginalLN;
+        public bool FixError;
+        public double OverallDifficulty;
+    }
+
     // Random-distribution utilities
     private static double RandDistribution(Random Rng, double u, double d)
     {
@@ -285,7 +297,7 @@ public static class LNTransformerCore
     }
 
     // High level transform that applies LN transformation to a copy of OsuFileV14 using parameters and returns the transformed copy.
-    public static OsuFileV14 TransformFull(OsuFileV14 source, Preview.PreviewTransformation.LNPreviewParameters p)
+    public static OsuFileV14 TransformFull(OsuFileV14 source, LNPreviewParameters p)
     {
         // Create a deep copy to avoid mutating original
         var osu = source.Copy();

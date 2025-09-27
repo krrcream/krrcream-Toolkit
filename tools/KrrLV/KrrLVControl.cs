@@ -3,19 +3,18 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using krrTools.tools.Shared;
-using krrTools.Tools.Shared;
 
-namespace krrTools.tools.KRR_LV
+namespace krrTools.tools.KrrLV
 {
-    public class KRRLVControl : UserControl
+    public class KrrLVControl : UserControl
     {
-        private readonly KRRLVViewModel _viewModel;
+        private readonly KrrLVViewModel _viewModel;
 
-        public KRRLVControl()
+        public KrrLVControl()
         {
             // Initialize view and ViewModel
             BuildUI();
-            _viewModel = new KRRLVViewModel();
+            _viewModel = new KrrLVViewModel();
             DataContext = _viewModel;
             // subscribe to language changes
             SharedUIComponents.LanguageChanged += OnLanguageChanged;

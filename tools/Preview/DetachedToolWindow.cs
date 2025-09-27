@@ -7,12 +7,12 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using krrTools.tools.DPtool;
 using krrTools.tools.N2NC;
+using krrTools.tools.LNTransformer;
 using krrTools.tools.Shared;
-using krrTools.Tools.Shared;
 
 namespace krrTools.tools.Preview
 {
-    // 独立弹出窗口：左侧为设置，右侧为预览（用于 Converter / DP / LN 等工具）
+    // 独立弹出窗口：左侧为设置，右侧为预览（用于 Converter / DP / LN 工具），备份，未来再考虑是否保留或优化
     public class DetachedToolWindow : Window
     {
         public event EventHandler? MergeRequested;
@@ -81,7 +81,7 @@ namespace krrTools.tools.Preview
                         bool GetCheckBoxValue(string name) => FindDescendant<CheckBox>(fe, name) is { IsChecked: true };
                         double GetTextBoxDouble(string name) => FindDescendant<TextBox>(fe, name) is { } t && double.TryParse(t.Text, out var v) ? v : 0;
 
-                        lpp.LNParamsProvider = () => new PreviewTransformation.LNPreviewParameters
+                        lpp.LNParamsProvider = () => new LNTransformerCore.LNPreviewParameters
                         {
                             LevelValue = GetSliderValue("LevelValue"),
                             PercentageValue = GetSliderValue("PercentageValue"),

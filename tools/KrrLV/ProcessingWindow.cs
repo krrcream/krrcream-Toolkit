@@ -4,9 +4,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using krrTools.tools.Shared;
-using krrTools.Tools.Shared;
 
-namespace krrTools.tools.KRR_LV
+namespace krrTools.tools.KrrLV
 {
     public class ProcessingWindow : Window
     {

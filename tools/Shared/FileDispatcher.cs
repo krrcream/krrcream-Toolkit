@@ -24,7 +24,7 @@ namespace krrTools.Tools.Shared
             _mainTabControl = mainTabControl;
             _converters = new Dictionary<string, IConverter>
             {
-                { OptionsManager.ConverterToolName, new N2NCConverterWrapper() },
+                { OptionsManager.N2NCToolName, new N2NCConverterWrapper() },
                 { OptionsManager.LNToolName, new LNConverterWrapper() },
                 { OptionsManager.DPToolName, new DPConverterWrapper() }
             };
@@ -33,8 +33,9 @@ namespace krrTools.Tools.Shared
         public void LoadFiles(string[]? paths, string? activeTabTag = null)
         {
             activeTabTag ??= GetActiveTabTag();
-            if (_previewControls.TryGetValue(activeTabTag, out var control))
+            if (_previewControls.TryGetValue("Global", out var control))
             {
+                control.CurrentTool = activeTabTag;
                 control.LoadFiles(paths);
                 control.StageFiles(paths);
             }
@@ -43,24 +44,56 @@ namespace krrTools.Tools.Shared
         public void ConvertFiles(string[] paths, string? activeTabTag = null)
         {
             activeTabTag ??= GetActiveTabTag();
-            if (activeTabTag == OptionsManager.ConverterToolName)
+            if (activeTabTag == OptionsManager.N2NCToolName)
             {
                 // Special handling for Converter with result reporting
                 ConvertWithResults(paths);
             }
             else if (_converters.TryGetValue(activeTabTag, out var converter))
             {
+                var created = new List<string>();
+                var failed = new List<string>();
+
                 foreach (var path in paths.Where(p => !string.IsNullOrEmpty(p)))
                 {
                     try
                     {
                         converter.ProcessSingleFile(path);
+                        // Assuming success if no exception, but since ProcessSingleFile returns void, we can't know the output path
+                        // For now, just assume success
+                        created.Add(path);
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"Error converting {path}: {ex.Message}", "Conversion Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        Debug.WriteLine($"Error converting {path}: {ex.Message}");
+                        failed.Add(path);
                     }
                 }
+
+                // Notify user on UI thread that processing finished
+                Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                {
+                    if (created.Count > 0)
+                    {
+                        var sb = new System.Text.StringBuilder();
+                        sb.AppendLine("Conversion finished. Processed files:");
+                        foreach (var c in created) sb.AppendLine(c);
+                        if (failed.Count > 0)
+                        {
+                            sb.AppendLine();
+                            sb.AppendLine("The following source files failed to convert:");
+                            foreach (var f in failed) sb.AppendLine(f);
+                        }
+                        MessageBox.Show(sb.ToString(), "Conversion Result", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        var msg = failed.Count > 0
+                            ? "Conversion failed for the selected files."
+                            : "Conversion did not produce any output.";
+                        MessageBox.Show(msg, "Conversion Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                }));
             }
         }
 
@@ -120,7 +153,7 @@ namespace krrTools.Tools.Shared
 
         private string GetActiveTabTag()
         {
-            return (_mainTabControl.SelectedItem as TabItem)?.Tag as string ?? OptionsManager.ConverterToolName;
+            return (_mainTabControl.SelectedItem as TabItem)?.Tag as string ?? OptionsManager.N2NCToolName;
         }
 
         // Wrapper classes to implement IConverter
