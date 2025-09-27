@@ -24,7 +24,8 @@ namespace krrTools.tools.Shared
         public const string N2NCToolName = "Converter";
         public const string DPToolName = "DPTool";
         public const string LNToolName = "LNTransformer";
-
+        public const string KRRLNToolName = "KRRLNTransformer";
+        
         // Add tool identifiers for simple tabs
         public const string LVCalToolName = "LVCalculator";
         public const string FilesManagerToolName = "FilesManager";

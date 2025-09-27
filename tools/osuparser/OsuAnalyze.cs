@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -248,6 +249,68 @@ namespace krrTools.Tools.OsuParser
             // return the created osz path as success indicator
             return fullOutputPath;
         }
+                
+        public Dictionary<double, double> GetBeatlengthList(Beatmap beatmap)
+        {
+            var tp = beatmap.TimingPoints
+                .Where(p => p.BeatLength > 0)
+                .OrderBy(p => p.Offset)
+                .ToList();
+            if (tp.Count == 0)
+                return new Dictionary<double, double>();
+    
+            var beatLengthDict = new Dictionary<double, double>();
+            foreach (var timingPoint in tp)
+            {
+                beatLengthDict[timingPoint.Offset] = timingPoint.BeatLength;
+            }
+    
+            return beatLengthDict;
+        }
 
+        public List<double> GetbeatlengthAxis(Dictionary<double, double> beatLengthDict, double mainBPM,
+            List<int> timeAxis)
+        {
+            double defaultLength = 60000 / mainBPM;
+            List<double> bLAxis = new List<double>();
+            for (int i = 0; i < timeAxis.Count; i++)
+            {
+                bLAxis.Add(defaultLength);
+            }
+    
+            // 将字典的键转换为有序列表，便于比较
+            var sortedKeys = beatLengthDict.Keys.OrderBy(k => k).ToList();
+    
+            for (int i = 0; i < timeAxis.Count; i++)
+            {
+                double currentTime = timeAxis[i];
+        
+                // 处理边界情况：时间点在第一个时间点之前
+                if (currentTime < sortedKeys[0])
+                {
+                    bLAxis[i] = beatLengthDict[sortedKeys[0]];
+                    continue;
+                }
+        
+                // 处理边界情况：时间点在最后一个时间点之后
+                if (currentTime >= sortedKeys[sortedKeys.Count - 1])
+                {
+                    bLAxis[i] = beatLengthDict[sortedKeys[sortedKeys.Count - 1]];
+                    continue;
+                }
+        
+                // 查找当前时间点对应的时间段
+                for (int k = 0; k < sortedKeys.Count - 1; k++)
+                {
+                    if (currentTime >= sortedKeys[k] && currentTime < sortedKeys[k + 1])
+                    {
+                        bLAxis[i] = beatLengthDict[sortedKeys[k]];
+                        break;
+                    }
+                }
+            }
+    
+            return bLAxis;
+        }
     }
 }
