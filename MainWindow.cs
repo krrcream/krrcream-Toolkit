@@ -15,6 +15,7 @@ using krrTools.Tools.Shared;
 using krrTools.tools.Preview;
 using krrTools.tools.DPtool;
 using krrTools.tools.FilesManager;
+using krrTools.tools.KRRLNTransformer;
 using krrTools.tools.KrrLV;
 using krrTools.tools.Listener;
 using krrTools.tools.LNTransformer;
@@ -101,18 +102,21 @@ public class MainWindow : FluentWindow
 
     private N2NCControl _convWindowInstance = null!;
     private LNTransformerControl _lnWindowInstance = null!;
+    private KRRLNTransformerControl _krrLnTransformerInstance = null!;
     private DPToolControl _dpWindowInstance = null!;
 
     private ContentControl? N2NCSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.N2NCToolName);
     private ContentControl? LNSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.LNToolName);
     private ContentControl? DPSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.DPToolName);
+    private ContentControl? KRRLNSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.KRRLNToolName);
     private ContentControl? LVCalSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.LVCalToolName);
     private ContentControl? FilesManagerHost => _settingsHosts.GetValueOrDefault(OptionsManager.FilesManagerToolName);
 
     public DualPreviewControl? N2NCPreview => _previewControls.GetValueOrDefault(OptionsManager.N2NCToolName);
     public DualPreviewControl? LNPreview => _previewControls.GetValueOrDefault(OptionsManager.LNToolName);
     public DualPreviewControl? DPPreview => _previewControls.GetValueOrDefault(OptionsManager.DPToolName);
-
+    public DualPreviewControl? KRRLNPreview => _previewControls.GetValueOrDefault(OptionsManager.KRRLNToolName);
+    
     public MainWindow()
     {
         LoadRealTimePreview();
@@ -288,12 +292,13 @@ public class MainWindow : FluentWindow
 
     private void BuildPreviewTabs()
     {
-        var previewConfigs = new[] { OptionsManager.N2NCToolName, OptionsManager.LNToolName, OptionsManager.DPToolName };
+        var previewConfigs = new[] { OptionsManager.N2NCToolName,OptionsManager.KRRLNToolName ,OptionsManager.LNToolName, OptionsManager.DPToolName };
         foreach (var cfg in previewConfigs)
         {
             var headerText = cfg switch
             {
                 OptionsManager.N2NCToolName => Strings.TabN2NC,
+                OptionsManager.KRRLNToolName => "KRR转面器",
                 OptionsManager.LNToolName => Strings.TabLNTransformer,
                 OptionsManager.DPToolName => Strings.TabDPTool,
                 _ => cfg
@@ -474,7 +479,35 @@ public class MainWindow : FluentWindow
             // 清空原窗口内容，使元素只有一个父级
             conv.Content = null;
         }
+        
+        // KRRLNTransformer 嵌入
+        _krrLnTransformerInstance = new KRRLNTransformerControl();
+        var krrLn = _krrLnTransformerInstance;
+        if (krrLn.Content is UIElement krrLnContent && KRRLNSettingsHost != null)
+        {
+            // 复制资源，以便 StaticResource/Style 查找仍然有效
+            var keys = krrLn.Resources.Keys.Cast<object>().ToList();
+            foreach (var k in keys)
+            {
+                // Skip implicit Window styles (they would affect the host/main window)
+                var res = krrLn.Resources[k];
+                if (res is Style s && s.TargetType == typeof(Window))
+                    continue;
+                if (!KRRLNSettingsHost.Resources.Contains(k))
+                    KRRLNSettingsHost.Resources.Add(k, krrLn.Resources[k]);
+            }
 
+            // 清除嵌入内容中的固定尺寸以便自适应
+            ClearFixedSizes(krrLnContent);
+
+            // 将实际内容移入宿主，保留绑定和事件处理器
+            KRRLNSettingsHost.DataContext = krrLn.DataContext;
+            KRRLNSettingsHost.Content = krrLnContent;
+            // 清空原窗口内容，使元素只有一个父级
+            krrLn.Content = null;
+        }
+        
+        
         // LNTransformer 嵌入
         _lnWindowInstance = new LNTransformerControl();
         var ln = _lnWindowInstance;
@@ -522,6 +555,7 @@ public class MainWindow : FluentWindow
             DPSettingsHost.Content = dpContent;
             dp.Content = null;
         }
+        
 
         // LV Calculator 嵌入
         var lvWin = new KrrLVControl();

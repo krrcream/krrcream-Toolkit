@@ -11,7 +11,7 @@ namespace krrTools.tools.Shared
 
         // Tab headers
         public const string TabN2NC = "NtoN Converter|NtoN转换器";
-        public const string TabLNTransformer = "LN Transformer|LN 转换";
+        public const string TabLNTransformer = "YLS LN Transformer|凉雨转面器";
         public const string TabDPTool = "DP Tool|DP 工具";
         public const string TabKrrLV = "KrrLV Calculation|KrrLV 计算";
         public const string TabFilesManager = "Files Manager|文件管理";
