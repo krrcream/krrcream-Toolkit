@@ -4,11 +4,10 @@ using System.Windows.Media;
 using System.Reflection;
 using System.ComponentModel;
 using System.Globalization;
-using System.IO;
-using System.Text.Json;
-using System.Diagnostics;
 using System.Windows.Controls;
+using Wpf.Ui.Controls;
 using Button = Wpf.Ui.Controls.Button;
+using DataGrid = System.Windows.Controls.DataGrid;
 using TextBox = Wpf.Ui.Controls.TextBox;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 
@@ -443,63 +442,63 @@ namespace krrTools.tools.Shared
               }
 
               // TabItem style for dynamic width
-              if (!appRes.Contains(typeof(TabItem)))
+              if (!appRes.Contains(typeof(TabViewItem)))
               {
-                  var tabStyle = new Style(typeof(TabItem));
-                  tabStyle.Setters.Add(new Setter(TabItem.WidthProperty, double.NaN)); // Auto width
-                  tabStyle.Setters.Add(new Setter(TabItem.MinWidthProperty, 0.0));
-                  tabStyle.Setters.Add(new Setter(TabItem.HorizontalAlignmentProperty, HorizontalAlignment.Left));
-                  appRes[typeof(TabItem)] = tabStyle;
-     }
- }
+                  var tabStyle = new Style(typeof(TabViewItem));
+                  tabStyle.Setters.Add(new Setter(FrameworkElement.WidthProperty, double.NaN)); // Auto width
+                  tabStyle.Setters.Add(new Setter(FrameworkElement.MinWidthProperty, 0.0));
+                  tabStyle.Setters.Add(new Setter(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Left));
+                  appRes[typeof(TabViewItem)] = tabStyle;
+              }
+          }
 
-     /// <summary>
-     /// A class that provides localized strings with automatic updates when language changes.
-     /// </summary>
-     public class LocalizedString : INotifyPropertyChanged
-     {
-         private string _localizedText;
+          /// <summary>
+          /// A class that provides localized strings with automatic updates when language changes.
+          /// </summary>
+          public class LocalizedString : INotifyPropertyChanged
+          {
+              private string _localizedText;
 
-         public LocalizedString(string key)
-         {
-             Key = key;
-             _localizedText = key.Localize();
-             SharedUIComponents.LanguageChanged += OnLanguageChanged;
-         }
+              public LocalizedString(string key)
+              {
+                  Key = key;
+                  _localizedText = key.Localize();
+                  SharedUIComponents.LanguageChanged += OnLanguageChanged;
+              }
 
-         public string Key { get; }
+              public string Key { get; }
 
-         public string Value
-         {
-             get => _localizedText;
-             private set
-             {
-                 if (_localizedText != value)
-                 {
-                     _localizedText = value;
-                     OnPropertyChanged(nameof(Value));
-                 }
-             }
-         }
+              public string Value
+              {
+                  get => _localizedText;
+                  private set
+                  {
+                      if (_localizedText != value)
+                      {
+                          _localizedText = value;
+                          OnPropertyChanged(nameof(Value));
+                      }
+                  }
+              }
 
-         private void OnLanguageChanged()
-         {
-             Value = Key.Localize();
-         }
+              private void OnLanguageChanged()
+              {
+                  Value = Key.Localize();
+              }
 
-         public event PropertyChangedEventHandler? PropertyChanged;
+              public event PropertyChangedEventHandler? PropertyChanged;
 
-         protected virtual void OnPropertyChanged(string propertyName)
-         {
-             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-         }
+              protected virtual void OnPropertyChanged(string propertyName)
+              {
+                  PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+              }
 
-         public static implicit operator string(LocalizedString ls) => ls.Value;
+              public static implicit operator string(LocalizedString ls) => ls.Value;
 
-         ~LocalizedString()
-         {
-             SharedUIComponents.LanguageChanged -= OnLanguageChanged;
-         }
-     }
+              ~LocalizedString()
+              {
+                  SharedUIComponents.LanguageChanged -= OnLanguageChanged;
+              }
+          }
 }
 }

@@ -224,17 +224,17 @@ public static class Setting
             Ignore = SharedUIComponents.CreateStandardCheckBox(
                 Strings.IgnoreCheckbox, Strings.IgnoreTooltip);
             Ignore.Name = "Ignore"; // 添加Name属性
-            Ignore.SetBinding(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, new Binding("Options.IgnoreIsChecked"));
+            Ignore.SetBinding(ToggleButton.IsCheckedProperty, new Binding("Options.IgnoreIsChecked"));
             Ignore.Margin = new Thickness(2, 0, 10, 0);
             FixError = SharedUIComponents.CreateStandardCheckBox(
                 Strings.FixErrorsCheckbox, Strings.FixErrorsTooltip);
             FixError.Name = "FixError"; // 添加Name属性以便预览功能查找
-            FixError.SetBinding(CheckBox.IsCheckedProperty, new Binding("Options.FixErrorIsChecked"));
+            FixError.SetBinding(ToggleButton.IsCheckedProperty, new Binding("Options.FixErrorIsChecked"));
             FixError.Margin = new Thickness(2, 0, 10, 0);
             OriginalLN = SharedUIComponents.CreateStandardCheckBox(
                 Strings.OriginalLNsCheckbox, Strings.OriginalLNsTooltip);
             OriginalLN.Name = "OriginalLN"; // 添加Name属性以便预览功能查找
-            OriginalLN.SetBinding(CheckBox.IsCheckedProperty, new Binding("Options.OriginalLNIsChecked"));
+            OriginalLN.SetBinding(ToggleButton.IsCheckedProperty, new Binding("Options.OriginalLNIsChecked"));
             OriginalLN.Margin = new Thickness(2, 0, 10, 0);
             cbPanel.Children.Add(Ignore);
             cbPanel.Children.Add(FixError);
@@ -283,18 +283,7 @@ public static class Setting
                 var allFiles = new List<string> { filePath };
 
                 // 收集参数
-                var parameters = new LNTransformerOptions
-                {
-                    LevelValue = LevelValue.Dispatcher.Invoke(() => LevelValue.Value),
-                    PercentageValue = PercentageValue.Dispatcher.Invoke(() => PercentageValue.Value),
-                    DivideValue = DivideValue.Dispatcher.Invoke(() => DivideValue.Value),
-                    ColumnValue = ColumnValue.Dispatcher.Invoke(() => ColumnValue.Value),
-                    GapValue = GapValue.Dispatcher.Invoke(() => GapValue.Value),
-                    IgnoreIsChecked = Ignore.Dispatcher.Invoke(() => Ignore.IsChecked == true),
-                    OriginalLNIsChecked = OriginalLN.Dispatcher.Invoke(() => OriginalLN.IsChecked == true),
-                    FixErrorIsChecked = FixError.Dispatcher.Invoke(() => FixError.IsChecked == true),
-                    OverallDifficulty = OverallDifficultySlider.Dispatcher.Invoke(() => OverallDifficultySlider.Value)
-                };
+                var parameters = _viewModel.Options;
 
                 // 使用统一的TransformService处理文件
                 TransformService.ProcessFiles(allFiles, parameters);

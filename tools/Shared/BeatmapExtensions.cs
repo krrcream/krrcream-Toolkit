@@ -12,7 +12,7 @@ public static class BeatmapExtensions
     public static double GetBPM(this Beatmap? beatmap, bool asMs = false)
     {
         if (beatmap == null)
-            return 0;
+            return 180;
         
         var tp = beatmap.TimingPoints
             .Where(p => p.BeatLength > 0)

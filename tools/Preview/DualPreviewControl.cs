@@ -13,6 +13,7 @@ using krrTools.tools.Shared;
 using static krrTools.tools.Shared.SharedUIComponents;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 using Button = Wpf.Ui.Controls.Button;
+using System.Diagnostics;
 using Image = System.Windows.Controls.Image;
 
 namespace krrTools.tools.Preview;
@@ -703,6 +704,7 @@ public class DualPreviewControl : UserControl
 
     private void StartConversionButton_Click(object sender, RoutedEventArgs e)
     {
+        Debug.WriteLine($"Start conversion clicked, staged paths: {_stagedPaths?.Length ?? 0}");
         StartConversionRequested?.Invoke(this, _stagedPaths);
     }
 

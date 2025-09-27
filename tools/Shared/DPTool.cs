@@ -27,7 +27,7 @@ namespace krrTools.tools.Shared
             return await Task.Run(() => ProcessFile(filePath, options));
         }
 
-        public object? ProcessFileToData(string filePath, IToolOptions options)
+        public object ProcessFileToData(string filePath, IToolOptions options)
         {
             throw new System.NotImplementedException();
         }
