@@ -8,11 +8,14 @@ using krrTools.tools.N2NC;
 using OsuParsers.Beatmaps.Objects;
 using krrTools.tools.Shared;
 using krrTools.Tools.Shared;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.tools.DPtool
 {
     public class DP
     {
+        private static readonly ILogger<DP> _logger = LoggerFactoryHolder.CreateLogger<DP>();
+
         // 静态方法：处理矩阵，应用DP转换选项
         public static int[,] ProcessMatrix(int[,] matrix, DPToolOptions options)
         {
@@ -63,6 +66,7 @@ namespace krrTools.tools.DPtool
 
         public string ProcessFile(string filePath, DPToolOptions options)
         {
+            _logger.LogInformation("转换器读取转换: {FilePath}", filePath);
             options.Left.Validate();
             options.Right.Validate();
 

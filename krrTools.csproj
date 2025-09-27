@@ -19,6 +19,7 @@
     
     <ItemGroup>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.9" />
         <PackageReference Include="OsuFileIO" Version="0.1.1" />
         <PackageReference Include="OsuFileIO.Analyzer" Version="0.1.1" />
         <PackageReference Include="OsuMemoryDataProvider" Version="0.11.1" />
@@ -27,7 +28,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <EmbeddedResource Include="tools\Preview\mania-last-object-not-latest.osu" />
+      <EmbeddedResource Include="tools\Preview\mania-PreView.osu" />
     </ItemGroup>
 
     <ItemGroup>

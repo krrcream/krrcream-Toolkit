@@ -120,7 +120,7 @@ public class SRCalculator
             var Pbar = task25.Result;
 
             stopwatch.Stop();
-            Console.WriteLine($"Section 23/24/25 Time: {stopwatch.ElapsedMilliseconds}ms");
+            System.Diagnostics.Debug.WriteLine($"Section 23/24/25 Time: {stopwatch.ElapsedMilliseconds}ms");
 
             stopwatch.Restart();
             var task26 = Task.Run(() => CalculateSection26(deltaKs));
@@ -134,13 +134,13 @@ public class SRCalculator
             var (Rbar, Is) = task27.Result;
 
             stopwatch.Stop();
-            Console.WriteLine($"Section 26/27 Time: {stopwatch.ElapsedMilliseconds}ms");
+            System.Diagnostics.Debug.WriteLine($"Section 26/27 Time: {stopwatch.ElapsedMilliseconds}ms");
 
             // Final calculation
             stopwatch.Restart();
             var result = CalculateSection3(Jbar, Xbar, Pbar, Abar, Rbar, KS);
             stopwatch.Stop();
-            Console.WriteLine($"Section 3 Time: {stopwatch.ElapsedMilliseconds}ms");
+            System.Diagnostics.Debug.WriteLine($"Section 3 Time: {stopwatch.ElapsedMilliseconds}ms");
 
             return result;
         }

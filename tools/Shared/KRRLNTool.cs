@@ -21,7 +21,9 @@ namespace krrTools.tools.Shared
 
             var transformer = new KRRLN();
             var beatmap = transformer.ProcessFiles(filePath, krrlnOptions);
-            string outputPath = Path.Combine(Path.GetDirectoryName(filePath), Path.GetFileNameWithoutExtension(filePath) + "_KRRLN.osu");
+            string? dir = Path.GetDirectoryName(filePath);
+            if (string.IsNullOrEmpty(dir)) dir = ".";
+            string outputPath = Path.Combine(dir, Path.GetFileNameWithoutExtension(filePath) + "_KRRLN.osu");
             File.WriteAllText(outputPath, beatmap.ToString());
             return outputPath;
         }

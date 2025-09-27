@@ -146,7 +146,7 @@ namespace krrTools.Tools.OsuParser
                 return null;
             }
 
-            Console.WriteLine(songFolder);
+            System.Diagnostics.Debug.WriteLine(songFolder);
 
             // 创建.osz文件
             string outputOsz = Path.GetFileName(songFolder) + ".osz";

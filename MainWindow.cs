@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
@@ -21,6 +20,7 @@ using krrTools.tools.Listener;
 using krrTools.tools.LNTransformer;
 using krrTools.tools.N2NC;
 using krrTools.tools.Shared;
+using Microsoft.Extensions.Logging;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 using Button = Wpf.Ui.Controls.Button;
@@ -110,6 +110,7 @@ public class MainWindow : FluentWindow
     public DualPreviewControl? N2NCPreview => _previewControls.GetValueOrDefault(OptionsManager.N2NCToolName);
     public DualPreviewControl? LNPreview => _previewControls.GetValueOrDefault(OptionsManager.LNToolName);
     public DualPreviewControl? DPPreview => _previewControls.GetValueOrDefault(OptionsManager.DPToolName);
+    public DualPreviewControl? KRRLNPreview => _previewControls.GetValueOrDefault(OptionsManager.KRRLNToolName);
     public N2NCControl ConvWindowInstance => _convWindowInstance;
 
     public MainWindow()
@@ -208,7 +209,7 @@ public class MainWindow : FluentWindow
 
         // 预览器
         BuildPreviewTabs();
-        BuildNoPreveiwTabs();
+        BuildNoPreViewTabs();
 
         // 全局预览器
         var globalPreview = new DualPreviewControl { Margin = new Thickness(8), Visibility = Visibility.Collapsed };
@@ -311,7 +312,7 @@ public class MainWindow : FluentWindow
     #endregion
     
     #region 创建简单选项卡（无预览器）
-    private void BuildNoPreveiwTabs()
+    private void BuildNoPreViewTabs()
     {
         var simpleConfigs = new[]
         {
@@ -345,7 +346,6 @@ public class MainWindow : FluentWindow
     private void SetupPreviewProcessors()
     {
         _internalOsuPath = ResolveInternalSample();
-        Debug.WriteLine($"Resolved internal osu path: {_internalOsuPath}");
         
         // 统一分配预览处理器
         if (_previewControls.TryGetValue(OptionsManager.N2NCToolName, out var converterPreview) &&
@@ -363,14 +363,14 @@ public class MainWindow : FluentWindow
             dpPreview.Processor = new DPPreviewProcessor(null,
                 () => (dpHost.DataContext as DPToolViewModel)?.Options ?? new DPToolOptions());
 
-        if (_previewControls.TryGetValue(OptionsManager.KRRLNToolName, out var krrlnPreview) &&
-            _settingsHosts.TryGetValue(OptionsManager.KRRLNToolName, out var krrlnHost))
+        if (_previewControls.TryGetValue(OptionsManager.KRRLNToolName, out var krrLNPreview) &&
+            _settingsHosts.TryGetValue(OptionsManager.KRRLNToolName, out var krrLNHost))
         {
             var processor = new ConverterPreviewProcessor(null, null)
             {
                 KRRLNOptionsProvider = () => _krrLnTransformerInstance.GetOptions()
             };
-            krrlnPreview.Processor = processor;
+            krrLNPreview.Processor = processor;
         }
 
         _converterVM = N2NCSettingsHost?.DataContext as N2NCViewModel;
@@ -399,19 +399,14 @@ public class MainWindow : FluentWindow
         if (!string.IsNullOrEmpty(_internalOsuPath) && File.Exists(_internalOsuPath))
         {
             var arr = new[] { _internalOsuPath };
-            Debug.WriteLine($"Loading internal osu file: {_internalOsuPath}");
             if (_previewControls.TryGetValue(OptionsManager.N2NCToolName, out var convControl))
                 convControl.LoadPreview(arr, true);
             if (_previewControls.TryGetValue(OptionsManager.LNToolName, out var lnControl))
                 lnControl.LoadPreview(arr, true);
             if (_previewControls.TryGetValue(OptionsManager.DPToolName, out var dpControl))
                 dpControl.LoadPreview(arr, true);
-            if (_previewControls.TryGetValue(OptionsManager.KRRLNToolName, out var krrlnControl))
-                krrlnControl.LoadPreview(arr, true);
-        }
-        else
-        {
-            Debug.WriteLine($"Internal osu file not found or invalid: {_internalOsuPath}");
+            if (_previewControls.TryGetValue(OptionsManager.KRRLNToolName, out var krrLNControl))
+                krrLNControl.LoadPreview(arr, true);
         }
     }
 
@@ -483,7 +478,7 @@ public class MainWindow : FluentWindow
             conv.Content = null;
         }
 
-        // KRRLNTransformer 嵌入
+        // KrrLNTransformer 嵌入
         _krrLnTransformerInstance = new KRRLNTransformerControl();
         var krrLn = _krrLnTransformerInstance;
         if (krrLn.Content is UIElement krrLnContent && KRRLNSettingsHost != null)
@@ -612,14 +607,9 @@ public class MainWindow : FluentWindow
             if (File.Exists(path) && string.Equals(Path.GetExtension(path), ".osu", StringComparison.OrdinalIgnoreCase))
                 return [path];
             if (Directory.Exists(path))
-                try
-                {
-                    return Directory.EnumerateFiles(path, "*.osu", SearchOption.AllDirectories);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Failed enumerating {path}: {ex.Message}");
-                }
+            {
+                return Directory.EnumerateFiles(path, "*.osu", SearchOption.AllDirectories);
+            }
 
             return [];
         }).ToList();
@@ -752,21 +742,22 @@ public class MainWindow : FluentWindow
         {
             var baseDir = AppDomain.CurrentDomain.BaseDirectory;
 
-            var direct = Path.Combine(baseDir, "mania-last-object-not-latest.osu");
+            var direct = Path.Combine(baseDir, "mania-PreView.osu");
             if (File.Exists(direct)) return direct;
             var dir = new DirectoryInfo(baseDir);
             for (var i = 0; i < 6; i++)
             {
                 if (dir == null) break;
                 var candidate = Path.Combine(dir.FullName, "tools", "Preview",
-                    "mania-last-object-not-latest.osu");
+                    "mania-PreView.osu");
                 if (File.Exists(candidate)) return candidate;
                 dir = dir.Parent;
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Debug.WriteLine("未找到内置.osu预览文件" + ex.Message);
+            LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("MainWindow")
+                .LogWarning("无法定位内置示例谱面");
         }
 
         return null;
@@ -774,20 +765,16 @@ public class MainWindow : FluentWindow
 
     private void GlobalPreview_StartConversionRequested(object? sender, string[]? paths)
     {
-        Debug.WriteLine($"GlobalPreview_StartConversionRequested called with {paths?.Length ?? 0} paths");
         if (paths == null || paths.Length == 0) return;
 
         // Get the currently active tool from the selected tab
         var selectedTag = (MainTabControl.SelectedItem as TabViewItem)?.Tag as string;
         if (string.IsNullOrEmpty(selectedTag)) return;
 
-        Debug.WriteLine($"Active tool: {selectedTag}");
-
         // Filter out internal sample and invalid files
         var toProcess = paths.Where(p => !string.Equals(p, _internalOsuPath, StringComparison.OrdinalIgnoreCase))
             .Where(p => File.Exists(p) && Path.GetExtension(p).Equals(".osu", StringComparison.OrdinalIgnoreCase))
             .ToArray();
-        Debug.WriteLine($"Filtered to {toProcess.Length} files for {selectedTag}");
         if (toProcess.Length == 0) return;
 
         _fileDispatcher.ConvertFiles(toProcess, selectedTag);
@@ -819,6 +806,10 @@ public class MainWindow : FluentWindow
             case OptionsManager.DPToolName:
                 source = _dpWindowInstance;
                 sourceId = 3;
+                break;
+            case OptionsManager.KRRLNToolName:
+                source = _krrLnTransformerInstance;
+                sourceId = 4;
                 break;
         }
 
@@ -929,20 +920,29 @@ public class MainWindow : FluentWindow
                     N2NCPreview.LoadPreview(arr, suppressBroadcast: true);
                     N2NCPreview.ApplyDropZoneStagedUI(arr);
                 }
+
                 if (LNPreview != null)
                 {
                     LNPreview.LoadPreview(arr, suppressBroadcast: true);
                     LNPreview.ApplyDropZoneStagedUI(arr);
                 }
+
                 if (DPPreview != null)
                 {
                     DPPreview.LoadPreview(arr, suppressBroadcast: true);
                     DPPreview.ApplyDropZoneStagedUI(arr);
                 }
+
+                if (KRRLNPreview != null)
+                {
+                    KRRLNPreview.LoadPreview(arr, suppressBroadcast: true);
+                    KRRLNPreview.ApplyDropZoneStagedUI(arr);
+                }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Listener preview broadcast failed: {ex.Message}");
+                LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("MainWindow")
+                    .LogError($"Error loading beatmap in real-time preview: {ex.Message}");
             }
         }));
     }

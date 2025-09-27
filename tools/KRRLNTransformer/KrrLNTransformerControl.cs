@@ -412,7 +412,9 @@ public static class Setting
                 
                 var beatmap = LN.ProcessFiles(filePath,parameters);
                 
-                string outputPath = Path.Combine(Path.GetDirectoryName(filePath), Path.GetFileNameWithoutExtension(filePath) + "_KRRLN.osu");
+                string? dir = Path.GetDirectoryName(filePath);
+                if (string.IsNullOrEmpty(dir)) dir = ".";
+                string outputPath = Path.Combine(dir, Path.GetFileNameWithoutExtension(filePath) + "_KRRLN.osu");
                 File.WriteAllText(outputPath, beatmap.ToString());
 
                 // 检查文件是否实际生成
