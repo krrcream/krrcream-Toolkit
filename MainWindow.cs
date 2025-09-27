@@ -399,6 +399,7 @@ public class MainWindow : FluentWindow
         if (!string.IsNullOrEmpty(_internalOsuPath) && File.Exists(_internalOsuPath))
         {
             var arr = new[] { _internalOsuPath };
+            Debug.WriteLine($"Loading internal osu file: {_internalOsuPath}");
             if (_previewControls.TryGetValue(OptionsManager.N2NCToolName, out var convControl))
                 convControl.LoadPreview(arr, true);
             if (_previewControls.TryGetValue(OptionsManager.LNToolName, out var lnControl))
@@ -407,6 +408,10 @@ public class MainWindow : FluentWindow
                 dpControl.LoadPreview(arr, true);
             if (_previewControls.TryGetValue(OptionsManager.KRRLNToolName, out var krrlnControl))
                 krrlnControl.LoadPreview(arr, true);
+        }
+        else
+        {
+            Debug.WriteLine($"Internal osu file not found or invalid: {_internalOsuPath}");
         }
     }
 
