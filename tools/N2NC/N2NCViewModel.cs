@@ -37,17 +37,24 @@ namespace krrTools.tools.N2NC
 
         public N2NCViewModel()
         {
+            // Subscribe to property changes to save options
+            PropertyChanged += N2NCViewModel_PropertyChanged;
+        }
+
+        public void LoadOptions()
+        {
             // Try to load saved ConverterOptions
             try
             {
-                var saved = OptionsManager.LoadOptions<N2NCOptions>(OptionsManager.ConverterToolName, OptionsManager.OptionsFileName);
+                var saved = OptionsManager.LoadOptions<N2NCOptions>(OptionsManager.N2NCToolName, OptionsManager.ConfigFileName);
                 if (saved != null)
                 {
-                    TargetKeys = saved.TargetKeys;
-                    MaxKeys = saved.MaxKeys;
-                    MinKeys = saved.MinKeys;
-                    TransformSpeed = saved.TransformSpeed;
-                    Seed = saved.Seed;
+                    TargetKeys = saved.TargetKeys > 0 ? saved.TargetKeys : 10;
+                    MaxKeys = saved.MaxKeys > 0 ? saved.MaxKeys : 10;
+                    MinKeys = saved.MinKeys > 0 ? saved.MinKeys : 2;
+                    TransformSpeed = saved.TransformSpeed > 0 ? saved.TransformSpeed : 1.0;
+                    if (saved.Seed.HasValue && saved.Seed.Value != 0)
+                        Seed = saved.Seed;
 
                     // Restore key flags if available
                     if (saved.SelectedKeyFlags.HasValue)
@@ -72,6 +79,9 @@ namespace krrTools.tools.N2NC
                             }
                         }
                     }
+
+                    // Restore selected preset
+                    SelectedPreset = saved.SelectedPreset;
                 }
             }
             catch
@@ -80,7 +90,13 @@ namespace krrTools.tools.N2NC
             }
         }
 
-        // Expose the flags property directly for new code
+        private void N2NCViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            var opt = GetConversionOptions();
+            opt.Validate();
+            OptionsManager.SaveOptions(OptionsManager.N2NCToolName, OptionsManager.ConfigFileName, opt);
+        }
+
         public KeySelectionFlags KeySelection
         {
             get => _keySelection;
@@ -93,7 +109,6 @@ namespace krrTools.tools.N2NC
             set => SetProperty(ref _selectedPreset, value);
         }
 
-        // Keep the boolean properties as wrappers for compatibility with existing UI/code
         public bool Is4KSelected
         {
             get => (_keySelection & KeySelectionFlags.K4) == KeySelectionFlags.K4;
@@ -210,13 +225,19 @@ namespace krrTools.tools.N2NC
             get => _targetKeys;
             set
             {
-                SetProperty(ref _targetKeys, value);
-                // 更新MaxKeys的最大值，并确保MaxKeys不超过TargetKeys
-                MaxKeys = TargetKeys; // 保持最大键数滑块在最右边
-
-                // 更新MinKeys的最大值
-                if (MinKeys > MaxKeys)
-                    MinKeys = MaxKeys;
+                if (SetProperty(ref _targetKeys, value))
+                {
+                    // 更新MaxKeys和MinKeys以不超过TargetKeys
+                    if (MaxKeys > TargetKeys)
+                        MaxKeys = TargetKeys;
+                    if (MinKeys > TargetKeys)
+                        MinKeys = TargetKeys;
+                    // 确保MinKeys <= MaxKeys
+                    if (MinKeys > MaxKeys)
+                        MinKeys = MaxKeys;
+                    OnPropertyChanged(nameof(MaxKeysMaximum));
+                    OnPropertyChanged(nameof(MinKeysMaximum));
+                }
             }
         }
 
@@ -227,6 +248,10 @@ namespace krrTools.tools.N2NC
             {
                 if (SetProperty(ref _maxKeys, value))
                 {
+                    // 确保MaxKeys不超过TargetKeys
+                    if (MaxKeys > TargetKeys)
+                        MaxKeys = TargetKeys;
+
                     // 当最大键数改变时，更新最小键数
                     // 如果最大键数等于1，最小键数等于1；否则最小键数等于2
                     MinKeys = Math.Abs(_maxKeys - 1.0) < 0 ? 1 : 2;
@@ -242,10 +267,21 @@ namespace krrTools.tools.N2NC
         public double MinKeys
         {
             get => _minKeys;
-            set => SetProperty(ref _minKeys, value);
+            set
+            {
+                if (SetProperty(ref _minKeys, value))
+                {
+                    // 确保MinKeys不超过TargetKeys和MaxKeys
+                    if (MinKeys > TargetKeys)
+                        MinKeys = TargetKeys;
+                    if (MinKeys > MaxKeys)
+                        MinKeys = MaxKeys;
+                }
+            }
         }
 
        public double MinKeysMaximum => MaxKeys;
+       public double MaxKeysMaximum => TargetKeys;
 
         // TransformSpeed is a double representing the actual configured speed (slider-controlled)
         public double TransformSpeed
@@ -320,7 +356,8 @@ namespace krrTools.tools.N2NC
                 TransformSpeed = TransformSpeed,
                 SelectedKeyTypes = selectedKeys,
                 Seed = Seed,
-                SelectedKeyFlags = KeySelection
+                SelectedKeyFlags = KeySelection,
+                SelectedPreset = SelectedPreset
             };
         }
 

@@ -15,7 +15,7 @@ using CommunityToolkit.Mvvm.Input;
 using krrTools.Tools.OsuParser;
 using krrTools.Tools.Shared;
 
-namespace krrTools.tools.KRR_LV
+namespace krrTools.tools.KrrLV
 {
     public class OsuFileItem : ObservableObject
     {
@@ -124,13 +124,13 @@ namespace krrTools.tools.KRR_LV
             set => SetProperty(ref _beatmapSetID, value);
         }
         
-        public double XXYSR
+        public double XxySR
         {
             get => _xxySR;
             set => SetProperty(ref _xxySR, value);
         }
     
-        public double KRRLV
+        public double KrrLV
         {
             get => _krrLV;
             set => SetProperty(ref _krrLV, value);
@@ -162,7 +162,7 @@ namespace krrTools.tools.KRR_LV
         }
     }
     
-    public partial class KRRLVViewModel : ObservableObject
+    public partial class KrrLVViewModel : ObservableObject
 {
     [ObservableProperty]
     private string _pathInput = null!;
@@ -174,7 +174,7 @@ namespace krrTools.tools.KRR_LV
     private readonly DispatcherTimer _updateTimer;
     private ProcessingWindow? _processingWindow;
     private readonly List<OsuFileItem> _pendingItems = new List<OsuFileItem>();
-    private readonly object _pendingItemsLock = new object();
+    private readonly Lock _pendingItemsLock = new Lock();
 
     private int _totalCount;
     private int _processedCount;
@@ -193,7 +193,7 @@ namespace krrTools.tools.KRR_LV
         set => SetProperty(ref _processedCount, value);
     }
 
-    public KRRLVViewModel()
+    public KrrLVViewModel()
     {
         // 初始化定时器，每100毫秒批量更新一次UI
         _updateTimer = new DispatcherTimer
@@ -241,12 +241,12 @@ namespace krrTools.tools.KRR_LV
                 var csv = new StringBuilder();
                 
                 // 添加CSV头部
-                csv.AppendLine("KRR_LV,XXY_SR,Title,Diff,Artist,Creator,Keys,BPM,OD,HP,LN%,beatmapID,beatmapsetId,filePath");
+                csv.AppendLine("KRR_LV,XXY_SR,Title,Diff,Artist,Creator,Keys,BPM,OD,HP,LN%,beatmapID,beatmapSetId,filePath");
                 
                 // 添加数据行
                 foreach (var file in OsuFiles)
                 {
-                    var line = $"\"{file.KRRLV:F2}\",\"{file.XXYSR:F2}\",\"{file.Title}\",\"{file.Diff}\",\"{file.Artist}\",\"{file.Creator}\",{file.Keys},\"{file.BPM}\",{file.OD},{file.HP},\"{file.LNPercent:F2}\",{file.BeatmapID},{file.BeatmapSetID},\"{file.FilePath}\"";
+                    var line = $"\"{file.KrrLV:F2}\",\"{file.XxySR:F2}\",\"{file.Title}\",\"{file.Diff}\",\"{file.Artist}\",\"{file.Creator}\",{file.Keys},\"{file.BPM}\",{file.OD},{file.HP},\"{file.LNPercent:F2}\",{file.BeatmapID},{file.BeatmapSetID},\"{file.FilePath}\"";
                     csv.AppendLine(line);
                 }
         
@@ -298,7 +298,7 @@ namespace krrTools.tools.KRR_LV
                         {
                             await _semaphore.WaitAsync();
                             var task = Task.Run(() => ProcessOsuFile(osuFile))
-                                .ContinueWith(t => 
+                                .ContinueWith(_ => 
                                 {
                                     _semaphore.Release();
                                     // 使用原子操作更新计数器
@@ -317,7 +317,7 @@ namespace krrTools.tools.KRR_LV
                     {
                         await _semaphore.WaitAsync();
                         var task = Task.Run(() => ProcessOsuFile(file))
-                            .ContinueWith(t => 
+                            .ContinueWith(_ => 
                             {
                                 _semaphore.Release();
                                 // 使用原子操作更新计数器
@@ -343,7 +343,7 @@ namespace krrTools.tools.KRR_LV
                             {
                                 await _semaphore.WaitAsync();
                                 var task = Task.Run(() => ProcessOszEntry(entry, file))
-                                    .ContinueWith(t => 
+                                    .ContinueWith(_ => 
                                     {
                                         _semaphore.Release();
                                         // 使用原子操作更新计数器
@@ -456,8 +456,8 @@ namespace krrTools.tools.KRR_LV
                 item.LNPercent = result.LNPercent;
                 item.BeatmapID = result.BeatmapID;
                 item.BeatmapSetID = result.BeatmapSetID;
-                item.XXYSR = result.XXY_SR;
-                item.KRRLV = result.KRR_LV;
+                item.XxySR = result.XXY_SR;
+                item.KrrLV = result.KRR_LV;
                 item.Status = "已分析";
             });
         }
@@ -547,8 +547,8 @@ namespace krrTools.tools.KRR_LV
                 item.LNPercent = result.LNPercent;
                 item.BeatmapID = result.BeatmapID;
                 item.BeatmapSetID = result.BeatmapSetID;
-                item.XXYSR = result.XXY_SR;
-                item.KRRLV = result.KRR_LV;
+                item.XxySR = result.XXY_SR;
+                item.KrrLV = result.KRR_LV;
                 item.Status = "已分析";
             });
         }

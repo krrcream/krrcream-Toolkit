@@ -2,24 +2,15 @@
 
 namespace krrTools.tools.DPtool
 {
-    public class DPToolViewModel : ObservableObject
+    public class DPToolViewModel : CommunityToolkit.Mvvm.ComponentModel.ObservableObject
     {
         public DPToolViewModel()
         {
-            // Try to load saved options; if none, keep defaults
-            try
-            {
-                var saved = OptionsManager.LoadOptions<DPToolOptions>(OptionsManager.DPToolName, OptionsManager.OptionsFileName);
+                var saved = OptionsManager.LoadOptions<DPToolOptions>(OptionsManager.DPToolName, OptionsManager.ConfigFileName);
                 if (saved != null)
                 {
                     Options = saved;
                 }
-            }
-            catch
-            {
-                // best-effort load; ignore errors
-            }
-
         }
 
         private bool _isProcessing;

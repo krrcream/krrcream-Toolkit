@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using krrTools.Tools.Shared;
 using OsuParsers.Decoders;
 using Application = System.Windows.Application;
-using krrTools.Tools.Shared;
 
-namespace krrTools.tools.Get_files
+namespace krrTools.tools.FilesManager
 {
     
     public class OsuFileInfo
@@ -28,10 +28,10 @@ namespace krrTools.tools.Get_files
         public int BeatmapSetID { get; set; }
     }
     
-    public partial class GetFilesViewModel : ObservableObject
+    public partial class FilesManagerViewModel : ObservableObject
     {
         
-        public GetFilesViewModel()
+        public FilesManagerViewModel()
         {
             // 初始化过滤视图
             _progressValue = 0;

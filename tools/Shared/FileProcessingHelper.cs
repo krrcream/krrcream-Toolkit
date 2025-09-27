@@ -38,7 +38,7 @@ namespace krrTools.Tools.Shared
             return beatmap;
         }
 
-        public static void ValidateAndRun(string filePath, Action<string> action, Action? onCompleted = null)
+        public static void ValidateAndRun(string filePath, Action<string> action, Action? onCompleted = null, bool showSuccessMessage = true)
         {
             if (!EnsureIsOsuFile(filePath)) return;
 
@@ -49,7 +49,10 @@ namespace krrTools.Tools.Shared
                     action(filePath);
                     Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                     {
-                        MessageBoxResultHelper.TryShowSuccess(SharedUIComponents.IsChineseLanguage());
+                        if (showSuccessMessage)
+                        {
+                            MessageBoxResultHelper.TryShowSuccess(SharedUIComponents.IsChineseLanguage());
+                        }
                         onCompleted?.Invoke();
                     }));
                 }
@@ -68,7 +71,7 @@ namespace krrTools.Tools.Shared
             });
         }
 
-        public static void ValidateAndRunWithPackaging(string filePath, Func<string, string?> processor, bool openOsz = false, Action? onCompleted = null)
+        public static void ValidateAndRunWithPackaging(string filePath, Func<string, string?> processor, bool openOsz = false, Action? onCompleted = null, bool showSuccessMessage = true)
         {
             if (!EnsureIsOsuFile(filePath)) return;
 
@@ -102,7 +105,10 @@ namespace krrTools.Tools.Shared
 
                     Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                     {
-                        MessageBoxResultHelper.TryShowSuccess(SharedUIComponents.IsChineseLanguage());
+                        if (showSuccessMessage)
+                        {
+                            MessageBoxResultHelper.TryShowSuccess(SharedUIComponents.IsChineseLanguage());
+                        }
                         onCompleted?.Invoke();
                     }));
                 }

@@ -19,13 +19,15 @@ namespace krrTools.tools.DPtool
             LDensity,
             LMaxKeys,
             LMinKeys,
+            LRemove,
             RMirror,
             RDensity,
             RMaxKeys,
-            RMinKeys
+            RMinKeys,
+            RRemove
         }
 
-        private CheckBox? ModifyKeysCheckBox, LMirrorCheckBox, LDensityCheckBox, RMirrorCheckBox, RDensityCheckBox;
+        private CheckBox? ModifyKeysCheckBox, LMirrorCheckBox, LDensityCheckBox, LRemoveCheckBox, RMirrorCheckBox, RDensityCheckBox, RRemoveCheckBox;
         private Slider? KeysSlider, LMaxKeysSlider, LMinKeysSlider, RMaxKeysSlider, RMinKeysSlider;
 
         private readonly DPToolViewModel _viewModel = new();
@@ -34,24 +36,10 @@ namespace krrTools.tools.DPtool
         public DPToolControl()
         {
             DataContext = _viewModel;
-            try
-            {
-                BuildDPToolUI();
-                SetupBindings();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"DPToolControl initialization error: {ex.Message}");
-                Content = new TextBlock
-                {
-                    Text = (SharedUIComponents.IsChineseLanguage() ? "DP Tool 加载失败: " : "DP Tool failed to load: ") + ex.Message,
-                    TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(12),
-                    VerticalAlignment = VerticalAlignment.Center,
-                    HorizontalAlignment = HorizontalAlignment.Center
-                };
-                return;
-            }
+
+            BuildDPToolUI();
+            SetupBindings();
+
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
             Unloaded += (_, _) =>
             {
@@ -76,7 +64,7 @@ namespace krrTools.tools.DPtool
         {
             try
             {
-                OptionsManager.SaveOptions(OptionsManager.DPToolName, OptionsManager.OptionsFileName, _viewModel.Options);
+                OptionsManager.SaveOptions(OptionsManager.DPToolName, OptionsManager.ConfigFileName, _viewModel.Options);
             }
             catch (Exception ex)
             {
@@ -115,7 +103,7 @@ namespace krrTools.tools.DPtool
 
             var keysSettings = new SettingsSlider<double>
             {
-                LabelText = Strings.DPKeysLabel,
+                LabelText = Strings.DPKeysTemplate,
                 TooltipText = Strings.DPKeysTooltip,
                 EnumProvider = enumProvider,
                 EnumKey = DPOptionKey.SingleSideKeyCount,
@@ -142,18 +130,20 @@ namespace krrTools.tools.DPtool
             LMirrorCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
             LDensityCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.DPDensityLabel, Strings.DPDensityTooltipLeft);
             LDensityCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
+            LRemoveCheckBox = SharedUIComponents.CreateStandardCheckBox("Remove|去除", "Force remove half-zone|强制去除半区");
+            LRemoveCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
 
             var leftChecks = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 6, 0, 10), HorizontalAlignment = HorizontalAlignment.Left };
             leftChecks.Children.Add(LMirrorCheckBox);
             leftChecks.Children.Add(LDensityCheckBox);
+            leftChecks.Children.Add(LRemoveCheckBox);
 
             var lMaxSettings = new SettingsSlider<double>
             {
-                LabelText = Strings.DPLeftMaxKeysLabel,
-                TooltipText = Strings.DPLeftMaxKeysLabel,
+                LabelText = Strings.DPLeftMaxKeysTemplate,
                 EnumProvider = enumProvider,
                 EnumKey = DPOptionKey.LMaxKeys,
-                Min = 0,
+                Min = 1,
                 Max = 5,
                 TickFrequency = 1,
                 KeyboardStep = 1
@@ -161,11 +151,10 @@ namespace krrTools.tools.DPtool
 
             var lMinSettings = new SettingsSlider<double>
             {
-                LabelText = Strings.DPLeftMinKeysLabel,
-                TooltipText = Strings.DPLeftMinKeysLabel,
+                LabelText = Strings.DPLeftMinKeysTemplate,
                 EnumProvider = enumProvider,
                 EnumKey = DPOptionKey.LMinKeys,
-                Min = 0,
+                Min = 1,
                 Max = 5,
                 TickFrequency = 1,
                 KeyboardStep = 1
@@ -186,18 +175,20 @@ namespace krrTools.tools.DPtool
             RMirrorCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
             RDensityCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.DPDensityLabel, Strings.DPDensityTooltipRight);
             RDensityCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
+            RRemoveCheckBox = SharedUIComponents.CreateStandardCheckBox("Remove|去除", "Force remove half-zone|强制去除半区");
+            RRemoveCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
 
             var rightChecks = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 6, 0, 10), HorizontalAlignment = HorizontalAlignment.Left };
             rightChecks.Children.Add(RMirrorCheckBox);
             rightChecks.Children.Add(RDensityCheckBox);
+            rightChecks.Children.Add(RRemoveCheckBox);
 
             var rMaxSettings = new SettingsSlider<double>
             {
-                LabelText = Strings.DPRightMaxKeysLabel,
-                TooltipText = Strings.DPRightMaxKeysLabel,
+                LabelText = Strings.DPRightMaxKeysTemplate,
                 EnumProvider = enumProvider,
                 EnumKey = DPOptionKey.RMaxKeys,
-                Min = 0,
+                Min = 1,
                 Max = 5,
                 TickFrequency = 1,
                 KeyboardStep = 1
@@ -205,11 +196,10 @@ namespace krrTools.tools.DPtool
 
             var rMinSettings = new SettingsSlider<double>
             {
-                LabelText = Strings.DPRightMinKeysLabel,
-                TooltipText = Strings.DPRightMinKeysLabel,
+                LabelText = Strings.DPRightMinKeysTemplate,
                 EnumProvider = enumProvider,
                 EnumKey = DPOptionKey.RMinKeys,
-                Min = 0,
+                Min = 1,
                 Max = 5,
                 TickFrequency = 1,
                 KeyboardStep = 1
@@ -248,13 +238,15 @@ namespace krrTools.tools.DPtool
 
                 target.Left.Mirror = opt.Left.Mirror;
                 target.Left.Density = opt.Left.Density;
-                target.Left.MaxKeys = opt.Left.MaxKeys;
-                target.Left.MinKeys = opt.Left.MinKeys;
+                target.LMaxKeys = opt.LMaxKeys;
+                target.LMinKeys = opt.LMinKeys;
+                target.LRemove = opt.LRemove;
 
                 target.Right.Mirror = opt.Right.Mirror;
                 target.Right.Density = opt.Right.Density;
-                target.Right.MaxKeys = opt.Right.MaxKeys;
-                target.Right.MinKeys = opt.Right.MinKeys;
+                target.RMaxKeys = opt.RMaxKeys;
+                target.RMinKeys = opt.RMinKeys;
+                target.RRemove = opt.RRemove;
             });
 
             var presetsPanel = SharedUIComponents.CreateLabeledRow(Strings.PresetsLabel.Localize(), presetInner, new Thickness(0, 0, 0, 10));
@@ -280,7 +272,7 @@ namespace krrTools.tools.DPtool
                     var dp = new DP();
                     string newFilepath = dp.ProcessFile(fp, _viewModel.Options);
                     return newFilepath;
-                }, openOsz: false, onCompleted: () => { try { _viewModel.IsProcessing = false; } catch (Exception ex) { Debug.WriteLine($"Failed to set IsProcessing=false in onCompleted: {ex.Message}"); } });
+                }, openOsz: false, onCompleted: () => { try { _viewModel.IsProcessing = false; } catch (Exception ex) { Debug.WriteLine($"Failed to set IsProcessing=false in onCompleted: {ex.Message}"); } }, showSuccessMessage: false);
             }
             catch (Exception ex)
             {
@@ -298,8 +290,10 @@ namespace krrTools.tools.DPtool
                 SettingsBinder.BindToggle(ModifyKeysCheckBox!, _enumProvider, DPOptionKey.ModifySingleSideKeyCount);
                 SettingsBinder.BindToggle(LMirrorCheckBox!, _enumProvider, DPOptionKey.LMirror);
                 SettingsBinder.BindToggle(LDensityCheckBox!, _enumProvider, DPOptionKey.LDensity);
+                SettingsBinder.BindToggle(LRemoveCheckBox!, _enumProvider, DPOptionKey.LRemove);
                 SettingsBinder.BindToggle(RMirrorCheckBox!, _enumProvider, DPOptionKey.RMirror);
                 SettingsBinder.BindToggle(RDensityCheckBox!, _enumProvider, DPOptionKey.RDensity);
+                SettingsBinder.BindToggle(RRemoveCheckBox!, _enumProvider, DPOptionKey.RRemove);
             }
             else
             {
@@ -307,8 +301,10 @@ namespace krrTools.tools.DPtool
                 SettingsBinder.BindToggle(ModifyKeysCheckBox!, _viewModel.Options, "ModifySingleSideKeyCount");
                 SettingsBinder.BindToggle(LMirrorCheckBox!, _viewModel.Options, "LMirror");
                 SettingsBinder.BindToggle(LDensityCheckBox!, _viewModel.Options, "LDensity");
+                SettingsBinder.BindToggle(LRemoveCheckBox!, _viewModel.Options, "LRemove");
                 SettingsBinder.BindToggle(RMirrorCheckBox!, _viewModel.Options, "RMirror");
                 SettingsBinder.BindToggle(RDensityCheckBox!, _viewModel.Options, "RDensity");
+                SettingsBinder.BindToggle(RRemoveCheckBox!, _viewModel.Options, "RRemove");
             }
 
             // Ensure sliders initial enabled state

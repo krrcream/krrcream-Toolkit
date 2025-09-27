@@ -50,7 +50,7 @@ namespace krrTools.tools.N2NC
                 throw new ArgumentException("不在筛选的键位模式里");
             }
 
-            if (CS == targetKeys && (int)options.TargetKeys == targetKeys && (int)options.MaxKeys == targetKeys)
+            if (CS == targetKeys && (int)options.TargetKeys == targetKeys)
             {
                 throw new ArgumentException("目标键位与当前键位相同且不降低密度");
             }
@@ -76,7 +76,7 @@ namespace krrTools.tools.N2NC
             // 生成转换矩阵
             var (oldMTX, insertMTX) = convertMTX(turn, timeAxis, convertTime, CS, random);
             int[,] newMatrix = convert(matrix, oldMTX, insertMTX, timeAxis, targetKeys, beatLength, random);
-            DensityReducer(newMatrix, (int)options!.TargetKeys - (int)options.MaxKeys, (int)options.MinKeys, (int)options.TargetKeys, random);
+            DensityReducer(newMatrix, (int)options!.TargetKeys - 18, 1, (int)options.TargetKeys, random);
             newHitObjects(beatmap, newMatrix);
 
             return SaveBeatmap(beatmap, filepath, CS);
@@ -86,7 +86,7 @@ namespace krrTools.tools.N2NC
             double beatLength, Random random, string filepath, int originalCS)
          {
              var newMatrix = SmartReduceColumns(matrix, timeAxis, -turn, convertTime, beatLength);
-             DensityReducer(newMatrix, (int)options!.TargetKeys - (int)options.MaxKeys, (int)options.MinKeys, (int)options.TargetKeys, random);
+             DensityReducer(newMatrix, (int)options!.TargetKeys - 18, 1, (int)options.TargetKeys, random);
              newHitObjects(beatmap, newMatrix);
 
              return SaveBeatmap(beatmap, filepath, originalCS);
@@ -140,22 +140,7 @@ namespace krrTools.tools.N2NC
 
         private static string GetUniqueFilePath(string path)
         {
-            try
-            {
-                if (!File.Exists(path)) return path;
-                var dir = Path.GetDirectoryName(path) ?? string.Empty;
-                var name = Path.GetFileNameWithoutExtension(path);
-                var ext = Path.GetExtension(path);
-                for (int i = 1; i < 1000; i++)
-                {
-                    var candidate = Path.Combine(dir, name + " (" + i + ")" + ext);
-                    if (!File.Exists(candidate)) return candidate;
-                }
-            }
-            catch
-            {
-                // ignore and fallback to original path
-            }
+            // Always overwrite existing files
             return path;
         }
 
@@ -1412,6 +1397,74 @@ namespace krrTools.tools.N2NC
                     _direction = 1;
                 }
             }
+        }
+
+        public Beatmap NToNCToData(Beatmap beatmap)
+        {
+            if (options == null)
+                throw new InvalidOperationException("ConverterOptions 未设置，请先赋值 options。");
+
+            if (beatmap.GeneralSection.ModeId != 3)
+                throw new ArgumentException("不是mania模式");
+
+            int CS = (int)beatmap.DifficultySection.CircleSize;
+            int targetKeys = (int)options.TargetKeys;
+            int turn = targetKeys - CS;
+            var P = options.SelectedKeyTypes;
+            // 创建带种子的随机数生成器
+            var RG = options.Seed.HasValue ? new Random(options.Seed.Value) : new Random(); // 使用系统时间作为种子
+
+            if (P is { Count: > 0 } && !P.Contains(CS))
+            {
+                throw new ArgumentException("不在筛选的键位模式里");
+            }
+
+            if (CS == targetKeys && (int)options.TargetKeys == targetKeys)
+            {
+                throw new ArgumentException("目标键位与当前键位相同且不降低密度");
+            }
+            var ANA = new OsuAnalyzer();
+            double BPM = ANA.GetBPM(beatmap);
+            Console.WriteLine("BPM：" + BPM);
+            double beatLength = 60000 / BPM * 4;
+            // 变换时间
+            double convertTime = Math.Max(1, options.TransformSpeed * beatLength - 10);
+            var (matrix, timeAxis) = BuildMatrix(beatmap);
+
+            return turn >= 0 ? 
+                DoAddKeysToData(beatmap, matrix, timeAxis, turn, convertTime, CS, targetKeys, beatLength, RG) 
+                : 
+                DoRemoveKeysToData(beatmap, matrix, timeAxis, turn, convertTime, beatLength, RG, CS);
+        }
+
+        private Beatmap DoAddKeysToData(Beatmap beatmap, int[,] matrix, List<int> timeAxis, int turn, double convertTime,
+            int CS, int targetKeys, double beatLength, Random random)
+        {
+            // 生成转换矩阵
+            var (oldMTX, insertMTX) = convertMTX(turn, timeAxis, convertTime, CS, random);
+            int[,] newMatrix = convert(matrix, oldMTX, insertMTX, timeAxis, targetKeys, beatLength, random);
+            DensityReducer(newMatrix, (int)options!.TargetKeys - 18, 1, (int)options.TargetKeys, random);
+            newHitObjects(beatmap, newMatrix);
+
+            beatmap.MetadataSection.Creator = "Krr Conv. & " + beatmap.MetadataSection.Creator;
+            beatmap.DifficultySection.CircleSize = (float)options.TargetKeys;
+            beatmap.MetadataSection.Version = "[" + CS + "to" + options.TargetKeys + "C] " + beatmap.MetadataSection.Version;
+
+            return beatmap;
+        }
+
+        private Beatmap DoRemoveKeysToData(Beatmap beatmap, int[,] matrix, List<int> timeAxis, int turn, double convertTime,
+            double beatLength, Random random, int originalCS)
+        {
+            var newMatrix = SmartReduceColumns(matrix, timeAxis, -turn, convertTime, beatLength);
+            DensityReducer(newMatrix, (int)options!.TargetKeys - 18, 1, (int)options.TargetKeys, random);
+            newHitObjects(beatmap, newMatrix);
+
+            beatmap.MetadataSection.Creator = "Krr Conv. & " + beatmap.MetadataSection.Creator;
+            beatmap.DifficultySection.CircleSize = (float)options.TargetKeys;
+            beatmap.MetadataSection.Version = "[" + originalCS + "to" + options.TargetKeys + "C] " + beatmap.MetadataSection.Version;
+
+            return beatmap;
         }
     }
 }

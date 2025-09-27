@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -10,6 +11,43 @@ using krrTools.Tools.Shared;
 
 namespace krrTools.tools.N2NC
 {
+    public class LabelConverter : IMultiValueConverter
+    {
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (values.Length >= 2 && values[0] is string labelStr)
+            {
+                string valStr;
+                if (values[1] == DependencyProperty.UnsetValue)
+                {
+                    valStr = "0"; // Default value for initialization
+                }
+                else
+                {
+                    valStr = values[1]?.ToString() ?? "0";
+                }
+                if (labelStr.Contains("{0}"))
+                {
+                    return Strings.FormatLocalized(labelStr, valStr);
+                }
+                else
+                {
+                    return Strings.Localize(labelStr) + ": " + valStr;
+                }
+            }
+            else if (values.Length >= 1 && values[0] is string lbl)
+            {
+                return Strings.Localize(lbl);
+            }
+            return string.Empty;
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     public class N2NCControl : UserControl
     {
         private Slider? TargetKeysSlider;
@@ -23,24 +61,21 @@ namespace krrTools.tools.N2NC
 
         public N2NCControl()
         {
-            // Initialize view and bindings
-            BuildConverterUI();
             DataContext = _viewModel;
-            // Subscribe to language change to rebuild UI on demand
+            BuildConverterUI();
+            _viewModel.LoadOptions();
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
-            // Unsubscribe when this control is unloaded
             Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
         }
 
         private void OnLanguageChanged()
         {
-            // Rebuild UI on UI thread to refresh labels/tooltips
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 var dm = DataContext;
                 Content = null;
-                BuildConverterUI();
                 DataContext = dm;
+                BuildConverterUI();
             }));
         }
 
@@ -99,81 +134,140 @@ namespace krrTools.tools.N2NC
         private FrameworkElement CreateTargetKeysPanel(Thickness rowMargin)
         {
             // Target keys
-            var targetKeysSlider = SharedUIComponents.CreateStandardSlider(1, 15, double.NaN, true);
+            var targetKeysSlider = SharedUIComponents.CreateStandardSlider(1, 18, double.NaN, true);
             targetKeysSlider.SetBinding(RangeBase.ValueProperty, new Binding("TargetKeys") { Source = _viewModel });
             TargetKeysSlider = targetKeysSlider;
-            
-            var targetKeysText = SharedUIComponents.CreateStandardTextBlock();
-            targetKeysText.SetBinding(TextBlock.TextProperty, new Binding("TargetKeys") { Source = _viewModel, StringFormat = "{0}" });
-            
+
             var sliderPanel = new Grid();
             sliderPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            sliderPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             Grid.SetColumn(targetKeysSlider, 0);
-            Grid.SetColumn(targetKeysText, 1);
             sliderPanel.Children.Add(targetKeysSlider);
-            sliderPanel.Children.Add(targetKeysText);
-            
-            var targetKeysRow = SharedUIComponents.CreateLabeledRow(Strings.N2NCTargetKeysLabel, sliderPanel, rowMargin);
 
-            return targetKeysRow;
-        }
+            var labelRow = new Grid();
+            labelRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var targetLabel = SharedUIComponents.CreateStandardTextBlock();
+            targetLabel.FontWeight = FontWeights.Bold;
+            targetLabel.Margin = new Thickness(0, 0, 8, 0);
+            Grid.SetColumn(targetLabel, 0);
+            labelRow.Children.Add(targetLabel);
 
-        private FrameworkElement CreateMaxKeysPanel(Thickness rowMargin)
+            // 绑定标签文本为 "本地化标签: 值"
+            var targetBinding = new MultiBinding();
+            targetBinding.StringFormat = "{0}";
+            targetBinding.Bindings.Add(new Binding { Source = Strings.N2NCTargetKeysTemplate });
+            targetBinding.Bindings.Add(new Binding("TargetKeys") { Source = _viewModel });
+            targetBinding.Converter = new LabelConverter();
+            targetLabel.SetBinding(TextBlock.TextProperty, targetBinding);
+
+            // 主面板：标签行 + 滑条行
+            var mainPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = rowMargin };
+            mainPanel.Children.Add(labelRow);
+            mainPanel.Children.Add(sliderPanel);
+            return mainPanel;
+        }        private FrameworkElement CreateMaxKeysPanel(Thickness rowMargin)
         {
             var maxInner = new Grid();
             maxInner.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            maxInner.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             MaxKeysSlider = SharedUIComponents.CreateStandardSlider(1, 18, double.NaN, true);
-            MaxKeysSlider.SetBinding(RangeBase.ValueProperty, new Binding(nameof(N2NCViewModel.MaxKeys)) { Mode = BindingMode.TwoWay });
-            MaxKeysSlider.ValueChanged += MaxKeysSlider_ValueChanged;
+            MaxKeysSlider.SetBinding(RangeBase.ValueProperty, new Binding(nameof(N2NCViewModel.MaxKeys)) { Mode = BindingMode.TwoWay, Source = _viewModel });
+            MaxKeysSlider.SetBinding(RangeBase.MaximumProperty, new Binding(nameof(N2NCViewModel.MaxKeysMaximum)) { Mode = BindingMode.OneWay, Source = _viewModel });
             Grid.SetColumn(MaxKeysSlider, 0);
             maxInner.Children.Add(MaxKeysSlider);
-            var maxValue = SharedUIComponents.CreateStandardTextBlock();
-            maxValue.SetBinding(TextBlock.TextProperty, new Binding(nameof(N2NCViewModel.MaxKeys)) { StringFormat = "{0:0}" });
-            Grid.SetColumn(maxValue, 1);
-            maxInner.Children.Add(maxValue);
-            return SharedUIComponents.CreateLabeledRow(Strings.N2NCMaxKeysLabel, maxInner, rowMargin);
+
+            // 创建标签行：标签 + 数值 合并为一个标签显示 "标签: 值"
+            var labelRow = new Grid();
+            labelRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var maxLabel = SharedUIComponents.CreateStandardTextBlock();
+            maxLabel.FontWeight = FontWeights.Bold;
+            maxLabel.Margin = new Thickness(0, 0, 8, 0);
+            Grid.SetColumn(maxLabel, 0);
+            labelRow.Children.Add(maxLabel);
+            // 绑定标签文本为 "本地化标签: 值"
+            var maxBinding = new MultiBinding();
+            maxBinding.StringFormat = "{0}";
+            maxBinding.Bindings.Add(new Binding { Source = Strings.N2NCMaxKeysTemplate });
+            maxBinding.Bindings.Add(new Binding(nameof(N2NCViewModel.MaxKeys)) { Source = _viewModel });
+            maxBinding.Converter = new LabelConverter();
+            maxLabel.SetBinding(TextBlock.TextProperty, maxBinding);
+
+            // 主面板：标签行 + 滑条行
+            var mainPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = rowMargin };
+            mainPanel.Children.Add(labelRow);
+            mainPanel.Children.Add(maxInner);
+            return mainPanel;
         }
 
         private FrameworkElement CreateMinKeysPanel(Thickness rowMargin)
         {
             var minInner = new Grid();
             minInner.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            minInner.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             MinKeysSlider = SharedUIComponents.CreateStandardSlider(1, 18, double.NaN, true);
-            MinKeysSlider.SetBinding(RangeBase.ValueProperty, new Binding(nameof(N2NCViewModel.MinKeys)) { Mode = BindingMode.TwoWay });
+            MinKeysSlider.SetBinding(RangeBase.ValueProperty, new Binding(nameof(N2NCViewModel.MinKeys)) { Mode = BindingMode.TwoWay, Source = _viewModel });
+            MinKeysSlider.SetBinding(RangeBase.MaximumProperty, new Binding(nameof(N2NCViewModel.MinKeysMaximum)) { Mode = BindingMode.OneWay, Source = _viewModel });
             Grid.SetColumn(MinKeysSlider, 0);
             minInner.Children.Add(MinKeysSlider);
-            var minValue = SharedUIComponents.CreateStandardTextBlock();
-            minValue.SetBinding(TextBlock.TextProperty, new Binding(nameof(N2NCViewModel.MinKeys)) { StringFormat = "{0:0}" });
-            Grid.SetColumn(minValue, 1);
-            minInner.Children.Add(minValue);
-            return SharedUIComponents.CreateLabeledRow(Strings.N2NCMinKeysLabel, minInner, rowMargin);
+
+            // 创建标签行：标签 + 数值 合并为一个标签显示 "标签: 值"
+            var labelRow = new Grid();
+            labelRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var minLabel = SharedUIComponents.CreateStandardTextBlock();
+            minLabel.FontWeight = FontWeights.Bold;
+            minLabel.Margin = new Thickness(0, 0, 8, 0);
+            Grid.SetColumn(minLabel, 0);
+            labelRow.Children.Add(minLabel);
+            // 绑定标签文本为 "本地化标签: 值"
+            var minBinding = new MultiBinding();
+            minBinding.StringFormat = "{0}";
+            minBinding.Bindings.Add(new Binding { Source = Strings.N2NCMinKeysTemplate });
+            minBinding.Bindings.Add(new Binding(nameof(N2NCViewModel.MinKeys)) { Source = _viewModel });
+            minBinding.Converter = new LabelConverter();
+            minLabel.SetBinding(TextBlock.TextProperty, minBinding);
+
+            // 主面板：标签行 + 滑条行
+            var mainPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = rowMargin };
+            mainPanel.Children.Add(labelRow);
+            mainPanel.Children.Add(minInner);
+            return mainPanel;
         }
 
         private FrameworkElement CreateTransformSpeedPanel(Thickness rowMargin)
         {
             var transformInner = new Grid();
             transformInner.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            transformInner.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             // 创建整数档位滑块 (1-8)，每个档位对应一个节拍值
             var transformSlider = SharedUIComponents.CreateStandardSlider(1, 8, double.NaN, true); // 整数档位，启用刻度对齐
-            transformSlider.SetBinding(RangeBase.ValueProperty, new Binding(nameof(N2NCViewModel.TransformSpeedSlot)) { Mode = BindingMode.TwoWay });
+            transformSlider.SetBinding(RangeBase.ValueProperty, new Binding(nameof(N2NCViewModel.TransformSpeedSlot)) { Mode = BindingMode.TwoWay, Source = _viewModel });
             Grid.SetColumn(transformSlider, 0);
             transformInner.Children.Add(transformSlider);
-            var transformDisplay = SharedUIComponents.CreateStandardTextBlock();
-            transformDisplay.SetBinding(TextBlock.TextProperty, new Binding(nameof(N2NCViewModel.TransformSpeedDisplay)));
-            Grid.SetColumn(transformDisplay, 1);
-            transformInner.Children.Add(transformDisplay);
-            return SharedUIComponents.CreateLabeledRow(Strings.N2NCTransformSpeedLabel, transformInner, rowMargin);
+
+            // 创建标签行：标签 + 数值
+            var labelRow = new Grid();
+            labelRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var transformLabel = SharedUIComponents.CreateStandardTextBlock();
+            transformLabel.FontWeight = FontWeights.Bold;
+            transformLabel.Margin = new Thickness(0, 0, 8, 0);
+            Grid.SetColumn(transformLabel, 0);
+            labelRow.Children.Add(transformLabel);
+            // 绑定标签文本为 "本地化标签: 值"
+            var transformBinding = new MultiBinding();
+            transformBinding.StringFormat = "{0}";
+            transformBinding.Bindings.Add(new Binding { Source = Strings.N2NCTransformSpeedTemplate });
+            transformBinding.Bindings.Add(new Binding(nameof(N2NCViewModel.TransformSpeedDisplay)) { Source = _viewModel });
+            transformBinding.Converter = new LabelConverter();
+            transformLabel.SetBinding(TextBlock.TextProperty, transformBinding);
+
+            // 主面板：标签行 + 滑条行
+            var mainPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = rowMargin };
+            mainPanel.Children.Add(labelRow);
+            mainPanel.Children.Add(transformInner);
+            return mainPanel;
         }
 
         private FrameworkElement CreateSeedPanel(Thickness rowMargin)
         {
             SeedTextBox = SharedUIComponents.CreateStandardTextBox();
             SeedTextBox.Width = 160;
-            SeedTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(N2NCViewModel.Seed)) { Mode = BindingMode.TwoWay });
+            SeedTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(N2NCViewModel.Seed)) { Mode = BindingMode.TwoWay, Source = _viewModel });
             GenerateSeedButton = SharedUIComponents.CreateStandardButton(Strings.N2NCGenerateSeedLabel.Localize());
             GenerateSeedButton.Width = 100; // 设置固定宽度以保持按钮大小一致
             GenerateSeedButton.Click += GenerateSeedButton_Click;
@@ -199,7 +293,7 @@ namespace krrTools.tools.N2NC
 
         private FrameworkElement CreateKeySelectionPanel(Thickness rowMargin)
         {
-            var keysWrap = new WrapPanel { Orientation = Orientation.Horizontal, ItemHeight = 28 };
+            var keysWrap = new WrapPanel { Orientation = Orientation.Horizontal, ItemHeight = 33 };
             var flagOrder = new[] { KeySelectionFlags.K4, KeySelectionFlags.K5, KeySelectionFlags.K6, KeySelectionFlags.K7, KeySelectionFlags.K8, KeySelectionFlags.K9, KeySelectionFlags.K10, KeySelectionFlags.K10Plus };
             var flagLabels = new Dictionary<KeySelectionFlags, string>
             {
@@ -228,7 +322,10 @@ namespace krrTools.tools.N2NC
             selectAllButton.Click += (_, _) =>
             {
                 foreach (var kvp in checkboxMap)
+                {
                     kvp.Value.IsChecked = true;
+                    SetKeySelectionFlag(kvp.Key, true);
+                }
             };
 
             var clearAllButton = SharedUIComponents.CreateStandardButton("Clear All|清空");
@@ -236,7 +333,10 @@ namespace krrTools.tools.N2NC
             clearAllButton.Click += (_, _) =>
             {
                 foreach (var kvp in checkboxMap)
+                {
                     kvp.Value.IsChecked = false;
+                    SetKeySelectionFlag(kvp.Key, false);
+                }
             };
 
             var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 10, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
@@ -299,15 +399,13 @@ namespace krrTools.tools.N2NC
         {
             // Use shared PresetPanelFactory to manage presets for ConverterOptions
             FrameworkElement panel = PresetPanelFactory.CreatePresetPanel(
-                OptionsManager.ConverterToolName,
+                OptionsManager.N2NCToolName,
                 () => _viewModel.GetConversionOptions(),
                 (opt) =>
                 {
                     if (opt == null) return;
                     // Apply options to viewmodel (copy fields)
                     _viewModel.TargetKeys = opt.TargetKeys;
-                    _viewModel.MaxKeys = opt.MaxKeys;
-                    _viewModel.MinKeys = opt.MinKeys;
                     _viewModel.TransformSpeed = opt.TransformSpeed;
                     _viewModel.Seed = opt.Seed;
                     if (opt.SelectedKeyFlags.HasValue)
@@ -357,32 +455,32 @@ namespace krrTools.tools.N2NC
             {
                 case PresetKind.Default:
                     _viewModel.TargetKeys = 4;
-                    _viewModel.MaxKeys = 8;
-                    _viewModel.MinKeys = 4;
+                    _viewModel.MaxKeys = 4;
+                    _viewModel.MinKeys = 2;
                     _viewModel.TransformSpeed = 1.0;
                     _viewModel.Seed = 0;
                     _viewModel.KeySelection = KeySelectionFlags.K4 | KeySelectionFlags.K5 | KeySelectionFlags.K6 | KeySelectionFlags.K7 | KeySelectionFlags.K8;
                     break;
                 case PresetKind.TenK:
                     _viewModel.TargetKeys = 6;
-                    _viewModel.MaxKeys = 10;
-                    _viewModel.MinKeys = 6;
+                    _viewModel.MaxKeys = 6;
+                    _viewModel.MinKeys = 4;
                     _viewModel.TransformSpeed = 2.0;
                     _viewModel.Seed = 0;
                     _viewModel.KeySelection = KeySelectionFlags.K6 | KeySelectionFlags.K7 | KeySelectionFlags.K8 | KeySelectionFlags.K9 | KeySelectionFlags.K10;
                     break;
                 case PresetKind.EightK:
                     _viewModel.TargetKeys = 4;
-                    _viewModel.MaxKeys = 7;
-                    _viewModel.MinKeys = 4;
+                    _viewModel.MaxKeys = 4;
+                    _viewModel.MinKeys = 2;
                     _viewModel.TransformSpeed = 0.5;
                     _viewModel.Seed = 0;
                     _viewModel.KeySelection = KeySelectionFlags.K4 | KeySelectionFlags.K5 | KeySelectionFlags.K6 | KeySelectionFlags.K7;
                     break;
                 case PresetKind.SevenK:
                     _viewModel.TargetKeys = 8;
-                    _viewModel.MaxKeys = 10;
-                    _viewModel.MinKeys = 8;
+                    _viewModel.MaxKeys = 8;
+                    _viewModel.MinKeys = 6;
                     _viewModel.TransformSpeed = 1.5;
                     _viewModel.Seed = 0;
                     _viewModel.KeySelection = KeySelectionFlags.K8 | KeySelectionFlags.K9 | KeySelectionFlags.K10 | KeySelectionFlags.K10Plus;
@@ -397,7 +495,7 @@ namespace krrTools.tools.N2NC
             {
                 var opt = _viewModel.GetConversionOptions();
                 opt.Validate();
-                OptionsManager.SaveOptions(OptionsManager.ConverterToolName, OptionsManager.OptionsFileName, opt);
+                OptionsManager.SaveOptions(OptionsManager.N2NCToolName, OptionsManager.ConfigFileName, opt);
             }
             catch (Exception ex)
             {

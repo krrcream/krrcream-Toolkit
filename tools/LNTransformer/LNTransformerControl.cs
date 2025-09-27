@@ -5,9 +5,10 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Diagnostics.CodeAnalysis;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
+using System.Windows.Data;
 using krrTools.tools.Shared;
-using krrTools.Tools.Shared;
 
 namespace krrTools.tools.LNTransformer;
 
@@ -31,13 +32,15 @@ public static class Setting
     // 普通 Window：通过 ModernEffectsHelper + WindowBlurHelper 实现 Fluent 风格毛玻璃 (纯代码, 无 XAML)
     public class LNTransformerControl : UserControl
     {
+        private readonly LNTransformerViewModel _viewModel = new();
+
         // 命名控件
         private Slider LevelValue = null!;
         private Slider PercentageValue = null!;
         private Slider DivideValue = null!;
         private Slider ColumnValue = null!;
         private Slider GapValue = null!;
-        private TextBox OverallDifficulty = null!;
+        private Slider OverallDifficultySlider = null!;
         private CheckBox Ignore = null!;
         private CheckBox FixError = null!;
         private CheckBox OriginalLN = null!;
@@ -46,6 +49,7 @@ public static class Setting
 
         public LNTransformerControl()
         {
+            DataContext = _viewModel;
             // Initialize control UI
             BuildUI();
             SharedUIComponents.LanguageChanged += HandleLanguageChanged;
@@ -111,15 +115,14 @@ public static class Setting
         private FrameworkElement CreateLevelPanel()
         {
             var levelStack = new StackPanel { Margin = new Thickness(0, 0, 0, 15) };
-            var levelLabel = SharedUIComponents.CreateHeaderLabel(Strings.LevelHeader);
+            var levelLabel = SharedUIComponents.CreateHeaderLabel(Strings.FormatLocalized(Strings.LevelLabel, 0));
             LevelValue = SharedUIComponents.CreateStandardSlider(-3, 10, double.NaN, true);
             LevelValue.Name = "LevelValue"; // 添加Name属性以便预览功能查找
-            LevelValue.Value = 3;
+            LevelValue.SetBinding(RangeBase.ValueProperty, new Binding("Options.LevelValue"));
             LevelValue.TickFrequency = 1;
             LevelValue.ToolTip = Strings.LevelTooltip;
             LevelValue.ValueChanged += (_, e) => {
-                var prefix = Strings.LevelHeader.Localize();
-                levelLabel.Text = $"{prefix} {e.NewValue:F0}";
+                levelLabel.Text = Strings.FormatLocalized(Strings.LevelLabel, (int)e.NewValue);
             };
             levelStack.Children.Add(levelLabel);
             levelStack.Children.Add(LevelValue);
@@ -129,13 +132,12 @@ public static class Setting
         private FrameworkElement CreatePercentagePanel()
         {
             var percStack = new StackPanel { Margin = new Thickness(0, 0, 0, 15) };
-            var percLabel = SharedUIComponents.CreateHeaderLabel(Strings.LNPercentageHeader);
+            var percLabel = SharedUIComponents.CreateHeaderLabel(Strings.FormatLocalized(Strings.LNPercentageLabel, 0));
             PercentageValue = SharedUIComponents.CreateStandardSlider(0, 100, double.NaN, true);
             PercentageValue.Name = "PercentageValue"; // 添加Name属性以便预览功能查找
-            PercentageValue.Value = 100;
+            PercentageValue.SetBinding(RangeBase.ValueProperty, new Binding("Options.PercentageValue"));
             PercentageValue.ValueChanged += (_, e) => {
-                var prefix = Strings.LNPercentageHeader.Localize();
-                percLabel.Text = $"{prefix} {e.NewValue:F0}%";
+                percLabel.Text = Strings.FormatLocalized(Strings.LNPercentageLabel, (int)e.NewValue);
             };
             percStack.Children.Add(percLabel);
             percStack.Children.Add(PercentageValue);
@@ -145,14 +147,13 @@ public static class Setting
         private FrameworkElement CreateDividePanel()
         {
             var divStack = new StackPanel { Margin = new Thickness(0, 0, 0, 15) };
-            var divLabel = SharedUIComponents.CreateHeaderLabel(Strings.DivideHeader);
+            var divLabel = SharedUIComponents.CreateHeaderLabel(Strings.FormatLocalized(Strings.DivideLabel, 1));
             DivideValue = SharedUIComponents.CreateStandardSlider(1, 10, double.NaN, true);
             DivideValue.Name = "DivideValue"; // 添加Name属性以便预览功能查找
-            DivideValue.Value = 1;
+            DivideValue.SetBinding(RangeBase.ValueProperty, new Binding("Options.DivideValue"));
             DivideValue.TickFrequency = 1;
             DivideValue.ValueChanged += (_, e) => {
-                var prefix = Strings.DivideHeader.Localize();
-                divLabel.Text = $"{prefix} 1/{e.NewValue:F0}";
+                divLabel.Text = Strings.FormatLocalized(Strings.DivideLabel, (int)e.NewValue);
             };
             divStack.Children.Add(divLabel);
             divStack.Children.Add(DivideValue);
@@ -162,14 +163,13 @@ public static class Setting
         private FrameworkElement CreateColumnPanel()
         {
             var colStack = new StackPanel { Margin = new Thickness(0, 0, 0, 15) };
-            var colLabel = SharedUIComponents.CreateHeaderLabel(Strings.ColumnsHeader);
+            var colLabel = SharedUIComponents.CreateHeaderLabel(Strings.FormatLocalized(Strings.ColumnLabel, 0));
             ColumnValue = SharedUIComponents.CreateStandardSlider(0, 10, double.NaN, true);
             ColumnValue.Name = "ColumnValue"; // 添加Name属性以便预览功能查找
-            ColumnValue.Value = 0;
+            ColumnValue.SetBinding(RangeBase.ValueProperty, new Binding("Options.ColumnValue"));
             ColumnValue.TickFrequency = 1;
             ColumnValue.ValueChanged += (_, e) => {
-                var prefix = Strings.ColumnsHeader.Localize();
-                colLabel.Text = $"{prefix} {e.NewValue:F0}";
+                colLabel.Text = Strings.FormatLocalized(Strings.ColumnLabel, (int)e.NewValue);
             };
             colStack.Children.Add(colLabel);
             colStack.Children.Add(ColumnValue);
@@ -179,14 +179,13 @@ public static class Setting
         private FrameworkElement CreateGapPanel()
         {
             var gapStack = new StackPanel { Margin = new Thickness(0, 0, 0, 15) };
-            var gapLabel = SharedUIComponents.CreateHeaderLabel(Strings.GapHeader);
+            var gapLabel = SharedUIComponents.CreateHeaderLabel(Strings.FormatLocalized(Strings.GapLabel, 0));
             GapValue = SharedUIComponents.CreateStandardSlider(0, 20, double.NaN, true);
             GapValue.Name = "GapValue"; // 添加Name属性以便预览功能查找
-            GapValue.Value = 0;
+            GapValue.SetBinding(RangeBase.ValueProperty, new Binding("Options.GapValue"));
             GapValue.TickFrequency = 1;
             GapValue.ValueChanged += (_, e) => {
-                var prefix = Strings.GapHeader.Localize();
-                gapLabel.Text = $"{prefix} {e.NewValue:F0}";
+                gapLabel.Text = Strings.FormatLocalized(Strings.GapLabel, (int)e.NewValue);
             };
             gapStack.Children.Add(gapLabel);
             gapStack.Children.Add(GapValue);
@@ -195,19 +194,23 @@ public static class Setting
 
         private FrameworkElement CreateOverallDifficultyPanel()
         {
-            var odGrid = new Grid { Margin = new Thickness(0, 0, 0, 15) };
-            odGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            odGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            var odStack = new StackPanel { Margin = new Thickness(0, 0, 0, 15) };
             var odLabel = SharedUIComponents.CreateHeaderLabel(Strings.OverallDifficultyHeader);
-            Grid.SetColumn(odLabel, 0);
-            OverallDifficulty = SharedUIComponents.CreateStandardTextBox();
-            OverallDifficulty.Name = "OverallDifficulty"; // 添加Name属性以便预览功能查找
-            OverallDifficulty.HorizontalAlignment = HorizontalAlignment.Stretch;
-            OverallDifficulty.TextChanged += OverallDifficulty_TextChanged;
-            Grid.SetColumn(OverallDifficulty, 1);
-            odGrid.Children.Add(odLabel);
-            odGrid.Children.Add(OverallDifficulty);
-            return odGrid;
+            var odInner = new Grid();
+            odInner.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            OverallDifficultySlider = SharedUIComponents.CreateStandardSlider(0, 10.0, 0.1, true);
+            OverallDifficultySlider.SmallChange = 0.1;
+            OverallDifficultySlider.Name = "OverallDifficulty"; // 添加Name属性以便预览功能查找
+            OverallDifficultySlider.SetBinding(RangeBase.ValueProperty, new Binding("Options.OverallDifficulty"));
+            OverallDifficultySlider.ValueChanged += (_, e) => {
+                var prefix = Strings.OverallDifficultyHeader.Localize();
+                odLabel.Text = $"{prefix}: {e.NewValue:F1}";
+            };
+            Grid.SetColumn(OverallDifficultySlider, 0);
+            odInner.Children.Add(OverallDifficultySlider);
+            odStack.Children.Add(odLabel);
+            odStack.Children.Add(odInner);
+            return odStack;
         }
 
         private FrameworkElement CreateCheckBoxesPanel()
@@ -221,16 +224,17 @@ public static class Setting
             Ignore = SharedUIComponents.CreateStandardCheckBox(
                 Strings.IgnoreCheckbox, Strings.IgnoreTooltip);
             Ignore.Name = "Ignore"; // 添加Name属性
-            Ignore.IsChecked = true;
+            Ignore.SetBinding(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, new Binding("Options.IgnoreIsChecked"));
             Ignore.Margin = new Thickness(2, 0, 10, 0);
             FixError = SharedUIComponents.CreateStandardCheckBox(
                 Strings.FixErrorsCheckbox, Strings.FixErrorsTooltip);
             FixError.Name = "FixError"; // 添加Name属性以便预览功能查找
-            FixError.IsChecked = true;
+            FixError.SetBinding(CheckBox.IsCheckedProperty, new Binding("Options.FixErrorIsChecked"));
             FixError.Margin = new Thickness(2, 0, 10, 0);
             OriginalLN = SharedUIComponents.CreateStandardCheckBox(
                 Strings.OriginalLNsCheckbox, Strings.OriginalLNsTooltip);
             OriginalLN.Name = "OriginalLN"; // 添加Name属性以便预览功能查找
+            OriginalLN.SetBinding(CheckBox.IsCheckedProperty, new Binding("Options.OriginalLNIsChecked"));
             OriginalLN.Margin = new Thickness(2, 0, 10, 0);
             cbPanel.Children.Add(Ignore);
             cbPanel.Children.Add(FixError);
@@ -281,7 +285,6 @@ public static class Setting
                 // 收集参数
                 var parameters = new LNTransformerOptions
                 {
-                    SeedText = Setting.Seed,
                     LevelValue = LevelValue.Dispatcher.Invoke(() => LevelValue.Value),
                     PercentageValue = PercentageValue.Dispatcher.Invoke(() => PercentageValue.Value),
                     DivideValue = DivideValue.Dispatcher.Invoke(() => DivideValue.Value),
@@ -290,9 +293,7 @@ public static class Setting
                     IgnoreIsChecked = Ignore.Dispatcher.Invoke(() => Ignore.IsChecked == true),
                     OriginalLNIsChecked = OriginalLN.Dispatcher.Invoke(() => OriginalLN.IsChecked == true),
                     FixErrorIsChecked = FixError.Dispatcher.Invoke(() => FixError.IsChecked == true),
-                    OverallDifficulty = double.Parse(OverallDifficulty.Dispatcher.Invoke(() => OverallDifficulty.Text)),
-                    CreatorText = Setting.Creator,
-                    CheckKeys = Setting.KeyFilter
+                    OverallDifficulty = OverallDifficultySlider.Dispatcher.Invoke(() => OverallDifficultySlider.Value)
                 };
 
                 // 使用统一的TransformService处理文件
@@ -318,23 +319,33 @@ public static class Setting
             instructionWindow.Show();
         }
 
-        private void OverallDifficulty_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (double.TryParse(OverallDifficulty.Text, out double value))
-            {
-                if (value < 0) OverallDifficulty.Text = "0";
-                if (value > 15) OverallDifficulty.Text = "15";
-            }
-            else
-            {
-                if (OverallDifficulty.Text != "") OverallDifficulty.Text = "0";
-            }
-        }
-
         private void HandleLanguageChanged()
         {
+            // Save current values
+            double level = LevelValue.Value;
+            double perc = PercentageValue.Value;
+            double divide = DivideValue.Value;
+            double column = ColumnValue.Value;
+            double gap = GapValue.Value;
+            double od = OverallDifficultySlider.Value;
+            bool ignore = Ignore.IsChecked ?? false;
+            bool fixError = FixError.IsChecked ?? false;
+            bool originalLN = OriginalLN.IsChecked ?? false;
+
+            // Rebuild UI
             Content = null;
             BuildUI();
+
+            // Restore values
+            LevelValue.Value = level;
+            PercentageValue.Value = perc;
+            DivideValue.Value = divide;
+            ColumnValue.Value = column;
+            GapValue.Value = gap;
+            OverallDifficultySlider.Value = od;
+            Ignore.IsChecked = ignore;
+            FixError.IsChecked = fixError;
+            OriginalLN.IsChecked = originalLN;
         }
     }
 

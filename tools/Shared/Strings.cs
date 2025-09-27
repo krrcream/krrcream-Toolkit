@@ -10,11 +10,11 @@ namespace krrTools.tools.Shared
         public const string WindowTitle = "krrcream's Toolkit V2.3.1";
 
         // Tab headers
-        public const string TabConverter = "NtoN Converter|NtoN转换器";
+        public const string TabN2NC = "NtoN Converter|NtoN转换器";
         public const string TabLNTransformer = "LN Transformer|LN 转换";
         public const string TabDPTool = "DP Tool|DP 工具";
-        public const string TabLV = "LV Calculation|LV 计算";
-        public const string TabGetFiles = "Files Manager|文件管理";
+        public const string TabKrrLV = "KrrLV Calculation|KrrLV 计算";
+        public const string TabFilesManager = "Files Manager|文件管理";
 
         // Footer
         public const string FooterCopyright = "© 2025 krrcream. All rights reserved.";
@@ -22,8 +22,22 @@ namespace krrTools.tools.Shared
         public const string GitHubLinkText = "github";
         public const string GitHubLinkUrl = "https://github.com/krrcream/krrcream-Toolkit";
         
-        // Language button labels
+        // Settings menu
+        public const string SettingsMenuTheme = "Theme|主题";
+        public const string SettingsMenuBackdrop = "Backdrop|背景效果";
         public const string UpdateAccent = "Update Accent|系统调色";
+        public const string SettingsMenuLanguage = "切换到中文|Switch to English";
+        
+        // Theme options
+        public const string ThemeLight = "Light|浅色";
+        public const string ThemeDark = "Dark|深色";
+        public const string ThemeHighContrast = "HighContrast|高对比度";
+        
+        // Backdrop options
+        public const string BackdropNone = "None|无";
+        public const string BackdropMica = "Mica|云母";
+        public const string BackdropAcrylic = "Acrylic|亚克力";
+        public const string BackdropTabbed = "Tabbed|标签页";
         
         // Listener
         public const string OSUListenerButton = "OSU Listener|osu 侦听";
@@ -36,22 +50,23 @@ namespace krrTools.tools.Shared
         public const string RealTimePreviewLabel = "Real-time preview|实时预览";
         public const string MonitoringInformationHeader = "Monitoring Information|谱面信息";
 
-        // N2NC texts
-        public const string N2NCTargetKeysLabel = "Target keys|目标键数";
-        public const string N2NCMaxKeysLabel = "Max keys|上限权重";
-        public const string N2NCMinKeysLabel = "Min keys|下限权重";
-        public const string N2NCTransformSpeedLabel = "Transform speed|转换速度";
+        // N2NC
+        public const string N2NCTargetKeysTemplate = "Target Keys: {0}|目标键数: {0}";
+        public const string N2NCMaxKeysTemplate = "Max Keys: {0}|上限权重: {0}";
+        public const string N2NCMinKeysTemplate = "Min Keys: {0}|下限权重: {0}";
+        public const string N2NCTransformSpeedTemplate = "Transform Speed: {0}|转换速度: {0}";
         public const string N2NCGenerateSeedLabel = "Generate|随机生成";
         public const string N2NCGenerateSeedTooltip = "Generate a random seed value|生成一个随机种子值";
         
         // LN Transformer
-        public const string LevelHeader = "Level|等级";
         public const string LevelTooltip = "Density Level (hover to see detailed description)\n-3: Very Low 0: Low 3: Medium 6: High 10: Very High|密度等级（鼠标悬停查看详细说明）\n-3: 极低 0: 低 3: 中等 6: 高 10: 极高";
-        public const string LNPercentageHeader = "LN Percentage|长条比例";
-        public const string DivideHeader = "Divide|分割";
-        public const string ColumnsHeader = "Columns|列数";
-        public const string GapHeader = "Gap|间隔";
-        public const string OverallDifficultyHeader = "Overall Difficulty (OD)|总体难度 (OD)";
+
+        public const string LevelLabel = "Level {0}|强度 {0}";
+        public const string LNPercentageLabel = "LN {0}%|LN占比 {0}%";
+        public const string DivideLabel = "Divide 1/{0}|面尾量化 1/{0}";
+        public const string ColumnLabel = "Column {0}|列量级 {0}";
+        public const string GapLabel = "Gap {0}|间隔 {0}";
+        public const string OverallDifficultyHeader = "Over Diffclut|判定难度OD";
         public const string IgnoreCheckbox = "Ignore|忽略";
         public const string IgnoreTooltip = "Skip already converted beatmaps|忽略已转换的谱面";
         public const string FixErrorsCheckbox = "Fix Errors|修复误差";
@@ -60,31 +75,25 @@ namespace krrTools.tools.Shared
         public const string OriginalLNsTooltip = "Keep original LNs|保留原始长条";
         public const string InstructionsLink = "Instructions|使用说明";
 
-        // LN Labels for sliders
-        public const string LevelLabel = "Level {0}|强度 {0}";
-        public const string LNPercentageLabel = "LN {0}%|LN占比 {0}%";
-        public const string DivideLabel = "Divide 1/{0}|面尾量化 1/{0}";
-        public const string ColumnLabel = "Column {0}|列量级 {0}";
-        public const string GapLabel = "Gap {0}|间隔 {0}";
-
         // DP Tool texts
+        public const string DPKeysTemplate = "Keys: {0}|键数: {0}";
+        public const string DPLeftMaxKeysTemplate = "Max Keys: {0}|最大键数: {0}";
+        public const string DPLeftMinKeysTemplate = "Min Keys: {0}|最小键数: {0}";
+        public const string DPRightMaxKeysTemplate = "Max Keys: {0}|最大键数: {0}";
+        public const string DPRightMinKeysTemplate = "Min Keys: {0}|最小键数: {0}";
         public const string DPModifyKeysCheckbox = "Enable Modify keys|启用修改键数";
         public const string DPModifyKeysTooltip = "Enable modification of single-side key count|启用键位修改";
-        public const string DPKeysLabel = "Keys|键数";
         public const string DPKeysTooltip = "Keys explanation|键数说明";
         public const string DPLeftLabel = "Left|左手";
+        public const string DPRightLabel = "Right|右手";
         public const string DPMirrorLabel = "Mirror|镜像";
         public const string DPMirrorTooltipLeft = "Enable left-hand mirroring|启用左手镜像";
         public const string DPDensityLabel = "Density|密度";
         public const string DPDensityTooltipLeft = "Enable left-hand density adjustments|启用左手密度调整";
-        public const string DPLeftMaxKeysLabel = "Left max keys|左手最大键数";
-        public const string DPLeftMinKeysLabel = "Left min keys|左手最小键数";
-        public const string DPRightLabel = "Right|右手";
+
         public const string DPMirrorTooltipRight = "Enable right-hand mirroring|启用右手镜像";
         public const string DPDensityTooltipRight = "Enable right-hand density adjustments|启用右手密度调整";
-        public const string DPRightMaxKeysLabel = "Right max keys|右手最大键数";
-        public const string DPRightMinKeysLabel = "Right min keys|右手最小键数";
-        
+
         // Presets
         public const string PresetsLabel = "Presets|预设";
         public const string FilterLabel = "Filter|过滤";
@@ -108,6 +117,18 @@ namespace krrTools.tools.Shared
         public static string Localize(string s)
         {
             return s.Localize();
+        }
+
+        /// <summary>
+        /// Format a localized template string with parameters
+        /// </summary>
+        /// <param name="template">Template string in format "EN {0}|中文 {0}"</param>
+        /// <param name="args">Arguments to format</param>
+        /// <returns>Formatted localized string</returns>
+        public static string FormatLocalized(string template, params object[] args)
+        {
+            string localized = template.Localize();
+            return string.Format(localized, args);
         }
     }
     

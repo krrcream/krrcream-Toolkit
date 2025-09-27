@@ -8,7 +8,7 @@ namespace krrTools.tools.Shared
     /// </summary>
     public class N2NCTool : ITool
     {
-        public string Name => OptionsManager.ConverterToolName;
+        public string Name => OptionsManager.N2NCToolName;
 
         public IToolOptions DefaultOptions => new N2NCOptions();
 
@@ -23,6 +23,29 @@ namespace krrTools.tools.Shared
         public async Task<string?> ProcessFileAsync(string filePath, IToolOptions options)
         {
             return await Task.Run(() => ProcessFile(filePath, options));
+        }
+
+        public object? ProcessFileToData(string filePath, IToolOptions options)
+        {
+            if (options is not N2NCOptions n2ncOptions)
+                return null;
+
+            // Get Beatmap from path using unified scheduler
+            var beatmap = BeatmapScheduler.GetBeatmapFromPath(filePath);
+            if (beatmap == null)
+                return null;
+
+            var converter = new krrTools.tools.N2NC.N2NC { options = n2ncOptions };
+            return converter.NToNCToData(beatmap);
+        }
+
+        public OsuParsers.Beatmaps.Beatmap? ProcessBeatmapToData(OsuParsers.Beatmaps.Beatmap inputBeatmap, IToolOptions options)
+        {
+            if (options is not N2NCOptions n2ncOptions)
+                return null;
+
+            var converter = new krrTools.tools.N2NC.N2NC { options = n2ncOptions };
+            return converter.NToNCToData(inputBeatmap);
         }
     }
 }

@@ -33,7 +33,7 @@ namespace krrTools.tools.LNTransformer
                         if (int.TryParse(str, out int cs))
                         {
                             if (cs > 10) return true;
-                            if (parameters.CheckKeys is { Count: > 0 } && !parameters.CheckKeys.Contains(cs)) return true;
+                            // 移除CheckKeys检查，因为这个属性已移除
                         }
                         else
                         {
@@ -87,9 +87,7 @@ namespace krrTools.tools.LNTransformer
                 // Notify user on UI thread that processing finished
                 Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                 {
-                    MessageBox.Show(IsChineseLanguage() ? "文件处理成功！" : "File processed successfully!",
-                        IsChineseLanguage() ? "成功" : "Success",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    // Removed MessageBox.Show to avoid duplicate notifications; FileDispatcher handles it now
                 }));
             });
         }
@@ -105,19 +103,12 @@ namespace krrTools.tools.LNTransformer
             }
 
             // Set metadata before transformation
-            if (!string.IsNullOrEmpty(parameters.CreatorText))
-            {
-                osu.Metadata.Creator = parameters.CreatorText + " & LNTransformer";
-            }
-            else
-            {
-                osu.Metadata.Creator += " & LNTransformer";
-            }
+            osu.Metadata.Creator += " & LNTransformer";
 
             osu.Metadata.Difficulty += " [LN Level " + parameters.LevelValue + "]";
 
             // Create preview parameters for core logic
-            var previewParams = new Preview.PreviewTransformation.LNPreviewParameters
+            var previewParams = new LNTransformerCore.LNPreviewParameters
             {
                 LevelValue = parameters.LevelValue,
                 PercentageValue = parameters.PercentageValue,
@@ -204,7 +195,7 @@ namespace krrTools.tools.LNTransformer
                         if (int.TryParse(str, out int cs))
                         {
                             if (cs > 10) return true;
-                            if (parameters.CheckKeys is { Count: > 0 } && !parameters.CheckKeys.Contains(cs)) return true;
+                            // 移除CheckKeys检查，因为这个属性已移除
                         }
                         else
                         {
@@ -263,6 +254,70 @@ namespace krrTools.tools.LNTransformer
                 Debug.WriteLine($"TransformService.ProcessSingleFile - error: {ex.Message}");
                 return null;
             }
+        }
+
+        public static OsuFileV14? ProcessSingleFileToData(string filePath, LNTransformerOptions parameters)
+        {
+            try
+            {
+                var osuFiles = OsuFileProcessor.ReadMultipleFiles([filePath], (line) =>
+                {
+                    if (line.StartsWith("Mode"))
+                    {
+                        string str = line.Substring(line.IndexOf(':') + 1).Trim();
+                        if (str != "3") return true;
+                    }
+
+                    if (line.StartsWith("CircleSize"))
+                    {
+                        string str = line.Substring(line.IndexOf(':') + 1).Trim();
+                        if (int.TryParse(str, out int cs))
+                        {
+                            if (cs > 10) return true;
+                            // 移除CheckKeys检查，因为这个属性已移除
+                        }
+                        else
+                        {
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        if (parameters.IgnoreIsChecked && line.StartsWith("Creator"))
+                        {
+                            var str = line.Substring(line.IndexOf(':') + 1).Trim();
+                            if (str.Contains("LNTransformer")) return true;
+                        }
+
+                        if (parameters.IgnoreIsChecked && line.StartsWith("Version"))
+                        {
+                            var str = line.Substring(line.IndexOf(':') + 1).Trim();
+                            if (str.Contains("[LN")) return true;
+                        }
+                    }
+
+                    return false;
+                });
+
+                foreach (var osuFile in osuFiles)
+                {
+                    try
+                    {
+                        ApplyToBeatmap(osuFile, parameters);
+                        return osuFile;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"TransformService.ProcessSingleFileToData - error for {osuFile.OriginalFile?.FullName}: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"TransformService.ProcessSingleFileToData - error: {ex.Message}");
+            }
+
+            return null;
         }
     }
 }

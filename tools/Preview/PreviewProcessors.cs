@@ -7,14 +7,16 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using krrTools.tools.DPtool;
 using krrTools.tools.N2NC;
+using krrTools.tools.LNTransformer;
 using krrTools.tools.Shared;
-using krrTools.Tools.Shared;
+using OsuParsers.Beatmaps;
 
 namespace krrTools.tools.Preview
 {
     public class BasePreviewProcessor : IPreviewProcessor
     {
         public virtual string ToolKey => "Preview";
+        public string? CurrentTool { get; set; }
         public int? ColumnOverride { get; set; }
 
         public int? LastOriginalStartMs { get; private set; }
@@ -30,18 +32,18 @@ namespace krrTools.tools.Preview
 
         public virtual FrameworkElement BuildOriginalVisual(string[] filePaths)
         {
-            return BuildPreview(filePaths, false, null);
+            return BuildPreview(filePaths, false, null, null);
         }
 
-        protected Func<string, int, int, (int columns, List<ManiaNote> notes, double quarterMs)>? ConversionProvider { get; init; }
+        protected Func<string, string, int, int, object?>? ConversionProvider { get; init; }
 
         public virtual FrameworkElement BuildConvertedVisual(string[] filePaths)
         {
-            return BuildPreview(filePaths, true, ConversionProvider);
+            return BuildPreview(filePaths, true, ConversionProvider, CurrentTool);
         }
         
         private FrameworkElement BuildPreview(string[] filePaths, bool converted,
-            Func<string, int, int, (int columns, List<ManiaNote> notes, double quarterMs)>? conversionProvider)
+            Func<string, string, int, int, object?>? conversionProvider, string? toolName)
         {
             var path = filePaths is { Length: > 0 } ? filePaths[0] : string.Empty;
             if (string.IsNullOrEmpty(path) || !File.Exists(path)) return new TextBlock { Text = "(无文件)" };
@@ -71,7 +73,19 @@ namespace krrTools.tools.Preview
             {
                 if (conversionProvider == null)
                     return new TextBlock { Text = "(无转换提供器)" };
-                data = conversionProvider(path, startMs, endMs);
+                var rawData = conversionProvider(toolName ?? "", path, startMs, endMs);
+                if (rawData is Beatmap beatmap)
+                {
+                    data = PreviewTransformation.BuildFromBeatmapWindow(beatmap, startMs, endMs);
+                }
+                else if (rawData is OsuFileV14 osu)
+                {
+                    data = PreviewTransformation.BuildFromOsuFileV14Window(osu, startMs, endMs);
+                }
+                else
+                {
+                    data = (0, new List<ManiaNote>(), 0.0);
+                }
             }
             else
             {
@@ -84,59 +98,16 @@ namespace krrTools.tools.Preview
             var bgImagePath = PreviewTransformation.GetBackgroundImagePath(path);
             if (!string.IsNullOrEmpty(bgImagePath) && File.Exists(bgImagePath))
             {
-                System.Diagnostics.Debug.WriteLine($"Applying background image: {bgImagePath}");
+                System.Diagnostics.Debug.WriteLine($"Background image found: {bgImagePath}");
                 
-                // 创建背景图片画笔
-                var bgImageBrush = new ImageBrush
-                {
-                    ImageSource = new System.Windows.Media.Imaging.BitmapImage(new Uri(bgImagePath)),
-                    Stretch = Stretch.UniformToFill,
-                    Opacity = SharedUIComponents.PreviewBackgroundOpacity
-                };
-                
-                // 应用模糊效果
-                var blurEffect = new System.Windows.Media.Effects.BlurEffect
-                {
-                    Radius = SharedUIComponents.PreviewBackgroundBlurRadius,
-                    KernelType = System.Windows.Media.Effects.KernelType.Gaussian
-                };
-                
-                // 创建一个包含背景和内容的Border
-                var bgBorder = new Border
-                {
-                    Background = bgImageBrush,
-                    Effect = blurEffect,
-                    Child = previewElement,
-                    CornerRadius = new CornerRadius(4)
-                };
-                
-                System.Diagnostics.Debug.WriteLine("Background image applied successfully");
-                return bgBorder;
+                // 不在这里应用背景，统一由DualPreviewControl处理
+                return previewElement;
             }
             else
             {
                 System.Diagnostics.Debug.WriteLine($"No background image found for {path}");
-                // 创建一个显示背景图状态的Border
-                var statusBorder = new Border
-                {
-                    Background = SharedUIComponents.PanelBackgroundBrush,
-                    Child = new TextBlock 
-                    { 
-                        Text = $"预览内容\n(无背景图)\n路径: {Path.GetFileName(path)}", 
-                        Foreground = SharedUIComponents.UiTextBrush,
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        TextWrapping = TextWrapping.Wrap
-                    },
-                    CornerRadius = new CornerRadius(4),
-                    Padding = new Thickness(10)
-                };
-                
-                var grid = new Grid();
-                grid.Children.Add(statusBorder);
-                grid.Children.Add(previewElement);
-                
-                return grid;
+                // 直接返回预览元素，无背景
+                return previewElement;
             }
         }
 
@@ -192,13 +163,43 @@ namespace krrTools.tools.Preview
     {
         public override string ToolKey => "Converter";
         public Func<N2NCOptions?>? ConverterOptionsProvider { get; set; }
+        public Func<DPToolOptions?>? DPOptionsProvider { get; set; }
+        public Func<LNTransformerOptions?>? LNOptionsProvider { get; set; }
         public ConverterPreviewProcessor()
         {
-            ConversionProvider = (path, start, end) =>
+            ConversionProvider = (toolName, path, start, end) =>
             {
-                var opt = ConverterOptionsProvider?.Invoke();
-                if (opt == null) return (0, new List<ManiaNote>(), 0.0);
-                return PreviewTransformation.BuildConverterWindow(path, opt, start, end);
+                _ = toolName; _ = path; _ = start; _ = end; // Suppress unused parameter warnings
+
+                // First, get the original Beatmap from path
+                var originalBeatmap = BeatmapScheduler.GetBeatmapFromPath(path);
+                if (originalBeatmap == null)
+                    return null;
+
+                // Then, apply conversion based on tool
+                if (toolName == OptionsManager.N2NCToolName)
+                {
+                    var tool = new N2NCTool();
+                    var opt = ConverterOptionsProvider?.Invoke();
+                    if (opt == null) return null;
+                    return tool.ProcessBeatmapToData(originalBeatmap, opt);
+                }
+                else if (toolName == OptionsManager.DPToolName)
+                {
+                    var tool = new DPTool();
+                    var opt = DPOptionsProvider?.Invoke();
+                    if (opt == null) return null;
+                    return tool.ProcessBeatmapToData(originalBeatmap, opt);
+                }
+                else if (toolName == OptionsManager.LNToolName)
+                {
+                    var tool = new LNTransformerTool();
+                    var opt = LNOptionsProvider?.Invoke();
+                    if (opt == null) return null;
+                    return tool.ProcessBeatmapToData(originalBeatmap, opt);
+                }
+                // For others, return original
+                return originalBeatmap;
             };
         }
 
@@ -212,19 +213,19 @@ namespace krrTools.tools.Preview
     internal sealed class LNPreviewProcessor : BasePreviewProcessor
     {
         public override string ToolKey => "LN Transformer";
-        public Func<PreviewTransformation.LNPreviewParameters>? LNParamsProvider { get; set; }
+        public Func<LNTransformerCore.LNPreviewParameters>? LNParamsProvider { get; set; }
         public LNPreviewProcessor()
         {
-            ConversionProvider = (path, start, end) =>
+#pragma warning disable CS0168 // Parameters are not used in this implementation
+            ConversionProvider = (toolName, path, start, end) =>
             {
-                if (LNParamsProvider == null)
-                    return (0, new List<ManiaNote>(), 0.0);
-                var p = LNParamsProvider();
-                return PreviewTransformation.BuildLNWindow(path, p, start, end);
+                // TODO: Implement LN transformation preview using Beatmap
+                return null;
             };
+#pragma warning restore CS0168
         }
 
-        public LNPreviewProcessor(int? columnOverride, Func<PreviewTransformation.LNPreviewParameters>? lnParamsProvider) : this()
+        public LNPreviewProcessor(int? columnOverride, Func<LNTransformerCore.LNPreviewParameters>? lnParamsProvider) : this()
         {
             ColumnOverride = columnOverride;
             LNParamsProvider = lnParamsProvider;
@@ -237,12 +238,13 @@ namespace krrTools.tools.Preview
         public Func<DPToolOptions>? DPOptionsProvider { get; set; }
         public DPPreviewProcessor()
         {
-            ConversionProvider = (path, start, end) =>
+#pragma warning disable CS0168 // Parameters are not used in this implementation
+            ConversionProvider = (toolName, path, start, end) =>
             {
-                var opt = DPOptionsProvider?.Invoke();
-                if (opt == null) return (0, new List<ManiaNote>(), 0.0);
-                return PreviewTransformation.BuildDPWindow(path, opt, start, end);
+                // TODO: Implement DP transformation preview using Beatmap
+                return null;
             };
+#pragma warning restore CS0168
         }
 
         public DPPreviewProcessor(int? columnOverride, Func<DPToolOptions>? dpOptionsProvider) : this()

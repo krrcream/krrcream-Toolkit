@@ -9,7 +9,6 @@ using Wpf.Ui.Controls;
 using Button = Wpf.Ui.Controls.Button;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 using ToggleSwitch = Wpf.Ui.Controls.ToggleSwitch;
-using krrTools.Tools.Shared;
 using krrTools.tools.Shared;
 
 namespace krrTools;
@@ -28,10 +27,10 @@ public static class UIComponents
         // 创建标题栏容器
         _titleBar = new Border
         {
-            Background = new SolidColorBrush(Color.FromRgb(240, 240, 240)),
+            Background = Brushes.Transparent,
             Height = 32,
-            BorderThickness = new Thickness(0, 0, 0, 1),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200)),
+            BorderThickness = new Thickness(0),
+            BorderBrush = SharedUIComponents.PanelBorderBrush,
             Margin = new Thickness(0, 0, 0, 0)
         };
         // 确保标题栏在左侧和右侧留出系统按钮的空间
@@ -66,17 +65,17 @@ public static class UIComponents
         // 最小化按钮
         _minimizeButton = new Button
         {
-            Content = "—",
+            Content = "_",
             Width = 46,
             Height = 32,
             Margin = new Thickness(0),
             Background = Brushes.Transparent,
             BorderBrush = Brushes.Transparent,
             Foreground = Brushes.Black,
-            FontSize = 16,
+            FontSize = 14,
             FontWeight = FontWeights.Bold,
             HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Top,
             Padding = new Thickness(0)
         };
         // 确保按钮在标题栏区域内可点击
@@ -209,7 +208,7 @@ public static class UIComponents
         return _titleBar;
     }
 
-    public static Border CreateStatusBar(Window window)
+    public static Border CreateStatusBar(Window window, ToggleSwitch? realTimeToggle = null, Button? listenerBtn = null)
     {
         var footer = new Border
         {
@@ -232,11 +231,18 @@ public static class UIComponents
         footerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         footerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        // 左侧：版权信息
+        // 左侧：版权信息和GitHub链接
+        var leftPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(12, 0, 0, 0)
+        };
+
         var copyrightText = new TextBlock
         {
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(12, 0, 0, 0)
+            Margin = new Thickness(0, 0, 10, 0)
         };
 
         void UpdateCopyrightText()
@@ -248,10 +254,6 @@ public static class UIComponents
         SharedUIComponents.LanguageChanged += UpdateCopyrightText;
         copyrightText.Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= UpdateCopyrightText;
 
-        Grid.SetColumn(copyrightText, 0);
-        footerGrid.Children.Add(copyrightText);
-
-        // 中间：GitHub链接
         var githubLink = new Hyperlink(new Run(Strings.GitHubLinkText))
         {
             NavigateUri = new Uri(Strings.GitHubLinkUrl)
@@ -259,11 +261,15 @@ public static class UIComponents
         githubLink.RequestNavigate += Hyperlink_RequestNavigate;
         var githubTextBlock = new TextBlock
         {
-            Margin = new Thickness(0, 10, 150, 0)
+            Margin = new Thickness(0, 10, 0, 0)
         };
         githubTextBlock.Inlines.Add(githubLink);
-        Grid.SetColumn(githubTextBlock, 1);
-        footerGrid.Children.Add(githubTextBlock);
+
+        leftPanel.Children.Add(copyrightText);
+        leftPanel.Children.Add(githubTextBlock);
+
+        Grid.SetColumn(leftPanel, 0);
+        footerGrid.Children.Add(leftPanel);
 
         var themeComboBox = new ComboBox
         {
@@ -331,21 +337,181 @@ public static class UIComponents
         langSwitch.Checked += (_, _) => SharedUIComponents.ToggleLanguage();
         langSwitch.Unchecked += (_, _) => SharedUIComponents.ToggleLanguage();
 
+        // 创建设置按钮（齿轮图标）
+        var settingsButton = new Button
+        {
+            Content = "⚙",
+            Width = Double.NaN,
+            Height = 32,
+            Margin = new Thickness(0, 0, 12, 0),
+            Background = Brushes.Transparent,
+            BorderBrush = Brushes.Transparent,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            FontSize = 16
+        };
+
+        // 创建设置菜单
+        var settingsMenu = new ContextMenu();
+
+        // 主题子菜单
+        var themeMenuItem = new System.Windows.Controls.MenuItem { Header = Strings.Localize(Strings.SettingsMenuTheme) };
+        foreach (ApplicationTheme theme in Enum.GetValues(typeof(ApplicationTheme)))
+        {
+            string themeHeader = theme switch
+            {
+                ApplicationTheme.Light => Strings.Localize(Strings.ThemeLight),
+                ApplicationTheme.Dark => Strings.Localize(Strings.ThemeDark),
+                ApplicationTheme.HighContrast => Strings.Localize(Strings.ThemeHighContrast),
+                _ => theme.ToString()
+            };
+            var themeItem = new System.Windows.Controls.MenuItem { Header = themeHeader, IsCheckable = true };
+            themeItem.IsChecked = theme == (themeComboBox.SelectedItem as ApplicationTheme? ?? ApplicationTheme.Light);
+            themeItem.Click += (s, e) => {
+                // 取消其他主题项的选中
+                foreach (var item in themeMenuItem.Items)
+                {
+                    if (item is System.Windows.Controls.MenuItem mi)
+                        mi.IsChecked = false;
+                }
+                themeItem.IsChecked = true;
+                themeComboBox.SelectedItem = theme;
+            };
+            themeMenuItem.Items.Add(themeItem);
+        }
+        settingsMenu.Items.Add(themeMenuItem);
+
+        // 背景效果子菜单
+        var backdropMenuItem = new System.Windows.Controls.MenuItem { Header = Strings.Localize(Strings.SettingsMenuBackdrop) };
+        foreach (WindowBackdropType backdrop in Enum.GetValues(typeof(WindowBackdropType)))
+        {
+            string backdropHeader = backdrop switch
+            {
+                WindowBackdropType.None => Strings.Localize(Strings.BackdropNone),
+                WindowBackdropType.Mica => Strings.Localize(Strings.BackdropMica),
+                WindowBackdropType.Acrylic => Strings.Localize(Strings.BackdropAcrylic),
+                WindowBackdropType.Tabbed => Strings.Localize(Strings.BackdropTabbed),
+                _ => backdrop.ToString()
+            };
+            var backdropItem = new System.Windows.Controls.MenuItem { Header = backdropHeader, IsCheckable = true };
+            backdropItem.IsChecked = backdrop == (backdropComboBox.SelectedItem as WindowBackdropType? ?? WindowBackdropType.Mica);
+            backdropItem.Click += (s, e) => {
+                // 取消其他背景效果项的选中
+                foreach (var item in backdropMenuItem.Items)
+                {
+                    if (item is System.Windows.Controls.MenuItem mi)
+                        mi.IsChecked = false;
+                }
+                backdropItem.IsChecked = true;
+                backdropComboBox.SelectedItem = backdrop;
+            };
+            backdropMenuItem.Items.Add(backdropItem);
+        }
+        settingsMenu.Items.Add(backdropMenuItem);
+
+        // 强调色开关
+        var accentMenuItem = new System.Windows.Controls.MenuItem { Header = Strings.Localize(Strings.UpdateAccent), IsCheckable = true };
+        accentMenuItem.IsChecked = accentSwitch.IsChecked == true;
+        accentMenuItem.Click += (s, e) => {
+            accentSwitch.IsChecked = !accentSwitch.IsChecked;
+        };
+        settingsMenu.Items.Add(accentMenuItem);
+
+        // 语言开关
+        var langMenuItem = new System.Windows.Controls.MenuItem { Header = Strings.Localize(Strings.SettingsMenuLanguage), IsCheckable = false };
+        langMenuItem.Click += (s, e) => {
+            SharedUIComponents.ToggleLanguage();
+            langMenuItem.Header = Strings.Localize(Strings.SettingsMenuLanguage);
+        };
+        settingsMenu.Items.Add(langMenuItem);
+
+        // 语言改变时更新菜单项文本
+        void UpdateMenuItemTexts()
+        {
+            themeMenuItem.Header = Strings.Localize(Strings.SettingsMenuTheme);
+            backdropMenuItem.Header = Strings.Localize(Strings.SettingsMenuBackdrop);
+            accentMenuItem.Header = Strings.Localize(Strings.UpdateAccent);
+            langMenuItem.Header = Strings.Localize(Strings.SettingsMenuLanguage);
+            
+            // 更新主题子项
+            int themeIndex = 0;
+            foreach (ApplicationTheme theme in Enum.GetValues(typeof(ApplicationTheme)))
+            {
+                if (themeIndex < themeMenuItem.Items.Count)
+                {
+                    string themeHeader = theme switch
+                    {
+                        ApplicationTheme.Light => Strings.Localize(Strings.ThemeLight),
+                        ApplicationTheme.Dark => Strings.Localize(Strings.ThemeDark),
+                        ApplicationTheme.HighContrast => Strings.Localize(Strings.ThemeHighContrast),
+                        _ => theme.ToString()
+                    };
+                    ((System.Windows.Controls.MenuItem)themeMenuItem.Items[themeIndex]).Header = themeHeader;
+                }
+                themeIndex++;
+            }
+            
+            // 更新背景效果子项
+            int backdropIndex = 0;
+            foreach (WindowBackdropType backdrop in Enum.GetValues(typeof(WindowBackdropType)))
+            {
+                if (backdropIndex < backdropMenuItem.Items.Count)
+                {
+                    string backdropHeader = backdrop switch
+                    {
+                        WindowBackdropType.None => Strings.Localize(Strings.BackdropNone),
+                        WindowBackdropType.Mica => Strings.Localize(Strings.BackdropMica),
+                        WindowBackdropType.Acrylic => Strings.Localize(Strings.BackdropAcrylic),
+                        WindowBackdropType.Tabbed => Strings.Localize(Strings.BackdropTabbed),
+                        _ => backdrop.ToString()
+                    };
+                    ((System.Windows.Controls.MenuItem)backdropMenuItem.Items[backdropIndex]).Header = backdropHeader;
+                }
+                backdropIndex++;
+            }
+        }
+
+        SharedUIComponents.LanguageChanged += UpdateMenuItemTexts;
+
+        settingsButton.ContextMenu = settingsMenu;
+        settingsButton.Click += (s, e) => settingsButton.ContextMenu.IsOpen = true;
+
         var settingsPanel = new StackPanel
         {
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center
         };
-        settingsPanel.Children.Add(themeComboBox);
-        settingsPanel.Children.Add(backdropComboBox);
-        settingsPanel.Children.Add(accentSwitch);
-        settingsPanel.Children.Add(langSwitch);
+        
+        // 如果提供了实时预览开关，添加到面板
+        if (realTimeToggle != null)
+        {
+            realTimeToggle.Margin = new Thickness(0, 0, 8, 0);
+            settingsPanel.Children.Add(realTimeToggle);
+        }
+        
+        // 如果提供了监听按钮，添加到面板
+        if (listenerBtn != null)
+        {
+            listenerBtn.Width = 110;
+            listenerBtn.Height = 32;
+            listenerBtn.Margin = new Thickness(0, 0, 8, 0);
+            settingsPanel.Children.Add(listenerBtn);
+        }
+        
+        settingsPanel.Children.Add(settingsButton);
 
         Grid.SetColumn(settingsPanel, 2);
         footerGrid.Children.Add(settingsPanel);
 
         footer.Child = footerGrid;
+        
+        // 注册语言改变事件
+        SharedUIComponents.LanguageChanged += UpdateMenuItemTexts;
+        
+        // 清理事件（当footer卸载时）
+        footer.Unloaded += (s, e) => SharedUIComponents.LanguageChanged -= UpdateMenuItemTexts;
+        
         return footer;
     }
 
