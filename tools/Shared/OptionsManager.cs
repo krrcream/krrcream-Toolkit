@@ -54,7 +54,7 @@ namespace krrTools.tools.Shared
         /// <summary>
         /// 加载统一的应用程序配置
         /// </summary>
-        private static AppConfig LoadConfig()
+        public static AppConfig LoadConfig()
         {
             lock (_configLock)
             {

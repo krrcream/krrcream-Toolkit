@@ -26,7 +26,7 @@ namespace krrTools.tools.Shared
         public const string SettingsMenuTheme = "Theme|主题";
         public const string SettingsMenuBackdrop = "Backdrop|背景效果";
         public const string UpdateAccent = "Update Accent|系统调色";
-        public const string SettingsMenuLanguage = "切换到中文|Switch to English";
+        public const string SettingsMenuLanguage = "中文|English";
         
         // Theme options
         public const string ThemeLight = "Light|浅色";

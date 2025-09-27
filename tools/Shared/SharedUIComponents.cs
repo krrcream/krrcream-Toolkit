@@ -28,20 +28,14 @@ namespace krrTools.tools.Shared
         private static void SetForceChinese(bool? forceChinese)
         {
             ForceChinese = forceChinese;
-            // Persist immediately
             OptionsManager.SetForceChinese(forceChinese);
-
-            // Asynchronous notification to avoid blocking UI
-            Application.Current.Dispatcher.BeginInvoke(() =>
-            {
-                LanguageChanged?.Invoke();
-            });
+            LanguageChanged?.Invoke();
         }
 
         // Toggle the language selection (used by simple toggle UIs)
         public static void ToggleLanguage()
         {
-            SetForceChinese(!(ForceChinese ?? !IsChineseLanguage()));
+            SetForceChinese(!IsChineseLanguage());
         }
 
         // Set saved theme settings
