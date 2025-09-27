@@ -38,11 +38,10 @@ namespace krrTools.tools.KRRLNTransformer
                 throw new ArgumentException("不是mania模式");
              
             var ANA = new OsuAnalyzer();
-            var N2NC = new N2NC.N2NC();
-            double BPM = ANA.GetBPM(beatmap);
-            var beatLengthDict = ANA.GetBeatlengthList(beatmap);
-            var (matrix, timeAxis) = N2NC.BuildMatrix(beatmap);
-            var beatLengthAxis = ANA.GetbeatlengthAxis(beatLengthDict, BPM, timeAxis);
+            double BPM = beatmap.GetBPM();
+            var beatLengthDict = ANA.GetBeatLengthList(beatmap);
+            var (matrix, timeAxis) = beatmap.BuildMatrix();
+            var beatLengthAxis = ANA.GetbeatLengthAxis(beatLengthDict, BPM, timeAxis);
             var AvailableTime = CalculateAvailableTime(matrix, timeAxis);
 
             int[,] longMTX = new int[matrix.GetLength(0), matrix.GetLength(1)];
@@ -145,7 +144,7 @@ namespace krrTools.tools.KRRLNTransformer
                 }
 
                 string directory = Path.GetDirectoryName(filepath) ?? string.Empty;
-                string baseFilename = N2NC.getfilename(beatmap);
+                string baseFilename = beatmap.GetOsuFileName();
                 string filename = baseFilename + ".osu";
                 string fullPath = Path.Combine(directory, filename);
                 if (fullPath.Length > 255)

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using krrTools.Tools.OsuParser;
 using krrTools.tools.Shared;
 using OsuParsers.Beatmaps;
 using OsuParsers.Beatmaps.Objects;
@@ -54,13 +53,12 @@ namespace krrTools.tools.N2NC
             {
                 throw new ArgumentException("目标键位与当前键位相同且不降低密度");
             }
-            var ANA = new OsuAnalyzer();
-            double BPM = ANA.GetBPM(beatmap);
-            Console.WriteLine("BPM：" + BPM);
+            double BPM = beatmap.GetBPM();
+            // Console.WriteLine("BPM：" + BPM);
             double beatLength = 60000 / BPM * 4;
-            // 变换时间
+
             double convertTime = Math.Max(1, options.TransformSpeed * beatLength - 10);
-            var (matrix, timeAxis) = BuildMatrix(beatmap);
+            var (matrix, timeAxis) = beatmap.BuildMatrix();
 
             var resultPath = turn >= 0 ? 
                 DoAddKeys(beatmap, matrix, timeAxis, turn, convertTime, CS, targetKeys, beatLength, RG, filepath) 
@@ -115,7 +113,7 @@ namespace krrTools.tools.N2NC
                 outDir = directory;
             }
 
-            string baseFilename = getfilename(beatmap);
+            string baseFilename = beatmap.GetOsuFileName();
             string filename = baseFilename + ".osu";
             string fullPath = Path.Combine(outDir, filename);
             if (fullPath.Length > 255)
@@ -522,7 +520,7 @@ namespace krrTools.tools.N2NC
             });
         }
 
-        public void DensityReducer(int[,] matrix, int maxToRemovePerRow, int minKeys, int targetKeys, Random random)
+        private void DensityReducer(int[,] matrix, int maxToRemovePerRow, int minKeys, int targetKeys, Random random)
         {
             if (maxToRemovePerRow <= 0) return;
 
@@ -604,60 +602,7 @@ namespace krrTools.tools.N2NC
         }
 
 
-        public (int[,], List<int>) BuildMatrix(Beatmap beatmap)
-        {
-            int cs = (int)beatmap.DifficultySection.CircleSize;
-            var timePoints = new SortedSet<int>();
-            foreach (var hitObject in beatmap.HitObjects)
-            {
-                timePoints.Add(hitObject.StartTime);
-                if (hitObject.EndTime > 0)
-                {
-                    timePoints.Add(hitObject.EndTime);
-                }
-            }
 
-            var timeAxis = timePoints.ToList();
-            int h = timeAxis.Count;
-            int a = cs;
-
-            // 初始化二维矩阵，所有元素默认为-1（代表空）
-            int[,] matrix = new int[h, a];
-            for (int i = 0; i < h; i++)
-            {
-                for (int j = 0; j < a; j++)
-                {
-                    matrix[i, j] = -1;
-                }
-            }
-
-            Dictionary<int, int> timeToRow = new Dictionary<int, int>();
-            for (int i = 0; i < timeAxis.Count; i++)
-            {
-                timeToRow[timeAxis[i]] = i;
-            }
-
-            for (int i = 0; i < beatmap.HitObjects.Count; i++)
-            {
-                var hitObject = beatmap.HitObjects[i];
-                int column = positionXToColumn(cs, (int)hitObject.Position.X);
-                int startRow = timeToRow[hitObject.StartTime];
-
-                matrix[startRow, column] = i;
-
-                if (hitObject.EndTime > 0)
-                {
-                    int endRow = timeToRow[hitObject.EndTime];
-
-                    for (int row = startRow + 1; row <= endRow; row++)
-                    {
-                        matrix[row, column] = -7;
-                    }
-                }
-            }
-
-            return (matrix, timeAxis);
-        }
 
         public HitObject CopyHitObjectByPX(HitObject hitObject, int position)
         {
@@ -711,33 +656,6 @@ namespace krrTools.tools.N2NC
                     comboOffset
                 );
             }
-        }
-
-
-
-
-        public string getfilename(Beatmap beatmap)
-        {
-            // 清理文件名中的非法字符
-            string artist = beatmap.MetadataSection.Artist ?? "";
-            string title = beatmap.MetadataSection.Title ?? "";
-            string creator = beatmap.MetadataSection.Creator ?? "";
-            string version = beatmap.MetadataSection.Version ?? "";
-
-            // 使用正则表达式移除所有非法字符
-            string invalidCharsPattern = $"[{Regex.Escape(new string(Path.GetInvalidFileNameChars()))}]";
-            artist = Regex.Replace(artist, invalidCharsPattern, "");
-            title = Regex.Replace(title, invalidCharsPattern, "");
-            creator = Regex.Replace(creator, invalidCharsPattern, "");
-            version = Regex.Replace(version, invalidCharsPattern, "");
-
-            return $"{artist} - {title} ({creator}) [{version}]";
-        }
-
-        private int positionXToColumn(int CS, int X)
-        {
-            int column = (int)Math.Floor(X * (double)CS / 512);
-            return column;
         }
 
         public int[,] SmartReduceColumns(int[,] orgMTX, List<int> timeAxis, int turn, double convertTime, double beatLength)
@@ -1423,13 +1341,13 @@ namespace krrTools.tools.N2NC
             {
                 throw new ArgumentException("目标键位与当前键位相同且不降低密度");
             }
-            var ANA = new OsuAnalyzer();
-            double BPM = ANA.GetBPM(beatmap);
+
+            double BPM = beatmap.GetBPM();
             Console.WriteLine("BPM：" + BPM);
             double beatLength = 60000 / BPM * 4;
-            // 变换时间
+
             double convertTime = Math.Max(1, options.TransformSpeed * beatLength - 10);
-            var (matrix, timeAxis) = BuildMatrix(beatmap);
+            var (matrix, timeAxis) = beatmap.BuildMatrix();
 
             return turn >= 0 ? 
                 DoAddKeysToData(beatmap, matrix, timeAxis, turn, convertTime, CS, targetKeys, beatLength, RG) 

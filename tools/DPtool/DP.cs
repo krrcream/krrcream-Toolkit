@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using OsuParsers.Beatmaps;
 using krrTools.tools.N2NC;
 using OsuParsers.Beatmaps.Objects;
-using krrTools.Tools.OsuParser;
 using krrTools.tools.Shared;
 using krrTools.Tools.Shared;
 
@@ -67,7 +66,7 @@ namespace krrTools.tools.DPtool
             options.Left.Validate();
             options.Right.Validate();
 
-            var beatmap = FileProcessingHelper.LoadValidatedBeatmap(filePath);
+            var beatmap = FilesHelper.GetManiaBeatmap(filePath);
 
             var Conv = new N2NC.N2NC();
             var random = new Random(114514);
@@ -79,11 +78,10 @@ namespace krrTools.tools.DPtool
                 TransformSpeed = 4
             };
             Conv.options = convOptions;
-            var ANA = new OsuAnalyzer();
-            double BPM = ANA.GetBPM(beatmap);
+            double BPM = beatmap.GetBPM();
             double beatLength = 60000 / BPM * 4;
             double convertTime = Math.Max(1, convOptions.TransformSpeed * beatLength - 10);
-            var (matrix, timeAxis) = Conv.BuildMatrix(beatmap);
+            var (matrix, timeAxis) = beatmap.BuildMatrix();
 
             if (options.ModifySingleSideKeyCount && options.SingleSideKeyCount > beatmap.DifficultySection.CircleSize)
             {
@@ -131,7 +129,7 @@ namespace krrTools.tools.DPtool
                 }
 
                 string directory = Path.GetDirectoryName(filePath) ?? string.Empty;
-                string baseFilename = Conv.getfilename(beatmap);
+                string baseFilename = beatmap.GetOsuFileName();
                 string filename = baseFilename + ".osu";
                 string fullPath = Path.Combine(directory, filename);
                 if (fullPath.Length > 255)
@@ -152,19 +150,7 @@ namespace krrTools.tools.DPtool
             }
         }
 
-        public Beatmap ProcessFileToData(string filePath, DPToolOptions options)
-        {
-            var beatmap = BeatmapScheduler.GetBeatmapFromPath(filePath);
-            if (beatmap == null)
-                throw new InvalidDataException("Failed to decode beatmap file.");
-
-            if (beatmap.GeneralSection.ModeId != 3)
-                throw new ArgumentException("Beatmap is not in Mania mode (ModeId != 3)");
-
-            return ProcessBeatmapToData(beatmap, options);
-        }
-
-        public Beatmap ProcessBeatmapToData(Beatmap beatmap, DPToolOptions options)
+        public Beatmap DPBeatmapToData(Beatmap beatmap, DPToolOptions options)
         {
             options.Left.Validate();
             options.Right.Validate();
@@ -179,11 +165,10 @@ namespace krrTools.tools.DPtool
                 TransformSpeed = 4
             };
             Conv.options = convOptions;
-            var ANA = new OsuAnalyzer();
-            double BPM = ANA.GetBPM(beatmap);
+            double BPM = beatmap.GetBPM();
             double beatLength = 60000 / BPM * 4;
             double convertTime = Math.Max(1, convOptions.TransformSpeed * beatLength - 10);
-            var (matrix, timeAxis) = Conv.BuildMatrix(beatmap);
+            var (matrix, timeAxis) = beatmap.BuildMatrix();
 
             if (options.ModifySingleSideKeyCount && options.SingleSideKeyCount > beatmap.DifficultySection.CircleSize)
             {

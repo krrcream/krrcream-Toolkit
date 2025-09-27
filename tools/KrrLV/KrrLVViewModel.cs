@@ -222,7 +222,7 @@ namespace krrTools.tools.KrrLV
     [RelayCommand]
     private void Browse()
     {
-        var selected = FileProcessingHelper.ShowOpenFileOrFolderDialog("选择文件或文件夹");
+        var selected = FilesHelper.ShowOpenFileOrFolderDialog("选择文件或文件夹");
         if (!string.IsNullOrEmpty(selected))
         {
             PathInput = selected;
@@ -233,7 +233,7 @@ namespace krrTools.tools.KrrLV
     [RelayCommand]
     private void Save()
     {
-        var savePath = FileProcessingHelper.ShowSaveFileDialog("保存为CSV文件", "CSV文件|*.csv", "csv");
+        var savePath = FilesHelper.ShowSaveFileDialog("保存为CSV文件", "CSV文件|*.csv", "csv");
         if (!string.IsNullOrEmpty(savePath))
         {
             try
@@ -270,7 +270,7 @@ namespace krrTools.tools.KrrLV
         try
         {
             // 计算总文件数（包括.osz中的.osu文件）
-            TotalCount = FileProcessingHelper.CountOsuFiles(files);
+            TotalCount = FilesHelper.GetOsuFilesCount(files);
             _currentProcessedCount = 0;
     
             // 显示进度窗口

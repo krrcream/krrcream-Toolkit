@@ -9,6 +9,7 @@ using krrTools.tools.DPtool;
 using krrTools.tools.N2NC;
 using krrTools.tools.LNTransformer;
 using krrTools.tools.Shared;
+using krrTools.Tools.Shared;
 using OsuParsers.Beatmaps;
 
 namespace krrTools.tools.Preview
@@ -56,13 +57,14 @@ namespace krrTools.tools.Preview
             }
             if (!first.HasValue) return new TextBlock { Text = "(无可用音符)" };
 
-            var quarterMs = PreviewTransformation.GetQuarterMs(path);
+            Beatmap beatmapMeta = FilesHelper.GetManiaBeatmap(path) ?? new Beatmap();
+            
+            var quarterMs = beatmapMeta.GetBPM(true);
             int startMs = first.Value;
             int windowMs = Math.Max(PreviewConstants.MinWindowLengthMs,
                 (int)Math.Round(quarterMs * PreviewConstants.PreviewWindowUnitCount / PreviewConstants.PreviewWindowUnitBeatDenominator));
             int endMs = startMs + windowMs;
 
-            // 记录开始时间，供外部（XAML）读取并更新标题
             if (converted)
                 LastConvertedStartMs = startMs;
             else
@@ -78,10 +80,6 @@ namespace krrTools.tools.Preview
                 {
                     data = PreviewTransformation.BuildFromBeatmapWindow(beatmap, startMs, endMs);
                 }
-                else if (rawData is OsuFileV14 osu)
-                {
-                    data = PreviewTransformation.BuildFromOsuFileV14Window(osu, startMs, endMs);
-                }
                 else
                 {
                     data = (0, new List<ManiaNote>(), 0.0);
@@ -93,22 +91,7 @@ namespace krrTools.tools.Preview
             }
 
             var previewElement = BuildFromRealNotes(data);
-            
-            // 检查是否有背景图
-            var bgImagePath = PreviewTransformation.GetBackgroundImagePath(path);
-            if (!string.IsNullOrEmpty(bgImagePath) && File.Exists(bgImagePath))
-            {
-                System.Diagnostics.Debug.WriteLine($"Background image found: {bgImagePath}");
-                
-                // 不在这里应用背景，统一由DualPreviewControl处理
-                return previewElement;
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"No background image found for {path}");
-                // 直接返回预览元素，无背景
-                return previewElement;
-            }
+            return previewElement;
         }
 
         // 从实际音符构建显示
@@ -171,12 +154,8 @@ namespace krrTools.tools.Preview
             {
                 _ = toolName; _ = path; _ = start; _ = end; // Suppress unused parameter warnings
 
-                // First, get the original Beatmap from path
-                var originalBeatmap = BeatmapScheduler.GetBeatmapFromPath(path);
-                if (originalBeatmap == null)
-                    return null;
+                var originalBeatmap = FilesHelper.GetManiaBeatmap(path);
 
-                // Then, apply conversion based on tool
                 if (toolName == OptionsManager.N2NCToolName)
                 {
                     var tool = new N2NCTool();
@@ -184,21 +163,23 @@ namespace krrTools.tools.Preview
                     if (opt == null) return null;
                     return tool.ProcessBeatmapToData(originalBeatmap, opt);
                 }
-                else if (toolName == OptionsManager.DPToolName)
+                
+                if (toolName == OptionsManager.DPToolName)
                 {
                     var tool = new DPTool();
                     var opt = DPOptionsProvider?.Invoke();
                     if (opt == null) return null;
                     return tool.ProcessBeatmapToData(originalBeatmap, opt);
                 }
-                else if (toolName == OptionsManager.LNToolName)
+                
+                if (toolName == OptionsManager.LNToolName)
                 {
                     var tool = new LNTransformerTool();
                     var opt = LNOptionsProvider?.Invoke();
                     if (opt == null) return null;
                     return tool.ProcessBeatmapToData(originalBeatmap, opt);
                 }
-                // For others, return original
+
                 return originalBeatmap;
             };
         }
