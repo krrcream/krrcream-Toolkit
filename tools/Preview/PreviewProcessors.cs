@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -48,6 +49,7 @@ namespace krrTools.tools.Preview
             Func<string, string, int, int, object?>? conversionProvider, string? toolName)
         {
             var path = filePaths is { Length: > 0 } ? filePaths[0] : string.Empty;
+            Debug.WriteLine($"Building preview for path: {path}, converted: {converted}");
             if (string.IsNullOrEmpty(path) || !File.Exists(path)) return new TextBlock { Text = "(无文件)" };
 
             int? first = PreviewTransformation.GetFirstNonEmptyTime(path);
