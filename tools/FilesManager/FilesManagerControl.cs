@@ -5,18 +5,15 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Data;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 using System.Windows.Media;
 using krrTools.tools.Shared;
-using krrTools.Tools.Shared;
 
-#pragma warning disable CS8618 // Non-nullable fields are initialized in BuildUI
-
-namespace krrTools.tools.Get_files
+namespace krrTools.tools.FilesManager
 {
-    public class GetFilesControl : UserControl
+    public class FilesManagerControl : UserControl
     {
         private static readonly InverseBooleanConverter _inverseBoolConverter = new InverseBooleanConverter();
 
@@ -24,12 +21,13 @@ namespace krrTools.tools.Get_files
         private TextBox? _titleFilterBox, _diffFilterBox, _artistFilterBox, _creatorFilterBox, _keysFilterBox, _odFilterBox, _hpFilterBox, _beatmapIdFilterBox, _beatmapSetIdFilterBox, _filePathFilterBox;
         private ProgressBar? _progressBarControl;
         private TextBlock? _progressTextBlockControl;
+        private Grid? _topGrid;
 
-        public GetFilesControl()
+        public FilesManagerControl()
         {
             // Initialize control UI
             BuildUI();
-            var viewModel = new GetFilesViewModel();
+            var viewModel = new FilesManagerViewModel();
             DataContext = viewModel;
             // Subscribe to language change
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
@@ -55,22 +53,31 @@ namespace krrTools.tools.Get_files
             rootGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
             // Top filter grid
-            var topGrid = new Grid { Margin = new Thickness(0, 0, 0, 5) };
-            for (int i = 0; i < 10; i++) topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            _topGrid = new Grid { Margin = new Thickness(0, 0, 0, 5) };
+            _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Title
+            _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Diff
+            _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Artist
+            _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Creator
+            _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) }); // Keys
+            _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) }); // OD
+            _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) }); // HP
+            _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) }); // beatmapID
+            _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) }); // setID
+            _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) }); // FilePath
 
-            _titleFilterBox = CreateBoundTextBox("TitleFilter"); topGrid.Children.Add(PlaceInGrid(_titleFilterBox, 0));
-            _diffFilterBox = CreateBoundTextBox("DiffFilter"); topGrid.Children.Add(PlaceInGrid(_diffFilterBox, 1));
-            _artistFilterBox = CreateBoundTextBox("ArtistFilter"); topGrid.Children.Add(PlaceInGrid(_artistFilterBox, 2));
-            _creatorFilterBox = CreateBoundTextBox("CreatorFilter"); topGrid.Children.Add(PlaceInGrid(_creatorFilterBox, 3));
-            _keysFilterBox = CreateBoundTextBox("KeysFilter"); topGrid.Children.Add(PlaceInGrid(_keysFilterBox, 4));
-            _odFilterBox = CreateBoundTextBox("OdFilter"); topGrid.Children.Add(PlaceInGrid(_odFilterBox, 5));
-            _hpFilterBox = CreateBoundTextBox("HpFilter"); topGrid.Children.Add(PlaceInGrid(_hpFilterBox, 6));
-            _beatmapIdFilterBox = CreateBoundTextBox("BeatmapIdFilter"); topGrid.Children.Add(PlaceInGrid(_beatmapIdFilterBox, 7));
-            _beatmapSetIdFilterBox = CreateBoundTextBox("BeatmapSetIdFilter"); topGrid.Children.Add(PlaceInGrid(_beatmapSetIdFilterBox, 8));
-            _filePathFilterBox = CreateBoundTextBox("FilePathFilter"); topGrid.Children.Add(PlaceInGrid(_filePathFilterBox, 9));
+            _titleFilterBox = CreateBoundTextBox("TitleFilter"); _topGrid.Children.Add(PlaceInGrid(_titleFilterBox, 0));
+            _diffFilterBox = CreateBoundTextBox("DiffFilter"); _topGrid.Children.Add(PlaceInGrid(_diffFilterBox, 1));
+            _artistFilterBox = CreateBoundTextBox("ArtistFilter"); _topGrid.Children.Add(PlaceInGrid(_artistFilterBox, 2));
+            _creatorFilterBox = CreateBoundTextBox("CreatorFilter"); _topGrid.Children.Add(PlaceInGrid(_creatorFilterBox, 3));
+            _keysFilterBox = CreateBoundTextBox("KeysFilter"); _topGrid.Children.Add(PlaceInGrid(_keysFilterBox, 4));
+            _odFilterBox = CreateBoundTextBox("OdFilter"); _topGrid.Children.Add(PlaceInGrid(_odFilterBox, 5));
+            _hpFilterBox = CreateBoundTextBox("HpFilter"); _topGrid.Children.Add(PlaceInGrid(_hpFilterBox, 6));
+            _beatmapIdFilterBox = CreateBoundTextBox("BeatmapIdFilter"); _topGrid.Children.Add(PlaceInGrid(_beatmapIdFilterBox, 7));
+            _beatmapSetIdFilterBox = CreateBoundTextBox("BeatmapSetIdFilter"); _topGrid.Children.Add(PlaceInGrid(_beatmapSetIdFilterBox, 8));
+            _filePathFilterBox = CreateBoundTextBox("FilePathFilter"); _topGrid.Children.Add(PlaceInGrid(_filePathFilterBox, 9));
 
-            Grid.SetRow(topGrid, 0);
-            rootGrid.Children.Add(topGrid);
+            Grid.SetRow(_topGrid, 0);
+            rootGrid.Children.Add(_topGrid);
 
             // DataGrid
             _fileDataGrid = new DataGrid { AutoGenerateColumns = false, CanUserAddRows = false, SelectionMode = DataGridSelectionMode.Extended, SelectionUnit = DataGridSelectionUnit.FullRow };
@@ -86,6 +93,18 @@ namespace krrTools.tools.Get_files
             _fileDataGrid.Columns.Add(new DataGridTextColumn { Header = "beatmapID", Binding = new Binding("BeatmapID"), Width = new DataGridLength(80) });
             _fileDataGrid.Columns.Add(new DataGridTextColumn { Header = "setID", Binding = new Binding("BeatmapSetID"), Width = new DataGridLength(80) });
             _fileDataGrid.Columns.Add(new DataGridTextColumn { Header = "FilePath", Binding = new Binding("FilePath"), Width = new DataGridLength(2, DataGridLengthUnitType.Star) });
+
+            // Sync top grid column widths with DataGrid columns
+            _fileDataGrid.LayoutUpdated += (_,_) =>
+            {
+                if (_topGrid != null && _fileDataGrid != null)
+                {
+                    for (int i = 0; i < Math.Min(_topGrid.ColumnDefinitions.Count, _fileDataGrid.Columns.Count); i++)
+                    {
+                        _topGrid.ColumnDefinitions[i].Width = new GridLength(_fileDataGrid.Columns[i].ActualWidth);
+                    }
+                }
+            };
 
             // Context menu
             var ctx = new ContextMenu();
@@ -161,13 +180,13 @@ namespace krrTools.tools.Get_files
 
             if (result == MessageBoxResult.Yes)
             {
-                var vm = (GetFilesViewModel)DataContext;
+                var vm = (FilesManagerViewModel)DataContext;
                 await DeleteSelectedFilesAsync(selectedItems, vm);
             }
         }
 
         //异步后台删除文件
-        private Task DeleteSelectedFilesAsync(List<OsuFileInfo> filesToDelete, GetFilesViewModel viewModel)
+        private Task DeleteSelectedFilesAsync(List<OsuFileInfo> filesToDelete, FilesManagerViewModel managerViewModel)
         {
             foreach (var file in filesToDelete)
             {
@@ -179,7 +198,7 @@ namespace krrTools.tools.Get_files
                     }
 
                     // 从主列表和过滤视图中移除
-                    viewModel.OsuFiles.Remove(file);
+                    managerViewModel.OsuFiles.Remove(file);
                 }
                 catch (Exception ex)
                 {
@@ -188,7 +207,7 @@ namespace krrTools.tools.Get_files
             }
 
             // 刷新ICollectionView以更新UI
-            viewModel.FilteredOsuFiles.Refresh();
+            managerViewModel.FilteredOsuFiles.Refresh();
 
             MessageBox.Show($"{filesToDelete.Count} file(s) deleted successfully.", "Delete", MessageBoxButton.OK, MessageBoxImage.Information);
             return Task.CompletedTask;
@@ -196,18 +215,13 @@ namespace krrTools.tools.Get_files
 
         private void OnLanguageChanged()
         {
-            try
+            Dispatcher.BeginInvoke(new Action(() =>
             {
-                // Rebuild UI on language change
-                Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    var dc = DataContext;
-                    Content = null;
-                    BuildUI();
-                    DataContext = dc;
-                }));
-            }
-            catch { }
+                var dc = DataContext;
+                Content = null;
+                BuildUI();
+                DataContext = dc;
+            }));
         }
     }
 

@@ -25,5 +25,23 @@ namespace krrTools.tools.Shared
         {
             return await Task.Run(() => ProcessFile(filePath, options));
         }
+
+        public object? ProcessFileToData(string filePath, IToolOptions options)
+        {
+            if (options is not DPToolOptions dpOptions)
+                return null;
+
+            var dp = new DP();
+            return dp.ProcessFileToData(filePath, dpOptions);
+        }
+
+        public OsuParsers.Beatmaps.Beatmap? ProcessBeatmapToData(OsuParsers.Beatmaps.Beatmap inputBeatmap, IToolOptions options)
+        {
+            if (options is not DPToolOptions dpOptions)
+                return null;
+
+            var dp = new DP();
+            return dp.ProcessBeatmapToData(inputBeatmap, dpOptions);
+        }
     }
 }

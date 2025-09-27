@@ -311,10 +311,10 @@ namespace krrTools.tools.Listener
                      if (Application.Current?.MainWindow is MainWindow main)
                      {
                          // Use null-guards and log any exceptions at top level
-                         if (main.ConverterPreview != null)
+                         if (main.N2NCPreview != null)
                          {
-                             main.ConverterPreview.LoadFiles(arr, suppressBroadcast: true);
-                             main.ConverterPreview.ApplyStagedUI(arr);
+                             main.N2NCPreview.LoadFiles(arr, suppressBroadcast: true);
+                             main.N2NCPreview.ApplyStagedUI(arr);
                          }
 
                          if (main.LNPreview != null)

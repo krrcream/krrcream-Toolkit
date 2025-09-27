@@ -795,4 +795,6 @@ public class DualPreviewControl : UserControl
         DropZone.IsHitTestVisible = enabled;
         DropZone.Opacity = enabled ? 1.0 : 0.65;
     }
+
+    public string? CurrentTool { get; set; }
 }

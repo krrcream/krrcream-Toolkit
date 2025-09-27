@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
+using OsuParsers.Beatmaps.Objects;
 using krrTools.tools.DPtool;
 using krrTools.tools.LNTransformer;
 using krrTools.tools.N2NC;
@@ -105,123 +106,116 @@ public static class PreviewTransformation
         return BuildWindowFromMatrix(matrix, timeAxis, cs, beatmap, startMs, endMs);
     }
 
-    // 构建一个时间窗口内的转换器输出音符
-    public static (int columns, List<BasePreviewProcessor.ManiaNote> notes, double quarterMs) BuildConverterWindow(
-        string osuPath, N2NCOptions options, int startMs, int endMs)
+    // 从 Beatmap 构建 mania 音符列表（用于预览转换后的数据）
+    public static (int columns, List<BasePreviewProcessor.ManiaNote> notes, double quarterMs) BuildFromBeatmap(Beatmap beatmap, int maxRows)
     {
-        if (!TryBuildMatrix(osuPath, options, out var beatmap, out var conv, out var matrix, out var timeAxis,
-                out var cs)) return (0, new List<BasePreviewProcessor.ManiaNote>(), 0);
-            double BPM = GetBpmDouble(beatmap);
-             double beatLength = 60000 / BPM * 4;
-             double convertTime = Math.Max(1, options.TransformSpeed * beatLength - 10);
-             int turn = (int)options.TargetKeys - cs;
-             int[,] newMatrix;
-             var rng = options.Seed.HasValue ? new Random(options.Seed.Value) : new Random();
-
-        // 先在全矩阵上应用转换，再切片时间窗口
-        if (turn < 0)
-        {
-            newMatrix = conv.SmartReduceColumns(matrix, timeAxis, -turn, convertTime, beatLength);
-            conv.DensityReducer(newMatrix, (int)options.TargetKeys - (int)options.MaxKeys, (int)options.MinKeys, (int)options.TargetKeys, rng);
-        }
-        else if (turn > 0)
-        {
-            var (oldMTX, insertMTX) = conv.convertMTX(turn, timeAxis, convertTime, cs, rng);
-            newMatrix = conv.convert(matrix, oldMTX, insertMTX, timeAxis, (int)options.TargetKeys, beatLength, rng);
-            conv.DensityReducer(newMatrix, (int)options.TargetKeys - (int)options.MaxKeys, (int)options.MinKeys, (int)options.TargetKeys, rng);
-        }
-        else
-        {
-            newMatrix = matrix;
-            if (options.MaxKeys < options.TargetKeys)
-            {
-                conv.DensityReducer(newMatrix, (int)options.TargetKeys - (int)options.MaxKeys, (int)options.MinKeys, (int)options.TargetKeys, rng);
-            }
-        }
-
-        return BuildWindowFromMatrix(newMatrix, timeAxis, (int)options.TargetKeys, beatmap, startMs, endMs);
+        if (beatmap.GeneralSection.ModeId != 3) return (0, new List<BasePreviewProcessor.ManiaNote>(), 0);
+        var cs = (int)beatmap.DifficultySection.CircleSize;
+        var (matrix, timeAxis) = BuildMatrixFromBeatmap(beatmap);
+        var bpm = GetBpmDouble(beatmap);
+        var quarterMs = 60000.0 / Math.Max(1.0, bpm);
+        var res = MatrixToNotes(matrix, timeAxis, cs, maxRows);
+        return (res.columns, res.notes, quarterMs);
     }
 
-    public struct LNPreviewParameters
+    // 从 Beatmap 构建时间窗口内的音符
+    public static (int columns, List<BasePreviewProcessor.ManiaNote> notes, double quarterMs) BuildFromBeatmapWindow(Beatmap beatmap, int startMs, int endMs)
     {
-        public double LevelValue;
-        public double PercentageValue;
-        public double DivideValue;
-        public double ColumnValue;
-        public double GapValue;
-        public bool OriginalLN;
-        public bool FixError;
-        public double OverallDifficulty;
+        if (beatmap.GeneralSection.ModeId != 3) return (0, new List<BasePreviewProcessor.ManiaNote>(), 0);
+        var cs = (int)beatmap.DifficultySection.CircleSize;
+        var (matrix, timeAxis) = BuildMatrixFromBeatmap(beatmap);
+        var bpm = GetBpmDouble(beatmap);
+        var quarterMs = 60000.0 / Math.Max(1.0, bpm);
+        var (slicedMatrix, slicedTimeAxis) = SliceMatrixByTime(matrix, timeAxis, startMs, endMs);
+        var res = MatrixToNotes(slicedMatrix, slicedTimeAxis, cs, int.MaxValue);
+        return (res.columns, res.notes, quarterMs);
     }
 
-    // 复用解析器实例以避免重复分配
-    private static readonly OsuAnalyzer ana = new();
-
-    // LN 预览：在内存中做 LN 转换，然后生成窗口内的音符
-    public static (int columns, List<BasePreviewProcessor.ManiaNote> notes, double quarterMs) BuildLNWindow(
-        string osuPath, LNPreviewParameters p, int startMs, int endMs)
+    // 从 OsuFileV14 构建 mania 音符列表（用于预览转换后的数据）
+    public static (int columns, List<BasePreviewProcessor.ManiaNote> notes, double quarterMs) BuildFromOsuFileV14(OsuFileV14 osu, int maxRows)
     {
-         var osu = OsuFileProcessor.ReadFile(osuPath);
-         var transformed = LNTransformerCore.TransformFull(osu, p);
-
-         // 尝试直接从内存 OsuFileV14 构建矩阵
-        if (TryBuildMatrixFromOsu(transformed, out var matrix, out var timeAxis, out var cs))
-        {
-            // 如果转换后的矩阵在请求窗口内有音符，直接返回切片
-            FindTimeWindowIndices(timeAxis, startMs, endMs, out var sIdx, out var eIdx);
-            if (sIdx != -1 && eIdx != -1 && eIdx >= sIdx)
-            {
-                for (int r = sIdx; r <= eIdx; r++)
-                {
-                    for (int c = 0; c < matrix.GetLength(1); c++) if (matrix[r, c] >= 0) return BuildWindowFromMatrix(matrix, timeAxis, cs, null, startMs, endMs);
-                }
-            }
-
-            // 如果转换放置了音符但窗口内为空，则把窗口移动到第一个放置音符处（保留长度）
-            var totalPlaced = 0;
-            int firstRow = -1;
-            for (int r = 0; r < matrix.GetLength(0); r++)
-            {
-                for (int c = 0; c < matrix.GetLength(1); c++)
-                {
-                    if (matrix[r, c] >= 0)
-                    {
-                        totalPlaced++;
-                        if (firstRow == -1) firstRow = r;
-                    }
-                }
-            }
-
-            if (totalPlaced > 0 && firstRow != -1)
-            {
-                var firstTime = timeAxis[firstRow];
-                var windowLen = Math.Max(1, endMs - startMs);
-                var newStart = firstTime;
-                var newEnd = newStart + windowLen;
-                Debug.WriteLine($"[Preview] shifting LN preview window to transformed first note: start={newStart} end={newEnd}");
-                return BuildWindowFromMatrix(matrix, timeAxis, cs, null, newStart, newEnd);
-            }
-
-            // 没有放置任何音符 -> 返回空
+        if (!TryBuildMatrixFromOsu(osu, out var matrix, out var timeAxis, out var cs))
             return (0, new List<BasePreviewProcessor.ManiaNote>(), 0);
+        var bpm = GetBpmDoubleFromOsu(osu);
+        var quarterMs = 60000.0 / Math.Max(1.0, bpm);
+        var res = MatrixToNotes(matrix, timeAxis, cs, maxRows);
+        return (res.columns, res.notes, quarterMs);
+    }
+
+    // 从 OsuFileV14 构建时间窗口内的音符
+    public static (int columns, List<BasePreviewProcessor.ManiaNote> notes, double quarterMs) BuildFromOsuFileV14Window(OsuFileV14 osu, int startMs, int endMs)
+    {
+        if (!TryBuildMatrixFromOsu(osu, out var matrix, out var timeAxis, out var cs))
+            return (0, new List<BasePreviewProcessor.ManiaNote>(), 0);
+        var bpm = GetBpmDoubleFromOsu(osu);
+        var quarterMs = 60000.0 / Math.Max(1.0, bpm);
+        var (slicedMatrix, slicedTimeAxis) = SliceMatrixByTime(matrix, timeAxis, startMs, endMs);
+        var res = MatrixToNotes(slicedMatrix, slicedTimeAxis, cs, int.MaxValue);
+        return (res.columns, res.notes, quarterMs);
+    }
+
+    private static (int[,], List<int>) BuildMatrixFromBeatmap(Beatmap beatmap)
+    {
+        int cs = (int)beatmap.DifficultySection.CircleSize;
+        var timePoints = new SortedSet<int>();
+        foreach (var hitObject in beatmap.HitObjects)
+        {
+            timePoints.Add(hitObject.StartTime);
+            if (hitObject.EndTime > 0)
+            {
+                timePoints.Add(hitObject.EndTime);
+            }
         }
 
-        // 如果内存路径失败，回退到写文件再解析（最后手段）
-        var tmp = Path.GetTempFileName();
-        var tmpOsu = Path.ChangeExtension(tmp, ".osu");
-        try
+        var timeAxis = timePoints.ToList();
+        int h = timeAxis.Count;
+        int a = cs;
+
+        // 初始化二维矩阵，所有元素默认为-1（代表空）
+        int[,] matrix = new int[h, a];
+        for (int i = 0; i < h; i++)
         {
-            OsuFileProcessor.WriteOsuFile(transformed, tmpOsu);
-            if (!TryBuildMatrix(tmpOsu, null, out var b2, out _, out var m2, out var t2, out var cs2))
-                return (0, new List<BasePreviewProcessor.ManiaNote>(), 0);
-            return BuildWindowFromMatrix(m2, t2, cs2, b2, startMs, endMs);
+            for (int j = 0; j < a; j++)
+            {
+                matrix[i, j] = -1;
+            }
         }
-        finally
+
+        Dictionary<int, int> timeToRow = new Dictionary<int, int>();
+        for (int i = 0; i < timeAxis.Count; i++)
         {
-            if (File.Exists(tmp)) File.Delete(tmp);
-            if (File.Exists(tmpOsu)) File.Delete(tmpOsu);
+            timeToRow[timeAxis[i]] = i;
         }
+
+        for (int i = 0; i < beatmap.HitObjects.Count; i++)
+        {
+            var hitObject = beatmap.HitObjects[i];
+            int column = positionXToColumn(cs, (int)hitObject.Position.X);
+            int startRow = timeToRow[hitObject.StartTime];
+
+            matrix[startRow, column] = i;
+
+            if (hitObject.EndTime > 0)
+            {
+                int endRow = timeToRow[hitObject.EndTime];
+                for (int r = startRow; r <= endRow; r++)
+                {
+                    matrix[r, column] = i;
+                }
+            }
+        }
+        return (matrix, timeAxis);
     }
+
+    private static int positionXToColumn(int cs, int positionX)
+    {
+        // 假设列从0到cs-1，positionX从0到511
+        return positionX * cs / 512;
+    }
+
+
+
+
 
     // 直接从内存 OsuFileV14 构建矩阵（无文件 I/O）
     private static bool TryBuildMatrixFromOsu(OsuFileV14? osu, out int[,] matrix, out List<int> timeAxis, out int cs)
@@ -318,126 +312,9 @@ public static class PreviewTransformation
         return true;
     }
 
-    // DP 专用预览转换（左右分离、镜像、密度调节等） - 返回前 maxRows 时间行
-    public static (int columns, List<BasePreviewProcessor.ManiaNote> notes, double quarterMs) BuildDP(string osuPath,
-        DPToolOptions options, int maxRows)
-    {
-        if (!TryBuildMatrix(osuPath, null, out var beatmap, out var conv, out var matrix, out var timeAxis, out var CS))
-            return (0, new List<BasePreviewProcessor.ManiaNote>(), 0);
-        var BPM = GetBpmDouble(beatmap);
-        var quarterMs = 60000.0 / Math.Max(1.0, BPM);
-        var rng = new Random(114514);
-        int[,] orgMTX;
-        if (options.ModifySingleSideKeyCount && options.SingleSideKeyCount > CS)
-        {
-            var target = options.SingleSideKeyCount;
-            var beatLength = 60000 / BPM * 4;
-            var convertTime = Math.Max(1, 4 * beatLength - 10);
-            var (oldMTX, insertMTX) = conv.convertMTX(target - CS, timeAxis, convertTime, CS, rng);
-            orgMTX = conv.convert(matrix, oldMTX, insertMTX, timeAxis, target, beatLength, rng);
-        }
-        else
-        {
-            orgMTX = matrix;
-        }
 
-        var orgL = (int[,])orgMTX.Clone();
-        var orgR = (int[,])orgMTX.Clone();
-        if (options.LMirror) orgL = Mirror(orgL);
-        if (options.RMirror) orgR = Mirror(orgR);
-        if (options.LDensity && orgL.GetLength(1) > options.LMaxKeys)
-        {
-            var rL = new Random(114514);
-            conv.DensityReducer(orgL, orgL.GetLength(1) - options.LMaxKeys, options.LMinKeys, orgL.GetLength(1), rL);
-        }
 
-        if (options.RDensity && orgR.GetLength(1) > options.RMaxKeys)
-        {
-            var rR = new Random(114514);
-            conv.DensityReducer(orgR, orgR.GetLength(1) - options.RMaxKeys, options.RMinKeys, orgR.GetLength(1), rR);
-        }
 
-        var result = Concatenate(orgL, orgR);
-        var res = MatrixToNotes(result, timeAxis, result.GetLength(1), maxRows);
-        return (res.columns, res.notes, quarterMs);
-    }
-
-    // DP 专用预览窗口版本（按时间切片）
-    public static (int columns, List<BasePreviewProcessor.ManiaNote> notes, double quarterMs) BuildDPWindow(
-        string osuPath, DPToolOptions options, int startMs, int endMs)
-    {
-        if (!TryBuildMatrix(
-                osuPath, 
-                null, 
-                out var beatmap, 
-                out var conv, 
-                out var matrix, 
-                out var timeAxis, 
-                out var CS))
-            return (0, new List<BasePreviewProcessor.ManiaNote>(), 0);
-        var BPM = GetBpmDouble(beatmap);
-        var rng = new Random(114514);
-        int[,] orgMTX;
-        if (options.ModifySingleSideKeyCount && options.SingleSideKeyCount > CS)
-        {
-            var target = options.SingleSideKeyCount;
-            var beatLength = 60000 / BPM * 4;
-            var convertTime = Math.Max(1, 4 * beatLength - 10);
-            var (oldMTX, insertMTX) = conv.convertMTX(target - CS, timeAxis, convertTime, CS, rng);
-            orgMTX = conv.convert(matrix, oldMTX, insertMTX, timeAxis, target, beatLength, rng);
-        }
-        else
-        {
-            orgMTX = matrix;
-        }
-
-        var orgL = (int[,])orgMTX.Clone();
-        var orgR = (int[,])orgMTX.Clone();
-        if (options.LMirror) orgL = Mirror(orgL);
-        if (options.RMirror) orgR = Mirror(orgR);
-        if (options.LDensity && orgL.GetLength(1) > options.LMaxKeys)
-        {
-            var rL = new Random(114514);
-            conv.DensityReducer(orgL, orgL.GetLength(1) - options.LMaxKeys, options.LMinKeys, orgL.GetLength(1), rL);
-        }
-
-        if (options.RDensity && orgR.GetLength(1) > options.RMaxKeys)
-        {
-            var rR = new Random(114514);
-            conv.DensityReducer(orgR, orgR.GetLength(1) - options.RMaxKeys, options.RMinKeys, orgR.GetLength(1), rR);
-        }
-
-        var result2 = Concatenate(orgL, orgR);
-        return BuildWindowFromMatrix(result2, timeAxis, result2.GetLength(1), beatmap, startMs, endMs);
-    }
-
-    // 反转矩阵（左右镜像）
-    private static int[,] Mirror(int[,] matrix)
-    {
-        var rows = matrix.GetLength(0);
-        var cols = matrix.GetLength(1);
-        var res = new int[rows, cols];
-        for (var i = 0; i < rows; i++)
-        for (var j = 0; j < cols; j++)
-            res[i, j] = matrix[i, cols - 1 - j];
-        return res;
-    }
-
-    // 水平拼接两个矩阵
-    private static int[,] Concatenate(int[,] A, int[,] B)
-    {
-        var rows = A.GetLength(0);
-        var colsA = A.GetLength(1);
-        var colsB = B.GetLength(1);
-        var res = new int[rows, colsA + colsB];
-        for (var i = 0; i < rows; i++)
-        {
-            for (var j = 0; j < colsA; j++) res[i, j] = A[i, j];
-            for (var j = 0; j < colsB; j++) res[i, j + colsA] = B[i, j];
-        }
-
-        return res;
-    }
 
     // 将矩阵和时间轴转换为预览音符列表（只取前 maxRows 个时间行）
     private static (int columns, List<BasePreviewProcessor.ManiaNote> notes) MatrixToNotes(int[,] matrix,
@@ -514,6 +391,9 @@ public static class PreviewTransformation
         return true;
     }
 
+    // 复用解析器实例以避免重复分配
+    private static readonly OsuAnalyzer ana = new();
+
     // 将 OsuAnalyzer 输出的 BPM 字符串解析为 double，失败时使用回退值
     private static double GetBpmDouble(Beatmap? beatmap, double fallback = 180)
     {
@@ -529,6 +409,16 @@ public static class PreviewTransformation
         {
             return fallback;
         }
+    }
+
+    private static double GetBpmDoubleFromOsu(OsuFileV14 osu)
+    {
+        if (osu.TimingPoints.Count > 0)
+        {
+            var tp = osu.TimingPoints[0];
+            return 60000.0 / Math.Max(1.0, tp.BeatLength);
+        }
+        return 180.0;
     }
 
     // 通用：从矩阵和时间轴构建预览窗口并返回拍子信息

@@ -14,6 +14,54 @@ namespace krrTools.tools.DPtool
 {
     public class DP
     {
+        // 静态方法：处理矩阵，应用DP转换选项
+        public static int[,] ProcessMatrix(int[,] matrix, DPToolOptions options)
+        {
+            var Conv = new N2NC.N2NC();
+            var random = new Random(114514);
+            int[,] orgMTX = matrix;
+
+            //克隆两个矩阵分别叫做orgL和orgR
+            int[,] orgL = (int[,])orgMTX.Clone();
+            int[,] orgR = (int[,])orgMTX.Clone();
+            if (options.LMirror)
+            {
+                orgL = Mirror(orgL);
+            }
+
+            if (options.RMirror)
+            {
+                orgR = Mirror(orgR);
+            }
+
+            if (options.LDensity)
+            {
+                var randomL = new Random(114514);
+                LimitDensity(orgL, options.LMaxKeys, randomL);
+            }
+
+            if (options.RDensity)
+            {
+                var randomR = new Random(114514);
+                LimitDensity(orgR, options.RMaxKeys, randomR);
+            }
+
+            // Apply remove functionality
+            if (options.LRemove)
+            {
+                RemoveHalf(orgL, true); // Remove left half
+            }
+
+            if (options.RRemove)
+            {
+                RemoveHalf(orgR, false); // Remove right half
+            }
+
+            // 合并两个矩阵
+            int[,] result = ConcatenateMatrices(orgL, orgR);
+            return result;
+        }
+
         public string ProcessFile(string filePath, DPToolOptions options)
         {
             options.Left.Validate();
@@ -27,8 +75,6 @@ namespace krrTools.tools.DPtool
             int CS = (int)beatmap.DifficultySection.CircleSize;
             var convOptions = new N2NCOptions
             {
-                MaxKeys = options.SingleSideKeyCount,
-                MinKeys = 2,
                 TargetKeys = options.SingleSideKeyCount,
                 TransformSpeed = 4
             };
@@ -61,36 +107,8 @@ namespace krrTools.tools.DPtool
                 orgMTX = matrix;
             }
 
-            //克隆两个矩阵分别叫做orgL和orgR
-            int[,] orgL = (int[,])orgMTX.Clone();
-            int[,] orgR = (int[,])orgMTX.Clone();
-            if (options.LMirror)
-            {
-                orgL = Mirror(orgL);
-            }
-
-            if (options.RMirror)
-            {
-                orgR = Mirror(orgR);
-            }
-
-
-            if (options.LDensity && orgL.GetLength(1) > options.LMaxKeys)
-            {
-                var randomL = new Random(114514);
-                Conv.DensityReducer(orgL, orgL.GetLength(1) - options.LMaxKeys,
-                    options.LMinKeys, orgL.GetLength(1), randomL);
-            }
-
-            if (options.RDensity && orgR.GetLength(1) > options.RMaxKeys)
-            {
-                var randomR = new Random(114514);
-                Conv.DensityReducer(orgR, orgR.GetLength(1) - options.RMaxKeys,
-                    options.RMinKeys, orgR.GetLength(1), randomR);
-            }
-
-            // 合并两个矩阵
-            int[,] result = ConcatenateMatrices(orgL, orgR);
+            // 应用DP转换选项
+            int[,] result = ProcessMatrix(orgMTX, options);
             // 合成新HitObjects
             newHitObjects(beatmap, result);
             return BeatmapSave();
@@ -134,6 +152,73 @@ namespace krrTools.tools.DPtool
             }
         }
 
+        public Beatmap ProcessFileToData(string filePath, DPToolOptions options)
+        {
+            var beatmap = BeatmapScheduler.GetBeatmapFromPath(filePath);
+            if (beatmap == null)
+                throw new InvalidDataException("Failed to decode beatmap file.");
+
+            if (beatmap.GeneralSection.ModeId != 3)
+                throw new ArgumentException("Beatmap is not in Mania mode (ModeId != 3)");
+
+            return ProcessBeatmapToData(beatmap, options);
+        }
+
+        public Beatmap ProcessBeatmapToData(Beatmap beatmap, DPToolOptions options)
+        {
+            options.Left.Validate();
+            options.Right.Validate();
+
+            var Conv = new N2NC.N2NC();
+            var random = new Random(114514);
+            int[,] orgMTX;
+            int CS = (int)beatmap.DifficultySection.CircleSize;
+            var convOptions = new N2NCOptions
+            {
+                TargetKeys = options.SingleSideKeyCount,
+                TransformSpeed = 4
+            };
+            Conv.options = convOptions;
+            var ANA = new OsuAnalyzer();
+            double BPM = ANA.GetBPM(beatmap);
+            double beatLength = 60000 / BPM * 4;
+            double convertTime = Math.Max(1, convOptions.TransformSpeed * beatLength - 10);
+            var (matrix, timeAxis) = Conv.BuildMatrix(beatmap);
+
+            if (options.ModifySingleSideKeyCount && options.SingleSideKeyCount > beatmap.DifficultySection.CircleSize)
+            {
+                int targetKeys = options.SingleSideKeyCount;
+                // 变换时间
+
+                var (oldMTX, insertMTX) = Conv.convertMTX(targetKeys - CS, timeAxis, convertTime, CS, random);
+                int[,] newMatrix = Conv.convert(matrix, oldMTX, insertMTX, timeAxis, targetKeys, beatLength, random);
+                orgMTX = newMatrix;
+            }
+            else if (options.ModifySingleSideKeyCount &&
+                     options.SingleSideKeyCount < beatmap.DifficultySection.CircleSize)
+            {
+                int targetKeys = options.SingleSideKeyCount;
+                var newMatrix = Conv.SmartReduceColumns(matrix, timeAxis, CS - targetKeys, convertTime, beatLength);
+                orgMTX = newMatrix;
+            }
+            else
+            {
+                orgMTX = matrix;
+            }
+
+            // Apply DP processing
+            var processedMatrix = ProcessMatrix(orgMTX, options);
+
+            // Reconstruct hit objects
+            newHitObjects(beatmap, processedMatrix);
+
+            // Update metadata
+            beatmap.MetadataSection.Creator = "DP Tool & " + beatmap.MetadataSection.Creator;
+            beatmap.MetadataSection.Version = "[DP] " + beatmap.MetadataSection.Version;
+
+            return beatmap;
+        }
+
         private void newHitObjects(Beatmap beatmap, int[,] newMatrix)
         {
             // 创建临时列表存储对象
@@ -160,7 +245,7 @@ namespace krrTools.tools.DPtool
             Conv.HitObjectSort(beatmap);
         }
 
-        private int[,] Mirror(int[,] matrix)
+        private static int[,] Mirror(int[,] matrix)
         {
             int rows = matrix.GetLength(0);
             int cols = matrix.GetLength(1);
@@ -177,7 +262,59 @@ namespace krrTools.tools.DPtool
             return result;
         }
 
-        private int[,] ConcatenateMatrices(int[,] matrixA, int[,] matrixB)
+        private static void RemoveHalf(int[,] matrix, bool isLeft)
+        {
+            int rows = matrix.GetLength(0);
+            int cols = matrix.GetLength(1);
+            int half = cols / 2;
+
+            Parallel.For(0, rows, i =>
+            {
+                for (int j = 0; j < cols; j++)
+                {
+                    if (isLeft && j < half)
+                    {
+                        matrix[i, j] = 0;
+                    }
+                    else if (!isLeft && j >= half)
+                    {
+                        matrix[i, j] = 0;
+                    }
+                }
+            });
+        }
+
+        private static void LimitDensity(int[,] matrix, int maxKeys, Random random)
+        {
+            int rows = matrix.GetLength(0);
+            int cols = matrix.GetLength(1);
+
+            for (int i = 0; i < rows; i++)
+            {
+                var activeNotes = new List<int>();
+                for (int j = 0; j < cols; j++)
+                {
+                    if (matrix[i, j] >= 0)
+                    {
+                        activeNotes.Add(j);
+                    }
+                }
+
+                if (activeNotes.Count > maxKeys)
+                {
+                    int toRemove = activeNotes.Count - maxKeys;
+                    for (int r = 0; r < toRemove; r++)
+                    {
+                        int index = random.Next(activeNotes.Count);
+                        int col = activeNotes[index];
+                        matrix[i, col] = -1;
+                        activeNotes.RemoveAt(index);
+                    }
+                }
+            }
+        }
+
+        private static int[,] ConcatenateMatrices(int[,] matrixA, int[,] matrixB)
         {
             // 获取矩阵维度
             int rowsA = matrixA.GetLength(0);

@@ -25,8 +25,10 @@ namespace krrTools.tools.Shared
     {
         private bool _mirror;
         private bool _density;
-        private int _maxKeys = 5;
-        private int _minKeys;
+
+        // 滑条上下限定义为常量，不保存在配置文件中
+        public const int MinKeysLimit = 0;
+        public const int MaxKeysLimit = 5;
 
         public bool Mirror
         {
@@ -40,41 +42,12 @@ namespace krrTools.tools.Shared
             set => SetProperty(ref _density, value);
         }
 
-        public int MaxKeys
-        {
-            get => _maxKeys;
-            set
-            {
-                if (value < 0) value = 0;
-                if (value < _minKeys)
-                {
-                    _minKeys = value;
-                    OnPropertyChanged(nameof(MinKeys));
-                }
-                SetProperty(ref _maxKeys, value);
-            }
-        }
-
-        public int MinKeys
-        {
-            get => _minKeys;
-            set
-            {
-                if (value < 0) value = 0;
-                if (value > _maxKeys)
-                {
-                    _maxKeys = value;
-                    OnPropertyChanged(nameof(MaxKeys));
-                }
-                SetProperty(ref _minKeys, value);
-            }
-        }
+        // 移除MinKeys和MaxKeys属性，这些应该是UI中的常量，不应该保存在配置文件中
+        // 用户设置的默认值应该在ViewModel中定义
 
         public override void Validate()
         {
-            if (_minKeys < 0) _minKeys = 0;
-            if (_maxKeys < 0) _maxKeys = 0;
-            if (_minKeys > _maxKeys) _minKeys = _maxKeys;
+            // 不再需要验证MinKeys/MaxKeys，因为它们不再是可配置的属性
         }
     }
 }

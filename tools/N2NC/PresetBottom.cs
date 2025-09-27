@@ -27,10 +27,10 @@ namespace krrTools.tools.N2NC
         private static readonly IReadOnlyDictionary<PresetKind, (string Name, N2NCOptions Options)> PresetTemplates
             = new Dictionary<PresetKind, (string, N2NCOptions)>
         {
-            [PresetKind.Default] = ("Default", new N2NCOptions { TargetKeys = 10, MaxKeys = 10, MinKeys = 2, TransformSpeed = 1.0, Seed = 114514 }),
-            [PresetKind.TenK] = ("10K Preset", new N2NCOptions { TargetKeys = 10, MaxKeys = 8, MinKeys = 1, TransformSpeed = 2.0, Seed = 0 }),
-            [PresetKind.EightK] = ("8K Preset", new N2NCOptions { TargetKeys = 8, MaxKeys = 7, MinKeys = 3, TransformSpeed = 1.0, Seed = 0 }),
-            [PresetKind.SevenK] = ("7K Preset", new N2NCOptions { TargetKeys = 7, MaxKeys = 5, MinKeys = 3, TransformSpeed = 1.0, Seed = 0 })
+            [PresetKind.Default] = ("Default", new N2NCOptions { TargetKeys = 10, TransformSpeed = 1.0, Seed = 114514 }),
+            [PresetKind.TenK] = ("10K Preset", new N2NCOptions { TargetKeys = 10, TransformSpeed = 2.0, Seed = 0 }),
+            [PresetKind.EightK] = ("8K Preset", new N2NCOptions { TargetKeys = 8, TransformSpeed = 1.0, Seed = 0 }),
+            [PresetKind.SevenK] = ("7K Preset", new N2NCOptions { TargetKeys = 7, TransformSpeed = 1.0, Seed = 0 })
         };
 
         protected PresetBottom(N2NCViewModel viewModel)
@@ -90,7 +90,7 @@ namespace krrTools.tools.N2NC
         {
             if (PresetTemplates.TryGetValue(kind, out var entry))
                 return entry.Options;
-            return new N2NCOptions { TargetKeys = 10, MaxKeys = 10, MinKeys = 2, TransformSpeed = 1.0, Seed = 114514 };
+            return new N2NCOptions { TargetKeys = 10, TransformSpeed = 1.0, Seed = 114514 };
         }
 
         public static IEnumerable<(PresetKind Kind, string Name, N2NCOptions Options)> GetPresetTemplates()
@@ -109,8 +109,6 @@ namespace krrTools.tools.N2NC
         private static void ApplyPresetToViewModel(N2NCViewModel viewModel, N2NCOptions preset)
         {
             viewModel.TargetKeys = Convert.ToInt32(preset.TargetKeys);
-            viewModel.MaxKeys = Convert.ToInt32(preset.MaxKeys);
-            viewModel.MinKeys = Convert.ToInt32(preset.MinKeys);
             viewModel.TransformSpeed = preset.TransformSpeed;
             viewModel.Seed = preset.Seed;
 
