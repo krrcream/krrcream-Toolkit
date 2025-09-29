@@ -226,9 +226,9 @@ public class MainWindow : FluentWindow
         _realTimeToggle.Unchecked += (_,_) => RealTimePreview = false;
 
         // GlobalOsuListenerButton = SharedUIComponents.CreateStandardButton(Strings.OSUListenerButton);
+        var localizedListenerText = new LocalizedStringHelper.LocalizedString(Strings.OSUListenerButton);
         GlobalOsuListenerButton = new ToggleButton
         {
-            Content = new LocalizedStringHelper.LocalizedString(Strings.OSUListenerButton),
             Width = 120,
             Height = 24,
             Margin = new Thickness(4, 0, 4, 0),
@@ -236,6 +236,7 @@ public class MainWindow : FluentWindow
             VerticalAlignment = VerticalAlignment.Center,
             IsChecked = false
         };
+        GlobalOsuListenerButton.SetBinding(ContentControl.ContentProperty, new Binding("Value") { Source = localizedListenerText });
         GlobalOsuListenerButton.Click += GlobalOsuListenerButton_Click;
 
         var footer = UIComponents.CreateStatusBar(this, _realTimeToggle, GlobalOsuListenerButton);
