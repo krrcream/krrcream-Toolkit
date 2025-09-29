@@ -8,19 +8,19 @@ namespace krrTools.tools.N2NC
     /// </summary>
     public class N2NCOptions : IToolOptions
     {
-        public double TargetKeys { get; set; }
+        public double TargetKeys { get; set; } = 10;
 
-        public double MaxKeys { get; set; }
+        public double MaxKeys { get; set; } = 10;
 
-        public double MinKeys { get; set; }
+        public double MinKeys { get; set; } = 2;
 
-        public double TransformSpeed { get; set; }
+        public double TransformSpeed { get; set; } = 1.0;
 
-        public int? Seed { get; set; }
+        public int? Seed { get; set; } = 114514;
 
         public List<int>? SelectedKeyTypes { get; set; }
 
-        public KeySelectionFlags? SelectedKeyFlags { get; set; }
+        public KeySelectionFlags? SelectedKeyFlags { get; set; } = KeySelectionFlags.None;
 
         public PresetKind SelectedPreset { get; set; } = PresetKind.Default;
 

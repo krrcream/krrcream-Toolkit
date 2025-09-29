@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,22 +10,30 @@ using krrTools.tools.KRRLNTransformer;
 using krrTools.tools.LNTransformer;
 using krrTools.tools.N2NC;
 using krrTools.tools.Shared;
+using krrTools.Tools.OsuParser;
 using krrTools.Tools.Shared;
 using OsuParsers.Beatmaps;
 using Microsoft.Extensions.Logging;
 
 namespace krrTools.tools.Preview
 {
-    public class BasePreviewProcessor : IPreviewProcessor
+    public class PreviewProcessor : IPreviewProcessor
     {
-        private static readonly ILogger<BasePreviewProcessor> _logger = LoggerFactoryHolder.CreateLogger<BasePreviewProcessor>();
+        private static readonly ILogger<PreviewProcessor> _logger = LoggerFactoryHolder.CreateLogger<PreviewProcessor>();
 
-        public virtual string ToolKey => "Preview";
+        public string ToolKey => "Preview";
         public string? CurrentTool { get; set; }
         public int? ColumnOverride { get; set; }
 
         public int? LastOriginalStartMs { get; private set; }
         public int? LastConvertedStartMs { get; private set; }
+
+        // 选项提供器
+        public ToolScheduler? ToolScheduler { get; set; }
+        public Func<N2NCOptions?>? ConverterOptionsProvider { get; set; }
+        public Func<DPToolOptions?>? DPOptionsProvider { get; set; }
+        public Func<YLsLNTransformerOptions?>? LNOptionsProvider { get; set; }
+        public Func<KRRLNTransformerOptions?>? KRRLNOptionsProvider { get; set; }
 
         public class ManiaNote
         {
@@ -35,14 +43,91 @@ namespace krrTools.tools.Preview
             public int? EndTime;
         }
 
-        public virtual FrameworkElement BuildOriginalVisual(string[] filePaths)
+        private Func<string, string, int, int, object?>? ConversionProvider { get; set; }
+
+        public PreviewProcessor()
+        {
+            ConversionProvider = (toolName, path, start, end) =>
+            {
+                var maniaBeatmap = FilesHelper.GetManiaBeatmap(path);
+
+                if (ToolScheduler != null)
+                {
+                    // 使用ToolScheduler处理
+                    if (toolName == OptionsManager.N2NCToolName)
+                    {
+                        var opt = ConverterOptionsProvider?.Invoke();
+                        if (opt == null) return null;
+                        return ToolScheduler.ProcessBeatmap(toolName, maniaBeatmap, opt);
+                    }
+                    
+                    if (toolName == OptionsManager.DPToolName)
+                    {
+                        var opt = DPOptionsProvider?.Invoke();
+                        if (opt == null) return null;
+                        return ToolScheduler.ProcessBeatmap(toolName, maniaBeatmap, opt);
+                    }
+                    
+                    if (toolName == OptionsManager.YLsLNToolName)
+                    {
+                        var opt = LNOptionsProvider?.Invoke();
+                        if (opt == null) return null;
+                        return ToolScheduler.ProcessBeatmap(toolName, maniaBeatmap, opt);
+                    }
+
+                    if (toolName == OptionsManager.KRRsLNToolName)
+                    {
+                        var opt = KRRLNOptionsProvider?.Invoke();
+                        if (opt == null) return null;
+                        return ToolScheduler.ProcessBeatmap(toolName, maniaBeatmap, opt);
+                    }
+                }
+                else
+                {
+                    // 回退到直接调用工具（保持兼容性）
+                    if (toolName == OptionsManager.N2NCToolName)
+                    {
+                        var tool = new N2NCTool();
+                        var opt = ConverterOptionsProvider?.Invoke();
+                        if (opt == null) return null;
+                        return tool.ProcessBeatmapToDataWithOptions(maniaBeatmap, opt);
+                    }
+                    
+                    if (toolName == OptionsManager.DPToolName)
+                    {
+                        var tool = new DPTool();
+                        var opt = DPOptionsProvider?.Invoke();
+                        if (opt == null) return null;
+                        return tool.ProcessBeatmapToDataWithOptions(maniaBeatmap, opt);
+                    }
+                    
+                    if (toolName == OptionsManager.YLsLNToolName)
+                    {
+                        var tool = new YLsLNTransformerTool();
+                        var opt = LNOptionsProvider?.Invoke();
+                        if (opt == null) return null;
+                        return tool.ProcessBeatmapToDataWithOptions(maniaBeatmap, opt);
+                    }
+
+                    if (toolName == OptionsManager.KRRsLNToolName)
+                    {
+                        var tool = new KRRLNTool();
+                        var opt = KRRLNOptionsProvider?.Invoke();
+                        if (opt == null) return null;
+                        return tool.ProcessBeatmapToDataWithOptions(maniaBeatmap, opt);
+                    }
+                }
+
+                return maniaBeatmap;
+            };
+        }
+
+        public FrameworkElement BuildOriginalVisual(string[] filePaths)
         {
             return BuildPreview(filePaths, false, null, null);
         }
 
-        protected Func<string, string, int, int, object?>? ConversionProvider { get; init; }
-
-        public virtual FrameworkElement BuildConvertedVisual(string[] filePaths)
+        public FrameworkElement BuildConvertedVisual(string[] filePaths)
         {
             return BuildPreview(filePaths, true, ConversionProvider, CurrentTool);
         }
@@ -62,9 +147,9 @@ namespace krrTools.tools.Preview
             }
             if (!first.HasValue) return new TextBlock { Text = "(无可用音符)" };
 
-            Beatmap beatmapMeta = FilesHelper.GetManiaBeatmap(path);
+            ManiaBeatmap maniaBeatmap = FilesHelper.GetManiaBeatmap(path);
             
-            var quarterMs = beatmapMeta.GetBPM(true);
+            var quarterMs = maniaBeatmap.GetBPM(true);
             int startMs = first.Value;
             int windowMs = Math.Max(PreviewConstants.MinWindowLengthMs,
                 (int)Math.Round(quarterMs * PreviewConstants.PreviewWindowUnitCount / PreviewConstants.PreviewWindowUnitBeatDenominator));
@@ -144,117 +229,6 @@ namespace krrTools.tools.Preview
                 Background = Brushes.Transparent
             };
             return dyn;
-        }
-    }
-
-    internal sealed class ConverterPreviewProcessor : BasePreviewProcessor
-    {
-        public override string ToolKey => "Converter";
-        public Func<N2NCOptions?>? ConverterOptionsProvider { get; set; }
-        public Func<DPToolOptions?>? DPOptionsProvider { get; set; }
-        public Func<LNTransformerOptions?>? LNOptionsProvider { get; set; }
-        public Func<KRRLNTransformerOptions?>? KRRLNOptionsProvider { get; set; }
-        public ConverterPreviewProcessor()
-        {
-            ConversionProvider = (toolName, path, start, end) =>
-            {
-                _ = toolName; _ = path; _ = start; _ = end; // Suppress unused parameter warnings
-
-                var originalBeatmap = FilesHelper.GetManiaBeatmap(path);
-
-                if (toolName == OptionsManager.N2NCToolName)
-                {
-                    var tool = new N2NCTool();
-                    var opt = ConverterOptionsProvider?.Invoke();
-                    if (opt == null) return null;
-                    return tool.ProcessBeatmapToData(originalBeatmap, opt);
-                }
-                
-                if (toolName == OptionsManager.DPToolName)
-                {
-                    var tool = new DPTool();
-                    var opt = DPOptionsProvider?.Invoke();
-                    if (opt == null) return null;
-                    return tool.ProcessBeatmapToData(originalBeatmap, opt);
-                }
-                
-                if (toolName == OptionsManager.LNToolName)
-                {
-                    var tool = new LNTransformerTool();
-                    var opt = LNOptionsProvider?.Invoke();
-                    if (opt == null) return null;
-                    return tool.ProcessBeatmapToData(originalBeatmap, opt);
-                }
-
-                if (toolName == OptionsManager.KRRLNToolName)
-                {
-                    try
-                    {
-                        var tool = new KRRLNTool();
-                        var opt = KRRLNOptionsProvider?.Invoke();
-                        if (opt == null) return null;
-                        return tool.ProcessBeatmapToData(originalBeatmap, opt);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Return null to indicate no preview available
-                        return null;
-                    }
-                }
-
-                return originalBeatmap;
-            };
-        }
-
-        public ConverterPreviewProcessor(int? columnOverride, Func<N2NCOptions?>? converterOptionsProvider) : this()
-        {
-            ColumnOverride = columnOverride;
-            ConverterOptionsProvider = converterOptionsProvider;
-        }
-    }
-
-    // TODO： 下面的继承类预览器在未来删除，改成统一的中央预览器
-    internal sealed class LNPreviewProcessor : BasePreviewProcessor
-    {
-        public override string ToolKey => "LN Transformer";
-        public Func<LNTransformerCore.LNPreviewParameters>? LNParamsProvider { get; set; }
-        public LNPreviewProcessor()
-        {
-#pragma warning disable CS0168 // Parameters are not used in this implementation
-            ConversionProvider = (toolName, path, start, end) =>
-            {
-                // TODO: Implement LN transformation preview using Beatmap
-                return null;
-            };
-#pragma warning restore CS0168
-        }
-
-        public LNPreviewProcessor(int? columnOverride, Func<LNTransformerCore.LNPreviewParameters>? lnParamsProvider) : this()
-        {
-            ColumnOverride = columnOverride;
-            LNParamsProvider = lnParamsProvider;
-        }
-    }
-
-    internal sealed class DPPreviewProcessor : BasePreviewProcessor
-    {
-        public override string ToolKey => "DP tool";
-        public Func<DPToolOptions>? DPOptionsProvider { get; set; }
-        public DPPreviewProcessor()
-        {
-#pragma warning disable CS0168 // Parameters are not used in this implementation
-            ConversionProvider = (toolName, path, start, end) =>
-            {
-                // TODO: Implement DP transformation preview using Beatmap
-                return null;
-            };
-#pragma warning restore CS0168
-        }
-
-        public DPPreviewProcessor(int? columnOverride, Func<DPToolOptions>? dpOptionsProvider) : this()
-        {
-            ColumnOverride = columnOverride;
-            DPOptionsProvider = dpOptionsProvider;
         }
     }
 }

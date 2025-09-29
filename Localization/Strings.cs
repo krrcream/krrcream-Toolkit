@@ -1,6 +1,4 @@
-using krrTools.Tools.Shared;
-
-namespace krrTools.tools.Shared
+namespace krrTools.Localization
 {
     /// <summary>
     /// Centralized string constants for UI text to avoid duplication and simplify maintenance.
@@ -11,7 +9,8 @@ namespace krrTools.tools.Shared
 
         // Tab headers
         public const string TabN2NC = "NtoN Converter|NtoN转换器";
-        public const string TabLNTransformer = "YLS LN Transformer|凉雨转面器";
+        public const string TabYLsLN = "YLS LN Transformer|凉雨转面器";
+        public const string TabKRRsLN = "KRR LN Transformer|KRR转面器";
         public const string TabDPTool = "DP Tool|DP 工具";
         public const string TabKrrLV = "KrrLV Calculation|KrrLV 计算";
         public const string TabFilesManager = "Files Manager|文件管理";
@@ -130,26 +129,5 @@ namespace krrTools.tools.Shared
             return string.Format(localized, args);
         }
     }
-    
-    public static class LocalizationExtensions
-    {
-        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string[]> _cache = new();
 
-        /// <summary>
-        /// 拓展方法，xxx.Localize()
-        /// </summary>
-        public static string Localize(this string s)
-        {
-            if (string.IsNullOrEmpty(s)) return s;
-            
-            if (!_cache.TryGetValue(s, out var parts))
-            {
-                parts = s.Split(['|'], 2);
-                _cache[s] = parts;
-            }
-            
-            // Use centralized Strings management; no try-catch for localization
-            return SharedUIComponents.IsChineseLanguage() && parts.Length > 1 ? parts[1] : parts[0];
-        }
-    }
 }

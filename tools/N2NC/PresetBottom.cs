@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using krrTools.tools.Shared;
-using krrTools.Tools.Shared;
 
 namespace krrTools.tools.N2NC
 {

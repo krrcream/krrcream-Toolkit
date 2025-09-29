@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
-using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 using System.Linq;
 using System.Windows;
 using System.Globalization;
+using krrTools.tools.Shared;
 using OsuFileIO.Analyzer;
 using OsuFileIO.OsuFile;
 using OsuFileIO.OsuFileReader;
@@ -21,8 +21,8 @@ namespace krrTools.Tools.OsuParser
         public string? Title { get; init; }
         public string? Artist { get; init; }
         public string? Creator { get; init; }
-        public string? BPM { get; init; }
-        public double BPM_Main { get; init; }
+        public string? BPMDisplay { get; init; }
+        // public double BPM_Main { get; init; }
         public double Keys { get; init; }
         public double OD { get; init; }
         public double HP { get; init; }
@@ -38,13 +38,11 @@ namespace krrTools.Tools.OsuParser
 
     public class OsuAnalyzer
     {
-        private readonly SRCalculator calculator = new SRCalculator();
+        private readonly SRCalculator calculator = new();
 
         public OsuAnalysisResult Analyze(string? filePath)
         {    
-            var beatmap = BeatmapDecoder.Decode(filePath);
-            if (beatmap.GeneralSection.ModeId != 3)
-                throw new ArgumentException("不是mania模式");
+            var beatmap = BeatmapDecoder.Decode(filePath).GetManiaBeatmap();
 
             // compute custom stats via SRCalculator
             var Keys1 = (int)beatmap.DifficultySection.CircleSize;
@@ -64,15 +62,15 @@ namespace krrTools.Tools.OsuParser
 
             // gather standard metadata with OsuParsers
             var bpmDisplay = GetBPMDisplay(filePath);
-            var bpm = GetMainBpm(filePath);
+            // var bpm = GetMainBpm(filePath);
             var result = new OsuAnalysisResult
             {
                 Diff = beatmap.MetadataSection.Version,
                 Title = beatmap.MetadataSection.Title,
                 Artist = beatmap.MetadataSection.Artist,
                 Creator = beatmap.MetadataSection.Creator,
-                BPM = bpmDisplay,
-                BPM_Main = bpm,
+                BPMDisplay = bpmDisplay,
+                // BPM_Main = bpm,
                 Keys = Keys1,
                 OD = OD1,
                 HP = beatmap.DifficultySection.HPDrainRate,
@@ -80,21 +78,13 @@ namespace krrTools.Tools.OsuParser
                 // Custom properties unique to OsuAnalyzer
                 XXY_SR = xxySR,
                 KRR_LV = krrLV,
-                LNPercent = LnPercent(beatmap),
+                LNPercent = beatmap.GetLNPercent(),
 
                 BeatmapID = beatmap.MetadataSection.BeatmapID,
                 BeatmapSetID = beatmap.MetadataSection.BeatmapSetID
             };
 
             return result;
-        }
-
-        private double LnPercent(Beatmap beatmap)
-        {
-            double Z = beatmap.HitObjects.Count;
-            if (Z == 0) return 0;
-            double LN = beatmap.HitObjects.Count(hitObject => hitObject.EndTime > hitObject.StartTime);
-            return LN / Z * 100;
         }
 
         private string GetBPMDisplay(string? filePath)
@@ -118,24 +108,6 @@ namespace krrTools.Tools.OsuParser
             return BPMFormat;
         }
 
-        private double GetMainBpm(string? filePath)
-        {
-            if (filePath == null || !File.Exists(filePath))
-                throw new ArgumentNullException(nameof(filePath));
-
-            var reader = new OsuFileReaderBuilder(filePath).Build();
-            var beatmap = reader.ReadFile();
-            double BPM = 0;
-            
-            if (beatmap is IReadOnlyBeatmap<ManiaHitObject> maniaHitObject)
-            {
-                var result = maniaHitObject.Analyze();
-                BPM = result.Bpm;
-
-            }
-            return BPM;
-        }
-
         public static string? AddNewBeatmapToSongFolder(string newBeatmapFile, bool openOsz = false)
         {
             // 获取.osu文件所在的目录作为歌曲文件夹
@@ -146,7 +118,7 @@ namespace krrTools.Tools.OsuParser
                 return null;
             }
 
-            System.Diagnostics.Debug.WriteLine(songFolder);
+            Debug.WriteLine(songFolder);
 
             // 创建.osz文件
             string outputOsz = Path.GetFileName(songFolder) + ".osz";
@@ -226,25 +198,7 @@ namespace krrTools.Tools.OsuParser
             return fullOutputPath;
         }
 
-        public Dictionary<double, double> GetBeatLengthList(Beatmap beatmap)
-        {
-            var tp = beatmap.TimingPoints
-                .Where(p => p.BeatLength > 0)
-                .OrderBy(p => p.Offset)
-                .ToList();
-            if (tp.Count == 0)
-                return new Dictionary<double, double>();
-    
-            var beatLengthDict = new Dictionary<double, double>();
-            foreach (var timingPoint in tp)
-            {
-                beatLengthDict[timingPoint.Offset] = timingPoint.BeatLength;
-            }
-    
-            return beatLengthDict;
-        }
-
-        public List<double> GetbeatLengthAxis(Dictionary<double, double> beatLengthDict, double mainBPM,
+        public List<double> GetBeatLengthAxis(Dictionary<double, double> beatLengthDict, double mainBPM,
             List<int> timeAxis)
         {
             double defaultLength = 60000 / mainBPM;

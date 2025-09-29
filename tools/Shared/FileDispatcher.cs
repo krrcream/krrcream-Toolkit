@@ -2,32 +2,24 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
-using krrTools.tools.KRRLNTransformer;
 using krrTools.tools.Preview;
 using krrTools.tools.Shared;
 using krrTools.tools.DPtool;
-using krrTools.tools.LNTransformer;
-using krrTools.tools.N2NC;
+using krrTools.tools.KRRLNTransformer;
 using System.IO;
 using Wpf.Ui.Controls;
 using MessageBox = System.Windows.MessageBox;
 using MessageBoxButton = System.Windows.MessageBoxButton;
+using MessageBoxResult = System.Windows.MessageBoxResult;
 using Microsoft.Extensions.Logging;
+using krrTools.tools.N2NC;
+using static krrTools.tools.LNTransformer.Setting;
 
 namespace krrTools.Tools.Shared
 {
     public class FileDispatcher(Dictionary<string, DualPreviewControl> previewControls, TabView mainTabControl)
     {
         private static readonly ILogger<FileDispatcher> _logger = LoggerFactoryHolder.CreateLogger<FileDispatcher>();
-
-        private readonly Dictionary<string, IConverter> _converters = new()
-        {
-            { OptionsManager.N2NCToolName, new N2NCConverterWrapper() },
-            { OptionsManager.LNToolName, new LNConverterWrapper() },
-            { OptionsManager.DPToolName, new DPConverterWrapper() },
-            { OptionsManager.KRRLNToolName, new KrrLNConverterWrapper() }
-        };
 
         public void LoadFiles(string[]? paths, string? activeTabTag = null)
         {
@@ -43,48 +35,35 @@ namespace krrTools.Tools.Shared
         public void ConvertFiles(string[] paths, string? activeTabTag = null)
         {
             activeTabTag ??= GetActiveTabTag();
-            if (activeTabTag == OptionsManager.N2NCToolName)
-            {
-                // Special handling for Converter with result reporting
-                ConvertWithResults(paths);
-            }
-            else if (_converters.TryGetValue(activeTabTag, out var converter))
-            {
-                var created = new List<string>();
-                var failed = new List<string>();
-
-                foreach (var path in paths.Where(p => !string.IsNullOrEmpty(p)))
-                {
-                    try
-                    {
-                        var result = converter.ProcessSingleFile(path);
-                        if (!string.IsNullOrEmpty(result))
-                            created.Add(result);
-                        else
-                            failed.Add(path);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "转换文件时出错: {Path}", path);
-                        failed.Add(path);
-                    }
-                }
-
-                _logger.LogInformation("转换器: {Converter}, 生成文件数量: {CreatedCount}", activeTabTag, created.Count);
-                ShowConversionResult(created, failed, paths.Length);
-            }
+            ConvertWithResults(paths, activeTabTag);
         }
 
-        private void ConvertWithResults(string[] paths)
+        private void ConvertWithResults(string[] paths, string activeTabTag)
         {
-            // Try to find existing N2NCControl instance from MainWindow
+            // Try to find existing Control instance from MainWindow
             var mainWindow = Application.Current?.Windows.OfType<MainWindow>().FirstOrDefault();
-            var conv = mainWindow?.ConvWindowInstance;
+            object? conv = null;
+            if (activeTabTag == OptionsManager.N2NCToolName)
+                conv = mainWindow?.ConvWindowInstance;
+            else if (activeTabTag == OptionsManager.YLsLNToolName)
+                conv = mainWindow?.LNWindowInstance;
+            else if (activeTabTag == OptionsManager.DPToolName)
+                conv = mainWindow?.DPWindowInstance;
+            else if (activeTabTag == OptionsManager.KRRsLNToolName)
+                conv = mainWindow?.KRRLNTransformerInstance;
+
             if (conv == null)
             {
                 // Fallback: create new instance if not found
-                conv = new N2NCControl();
-                _logger.LogWarning("使用备用N2NCControl实例 - 选项可能未正确加载");
+                if (activeTabTag == OptionsManager.N2NCToolName)
+                    conv = new N2NCControl();
+                else if (activeTabTag == OptionsManager.YLsLNToolName)
+                    conv = new YLsLNTransformerControl();
+                else if (activeTabTag == OptionsManager.DPToolName)
+                    conv = new DPToolControl();
+                else if (activeTabTag == OptionsManager.KRRsLNToolName)
+                    conv = new KRRLNTransformerControl();
+                _logger.LogWarning("使用备用{Converter}实例 - 选项可能未正确加载", activeTabTag);
             }
 
             var created = new List<string>();
@@ -94,11 +73,35 @@ namespace krrTools.Tools.Shared
             {
                 try
                 {
-                    var result = conv.ProcessSingleFile(p);
-                    if (!string.IsNullOrEmpty(result))
-                        created.Add(result);
+                    var beatmap = (conv as dynamic)?.ProcessSingleFile(p);
+                    if (beatmap != null)
+                    {
+                        var outputFileName = (conv as dynamic)?.GetOutputFileName(p, beatmap);
+                        var outputPath = Path.Combine(Path.GetDirectoryName(p) ?? "", outputFileName);
+
+                        // Handle file conflicts
+                        if (File.Exists(outputPath))
+                        {
+                            var result = MessageBox.Show(
+                                $"文件已存在：{Path.GetFileName(outputPath)}\n\n是否覆盖？",
+                                "文件冲突",
+                                MessageBoxButton.YesNo,
+                                MessageBoxImage.Question);
+
+                            if (result != MessageBoxResult.Yes)
+                            {
+                                failed.Add(p);
+                                continue;
+                            }
+                        }
+
+                        beatmap.Save(outputPath);
+                        created.Add(outputPath);
+                    }
                     else
+                    {
                         failed.Add(p);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -119,7 +122,7 @@ namespace krrTools.Tools.Shared
                 }
             }
 
-            _logger.LogInformation("转换器: {Converter}, 生成文件数量: {CreatedCount}", OptionsManager.N2NCToolName, created.Count);
+            _logger.LogInformation("转换器: {Converter}, 生成文件数量: {CreatedCount}", activeTabTag, created.Count);
             ShowConversionResult(created, failed, paths.Length);
         }
 
@@ -146,14 +149,14 @@ namespace krrTools.Tools.Shared
                     var sb = new System.Text.StringBuilder();
                     sb.AppendLine($"成功转换 {created.Count} 个文件：");
                     foreach (var file in created)
-                        sb.AppendLine($"• {System.IO.Path.GetFileName(file)}");
+                        sb.AppendLine($"• {Path.GetFileName(file)}");
                     
                     if (failed.Count > 0)
                     {
                         sb.AppendLine();
                         sb.AppendLine($"失败 {failed.Count} 个文件：");
                         foreach (var file in failed)
-                            sb.AppendLine($"• {System.IO.Path.GetFileName(file)}");
+                            sb.AppendLine($"• {Path.GetFileName(file)}");
                     }
                     
                     message = sb.ToString();
@@ -175,67 +178,6 @@ namespace krrTools.Tools.Shared
         private string GetActiveTabTag()
         {
             return (mainTabControl.SelectedItem as TabViewItem)?.Tag as string ?? OptionsManager.N2NCToolName;
-        }
-
-        // Wrapper classes to implement IConverter
-        private class N2NCConverterWrapper : IConverter
-        {
-            public string? ProcessSingleFile(string path)
-            {
-                var options = OptionsManager.LoadOptions<N2NCOptions>(OptionsManager.N2NCToolName, OptionsManager.ConfigFileName) ?? new N2NCOptions();
-                return N2NCService.ProcessSingleFile(path, options, openOsz: false);
-            }
-        }
-
-        private class LNConverterWrapper : IConverter
-        {
-            public string? ProcessSingleFile(string path)
-            {
-                var options = OptionsManager.LoadOptions<LNTransformerOptions>(OptionsManager.LNToolName, OptionsManager.ConfigFileName) ?? new LNTransformerOptions();
-                TransformService.ProcessFiles(new List<string> { path }, options);
-                return path; // Output is the same as input since it overwrites
-            }
-        }
-
-        private class DPConverterWrapper : IConverter
-        {
-            public string? ProcessSingleFile(string path)
-            {
-                var options = OptionsManager.LoadOptions<DPToolOptions>(OptionsManager.DPToolName, OptionsManager.ConfigFileName) ?? new DPToolOptions();
-                var dp = new DP();
-                return dp.ProcessFile(path, options);
-            }
-        }
-
-        private class KrrLNConverterWrapper : IConverter
-        {
-            public string? ProcessSingleFile(string path)
-            {
-                // 使用默认参数进行转换
-                var parameters = OptionsManager.LoadOptions<KRRLNTransformerOptions>(OptionsManager.KRRLNToolName, OptionsManager.ConfigFileName) ?? new KRRLNTransformerOptions
-                {
-                    ShortPercentageValue = 50,
-                    ShortLevelValue = 5,
-                    ShortLimitValue = 20,
-                    ShortRandomValue = 50,
-                    LongPercentageValue = 50,
-                    LongLevelValue = 5,
-                    LongLimitValue = 20,
-                    LongRandomValue = 50,
-                    AlignIsChecked = false,
-                    AlignValue = 4,
-                    ProcessOriginalIsChecked = false,
-                    ODValue = 8,
-                    SeedText = "114514"
-                };
-                var LN = new KRRLN();
-                var beatmap = LN.ProcessFiles(path, parameters);
-                string? dir = Path.GetDirectoryName(path);
-                if (string.IsNullOrEmpty(dir)) dir = ".";
-                string outputPath = Path.Combine(dir, Path.GetFileNameWithoutExtension(path) + "_KRRLN.osu");
-                File.WriteAllText(outputPath, beatmap.ToString());
-                return outputPath;
-            }
         }
     }
 }

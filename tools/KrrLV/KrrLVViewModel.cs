@@ -20,122 +20,44 @@ namespace krrTools.tools.KrrLV
 {
     public class OsuFileItem : ObservableObject
     {
-        private string? _fileName;
-        private string? _filePath;
-        private string? _status;
-        private string? _diff;
-        private string? _title;
-        private string? _artist;
-        private string? _creator;
-        private string? _bpm;
-        private double _keys;
-        private double _od;
-        private double _hp;
-        private double _lnPercent;
-        private double _beatmapID;
-        private double _beatmapSetID;
-        private double _xxySR;
-        private double _krrLV;
         
         private readonly ProcessingWindow _processingWindow = new ProcessingWindow();
         private int _processedCount;
         private int _totalCount;
         
-        public string? FileName
-        {
-            get => _fileName;
-            set => SetProperty(ref _fileName, value);
-        }
+        public string? FileName { get; set; }
 
-        public string? FilePath
-        {
-            get => _filePath;
-            init => SetProperty(ref _filePath, value);
-        }
+        public string? FilePath { get; init; }
 
-        public string? Status
-        {
-            get => _status;
-            set => SetProperty(ref _status, value);
-        }
+        public string? Status { get; set; }
 
-        public string? Diff
-        {
-            get => _diff;
-            set => SetProperty(ref _diff, value);
-        }
+        public string? Diff { get; set; }
         
-        public string? Title
-        {
-            get => _title;
-            set => SetProperty(ref _title, value);
-        }
+        public string? Title { get; set; }
 
-        public string? Artist
-        {
-            get => _artist;
-            set => SetProperty(ref _artist, value);
-        }
+        public string? Artist { get; set; }
 
-        public string? Creator
-        {
-            get => _creator;
-            set => SetProperty(ref _creator, value);
-        }
+        public string? Creator { get; set; }
 
-        public double Keys
-        {
-            get => _keys;
-            set => SetProperty(ref _keys, value);
-        }
+        public double Keys { get; set; }
 
-        public string? BPM
-        {
-            get => _bpm;
-            set => SetProperty(ref _bpm, value);
-        }
+        public string? BPM { get; set; }
         
-        public double OD
-        {
-            get => _od;
-            set => SetProperty(ref _od, value);
-        }
+        public double OD { get; set; }
 
-        public double HP
-        {
-            get => _hp;
-            set => SetProperty(ref _hp, value);
-        }
+        public double HP { get; set; }
 
-        public double LNPercent
-        {
-            get => _lnPercent;
-            set => SetProperty(ref _lnPercent, value);
-        }
+        public double LNPercent { get; set; }
 
-        public double BeatmapID
-        {
-            get => _beatmapID;
-            set => SetProperty(ref _beatmapID, value);
-        }
+        public double BeatmapID { get; set; }
 
-        public double BeatmapSetID
-        {
-            get => _beatmapSetID;
-            set => SetProperty(ref _beatmapSetID, value);
-        }
+        public double BeatmapSetID { get; set; }
         
-        public double XxySR
-        {
-            get => _xxySR;
-            set => SetProperty(ref _xxySR, value);
-        }
+        public double XxySR { get; set; }
     
-        public double KrrLV
-        {
-            get => _krrLV;
-            set => SetProperty(ref _krrLV, value);
-        }
+        public double KrrLV { get; set; }
+        
+        public double YlsLV { get; set; }
         
         public int ProcessedCount
         {
@@ -180,7 +102,6 @@ namespace krrTools.tools.KrrLV
         private readonly Lock _pendingItemsLock = new Lock();
 
         private int _totalCount;
-        private int _processedCount;
         
         private int _currentProcessedCount;
 
@@ -190,11 +111,7 @@ namespace krrTools.tools.KrrLV
             set => SetProperty(ref _totalCount, value);
         }
 
-        public int ProcessedCount
-        {
-            get => _processedCount;
-            set => SetProperty(ref _processedCount, value);
-        }
+        public int ProcessedCount { get; set; }
 
         public KrrLVViewModel()
         {
@@ -244,12 +161,12 @@ namespace krrTools.tools.KrrLV
                     var csv = new StringBuilder();
                     
                     // 添加CSV头部
-                    csv.AppendLine("KRR_LV,XXY_SR,Title,Diff,Artist,Creator,Keys,BPM,OD,HP,LN%,beatmapID,beatmapSetId,filePath");
+                    csv.AppendLine("KRR_LV,YLS_LV,XXY_SR,Title,Diff,Artist,Creator,Keys,BPM,OD,HP,LN%,beatmapID,beatmapSetId,filePath");
                     
                     // 添加数据行
                     foreach (var file in OsuFiles)
                     {
-                        var line = $"\"{file.KrrLV:F2}\",\"{file.XxySR:F2}\",\"{file.Title}\",\"{file.Diff}\",\"{file.Artist}\",\"{file.Creator}\",{file.Keys},\"{file.BPM}\",{file.OD},{file.HP},\"{file.LNPercent:F2}\",{file.BeatmapID},{file.BeatmapSetID},\"{file.FilePath}\"";
+                        var line = $"\"{file.KrrLV:F2}\",\"{file.YlsLV:F2}\",\"{file.XxySR:F2}\",\"{file.Title}\",\"{file.Diff}\",\"{file.Artist}\",\"{file.Creator}\",{file.Keys},\"{file.BPM}\",{file.OD},{file.HP},\"{file.LNPercent:F2}\",{file.BeatmapID},{file.BeatmapSetID},\"{file.FilePath}\"";
                         csv.AppendLine(line);
                     }
             
@@ -453,7 +370,7 @@ namespace krrTools.tools.KrrLV
                 item.Artist = result.Artist;
                 item.Creator = result.Creator;
                 item.Keys = result.Keys;
-                item.BPM = result.BPM;
+                item.BPM = result.BPMDisplay;
                 item.OD = result.OD;
                 item.HP = result.HP;
                 item.LNPercent = result.LNPercent;
@@ -461,6 +378,7 @@ namespace krrTools.tools.KrrLV
                 item.BeatmapSetID = result.BeatmapSetID;
                 item.XxySR = result.XXY_SR;
                 item.KrrLV = result.KRR_LV;
+                item.YlsLV = CalculateLevel(result.XXY_SR);
                 item.Status = "已分析";
             });
         }
@@ -545,7 +463,7 @@ namespace krrTools.tools.KrrLV
                 item.Artist = result.Artist;
                 item.Creator = result.Creator;
                 item.Keys = result.Keys;
-                item.BPM = result.BPM;
+                item.BPM = result.BPMDisplay;
                 item.OD = result.OD;
                 item.HP = result.HP;
                 item.LNPercent = result.LNPercent;
@@ -553,6 +471,7 @@ namespace krrTools.tools.KrrLV
                 item.BeatmapSetID = result.BeatmapSetID;
                 item.XxySR = result.XXY_SR;
                 item.KrrLV = result.KRR_LV;
+                item.YlsLV = CalculateLevel(result.XXY_SR);
                 item.Status = "已分析";
             });
         }
@@ -574,6 +493,36 @@ namespace krrTools.tools.KrrLV
                 item.Status = $"错误: {ex.Message}";
             });
         }
+    }
+    
+    private static double CalculateLevel(double xxyStarRating)
+    {
+        const double LOWER_BOUND = 2.76257856739498;
+        const double UPPER_BOUND = 10.5541834716376;
+        
+        if (xxyStarRating is >= LOWER_BOUND and <= UPPER_BOUND)
+        {
+            return FittingFormula(xxyStarRating);
+        }
+
+        if (xxyStarRating is < LOWER_BOUND and > 0)
+        {
+            return 3.6198 * xxyStarRating;
+        }
+
+        if (xxyStarRating is > UPPER_BOUND and < 12.3456789)
+        {
+            return (2.791 * xxyStarRating) + 0.5436;
+        }
+
+        return double.NaN;
+    }
+    
+    private static double FittingFormula(double x)
+    {
+        // TODO: Implement the actual fitting formula based on your requirements
+        // For now, returning a placeholder value
+        return x * 1.5; // Replace with actual formula
     }
     
     public void Dispose()

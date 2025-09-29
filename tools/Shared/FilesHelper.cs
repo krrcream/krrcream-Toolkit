@@ -10,8 +10,10 @@ using krrTools.tools.Listener;
 using System.Windows.Forms;
 using krrTools.Tools.OsuParser;
 using krrTools.tools.Shared;
-using OsuParsers.Beatmaps;
-using OsuParsers.Decoders;
+using OsuFileIO.Analyzer;
+using OsuFileIO.HitObject.Mania;
+using OsuFileIO.OsuFile;
+using OsuFileIO.OsuFileReader;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
@@ -177,19 +179,32 @@ namespace krrTools.Tools.Shared
             }
         }
         
-        public static Beatmap GetManiaBeatmap(string? filePath)
+        public static ManiaBeatmap GetManiaBeatmap(string? filePath)
         {
             if (!EnsureIsOsuFile(filePath))
                 throw new FileNotFoundException($"Invalid or missing .osu file: {filePath}");
             
-            var beatmap = BeatmapDecoder.Decode(filePath);
-            
-            if (beatmap.GeneralSection.ModeId != 3)
-                throw new ArgumentException("Beatmap is not in Mania mode (ModeId != 3)");
-            
-            return beatmap;
+            return new ManiaBeatmap(filePath);
         }
 
+        private static double GetMainBpm(string? filePath)
+        {
+            if (filePath == null || !File.Exists(filePath))
+                throw new ArgumentNullException(nameof(filePath));
+
+            var reader = new OsuFileReaderBuilder(filePath).Build();
+            var beatmap = reader.ReadFile();
+            double BPM = 0;
+            
+            if (beatmap is IReadOnlyBeatmap<ManiaHitObject> maniaHitObject)
+            {
+                var result = maniaHitObject.Analyze();
+                BPM = result.Bpm;
+
+            }
+            return BPM;
+        }
+        
         /// <summary>
         /// 验证并异步处理 .osu 文件
         /// </summary>

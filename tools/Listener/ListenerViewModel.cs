@@ -14,14 +14,11 @@ namespace krrTools.tools.Listener
     internal sealed class ListenerViewModel : ObservableObject
     {
         private string _currentOsuFilePath = string.Empty;
-        private string _statusMessage = string.Empty;
         private System.Timers.Timer? _checkTimer; // 明确指定命名空间
 #pragma warning disable CS0618 // IOsuMemoryReader is obsolete but kept for compatibility
         private readonly IOsuMemoryReader _memoryReader;
 #pragma warning restore CS0618
         private string _lastBeatmapId = string.Empty;
-        private string _bgPath = string.Empty;
-        private string _windowTitle = "osu!Listener";
         private readonly string _configPath;
 
         // Config object centralizes related settings (SongsPath, Hotkey, RealTimePreview)
@@ -39,16 +36,8 @@ namespace krrTools.tools.Listener
             Config.Hotkey = hotkey;
         }
 
-        public string WindowTitle
-        {
-            get => _windowTitle;
-            set => SetProperty(ref _windowTitle, value);
-        }
-        public string BGPath
-        {
-            get => _bgPath;
-            set => SetProperty(ref _bgPath, value);
-        }
+        public string WindowTitle { get; set; } = "osu!Listener";
+        public string BGPath { get; set; } = string.Empty;
 
         public string CurrentOsuFilePath
         {
@@ -66,11 +55,7 @@ namespace krrTools.tools.Listener
             }
         }
 
-        public string StatusMessage
-        {
-            get => _statusMessage;
-            set => SetProperty(ref _statusMessage, value);
-        }
+        public string StatusMessage { get; set; } = string.Empty;
 
         internal ListenerViewModel()
         {
@@ -176,13 +161,10 @@ namespace krrTools.tools.Listener
         // 配置类：现在是一个可观察对象，便于集中订阅变化并保存
         internal class ListenerConfig : ObservableObject
           {
-              private string? _songsPath;
-              private string? _hotkey = "Ctrl+Shift+Alt+X";
-              private bool _realTimePreview;
 
-              public string? SongsPath { get => _songsPath; set => SetProperty(ref _songsPath, value); }
-              public string? Hotkey { get => _hotkey; set => SetProperty(ref _hotkey, value); }
-              public bool RealTimePreview { get => _realTimePreview; set => SetProperty(ref _realTimePreview, value); }
+              public string? SongsPath { get; set; }
+              public string? Hotkey { get; set; } = "Ctrl+Shift+Alt+X";
+              public bool RealTimePreview { get; set; }
           }
         
         private void InitializeOsuMonitoring()

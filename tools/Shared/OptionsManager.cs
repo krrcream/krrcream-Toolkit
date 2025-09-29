@@ -4,9 +4,11 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using krrTools.tools.DPtool;
 using krrTools.tools.LNTransformer;
 using krrTools.tools.N2NC;
+using krrTools.tools.KRRLNTransformer;
 
 namespace krrTools.tools.Shared
 {
@@ -23,8 +25,8 @@ namespace krrTools.tools.Shared
         // tool identifiers
         public const string N2NCToolName = "Converter";
         public const string DPToolName = "DPTool";
-        public const string LNToolName = "LNTransformer";
-        public const string KRRLNToolName = "KRRLNTransformer";
+        public const string YLsLNToolName = "YLsLNTransformer";
+        public const string KRRsLNToolName = "KRRsLNTransformer";
 
         // Add tool identifiers for simple tabs
         public const string LVCalToolName = "LVCalculator";
@@ -39,7 +41,7 @@ namespace krrTools.tools.Shared
 
         // 缓存的配置实例
         private static AppConfig? _cachedConfig;
-        private static readonly object _configLock = new object();
+        private static readonly Lock _configLock = new Lock();
 
         // 预设和管道使用的文件夹路径
         private static string BaseFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), BaseAppFolderName);
@@ -121,7 +123,8 @@ namespace krrTools.tools.Shared
             {
                 N2NCToolName => config.N2NC,
                 DPToolName => config.DP,
-                LNToolName => config.LNTransformer,
+                YLsLNToolName => config.LNTransformer,
+                KRRsLNToolName => config.KRRLNTransformer,
                 _ => null
             };
 
@@ -143,8 +146,11 @@ namespace krrTools.tools.Shared
                 case DPToolName:
                     config.DP = options as DPToolOptions;
                     break;
-                case LNToolName:
-                    config.LNTransformer = options as LNTransformerOptions;
+                case YLsLNToolName:
+                    config.LNTransformer = options as YLsLNTransformerOptions;
+                    break;
+                case KRRsLNToolName:
+                    config.KRRLNTransformer = options as KRRLNTransformerOptions;
                     break;
             }
 
@@ -288,7 +294,7 @@ namespace krrTools.tools.Shared
             {
                 string name = Path.GetFileNameWithoutExtension(file);
                 if (string.IsNullOrWhiteSpace(name)) continue;
-                PipelineOptions? opt = default;
+                PipelineOptions? opt = null;
                 try
                 {
                     string json = File.ReadAllText(file);

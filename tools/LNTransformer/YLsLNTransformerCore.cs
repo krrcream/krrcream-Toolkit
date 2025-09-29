@@ -5,7 +5,7 @@ using System.Linq;
 namespace krrTools.tools.LNTransformer;
 
 // Core LN transformation logic extracted from LNTransformer.xaml.cs
-public static class LNTransformerCore
+public static class YLsLNTransformerCore
 {
     private const double ERROR = 2.0;
 

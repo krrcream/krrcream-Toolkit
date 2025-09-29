@@ -6,7 +6,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using krrTools.Localization;
 using krrTools.tools.Shared;
+using OsuParsers.Beatmaps;
 
 namespace krrTools.tools.N2NC
 {
@@ -565,9 +567,14 @@ namespace krrTools.tools.N2NC
         }
 
         // 添加处理单个文件的方法：返回生成的 .osz 路径（成功）或 null（失败）
-        public string? ProcessSingleFile(string filePath, bool openOsz = false)
+        public Beatmap? ProcessSingleFile(string filePath)
         {
-            return N2NCService.ProcessSingleFile(filePath, _viewModel.GetConversionOptions(), openOsz);
+            return N2NCService.ProcessSingleFile(filePath, _viewModel.GetConversionOptions());
+        }
+
+        public string GetOutputFileName(string inputPath, Beatmap beatmap)
+        {
+            return beatmap.GetOsuFileName() + ".osu";
         }
     }
 }

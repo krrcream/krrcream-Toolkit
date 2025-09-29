@@ -10,6 +10,7 @@ using Microsoft.Win32;
 
 namespace krrTools.tools.LNTransformer;
 
+// 未来弃用的文件
 internal class OsuFileProcessor
 {
     /// <summary>

@@ -1,6 +1,7 @@
 using krrTools.tools.DPtool;
 using krrTools.tools.LNTransformer;
 using krrTools.tools.N2NC;
+using krrTools.tools.KRRLNTransformer;
 
 namespace krrTools.tools.Shared
 {
@@ -22,12 +23,17 @@ namespace krrTools.tools.Shared
         /// <summary>
         /// LN 转换器设置
         /// </summary>
-        public LNTransformerOptions? LNTransformer { get; set; }
+        public YLsLNTransformerOptions? LNTransformer { get; set; }
+
+        /// <summary>
+        /// KRRLN 转换器设置
+        /// </summary>
+        public KRRLNTransformerOptions? KRRLNTransformer { get; set; }
 
         /// <summary>
         /// 实时预览设置
         /// </summary>
-        public bool RealTimePreview { get; set; } = false;
+        public bool RealTimePreview { get; set; }
 
         /// <summary>
         /// 应用程序主题设置

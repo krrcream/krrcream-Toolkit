@@ -10,7 +10,7 @@ namespace krrTools.tools.Preview
 {
     internal class DynamicPreviewControl : Grid
     {
-        private readonly List<BasePreviewProcessor.ManiaNote> _notes;
+        private readonly List<PreviewProcessor.ManiaNote> _notes;
         private readonly int _columns;
         private readonly double _quarterMs;
         private readonly double _firstTime;
@@ -18,7 +18,7 @@ namespace krrTools.tools.Preview
         private double _lastAvailableHeight = -1;
         private double _lastAvailableWidth = -1;
 
-        public DynamicPreviewControl(List<(int time, List<BasePreviewProcessor.ManiaNote> notes)> grouped, int columns, double quarterMs)
+        public DynamicPreviewControl(List<(int time, List<PreviewProcessor.ManiaNote> notes)> grouped, int columns, double quarterMs)
         {
             // grouped 已排序；展开为单一 notes 列表并记录第一个时间点
             _notes = grouped.SelectMany(g => g.notes).ToList();

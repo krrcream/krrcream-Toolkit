@@ -2,12 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Windows;
 using krrTools.tools.Listener;
-using krrTools.tools.Shared;
 using krrTools.Tools.OsuParser;
-using static krrTools.tools.Shared.SharedUIComponents;
 using Microsoft.Extensions.Logging;
 
 namespace krrTools.tools.LNTransformer
@@ -17,7 +14,7 @@ namespace krrTools.tools.LNTransformer
         private static readonly ILogger _logger = LoggerFactoryHolder.CreateLogger<string>();
 
         // Public entrypoint: process a list of osu files with given parameters.
-        public static void ProcessFiles(IEnumerable<string> allFiles, LNTransformerOptions parameters)
+        public static void ProcessFiles(IEnumerable<string> allFiles, YLsLNTransformerOptions parameters)
         {
             foreach (var file in allFiles)
             {
@@ -96,7 +93,7 @@ namespace krrTools.tools.LNTransformer
         }
 
         // Apply the LN transformation to a single OsuFileV14 instance and save
-        private static void ApplyToBeatmap(OsuFileV14 osu, LNTransformerOptions parameters)
+        public static void ApplyToBeatmap(OsuFileV14 osu, YLsLNTransformerOptions parameters)
         {
             bool canBeConverted = !(IsConverted(osu) && parameters.IgnoreIsChecked);
 
@@ -111,7 +108,7 @@ namespace krrTools.tools.LNTransformer
             osu.Metadata.Difficulty += " [LN Level " + parameters.LevelValue + "]";
 
             // Create preview parameters for core logic
-            var previewParams = new LNTransformerCore.LNPreviewParameters
+            var previewParams = new YLsLNTransformerCore.LNPreviewParameters
             {
                 LevelValue = parameters.LevelValue,
                 PercentageValue = parameters.PercentageValue,
@@ -124,7 +121,7 @@ namespace krrTools.tools.LNTransformer
             };
 
             // Use core logic to transform
-            var transformed = LNTransformerCore.TransformFull(osu, previewParams);
+            var transformed = YLsLNTransformerCore.TransformFull(osu, previewParams);
 
             // Apply changes to original osu
             osu.HitObjects = transformed.HitObjects;
@@ -180,7 +177,7 @@ namespace krrTools.tools.LNTransformer
         }
 
         // Process a single file and return the output path
-        public static string? ProcessSingleFile(string filePath, LNTransformerOptions parameters)
+        public static string? ProcessSingleFile(string filePath, YLsLNTransformerOptions parameters)
         {
             try
             {
@@ -259,7 +256,7 @@ namespace krrTools.tools.LNTransformer
             }
         }
 
-        public static OsuFileV14? ProcessSingleFileToData(string filePath, LNTransformerOptions parameters)
+        public static OsuFileV14? ProcessSingleFileToData(string filePath, YLsLNTransformerOptions parameters)
         {
             try
             {

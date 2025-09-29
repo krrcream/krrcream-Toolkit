@@ -6,6 +6,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using System.Windows.Threading;
+using krrTools.Localization;
 using krrTools.Tools.Shared;
 using krrTools.tools.Shared;
 
@@ -55,6 +57,8 @@ namespace krrTools.tools.DPtool
         public double KeyboardStep { get; set; } = 1.0;
 
         private bool _isInitialized;
+        private DispatcherTimer? _debounceTimer;
+        private double _pendingValue;
 
         public SettingsSlider()
         {
@@ -64,6 +68,8 @@ namespace krrTools.tools.DPtool
             InnerSlider = new Slider();
             Children.Add(LabelTextBlock);
             Children.Add(InnerSlider);
+            _debounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+            _debounceTimer.Tick += OnDebounceTimerTick;
             Loaded += SettingsSlider_Loaded;
         }
 
@@ -107,11 +113,9 @@ namespace krrTools.tools.DPtool
                 // Writeback
                 InnerSlider.ValueChanged += (_, ev) =>
                 {
-                    try
-                    {
-                        EnumProvider.SetValue(EnumKey!, ev.NewValue);
-                    }
-                    catch (Exception ex) { Debug.WriteLine($"SettingsSlider enum writeback error: {ex.Message}"); }
+                    _pendingValue = ev.NewValue;
+                    _debounceTimer!.Stop();
+                    _debounceTimer.Start();
                     UpdateLabelWithValue(ev.NewValue);
                 };
 
@@ -159,27 +163,9 @@ namespace krrTools.tools.DPtool
                     // Listen to slider changes to write back to source
                     InnerSlider.ValueChanged += (_, ev) =>
                     {
-                        try
-                        {
-                            var targetType = prop.PropertyType;
-                            object? converted;
-                            if (targetType == typeof(int) || targetType == typeof(int?))
-                                converted = (int)ev.NewValue;
-                            else if (targetType == typeof(float) || targetType == typeof(float?))
-                                converted = (float)ev.NewValue;
-                            else if (targetType == typeof(double) || targetType == typeof(double?))
-                                converted = ev.NewValue;
-                            else if (targetType == typeof(bool) || targetType == typeof(bool?))
-                                converted = (ev.NewValue > 0.5);
-                            else
-                                converted = Convert.ChangeType(ev.NewValue, targetType, CultureInfo.InvariantCulture);
-
-                            prop.SetValue(Source, converted);
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine($"SettingsSlider failed to write back value: {ex.Message}");
-                        }
+                        _pendingValue = ev.NewValue;
+                        _debounceTimer!.Stop();
+                        _debounceTimer.Start();
                         UpdateLabelWithValue(ev.NewValue);
                     };
 
@@ -239,6 +225,48 @@ namespace krrTools.tools.DPtool
                     // Use legacy formatting
                     string localizedLabel = Strings.Localize(_labelText);
                     LabelTextBlock.Text = localizedLabel + ": " + ((int)value).ToString();
+                }
+            }
+        }
+
+        private void OnDebounceTimerTick(object? sender, EventArgs e)
+        {
+            _debounceTimer!.Stop();
+            // Write back the pending value
+            if (EnumProvider != null && EnumKey != null)
+            {
+                try
+                {
+                    EnumProvider.SetValue(EnumKey, _pendingValue);
+                }
+                catch (Exception ex) { Debug.WriteLine($"SettingsSlider enum debounce writeback error: {ex.Message}"); }
+            }
+            else if (Source != null && !string.IsNullOrEmpty(Path))
+            {
+                var prop = Source.GetType().GetProperty(Path!);
+                if (prop != null)
+                {
+                    try
+                    {
+                        var targetType = prop.PropertyType;
+                        object? converted;
+                        if (targetType == typeof(int) || targetType == typeof(int?))
+                            converted = (int)_pendingValue;
+                        else if (targetType == typeof(float) || targetType == typeof(float?))
+                            converted = (float)_pendingValue;
+                        else if (targetType == typeof(double) || targetType == typeof(double?))
+                            converted = _pendingValue;
+                        else if (targetType == typeof(bool) || targetType == typeof(bool?))
+                            converted = (_pendingValue > 0.5);
+                        else
+                            converted = Convert.ChangeType(_pendingValue, targetType, CultureInfo.InvariantCulture);
+
+                        prop.SetValue(Source, converted);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"SettingsSlider debounce failed to write back value: {ex.Message}");
+                    }
                 }
             }
         }

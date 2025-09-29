@@ -1,38 +1,22 @@
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Diagnostics.CodeAnalysis;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Data;
+using krrTools.Localization;
 using krrTools.tools.Shared;
+using OsuParsers.Beatmaps;
+using OsuParsers.Decoders;
 
 namespace krrTools.tools.LNTransformer;
 
 public static class Setting
 {
-        [SuppressMessage("Usage", "CollectionNeverUpdated", Justification = "运行时由UI/其他模块填充")]
-        public static List<int> KeyFilter { get; set; } = new();
-
-        public static string Seed { get; set; } = "114514";
-        public static string Creator { get; set; } = string.Empty;
-
-        // 静态构造器：对集合做一次无害的添加/移除以表明其会被运行时修改（用于静态分析）
-        static Setting()
-        {
-            const int __sentinel = int.MinValue + 123;
-            KeyFilter.Add(__sentinel);
-            KeyFilter.Remove(__sentinel);
-        }
-    }
-
     // 普通 Window：通过 ModernEffectsHelper + WindowBlurHelper 实现 Fluent 风格毛玻璃 (纯代码, 无 XAML)
-    public class LNTransformerControl : UserControl
+    public class YLsLNTransformerControl : UserControl
     {
-        private readonly LNTransformerViewModel _viewModel = new();
+        private readonly YLsLNTransformerViewModel _viewModel = new();
 
         // 命名控件
         private Slider LevelValue = null!;
@@ -47,13 +31,14 @@ public static class Setting
 
         private const double ERROR = 2.0;
 
-        public LNTransformerControl()
+        public YLsLNTransformerControl()
         {
             DataContext = _viewModel;
             // Initialize control UI
             BuildUI();
             SharedUIComponents.LanguageChanged += HandleLanguageChanged;
-            Unloaded += (_, _) => {
+            Unloaded += (_, _) =>
+            {
                 SharedUIComponents.LanguageChanged -= HandleLanguageChanged;
                 Content = null;
             };
@@ -98,7 +83,7 @@ public static class Setting
 
             // 将内容放入滚动容器并设置为控制的内容
             root.Content = stack;
-            
+
             Content = root;
         }
 
@@ -121,7 +106,8 @@ public static class Setting
             LevelValue.SetBinding(RangeBase.ValueProperty, new Binding("Options.LevelValue"));
             LevelValue.TickFrequency = 1;
             LevelValue.ToolTip = Strings.LevelTooltip;
-            LevelValue.ValueChanged += (_, e) => {
+            LevelValue.ValueChanged += (_, e) =>
+            {
                 levelLabel.Text = Strings.FormatLocalized(Strings.LevelLabel, (int)e.NewValue);
             };
             levelStack.Children.Add(levelLabel);
@@ -136,7 +122,8 @@ public static class Setting
             PercentageValue = SharedUIComponents.CreateStandardSlider(0, 100, double.NaN, true);
             PercentageValue.Name = "PercentageValue"; // 添加Name属性以便预览功能查找
             PercentageValue.SetBinding(RangeBase.ValueProperty, new Binding("Options.PercentageValue"));
-            PercentageValue.ValueChanged += (_, e) => {
+            PercentageValue.ValueChanged += (_, e) =>
+            {
                 percLabel.Text = Strings.FormatLocalized(Strings.LNPercentageLabel, (int)e.NewValue);
             };
             percStack.Children.Add(percLabel);
@@ -152,7 +139,8 @@ public static class Setting
             DivideValue.Name = "DivideValue"; // 添加Name属性以便预览功能查找
             DivideValue.SetBinding(RangeBase.ValueProperty, new Binding("Options.DivideValue"));
             DivideValue.TickFrequency = 1;
-            DivideValue.ValueChanged += (_, e) => {
+            DivideValue.ValueChanged += (_, e) =>
+            {
                 divLabel.Text = Strings.FormatLocalized(Strings.DivideLabel, (int)e.NewValue);
             };
             divStack.Children.Add(divLabel);
@@ -168,7 +156,8 @@ public static class Setting
             ColumnValue.Name = "ColumnValue"; // 添加Name属性以便预览功能查找
             ColumnValue.SetBinding(RangeBase.ValueProperty, new Binding("Options.ColumnValue"));
             ColumnValue.TickFrequency = 1;
-            ColumnValue.ValueChanged += (_, e) => {
+            ColumnValue.ValueChanged += (_, e) =>
+            {
                 colLabel.Text = Strings.FormatLocalized(Strings.ColumnLabel, (int)e.NewValue);
             };
             colStack.Children.Add(colLabel);
@@ -184,7 +173,8 @@ public static class Setting
             GapValue.Name = "GapValue"; // 添加Name属性以便预览功能查找
             GapValue.SetBinding(RangeBase.ValueProperty, new Binding("Options.GapValue"));
             GapValue.TickFrequency = 1;
-            GapValue.ValueChanged += (_, e) => {
+            GapValue.ValueChanged += (_, e) =>
+            {
                 gapLabel.Text = Strings.FormatLocalized(Strings.GapLabel, (int)e.NewValue);
             };
             gapStack.Children.Add(gapLabel);
@@ -202,7 +192,8 @@ public static class Setting
             OverallDifficultySlider.SmallChange = 0.1;
             OverallDifficultySlider.Name = "OverallDifficulty"; // 添加Name属性以便预览功能查找
             OverallDifficultySlider.SetBinding(RangeBase.ValueProperty, new Binding("Options.OverallDifficulty"));
-            OverallDifficultySlider.ValueChanged += (_, e) => {
+            OverallDifficultySlider.ValueChanged += (_, e) =>
+            {
                 var prefix = Strings.OverallDifficultyHeader.Localize();
                 odLabel.Text = $"{prefix}: {e.NewValue:F1}";
             };
@@ -215,11 +206,11 @@ public static class Setting
 
         private FrameworkElement CreateCheckBoxesPanel()
         {
-            var cbPanel = new StackPanel 
-            { 
-                Margin = new Thickness(0, 5, 5, 5), 
-                Orientation = Orientation.Vertical, 
-                HorizontalAlignment = HorizontalAlignment.Left 
+            var cbPanel = new StackPanel
+            {
+                Margin = new Thickness(0, 5, 5, 5),
+                Orientation = Orientation.Vertical,
+                HorizontalAlignment = HorizontalAlignment.Left
             };
             Ignore = SharedUIComponents.CreateStandardCheckBox(
                 Strings.IgnoreCheckbox, Strings.IgnoreTooltip);
@@ -253,51 +244,40 @@ public static class Setting
             instr.Inlines.Add(link);
             return instr;
         }
-        
+
         // 添加处理单个文件的方法
-        public void ProcessSingleFile(string filePath)
+        public Beatmap? ProcessSingleFile(string filePath)
         {
+            var beatmap = BeatmapDecoder.Decode(filePath);
+            if (beatmap == null) return null;
+
+            // 应用转换
+            var parameters = _viewModel.Options;
+
+            // Use temporary file approach for transformation
+            var tempPath = Path.GetTempFileName() + ".osu";
             try
             {
-                // 检查文件是否存在
-                if (!File.Exists(filePath))
+                beatmap.Save(tempPath);
+                var resultPath = TransformService.ProcessSingleFile(tempPath, parameters);
+                if (resultPath != null)
                 {
-                    MessageBox.Show(SharedUIComponents.IsChineseLanguage() ? 
-                        $"未找到文件: {filePath}" : $"File not found: {filePath}", 
-                        SharedUIComponents.IsChineseLanguage() ? "文件未找到|File Not Found" : "File Not Found|文件未找到",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
+                    return BeatmapDecoder.Decode(resultPath);
                 }
-
-                // 检查文件扩展名是否为.osu
-                if (Path.GetExtension(filePath).ToLower() != ".osu")
-                {
-                    MessageBox.Show(SharedUIComponents.IsChineseLanguage() ? 
-                        "所选文件不是有效的.osu文件" : "The selected file is not a valid .osu file", 
-                        SharedUIComponents.IsChineseLanguage() ? "无效文件|Invalid File" : "Invalid File|无效文件",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                // 创建包含单个文件的列表
-                var allFiles = new List<string> { filePath };
-
-                // 收集参数
-                var parameters = _viewModel.Options;
-
-                // 使用统一的TransformService处理文件
-                TransformService.ProcessFiles(allFiles, parameters);
             }
-            catch (Exception ex)
+            finally
             {
-                Task.Run(() =>
-                {
-                    MessageBox.Show(SharedUIComponents.IsChineseLanguage() ? 
-                        $"处理文件时出错: {ex.Message}" : $"Error processing file: {ex.Message}", 
-                        SharedUIComponents.IsChineseLanguage() ? "处理错误" : "Processing Error",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                });
+                if (File.Exists(tempPath)) File.Delete(tempPath);
+                var resultPath = tempPath.Replace(".osu", "") + ".osu"; // ProcessSingleFile adds .osu
+                if (File.Exists(resultPath)) File.Delete(resultPath);
             }
+
+            return null;
+        }
+
+        public string GetOutputFileName(string inputPath, Beatmap beatmap)
+        {
+            return beatmap.GetOsuFileName() + ".osu";
         }
 
         private void InstructionButton_Click(object sender, RoutedEventArgs e)
@@ -337,4 +317,4 @@ public static class Setting
             OriginalLN.IsChecked = originalLN;
         }
     }
-
+}

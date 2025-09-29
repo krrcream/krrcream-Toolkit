@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using krrTools.tools.Shared;
 using krrTools.Tools.OsuParser;
 using OsuParsers.Beatmaps;
@@ -27,18 +26,14 @@ namespace krrTools.tools.KRRLNTransformer
                 throw new ArgumentException("文件扩展名必须为.osu");
             }
 
-            Beatmap beatmap = BeatmapDecoder.Decode(filepath);
-
-            if (beatmap.GeneralSection.ModeId != 3)
-                throw new ArgumentException("不是mania模式");
+            Beatmap beatmap = BeatmapDecoder.Decode(filepath).GetManiaBeatmap();
 
             var ANA = new OsuAnalyzer();
             double BPM = beatmap.GetBPM();
-            if (BPM <= 0)
-                throw new ArgumentException("无法获取有效的BPM");
-            var beatLengthDict = ANA.GetBeatLengthList(beatmap);
+
+            var beatLengthDict = beatmap.GetBeatLengthList();
             var (matrix, timeAxis) = beatmap.BuildMatrix();
-            var beatLengthAxis = ANA.GetbeatLengthAxis(beatLengthDict, BPM, timeAxis);
+            var beatLengthAxis = ANA.GetBeatLengthAxis(beatLengthDict, BPM, timeAxis);
             var AvailableTime = CalculateAvailableTime(matrix, timeAxis);
 
             int[,] longMTX = new int[matrix.GetLength(0), matrix.GetLength(1)];
@@ -126,8 +121,10 @@ namespace krrTools.tools.KRRLNTransformer
 
             return beatmap;
 
-
-
+            string? dir = Path.GetDirectoryName(filepath);
+            if (string.IsNullOrEmpty(dir)) dir = ".";
+            string outputPath = Path.Combine(dir, Path.GetFileNameWithoutExtension(filepath) + "_KRRLN.osu");
+            File.WriteAllText(outputPath, beatmap.ToString());
         }
 
         private int[,] CalculateAvailableTime(int[,] matrix, List<int> timeAxis)
@@ -171,7 +168,7 @@ namespace krrTools.tools.KRRLNTransformer
                         if (nextRowIndex == -1)
                         {
                             // 如果没有下一个元素，使用最后时间轴的时间
-                            availableTime[row, col] = timeAxis[timeAxis.Count - 1] - timeAxis[row];
+                            availableTime[row, col] = timeAxis[^1] - timeAxis[row];
                         }
                         else
                         {
@@ -323,16 +320,12 @@ namespace krrTools.tools.KRRLNTransformer
 
         public Beatmap ProcessBeatmapToData(Beatmap beatmap, KRRLNTransformerOptions parameters)
         {
-            if (beatmap.GeneralSection.ModeId != 3)
-                throw new ArgumentException("不是mania模式");
-
             var ANA = new OsuAnalyzer();
             double BPM = beatmap.GetBPM();
-            if (BPM <= 0)
-                throw new ArgumentException("无法获取有效的BPM");
-            var beatLengthDict = ANA.GetBeatLengthList(beatmap);
+
+            var beatLengthDict = beatmap.GetBeatLengthList();
             var (matrix, timeAxis) = beatmap.BuildMatrix();
-            var beatLengthAxis = ANA.GetbeatLengthAxis(beatLengthDict, BPM, timeAxis);
+            var beatLengthAxis = ANA.GetBeatLengthAxis(beatLengthDict, BPM, timeAxis);
             var AvailableTime = CalculateAvailableTime(matrix, timeAxis);
 
             int[,] longMTX = new int[matrix.GetLength(0), matrix.GetLength(1)];

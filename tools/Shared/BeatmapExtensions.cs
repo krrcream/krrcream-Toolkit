@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using OsuParsers.Beatmaps;
+using krrTools.Tools.OsuParser;
 
 namespace krrTools.tools.Shared;
 
@@ -13,7 +14,7 @@ public static class BeatmapExtensions
     {
         if (beatmap == null)
             return 180;
-        
+
         var tp = beatmap.TimingPoints
             .Where(p => p.BeatLength > 0)
             .OrderBy(p => p.Offset)
@@ -97,6 +98,14 @@ public static class BeatmapExtensions
         return column;
     }
     
+    public static double GetLNPercent(this Beatmap beatmap)
+    {
+        double noteCount = beatmap.HitObjects.Count;
+        if (noteCount == 0) return 0;
+        double LNCountCount = beatmap.HitObjects.Count(hitObject => hitObject.EndTime > hitObject.StartTime);
+        return LNCountCount / noteCount * 100;
+    }
+
     public static string GetOsuFileName(this Beatmap beatmap)
     {
         // 清理文件名中的非法字符
@@ -113,5 +122,28 @@ public static class BeatmapExtensions
         version = Regex.Replace(version, invalidCharsPattern, "");
 
         return $"{artist} - {title} ({creator}) [{version}]";
+    }
+    
+    public static Dictionary<double, double> GetBeatLengthList(this Beatmap beatmap)
+    {
+        var tp = beatmap.TimingPoints
+            .Where(p => p.BeatLength > 0)
+            .OrderBy(p => p.Offset)
+            .ToList();
+        if (tp.Count == 0)
+            return new Dictionary<double, double>();
+    
+        var beatLengthDict = new Dictionary<double, double>();
+        foreach (var timingPoint in tp)
+        {
+            beatLengthDict[timingPoint.Offset] = timingPoint.BeatLength;
+        }
+    
+        return beatLengthDict;
+    }
+    
+    public static ManiaBeatmap GetManiaBeatmap(this Beatmap beatmap)
+    {
+        return new ManiaBeatmap(beatmap);
     }
 }

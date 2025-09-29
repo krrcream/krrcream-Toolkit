@@ -1,34 +1,33 @@
-﻿using System.Collections.Generic;
-using krrTools.tools.Shared;
+﻿using krrTools.tools.Shared;
 
 namespace krrTools.tools.KRRLNTransformer
 {
     public class KRRLNTransformerOptions : IToolOptions
     {
         // 短面条设置
-        public double ShortPercentageValue { get; set; }
-        public double ShortLevelValue { get; set; }
-        public double ShortLimitValue { get; set; }
-        public double ShortRandomValue { get; set; }
+        public double ShortPercentageValue { get; set; } = 50;
+        public double ShortLevelValue { get; set; } = 5;
+        public double ShortLimitValue { get; set; } = 20;
+        public double ShortRandomValue { get; set; } = 50;
     
         // 长面条设置
-        public double LongPercentageValue { get; set; }
-        public double LongLevelValue { get; set; }
-        public double LongLimitValue { get; set; }
-        public double LongRandomValue { get; set; }
+        public double LongPercentageValue { get; set; } = 50;
+        public double LongLevelValue { get; set; } = 5;
+        public double LongLimitValue { get; set; } = 20;
+        public double LongRandomValue { get; set; } = 50;
     
         // 对齐设置
-        public bool AlignIsChecked { get; set; }
-        public double AlignValue { get; set; }
+        public bool AlignIsChecked { get; set; } = false;
+        public double AlignValue { get; set; } = 4;
     
         // 处理原始面条
-        public bool ProcessOriginalIsChecked { get; set; }
+        public bool ProcessOriginalIsChecked { get; set; } = false;
     
         // OD设置
-        public double ODValue { get; set; }
+        public double ODValue { get; set; } = 8;
     
         // 种子值
-        public string? SeedText { get; set; }
+        public string? SeedText { get; set; } = "114514";
 
         public void Validate()
         {

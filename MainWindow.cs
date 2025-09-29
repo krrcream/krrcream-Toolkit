@@ -10,6 +10,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Data;
 using System.Windows.Shell;
+using krrTools.Localization;
 using krrTools.Tools.Shared;
 using krrTools.tools.Preview;
 using krrTools.tools.DPtool;
@@ -28,6 +29,7 @@ using MessageBox = System.Windows.MessageBox;
 using Point = System.Windows.Point;
 using Size = System.Windows.Size;
 using ToggleSwitch = Wpf.Ui.Controls.ToggleSwitch;
+using static krrTools.tools.LNTransformer.Setting;
 
 namespace krrTools;
 
@@ -54,7 +56,7 @@ public class MainWindow : FluentWindow
 
     private N2NCViewModel? _converterVM;
     private DPToolViewModel? _dpVM;
-    private LNTransformerViewModel? _lnVM;
+    private YLsLNTransformerViewModel? _lnVM;
     private DateTime _lastPreviewRefresh = DateTime.MinValue;
     
     private string? _internalOsuPath;
@@ -95,23 +97,26 @@ public class MainWindow : FluentWindow
         control.Refresh();
     }
 
+    public N2NCControl ConvWindowInstance => _convWindowInstance;
+    public YLsLNTransformerControl LNWindowInstance => _lnWindowInstance;
+    public KRRLNTransformerControl KRRLNTransformerInstance => _krrLnTransformerInstance;
+    public DPToolControl DPWindowInstance => _dpWindowInstance;
     private N2NCControl _convWindowInstance = null!;
-    private LNTransformerControl _lnWindowInstance = null!;
+    private YLsLNTransformerControl _lnWindowInstance = null!;
     private KRRLNTransformerControl _krrLnTransformerInstance = null!;
     private DPToolControl _dpWindowInstance = null!;
 
     private ContentControl? N2NCSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.N2NCToolName);
-    private ContentControl? LNSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.LNToolName);
+    private ContentControl? LNSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.YLsLNToolName);
     private ContentControl? DPSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.DPToolName);
-    private ContentControl? KRRLNSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.KRRLNToolName);
+    private ContentControl? KRRLNSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.KRRsLNToolName);
     private ContentControl? LVCalSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.LVCalToolName);
     private ContentControl? FilesManagerHost => _settingsHosts.GetValueOrDefault(OptionsManager.FilesManagerToolName);
 
     public DualPreviewControl? N2NCPreview => _previewControls.GetValueOrDefault(OptionsManager.N2NCToolName);
-    public DualPreviewControl? LNPreview => _previewControls.GetValueOrDefault(OptionsManager.LNToolName);
+    public DualPreviewControl? LNPreview => _previewControls.GetValueOrDefault(OptionsManager.YLsLNToolName);
     public DualPreviewControl? DPPreview => _previewControls.GetValueOrDefault(OptionsManager.DPToolName);
-    public DualPreviewControl? KRRLNPreview => _previewControls.GetValueOrDefault(OptionsManager.KRRLNToolName);
-    public N2NCControl ConvWindowInstance => _convWindowInstance;
+    public DualPreviewControl? KRRLNPreview => _previewControls.GetValueOrDefault(OptionsManager.KRRsLNToolName);
 
     public MainWindow()
     {
@@ -222,7 +227,7 @@ public class MainWindow : FluentWindow
         _realTimeToggle = new ToggleSwitch
         {
             IsChecked = RealTimePreview,
-            DataContext = new SharedUIComponents.LocalizedString(Strings.RealTimePreviewLabel)
+            DataContext = new LocalizedStringHelper.LocalizedString(Strings.RealTimePreviewLabel)
         };
         _realTimeToggle.SetBinding(ContentProperty, new Binding("Value"));
         _realTimeToggle.Checked += (_,_) => RealTimePreview = true;
@@ -251,7 +256,7 @@ public class MainWindow : FluentWindow
     private void InitializeToolScheduler()
     {
         ToolScheduler.RegisterTool(new N2NCTool());
-        ToolScheduler.RegisterTool(new LNTransformerTool());
+        ToolScheduler.RegisterTool(new YLsLNTransformerTool());
         ToolScheduler.RegisterTool(new DPTool());
         ToolScheduler.RegisterTool(new KRRLNTool());
     }
@@ -280,14 +285,14 @@ public class MainWindow : FluentWindow
     #region 创建带预览器选项卡
     private void BuildPreviewTabs()
     {
-        var previewConfigs = new[] { OptionsManager.N2NCToolName,OptionsManager.KRRLNToolName ,OptionsManager.LNToolName, OptionsManager.DPToolName };
+        var previewConfigs = new[] { OptionsManager.N2NCToolName,OptionsManager.KRRsLNToolName ,OptionsManager.YLsLNToolName, OptionsManager.DPToolName };
         foreach (var cfg in previewConfigs)
         {
             var headerText = cfg switch
             {
                 OptionsManager.N2NCToolName => Strings.TabN2NC,
-                OptionsManager.KRRLNToolName => "KRR转面器",
-                OptionsManager.LNToolName => Strings.TabLNTransformer,
+                OptionsManager.KRRsLNToolName => Strings.TabKRRsLN,
+                OptionsManager.YLsLNToolName => Strings.TabYLsLN,
                 OptionsManager.DPToolName => Strings.TabDPTool,
                 _ => cfg
             };
@@ -302,6 +307,11 @@ public class MainWindow : FluentWindow
             };
             var settingsHost = new ContentControl();
             _settingsHosts[cfg] = settingsHost;
+
+            // 创建对应的预览控件（用于存储处理器，不显示在UI中）
+            var previewControl = new DualPreviewControl { Visibility = Visibility.Collapsed };
+            _previewControls[cfg] = previewControl;
+
             var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
             settingsHost.Content = null;
             scroll.Content = settingsHost;
@@ -343,73 +353,43 @@ public class MainWindow : FluentWindow
     }
     #endregion
     
+    #region 统一分配预览处理器
     private void SetupPreviewProcessors()
     {
         _internalOsuPath = ResolveInternalSample();
         
-        // 统一分配预览处理器
-        if (_previewControls.TryGetValue(OptionsManager.N2NCToolName, out var converterPreview) &&
-            _settingsHosts.TryGetValue(OptionsManager.N2NCToolName, out var convHost))
-            converterPreview.Processor = new ConverterPreviewProcessor(null,
-                () => (convHost.DataContext as N2NCViewModel)?.GetConversionOptions());
-
-        if (_previewControls.TryGetValue(OptionsManager.LNToolName, out var lnPreview) &&
-            _settingsHosts.TryGetValue(OptionsManager.LNToolName, out var lnHost))
-            lnPreview.Processor = new LNPreviewProcessor(null,
-                () => (lnHost.DataContext as LNTransformerViewModel)?.GetLNPreviewParameters() ?? default(LNTransformerCore.LNPreviewParameters));
-
-        if (_previewControls.TryGetValue(OptionsManager.DPToolName, out var dpPreview) &&
-            _settingsHosts.TryGetValue(OptionsManager.DPToolName, out var dpHost))
-            dpPreview.Processor = new DPPreviewProcessor(null,
-                () => (dpHost.DataContext as DPToolViewModel)?.Options ?? new DPToolOptions());
-
-        if (_previewControls.TryGetValue(OptionsManager.KRRLNToolName, out var krrLNPreview) &&
-            _settingsHosts.TryGetValue(OptionsManager.KRRLNToolName, out var krrLNHost))
-        {
-            var processor = new ConverterPreviewProcessor(null, null)
-            {
-                KRRLNOptionsProvider = () => _krrLnTransformerInstance.GetOptions()
-            };
-            krrLNPreview.Processor = processor;
-        }
-
+        // 设置ViewModel引用，用于动态创建处理器时的回调
         _converterVM = N2NCSettingsHost?.DataContext as N2NCViewModel;
-        if (_converterVM != null && N2NCPreview?.Processor is ConverterPreviewProcessor cpp)
+        if (_converterVM != null)
         {
-            cpp.ConverterOptionsProvider = () => _converterVM.GetConversionOptions();
-            _converterVM.PropertyChanged += (_, _) => DebouncedRefresh(N2NCPreview!);
+            _converterVM.PropertyChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(OptionsManager.N2NCToolName);
         }
 
         _dpVM = DPSettingsHost?.DataContext as DPToolViewModel;
-        if (_dpVM != null && DPPreview?.Processor is DPPreviewProcessor dpp)
+        if (_dpVM != null)
         {
-            dpp.DPOptionsProvider = () => _dpVM.Options;
-            _dpVM.PropertyChanged += (_, _) => DebouncedRefresh(DPPreview!);
-            _dpVM.Options.PropertyChanged += (_, _) => DebouncedRefresh(DPPreview!);
+            _dpVM.PropertyChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(OptionsManager.DPToolName);
         }
 
-        _lnVM = LNSettingsHost?.DataContext as LNTransformerViewModel;
-        if (_lnVM != null && LNPreview?.Processor is LNPreviewProcessor lnp)
+        _lnVM = LNSettingsHost?.DataContext as YLsLNTransformerViewModel;
+        if (_lnVM != null)
         {
-            lnp.LNParamsProvider = () => _lnVM.GetLNPreviewParameters();
-            _lnVM.PropertyChanged += (_, _) => DebouncedRefresh(LNPreview!);
-            _lnVM.Options.PropertyChanged += (_, _) => DebouncedRefresh(LNPreview!);
-        }
-        
-        if (!string.IsNullOrEmpty(_internalOsuPath) && File.Exists(_internalOsuPath))
-        {
-            var arr = new[] { _internalOsuPath };
-            if (_previewControls.TryGetValue(OptionsManager.N2NCToolName, out var convControl))
-                convControl.LoadPreview(arr, true);
-            if (_previewControls.TryGetValue(OptionsManager.LNToolName, out var lnControl))
-                lnControl.LoadPreview(arr, true);
-            if (_previewControls.TryGetValue(OptionsManager.DPToolName, out var dpControl))
-                dpControl.LoadPreview(arr, true);
-            if (_previewControls.TryGetValue(OptionsManager.KRRLNToolName, out var krrLNControl))
-                krrLNControl.LoadPreview(arr, true);
+            _lnVM.PropertyChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(OptionsManager.YLsLNToolName);
         }
     }
 
+    private void RefreshGlobalPreviewIfCurrentTool(string toolName)
+    {
+        if (_previewControls.TryGetValue("Global", out var globalPreview) && 
+            globalPreview.CurrentTool == toolName && 
+            globalPreview.Visibility == Visibility.Visible)
+        {
+            DebouncedRefresh(globalPreview);
+        }
+    }
+    #endregion
+
+    // 清除固定尺寸属性，以便嵌入时自适应布局
     private void ClearFixedSizes(DependencyObject? element)
     {
         if (element is FrameworkElement fe)
@@ -449,6 +429,7 @@ public class MainWindow : FluentWindow
         return null;
     }
 
+#region 嵌入各工具设置窗口
     private void LoadToolSettingsHosts()
     {
         // Converter 嵌入
@@ -503,11 +484,14 @@ public class MainWindow : FluentWindow
             KRRLNSettingsHost.Content = krrLnContent;
             // 清空原窗口内容，使元素只有一个父级
             krrLn.Content = null;
+
+            // 监听KRRLN设置变化
+            krrLn.SettingsChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(OptionsManager.KRRsLNToolName);
         }
         
         
         // LNTransformer 嵌入
-        _lnWindowInstance = new LNTransformerControl();
+        _lnWindowInstance = new YLsLNTransformerControl();
         var ln = _lnWindowInstance;
         if (ln.Content is UIElement lnContent && LNSettingsHost != null)
         {
@@ -596,6 +580,7 @@ public class MainWindow : FluentWindow
             getFilesWin.Content = null;
         }
     }
+#endregion
 
     // 窗口级别拖放：转发到全局处理器
     private void GlobalDropArea_Drop(DragEventArgs e)
@@ -648,6 +633,7 @@ public class MainWindow : FluentWindow
         }
     }
 
+#region 构建独立选项卡，切换时更新设置和预览
     private void DetachTab(TabViewItem tab)
     {
         if (!MainTabControl.Items.Contains(tab)) return;
@@ -735,6 +721,7 @@ public class MainWindow : FluentWindow
 
         win.Show();
     }
+#endregion
 
     private string? ResolveInternalSample()
     {
@@ -799,7 +786,7 @@ public class MainWindow : FluentWindow
                 source = _convWindowInstance;
                 sourceId = 1;
                 break;
-            case OptionsManager.LNToolName:
+            case OptionsManager.YLsLNToolName:
                 source = _lnWindowInstance;
                 sourceId = 2;
                 break;
@@ -807,7 +794,7 @@ public class MainWindow : FluentWindow
                 source = _dpWindowInstance;
                 sourceId = 3;
                 break;
-            case OptionsManager.KRRLNToolName:
+            case OptionsManager.KRRsLNToolName:
                 source = _krrLnTransformerInstance;
                 sourceId = 4;
                 break;
@@ -951,14 +938,28 @@ public class MainWindow : FluentWindow
     {
         var selectedTag = (MainTabControl.SelectedItem as TabViewItem)?.Tag as string;
         // 判断是否为转换工具，配套增加预览器
-        var isConverter = selectedTag is OptionsManager.N2NCToolName or OptionsManager.LNToolName or OptionsManager.DPToolName or OptionsManager.KRRLNToolName;
+        var isConverter = selectedTag is OptionsManager.N2NCToolName or OptionsManager.YLsLNToolName or OptionsManager.DPToolName or OptionsManager.KRRsLNToolName;
         if (_previewControls.TryGetValue("Global", out var preview))
         {
             preview.Visibility = isConverter ? Visibility.Visible : Visibility.Collapsed;
             preview.CurrentTool = selectedTag; // Set the current tool for the global preview
-            if (isConverter && selectedTag != null && _previewControls.TryGetValue(selectedTag, out var toolPreview))
+            if (isConverter && selectedTag != null)
             {
-                preview.Processor = toolPreview.Processor;
+                // 直接创建统一的处理器
+                var processor = new PreviewProcessor
+                {
+                    ToolScheduler = ToolScheduler,
+                    ConverterOptionsProvider = () => _converterVM?.Options ?? new N2NCOptions(),
+                    KRRLNOptionsProvider = () => _krrLnTransformerInstance.Options,
+                    LNOptionsProvider = () => _lnVM?.Options ?? new YLsLNTransformerOptions(),
+                    DPOptionsProvider = () => _dpVM?.Options ?? new DPToolOptions(),
+                    CurrentTool = selectedTag
+                };
+                preview.Processor = processor;
+            }
+            else if (!isConverter)
+            {
+                preview.Processor = null; // 非转换工具时清除处理器
             }
         }
         // 动态调整列宽度

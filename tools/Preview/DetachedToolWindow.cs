@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
@@ -38,20 +38,18 @@ namespace krrTools.tools.Preview
             // 这样在弹出窗口中修改设置时能够实时刷新预览。
             try
             {
-                if (settingsContent is FrameworkElement fe)
+                if (settingsContent is FrameworkElement fe && processor is PreviewProcessor pp)
                 {
-                    // Converter
-                    if (processor is ConverterPreviewProcessor cpp && fe.DataContext is N2NCViewModel convVm)
+                    // 根据工具类型设置相应的选项提供器
+                    if (pp.CurrentTool == OptionsManager.N2NCToolName && fe.DataContext is N2NCViewModel convVm)
                     {
-                        cpp.ConverterOptionsProvider = () => convVm.GetConversionOptions();
+                        pp.ConverterOptionsProvider = () => convVm.GetConversionOptions();
                         if (convVm is INotifyPropertyChanged npc)
                             npc.PropertyChanged += (_, _) => _previewControl.Refresh();
                     }
-
-                    // DP tool
-                    if (processor is DPPreviewProcessor dpp && fe.DataContext is DPToolViewModel dpVm)
+                    else if (pp.CurrentTool == OptionsManager.DPToolName && fe.DataContext is DPToolViewModel dpVm)
                     {
-                        dpp.DPOptionsProvider = () => dpVm.Options;
+                        pp.DPOptionsProvider = () => dpVm.Options;
                         if (dpVm is INotifyPropertyChanged npc)
                         {
                             npc.PropertyChanged += (_, _) => _previewControl.Refresh();
@@ -59,11 +57,9 @@ namespace krrTools.tools.Preview
                             dpVm.Options.PropertyChanged += (_, _) => _previewControl.Refresh();
                         }
                     }
-
-                    // LN 工具：没有独立 ViewModel，直接从设置面板中查找具名控件并建立提供器
-                    if (processor is LNPreviewProcessor lpp)
+                    else if (pp.CurrentTool == OptionsManager.YLsLNToolName)
                     {
-                        // 在传入的设置视觉树中查找具名后代控件
+                        // 在传入的设置视觉树中查找具名后代控件并建立提供器
                         T? FindDescendant<T>(DependencyObject root, string name) where T : FrameworkElement
                         {
                             if (root is FrameworkElement feRoot && feRoot.Name == name && feRoot is T tt) return tt;
@@ -81,15 +77,15 @@ namespace krrTools.tools.Preview
                         bool GetCheckBoxValue(string name) => FindDescendant<CheckBox>(fe, name) is { IsChecked: true };
                         double GetTextBoxDouble(string name) => FindDescendant<TextBox>(fe, name) is { } t && double.TryParse(t.Text, out var v) ? v : 0;
 
-                        lpp.LNParamsProvider = () => new LNTransformerCore.LNPreviewParameters
+                        pp.LNOptionsProvider = () => new YLsLNTransformerOptions
                         {
                             LevelValue = GetSliderValue("LevelValue"),
                             PercentageValue = GetSliderValue("PercentageValue"),
                             DivideValue = GetSliderValue("DivideValue"),
                             ColumnValue = GetSliderValue("ColumnValue"),
                             GapValue = GetSliderValue("GapValue"),
-                            OriginalLN = GetCheckBoxValue("OriginalLN"),
-                            FixError = GetCheckBoxValue("FixError"),
+                            OriginalLNIsChecked = GetCheckBoxValue("OriginalLN"),
+                            FixErrorIsChecked = GetCheckBoxValue("FixError"),
                             OverallDifficulty = GetTextBoxDouble("OverallDifficulty")
                         };
 

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using CommunityToolkit.Mvvm.ComponentModel;
 using krrTools.tools.Shared;
 
 namespace krrTools.tools.N2NC
@@ -20,94 +19,25 @@ namespace krrTools.tools.N2NC
         K10Plus = 1 << 7
     }
 
-    public class N2NCViewModel : ObservableObject
+    public class N2NCViewModel : ToolViewModelBase<N2NCOptions>
     {
         private double _targetKeys = 10;
         private double _maxKeys = 10;
         private double _minKeys = 2;
         // TransformSpeed is a numeric slider value (double) — slider granularity handled in UI
         private double _transformSpeed = 1.0;
-        private int? _seed = 114514;
 
         // Backing field for flags-based selection
         private KeySelectionFlags _keySelection = KeySelectionFlags.None;
 
-        // Track currently selected preset
-        private PresetKind _selectedPreset = PresetKind.Default;
-
-        public N2NCViewModel()
+        public N2NCViewModel() : base(OptionsManager.N2NCToolName, autoSave: true)
         {
-            // Subscribe to property changes to save options
-            PropertyChanged += N2NCViewModel_PropertyChanged;
+            // Additional initialization if needed
         }
 
-        public void LoadOptions()
-        {
-            // Try to load saved ConverterOptions
-            try
-            {
-                var saved = OptionsManager.LoadOptions<N2NCOptions>(OptionsManager.N2NCToolName, OptionsManager.ConfigFileName);
-                if (saved != null)
-                {
-                    TargetKeys = saved.TargetKeys > 0 ? saved.TargetKeys : 10;
-                    MaxKeys = saved.MaxKeys > 0 ? saved.MaxKeys : 10;
-                    MinKeys = saved.MinKeys > 0 ? saved.MinKeys : 2;
-                    TransformSpeed = saved.TransformSpeed > 0 ? saved.TransformSpeed : 1.0;
-                    if (saved.Seed.HasValue && saved.Seed.Value != 0)
-                        Seed = saved.Seed;
+        public KeySelectionFlags KeySelection { get; set; } = KeySelectionFlags.None;
 
-                    // Restore key flags if available
-                    if (saved.SelectedKeyFlags.HasValue)
-                    {
-                        KeySelection = saved.SelectedKeyFlags.Value;
-                    }
-                    else if (saved.SelectedKeyTypes != null)
-                    {
-                        KeySelection = KeySelectionFlags.None;
-                        foreach (var k in saved.SelectedKeyTypes)
-                        {
-                            switch (k)
-                            {
-                                case 4: KeySelection |= KeySelectionFlags.K4; break;
-                                case 5: KeySelection |= KeySelectionFlags.K5; break;
-                                case 6: KeySelection |= KeySelectionFlags.K6; break;
-                                case 7: KeySelection |= KeySelectionFlags.K7; break;
-                                case 8: KeySelection |= KeySelectionFlags.K8; break;
-                                case 9: KeySelection |= KeySelectionFlags.K9; break;
-                                case 10: KeySelection |= KeySelectionFlags.K10; break;
-                                default: KeySelection |= KeySelectionFlags.K10Plus; break;
-                            }
-                        }
-                    }
-
-                    // Restore selected preset
-                    SelectedPreset = saved.SelectedPreset;
-                }
-            }
-            catch
-            {
-                // best-effort load
-            }
-        }
-
-        private void N2NCViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            var opt = GetConversionOptions();
-            opt.Validate();
-            OptionsManager.SaveOptions(OptionsManager.N2NCToolName, OptionsManager.ConfigFileName, opt);
-        }
-
-        public KeySelectionFlags KeySelection
-        {
-            get => _keySelection;
-            set => SetProperty(ref _keySelection, value);
-        }
-
-        public PresetKind SelectedPreset
-        {
-            get => _selectedPreset;
-            set => SetProperty(ref _selectedPreset, value);
-        }
+        public PresetKind SelectedPreset { get; set; } = PresetKind.Default;
 
         public bool Is4KSelected
         {
@@ -197,11 +127,7 @@ namespace krrTools.tools.N2NC
             }
         }
 
-        public int? Seed
-        {
-            get => _seed;
-            set => SetProperty(ref _seed, value);
-        }
+        public int? Seed { get; set; } = 114514;
 
         // 获取选中的键数列表 - now derived from KeySelection flags
         private List<int> GetSelectedKeyTypes()

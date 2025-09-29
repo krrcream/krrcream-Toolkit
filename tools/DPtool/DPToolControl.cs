@@ -4,8 +4,10 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using krrTools.Localization;
 using krrTools.Tools.Shared;
 using krrTools.tools.Shared;
+using OsuParsers.Beatmaps;
 
 namespace krrTools.tools.DPtool
 {
@@ -261,24 +263,24 @@ namespace krrTools.tools.DPtool
             Content = stackPanel;
         }
 
-        public void ProcessSingleFile(string filePath)
+        public Beatmap? ProcessSingleFile(string filePath)
         {
             try
             {
-                try { _viewModel.IsProcessing = true; } catch (Exception ex) { Debug.WriteLine($"Failed to set IsProcessing=true: {ex.Message}"); }
-
-                FilesHelper.ValidateAndRunWithPackaging(filePath, (fp) =>
-                {
-                    var dp = new DP();
-                    string newFilepath = dp.ProcessFile(fp, _viewModel.Options);
-                    return newFilepath;
-                }, openOsz: false, onCompleted: () => { try { _viewModel.IsProcessing = false; } catch (Exception ex) { Debug.WriteLine($"Failed to set IsProcessing=false in onCompleted: {ex.Message}"); } }, showSuccessMessage: false);
+                var beatmap = FilesHelper.GetManiaBeatmap(filePath);
+                var dp = new DP();
+                return dp.DPBeatmapToData(beatmap, _viewModel.Options);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                try { _viewModel.IsProcessing = false; } catch (Exception iex) { Debug.WriteLine($"Failed to set IsProcessing=false in catch: {iex.Message}"); }
-                MessageBox.Show(("Error processing file: {0}".Localize()).Replace("{0}", ex.Message), ("Processing Error|处理错误".Localize()), MessageBoxButton.OK, MessageBoxImage.Error);
+                // Log error but don't show UI message
+                return null;
             }
+        }
+
+        public string GetOutputFileName(string inputPath, Beatmap beatmap)
+        {
+            return beatmap.GetOsuFileName() + ".osu";
         }
 
         private void SetupBindings()

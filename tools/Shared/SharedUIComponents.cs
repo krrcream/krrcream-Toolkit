@@ -1,15 +1,11 @@
 using System;
 using System.Windows;
 using System.Windows.Media;
-using System.Reflection;
-using System.ComponentModel;
-using System.Globalization;
 using System.Windows.Controls;
-using Wpf.Ui.Controls;
 using Button = Wpf.Ui.Controls.Button;
-using DataGrid = System.Windows.Controls.DataGrid;
 using TextBox = Wpf.Ui.Controls.TextBox;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
+using krrTools.Localization;
 
 namespace krrTools.tools.Shared
 {
@@ -18,24 +14,23 @@ namespace krrTools.tools.Shared
     /// </summary>
     public static class SharedUIComponents
     {
-        // Optional override for language selection. If null, the system culture is used.
-        private static bool? ForceChinese { get; set; }
-
         // Event raised when the effective language selection changes (so UI can update)
-        public static event Action? LanguageChanged;
+        public static event Action? LanguageChanged
+        {
+            add => LocalizationManager.LanguageChanged += value;
+            remove => LocalizationManager.LanguageChanged -= value;
+        }
 
         // Set the ForceChinese flag and notify listeners
         private static void SetForceChinese(bool? forceChinese)
         {
-            ForceChinese = forceChinese;
-            OptionsManager.SetForceChinese(forceChinese);
-            LanguageChanged?.Invoke();
+            LocalizationManager.SetForceChinese(forceChinese);
         }
 
         // Toggle the language selection (used by simple toggle UIs)
         public static void ToggleLanguage()
         {
-            SetForceChinese(!IsChineseLanguage());
+            LocalizationManager.ToggleLanguage();
         }
 
         // Set saved theme settings
@@ -136,37 +131,15 @@ namespace krrTools.tools.Shared
          
          public static bool IsChineseLanguage()
          {
-             if (ForceChinese.HasValue) return ForceChinese.Value;
-             return CultureInfo.CurrentUICulture.Name.Contains("zh");
+             return LocalizationManager.IsChineseLanguage();
          }
-
-         private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, System.Collections.Concurrent.ConcurrentDictionary<string, string[]>> _enumCache = new();
 
          /// <summary>
          /// 根据枚举的Description特性获取本地化显示名称
          /// </summary>
          public static string GetLocalizedEnumDisplayName<T>(T enumValue) where T : Enum
          {
-             var type = typeof(T);
-             if (!_enumCache.TryGetValue(type, out var dict))
-             {
-                 dict = new System.Collections.Concurrent.ConcurrentDictionary<string, string[]>();
-                 foreach (var field in type.GetFields())
-                 {
-                     var attr = field.GetCustomAttribute<DescriptionAttribute>();
-                     if (attr != null && !string.IsNullOrEmpty(attr.Description) && attr.Description.Contains('|'))
-                     {
-                         dict[field.Name] = attr.Description.Split('|', 2);
-                     }
-                 }
-                 _enumCache[type] = dict;
-             }
-             
-             if (dict.TryGetValue(enumValue.ToString(), out var parts) && IsChineseLanguage() && parts.Length > 1)
-             {
-                 return parts[1];
-             }
-             return parts != null ? parts[0] : enumValue.ToString();
+             return LocalizationManager.GetLocalizedEnumDisplayName(enumValue);
          }
 
          /// <summary>
@@ -174,19 +147,7 @@ namespace krrTools.tools.Shared
          /// </summary>
          public static void SetLocalizedToolTip(FrameworkElement element, string? tooltipText)
          {
-             if (string.IsNullOrEmpty(tooltipText)) return;
-             if (tooltipText.Contains('|'))
-             {
-                 var parts = tooltipText.Split('|', 2);
-                 element.ToolTip = IsChineseLanguage() && parts.Length > 1 ? parts[1] : parts[0];
-                 void UpdateTip() { var p = tooltipText.Split('|', 2); element.ToolTip = IsChineseLanguage() && p.Length > 1 ? p[1] : p[0]; }
-                 LanguageChanged += UpdateTip;
-                 element.Unloaded += (_, _) => LanguageChanged -= UpdateTip;
-             }
-             else
-             {
-                 element.ToolTip = tooltipText;
-             }
+             LocalizationManager.SetLocalizedToolTip(element, tooltipText);
          }
 
          public static TextBlock CreateStandardTextBlock()
@@ -378,121 +339,6 @@ namespace krrTools.tools.Shared
               return cb;
           }
 
-          /// <summary>
-          /// Applies shared default styles for common controls to the application resources.
-          /// </summary>
-          public static void ApplyDefaultControlStyles(ResourceDictionary appRes)
-          {
-              // Ensure default font settings
-              var famKey = nameof(ResourceKeys.AppFontFamily);
-              var sizeKey = nameof(ResourceKeys.AppFontSize);
-              if (!appRes.Contains(famKey)) appRes[famKey] = new FontFamily("Segoe UI");
-              if (!appRes.Contains(sizeKey)) appRes[sizeKey] = 14.0;
-
-              // Button style
-              if (!appRes.Contains(typeof(Button)))
-              {
-                  var btnStyle = new Style(typeof(Button));
-                  btnStyle.Setters.Add(new Setter(Control.FontFamilyProperty, appRes[famKey]));
-                  btnStyle.Setters.Add(new Setter(Control.FontSizeProperty, appRes[sizeKey]));
-                  btnStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(10, 6, 10, 6)));
-                  btnStyle.Setters.Add(new Setter(Control.HorizontalContentAlignmentProperty, HorizontalAlignment.Center));
-                  btnStyle.Setters.Add(new Setter(Control.VerticalContentAlignmentProperty, VerticalAlignment.Center));
-                  btnStyle.Setters.Add(new Setter(Control.BackgroundProperty, PanelBackgroundBrush));
-                  btnStyle.Setters.Add(new Setter(Control.ForegroundProperty, UiTextBrush));
-                  btnStyle.Setters.Add(new Setter(Control.BorderBrushProperty, PanelBorderBrush));
-                  btnStyle.Setters.Add(new Setter(Control.BorderThicknessProperty, new Thickness(1)));
-                  appRes[typeof(Button)] = btnStyle;
-              }
-
-              // TextBox style
-              if (!appRes.Contains(typeof(TextBox)))
-              {
-                  var tbStyle = new Style(typeof(TextBox));
-                  tbStyle.Setters.Add(new Setter(Control.FontFamilyProperty, appRes[famKey]));
-                  tbStyle.Setters.Add(new Setter(Control.FontSizeProperty, appRes[sizeKey]));
-                  tbStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(6)));
-                  appRes[typeof(TextBox)] = tbStyle;
-              }
-
-              // TextBlock style
-              if (!appRes.Contains(typeof(TextBlock)))
-              {
-                  var tbs = new Style(typeof(TextBlock));
-                  tbs.Setters.Add(new Setter(Control.FontFamilyProperty, appRes[famKey]));
-                  tbs.Setters.Add(new Setter(Control.FontSizeProperty, appRes[sizeKey]));
-                  appRes[typeof(TextBlock)] = tbs;
-              }
-
-              // DataGrid style
-              if (!appRes.Contains(typeof(DataGrid)))
-              {
-                  var dgStyle = new Style(typeof(DataGrid));
-                  dgStyle.Setters.Add(new Setter(Control.FontFamilyProperty, appRes[famKey]));
-                  dgStyle.Setters.Add(new Setter(Control.FontSizeProperty, appRes[sizeKey]));
-                  dgStyle.Setters.Add(new Setter(DataGrid.RowHeightProperty, 20.0));
-                  dgStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(4)));
-                  appRes[typeof(DataGrid)] = dgStyle;
-              }
-
-              // TabItem style for dynamic width
-              if (!appRes.Contains(typeof(TabViewItem)))
-              {
-                  var tabStyle = new Style(typeof(TabViewItem));
-                  tabStyle.Setters.Add(new Setter(FrameworkElement.WidthProperty, double.NaN)); // Auto width
-                  tabStyle.Setters.Add(new Setter(FrameworkElement.MinWidthProperty, 0.0));
-                  tabStyle.Setters.Add(new Setter(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Left));
-                  appRes[typeof(TabViewItem)] = tabStyle;
-              }
-          }
-
-          /// <summary>
-          /// A class that provides localized strings with automatic updates when language changes.
-          /// </summary>
-          public class LocalizedString : INotifyPropertyChanged
-          {
-              private string _localizedText;
-
-              public LocalizedString(string key)
-              {
-                  Key = key;
-                  _localizedText = key.Localize();
-                  SharedUIComponents.LanguageChanged += OnLanguageChanged;
-              }
-
-              public string Key { get; }
-
-              public string Value
-              {
-                  get => _localizedText;
-                  private set
-                  {
-                      if (_localizedText != value)
-                      {
-                          _localizedText = value;
-                          OnPropertyChanged(nameof(Value));
-                      }
-                  }
-              }
-
-              private void OnLanguageChanged()
-              {
-                  Value = Key.Localize();
-              }
-
-              public event PropertyChangedEventHandler? PropertyChanged;
-
-              protected virtual void OnPropertyChanged(string propertyName)
-              {
-                  PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-              }
-
-              public static implicit operator string(LocalizedString ls) => ls.Value;
-
-              ~LocalizedString()
-              {
-                  SharedUIComponents.LanguageChanged -= OnLanguageChanged;
-              }
-          }
+          
 }
 }

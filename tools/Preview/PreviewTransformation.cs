@@ -13,7 +13,7 @@ namespace krrTools.tools.Preview;
 public static class PreviewTransformation
 {
     // osu文件构建矩阵
-    public static (int columns, List<BasePreviewProcessor.ManiaNote> notes, double quarterMs) BuildOriginal(
+    public static (int columns, List<PreviewProcessor.ManiaNote> notes, double quarterMs) BuildOriginal(
         string osuPath, int maxRows)
     {
         if (!TryBuildMatrix(
@@ -22,7 +22,7 @@ public static class PreviewTransformation
                 out var matrix, 
                 out var timeAxis, 
                 out var cs))
-            return (0, new List<BasePreviewProcessor.ManiaNote>(), 0);
+            return (0, new List<PreviewProcessor.ManiaNote>(), 0);
 
         double bpm = beatmap.GetBPM();
         var quarterMs = 60000.0 / Math.Max(1.0, bpm);
@@ -109,18 +109,18 @@ public static class PreviewTransformation
     }
 
     // 构建一个时间窗口内的原始音符（通过矩阵切片实现）
-    public static (int columns, List<BasePreviewProcessor.ManiaNote> notes, double quarterMs) BuildOriginalWindow(
+    public static (int columns, List<PreviewProcessor.ManiaNote> notes, double quarterMs) BuildOriginalWindow(
         string osuPath, int startMs, int endMs)
     {
         if (!TryBuildMatrix(osuPath, out var beatmap, out var matrix, out var timeAxis, out var cs))
-            return (0, new List<BasePreviewProcessor.ManiaNote>(), 0);
+            return (0, new List<PreviewProcessor.ManiaNote>(), 0);
         return BuildWindowFromMatrix(matrix, timeAxis, cs, beatmap, startMs, endMs);
     }
 
     // 从 Beatmap 构建 mania 音符列表（用于预览转换后的数据）
-    public static (int columns, List<BasePreviewProcessor.ManiaNote> notes, double quarterMs) BuildFromBeatmap(Beatmap beatmap, int maxRows)
+    public static (int columns, List<PreviewProcessor.ManiaNote> notes, double quarterMs) BuildFromBeatmap(Beatmap beatmap, int maxRows)
     {
-        if (beatmap.GeneralSection.ModeId != 3) return (0, new List<BasePreviewProcessor.ManiaNote>(), 0);
+        if (beatmap.GeneralSection.ModeId != 3) return (0, new List<PreviewProcessor.ManiaNote>(), 0);
         var cs = (int)beatmap.DifficultySection.CircleSize;
         var (matrix, timeAxis) = BuildMatrixFromBeatmap(beatmap);
         var bpm = beatmap.GetBPM();
@@ -130,9 +130,9 @@ public static class PreviewTransformation
     }
 
     // 从 Beatmap 构建时间窗口内的音符
-    public static (int columns, List<BasePreviewProcessor.ManiaNote> notes, double quarterMs) BuildFromBeatmapWindow(Beatmap beatmap, int startMs, int endMs)
+    public static (int columns, List<PreviewProcessor.ManiaNote> notes, double quarterMs) BuildFromBeatmapWindow(Beatmap beatmap, int startMs, int endMs)
     {
-        if (beatmap.GeneralSection.ModeId != 3) return (0, new List<BasePreviewProcessor.ManiaNote>(), 0);
+        if (beatmap.GeneralSection.ModeId != 3) return (0, new List<PreviewProcessor.ManiaNote>(), 0);
         var cs = (int)beatmap.DifficultySection.CircleSize;
         var (matrix, timeAxis) = BuildMatrixFromBeatmap(beatmap);
         var bpm = beatmap.GetBPM();
@@ -202,10 +202,10 @@ public static class PreviewTransformation
     }
 
     // 将矩阵和时间轴转换为预览音符列表（只取前 maxRows 个时间行）
-    private static (int columns, List<BasePreviewProcessor.ManiaNote> notes) MatrixToNotes(int[,] matrix,
+    private static (int columns, List<PreviewProcessor.ManiaNote> notes) MatrixToNotes(int[,] matrix,
         List<int> timeAxis, int columns, int maxRows)
     {
-        var notes = new List<BasePreviewProcessor.ManiaNote>();
+        var notes = new List<PreviewProcessor.ManiaNote>();
         var rows = matrix.GetLength(0);
         var cols = matrix.GetLength(1);
         var takenRows = 0;
@@ -223,7 +223,7 @@ public static class PreviewTransformation
                         if (matrix[k, c] == -7) endRow = k;
                         else break;
                     int? endTime = endRow > r ? timeAxis[endRow] : null;
-                    notes.Add(new BasePreviewProcessor.ManiaNote
+                    notes.Add(new PreviewProcessor.ManiaNote
                     {
                         X = (int)((c + 0.5) * (512.0 / cols)),
                         Time = t,
@@ -283,7 +283,7 @@ public static class PreviewTransformation
     }
 
     // 通用：从矩阵和时间轴构建预览窗口并返回拍子信息
-    private static (int columns, List<BasePreviewProcessor.ManiaNote> notes, double quarterMs) BuildWindowFromMatrix(
+    private static (int columns, List<PreviewProcessor.ManiaNote> notes, double quarterMs) BuildWindowFromMatrix(
         int[,] matrix, 
         List<int> timeAxis, 
         int columns, 
@@ -294,7 +294,7 @@ public static class PreviewTransformation
          double BPM = beatmap.GetBPM();
          double quarterMs = 60000.0 / Math.Max(1.0, BPM);
          var (mSlice, tSlice) = SliceMatrixByTime(matrix, timeAxis, startMs, endMs);
-         if (mSlice.GetLength(0) == 0) return (columns, new List<BasePreviewProcessor.ManiaNote>(), quarterMs);
+         if (mSlice.GetLength(0) == 0) return (columns, new List<PreviewProcessor.ManiaNote>(), quarterMs);
          var res = MatrixToNotes(mSlice, tSlice, columns, int.MaxValue);
          return (res.columns, res.notes, quarterMs);
      }

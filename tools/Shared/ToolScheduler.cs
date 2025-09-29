@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using OsuParsers.Beatmaps;
 
 namespace krrTools.tools.Shared
 {
@@ -28,7 +29,21 @@ namespace krrTools.tools.Shared
         }
 
         /// <summary>
-        /// 异步执行单个工具
+        /// 异步执行单个工具（使用工具内部加载的设置）
+        /// </summary>
+        /// <param name="toolName">工具名称</param>
+        /// <param name="filePath">输入文件路径</param>
+        /// <returns>输出文件路径，失败返回null</returns>
+        public async Task<string?> ExecuteSingleAsync(string toolName, string filePath)
+        {
+            if (!_tools.TryGetValue(toolName, out var tool))
+                return null;
+
+            return await tool.ProcessFileAsync(filePath);
+        }
+
+        /// <summary>
+        /// 异步执行单个工具（使用指定的选项）
         /// </summary>
         /// <param name="toolName">工具名称</param>
         /// <param name="filePath">输入文件路径</param>
@@ -39,11 +54,25 @@ namespace krrTools.tools.Shared
             if (!_tools.TryGetValue(toolName, out var tool))
                 return null;
 
-            return await tool.ProcessFileAsync(filePath, options);
+            return await Task.Run(() => tool.ProcessFileWithOptions(filePath, options));
         }
 
         /// <summary>
-        /// 同步执行单个工具
+        /// 同步执行单个工具（使用工具内部加载的设置）
+        /// </summary>
+        /// <param name="toolName">工具名称</param>
+        /// <param name="filePath">输入文件路径</param>
+        /// <returns>输出文件路径，失败返回null</returns>
+        public string? ExecuteSingle(string toolName, string filePath)
+        {
+            if (!_tools.TryGetValue(toolName, out var tool))
+                return null;
+
+            return tool.ProcessFile(filePath);
+        }
+
+        /// <summary>
+        /// 同步执行单个工具（使用指定的选项）
         /// </summary>
         /// <param name="toolName">工具名称</param>
         /// <param name="filePath">输入文件路径</param>
@@ -54,7 +83,7 @@ namespace krrTools.tools.Shared
             if (!_tools.TryGetValue(toolName, out var tool))
                 return null;
 
-            return tool.ProcessFile(filePath, options);
+            return tool.ProcessFileWithOptions(filePath, options);
         }
 
         /// <summary>
@@ -77,22 +106,51 @@ namespace krrTools.tools.Shared
         }
 
         /// <summary>
-        /// 同步执行工具管道
+        /// 处理Beatmap对象（使用工具内部加载的设置）
+        /// </summary>
+        /// <param name="toolName">工具名称</param>
+        /// <param name="beatmap">输入Beatmap</param>
+        /// <returns>处理后的Beatmap，失败返回null</returns>
+        public Beatmap? ProcessBeatmap(string toolName, Beatmap beatmap)
+        {
+            if (!_tools.TryGetValue(toolName, out var tool))
+                return null;
+
+            return tool.ProcessBeatmapToData(beatmap);
+        }
+
+        /// <summary>
+        /// 处理Beatmap对象（使用指定的选项）
+        /// </summary>
+        /// <param name="toolName">工具名称</param>
+        /// <param name="beatmap">输入Beatmap</param>
+        /// <param name="options">工具选项</param>
+        /// <returns>处理后的Beatmap，失败返回null</returns>
+        public Beatmap? ProcessBeatmap(string toolName, Beatmap beatmap, IToolOptions options)
+        {
+            if (!_tools.TryGetValue(toolName, out var tool))
+                return null;
+
+            return tool.ProcessBeatmapToDataWithOptions(beatmap, options);
+        }
+
+        /// <summary>
+        /// 执行Beatmap管道
         /// </summary>
         /// <param name="pipeline">管道步骤列表</param>
-        /// <param name="filePath">输入文件路径</param>
-        /// <returns>最终输出文件路径，失败返回null</returns>
-        public string? ExecutePipeline(IEnumerable<(string ToolName, IToolOptions Options)> pipeline, string filePath)
+        /// <param name="beatmap">输入Beatmap</param>
+        /// <returns>最终处理后的Beatmap，失败返回null</returns>
+        public Beatmap? ExecuteBeatmapPipeline(IEnumerable<(string ToolName, IToolOptions Options)> pipeline, Beatmap beatmap)
         {
-            string currentPath = filePath;
+            Beatmap currentBeatmap = beatmap;
             foreach (var (toolName, options) in pipeline)
             {
-                var result = ExecuteSingle(toolName, currentPath, options);
+                var result = ProcessBeatmap(toolName, currentBeatmap, options);
                 if (result == null)
                     return null;
-                currentPath = result;
+                currentBeatmap = result;
             }
-            return currentPath;
+            return currentBeatmap;
         }
     }
 }

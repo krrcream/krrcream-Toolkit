@@ -68,8 +68,8 @@ public class DualPreviewControl : UserControl
 
     private void ApplyColumnOverrideToProcessor()
     {
-        // 若当前 Processor 是 BasePreviewProcessor，则把外部列数覆盖传递给它
-        if (Processor is BasePreviewProcessor baseProc)
+        // 若当前 Processor 是 PreviewProcessor，则把外部列数覆盖传递给它
+        if (Processor is PreviewProcessor baseProc)
         {
             baseProc.ColumnOverride = ColumnOverride;
         }
@@ -130,7 +130,7 @@ public class DualPreviewControl : UserControl
                 OriginalContent.Visibility = Visibility.Visible;
                 ConvertedContent.Visibility = Visibility.Visible;
 
-                if (Processor is BasePreviewProcessor bp)
+                if (Processor is PreviewProcessor bp)
                 {
                     OriginalHint.Text = "原始预览 (Original)" + (bp.LastOriginalStartMs.HasValue ? " - start " + bp.LastOriginalStartMs.Value.ToString() + " ms" : string.Empty);
                     ConvertedHint.Text = "结果预览 (Converted)" + (bp.LastConvertedStartMs.HasValue ? " - start " + bp.LastConvertedStartMs.Value.ToString() + " ms" : string.Empty);
@@ -326,7 +326,7 @@ public class DualPreviewControl : UserControl
         }
 
         // Hints for original/converted
-        if (Processor is BasePreviewProcessor bp)
+        if (Processor is PreviewProcessor bp)
         {
             OriginalHint.Text = (IsChineseLanguage() ? "原始预览" : "Original") + (bp.LastOriginalStartMs.HasValue ? " - start " + bp.LastOriginalStartMs.Value.ToString() + " ms" : string.Empty);
             ConvertedHint.Text = (IsChineseLanguage() ? "结果预览" : "Converted") + (bp.LastConvertedStartMs.HasValue ? " - start " + bp.LastConvertedStartMs.Value.ToString() + " ms" : string.Empty);
@@ -418,14 +418,14 @@ public class DualPreviewControl : UserControl
         if (OriginalContent.Content != null) return; // 已有内容则不自动加载
 
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        var samplePath = Path.Combine(baseDir, "mania-last-object-not-latest.osu");
+        var samplePath = Path.Combine(baseDir, "mania-PreView.osu");
         if (!File.Exists(samplePath))
         {
             var dir = new DirectoryInfo(baseDir);
             for (var depth = 0; depth < 5 && dir != null; depth++, dir = dir.Parent)
             {
                 var candidate = Path.Combine(dir.FullName, "tools", "Preview",
-                    "mania-last-object-not-latest.osu");
+                    "mania-PreView.osu");
                 if (File.Exists(candidate))
                 {
                     samplePath = candidate;
@@ -454,6 +454,7 @@ public class DualPreviewControl : UserControl
         {
             ctrl._autoLoadedSample = false; // 处理器变更时允许重新自动加载
             ctrl.TryAutoLoadSample();
+            ctrl.Refresh(); // 强制刷新预览以反映新的处理器
         }
     }
 
@@ -507,7 +508,7 @@ public class DualPreviewControl : UserControl
             OriginalContent.Visibility = Visibility.Visible;
             ConvertedContent.Visibility = Visibility.Visible;
 
-            if (Processor is BasePreviewProcessor bp)
+            if (Processor is PreviewProcessor bp)
             {
                 OriginalHint.Text = "原始预览 (Original)" + (bp.LastOriginalStartMs.HasValue ? " - start " + bp.LastOriginalStartMs.Value.ToString() + " ms" : string.Empty);
                 ConvertedHint.Text = "结果预览 (Converted)" + (bp.LastConvertedStartMs.HasValue ? " - start " + bp.LastConvertedStartMs.Value.ToString() + " ms" : string.Empty);

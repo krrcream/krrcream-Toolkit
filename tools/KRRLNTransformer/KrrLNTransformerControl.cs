@@ -1,13 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Diagnostics.CodeAnalysis;
 using System.Windows.Controls;
-using System.Windows.Documents;
 using krrTools.tools.Shared;
-using krrTools.Tools.Shared;
+using OsuParsers.Beatmaps;
 
 namespace krrTools.tools.KRRLNTransformer;
 
@@ -29,8 +27,9 @@ public static class Setting
     }
 
     // 普通 Window：通过 ModernEffectsHelper + WindowBlurHelper 实现 Fluent 风格毛玻璃 (纯代码, 无 XAML)
-    public class KRRLNTransformerControl : UserControl
+    public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
     {
+        public event EventHandler? SettingsChanged;
         // 命名控件
         private Slider ShortPercentageValue = null!;
         private Slider ShortLevelValue = null!;
@@ -46,7 +45,7 @@ public static class Setting
         private Slider ODValue = null!;
         private TextBox SeedTextBox = null!;
 
-        private Dictionary<int, string> AlignValuesDict = new Dictionary<int, string>
+        private readonly Dictionary<int, string> AlignValuesDict = new Dictionary<int, string>
         {
             {1, "1/16"},
             {2, "1/8"},
@@ -61,7 +60,7 @@ public static class Setting
 
         private const double ERROR = 2.0;
 
-        public KRRLNTransformerControl()
+        public KRRLNTransformerControl() : base(OptionsManager.KRRsLNToolName)
         {
             // Initialize control UI
             BuildUI();
@@ -159,6 +158,7 @@ public static class Setting
             ShortPercentageValue.Value = 100;
             ShortPercentageValue.ValueChanged += (_, e) => {
                 label.Text = $"百分比 ({e.NewValue:F0})";
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
             label.Text = $"百分比 ({ShortPercentageValue.Value:F0})";
             stack.Children.Add(label);
@@ -174,6 +174,7 @@ public static class Setting
             ShortLevelValue.Value = 5;
             ShortLevelValue.ValueChanged += (_, e) => {
                 label.Text = $"长度等级 ({e.NewValue:F0})";
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
             label.Text = $"长度等级 ({ShortLevelValue.Value:F0})";
             stack.Children.Add(label);
@@ -189,6 +190,7 @@ public static class Setting
             ShortLimitValue.Value = 20;
             ShortLimitValue.ValueChanged += (_, e) => {
                 label.Text = $"限制 ({e.NewValue:F0})";
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
             label.Text = $"限制 ({ShortLimitValue.Value:F0})";
             stack.Children.Add(label);
@@ -204,6 +206,7 @@ public static class Setting
             ShortRandomValue.Value = 0;
             ShortRandomValue.ValueChanged += (_, e) => {
                 label.Text = $"随机程度 ({e.NewValue:F0})";
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
             label.Text = $"随机程度 ({ShortRandomValue.Value:F0})";
             stack.Children.Add(label);
@@ -219,6 +222,7 @@ public static class Setting
             LongPercentageValue.Value = 100;
             LongPercentageValue.ValueChanged += (_, e) => {
                 label.Text = $"百分比 ({e.NewValue:F0})";
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
             label.Text = $"百分比 ({LongPercentageValue.Value:F0})";
             stack.Children.Add(label);
@@ -234,6 +238,7 @@ public static class Setting
             LongLevelValue.Value = 5;
             LongLevelValue.ValueChanged += (_, e) => {
                 label.Text = $"长度等级 ({e.NewValue:F0})";
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
             label.Text = $"长度等级 ({LongLevelValue.Value:F0})";
             stack.Children.Add(label);
@@ -249,6 +254,7 @@ public static class Setting
             LongLimitValue.Value = 20;
             LongLimitValue.ValueChanged += (_, e) => {
                 label.Text = $"限制 ({e.NewValue:F0})";
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
             label.Text = $"限制 ({LongLimitValue.Value:F0})";
             stack.Children.Add(label);
@@ -264,6 +270,7 @@ public static class Setting
             LongRandomValue.Value = 0;
             LongRandomValue.ValueChanged += (_, e) => {
                 label.Text = $"随机程度 ({e.NewValue:F0})";
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
             label.Text = $"随机程度 ({LongRandomValue.Value:F0})";
             stack.Children.Add(label);
@@ -284,18 +291,19 @@ public static class Setting
             AlignValue = SharedUIComponents.CreateStandardSlider(1, 9, 1, true);
             AlignValue.Value = 6;
             AlignValue.IsEnabled = false;
-            AlignCheckBox.Checked += (_, _) => AlignValue.IsEnabled = true;
-            AlignCheckBox.Unchecked += (_, _) => AlignValue.IsEnabled = false;
+            AlignCheckBox.Checked += (_, _) => { AlignValue.IsEnabled = true; SettingsChanged?.Invoke(this, EventArgs.Empty); };
+            AlignCheckBox.Unchecked += (_, _) => { AlignValue.IsEnabled = false; SettingsChanged?.Invoke(this, EventArgs.Empty); };
             
             AlignValue.ValueChanged += (_, e) => {
                 var key = (int)e.NewValue;
-                if (AlignValuesDict.ContainsKey(key))
-                    label.Text = $"对齐 ({AlignValuesDict[key]})";
+                if (AlignValuesDict.TryGetValue(key, out var value))
+                    label.Text = $"对齐 ({value})";
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
             
             var initialKey = (int)AlignValue.Value;
-            if (AlignValuesDict.ContainsKey(initialKey))
-                label.Text = $"对齐 ({AlignValuesDict[initialKey]})";
+            if (AlignValuesDict.TryGetValue(initialKey, out var value1))
+                label.Text = $"对齐 ({value1})";
             
             panel.Children.Add(AlignCheckBox);
             panel.Children.Add(label);
@@ -310,6 +318,8 @@ public static class Setting
             var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
             ProcessOriginalCheckBox = SharedUIComponents.CreateStandardCheckBox("处理原始面条");
             ProcessOriginalCheckBox.IsChecked = false;
+            ProcessOriginalCheckBox.Checked += (_, _) => SettingsChanged?.Invoke(this, EventArgs.Empty);
+            ProcessOriginalCheckBox.Unchecked += (_, _) => SettingsChanged?.Invoke(this, EventArgs.Empty);
             stack.Children.Add(ProcessOriginalCheckBox);
             return stack;
         }
@@ -324,6 +334,7 @@ public static class Setting
             ODValue.Value = 0;
             ODValue.ValueChanged += (_, e) => {
                 label.Text = $"OD ({e.NewValue:F1})";
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
             label.Text = $"OD ({ODValue.Value:F1})";
             
@@ -355,97 +366,45 @@ public static class Setting
             }
         
         // 添加处理单个文件的方法
-        public void ProcessSingleFile(string filePath)
+        public Beatmap? ProcessSingleFile(string filePath)
         {
-            try
+            var parameters = new KRRLNTransformerOptions
             {
-                // 检查文件是否存在
-                if (!File.Exists(filePath))
-                {
-                    MessageBox.Show(SharedUIComponents.IsChineseLanguage() ? 
-                        $"未找到文件: {filePath}" : $"File not found: {filePath}", 
-                        SharedUIComponents.IsChineseLanguage() ? "文件未找到|File Not Found" : "File Not Found|文件未找到",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                // 短面条设置
+                ShortPercentageValue = ShortPercentageValue.Dispatcher.Invoke(() => ShortPercentageValue.Value),
+                ShortLevelValue = ShortLevelValue.Dispatcher.Invoke(() => ShortLevelValue.Value),
+                ShortLimitValue = ShortLimitValue.Dispatcher.Invoke(() => ShortLimitValue.Value),
+                ShortRandomValue = ShortRandomValue.Dispatcher.Invoke(() => ShortRandomValue.Value),
 
-                // 检查文件扩展名是否为.osu
-                if (Path.GetExtension(filePath).ToLower() != ".osu")
-                {
-                    MessageBox.Show(SharedUIComponents.IsChineseLanguage() ? 
-                        "所选文件不是有效的.osu文件" : "The selected file is not a valid .osu file", 
-                        SharedUIComponents.IsChineseLanguage() ? "无效文件|Invalid File" : "Invalid File|无效文件",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                // 长面条设置
+                LongPercentageValue = LongPercentageValue.Dispatcher.Invoke(() => LongPercentageValue.Value),
+                LongLevelValue = LongLevelValue.Dispatcher.Invoke(() => LongLevelValue.Value),
+                LongLimitValue = LongLimitValue.Dispatcher.Invoke(() => LongLimitValue.Value),
+                LongRandomValue = LongRandomValue.Dispatcher.Invoke(() => LongRandomValue.Value),
 
-                var parameters = new KRRLNTransformerOptions
-                {
-                    // 短面条设置
-                    ShortPercentageValue = ShortPercentageValue.Dispatcher.Invoke(() => ShortPercentageValue.Value),
-                    ShortLevelValue = ShortLevelValue.Dispatcher.Invoke(() => ShortLevelValue.Value),
-                    ShortLimitValue = ShortLimitValue.Dispatcher.Invoke(() => ShortLimitValue.Value),
-                    ShortRandomValue = ShortRandomValue.Dispatcher.Invoke(() => ShortRandomValue.Value),
-    
-                    // 长面条设置
-                    LongPercentageValue = LongPercentageValue.Dispatcher.Invoke(() => LongPercentageValue.Value),
-                    LongLevelValue = LongLevelValue.Dispatcher.Invoke(() => LongLevelValue.Value),
-                    LongLimitValue = LongLimitValue.Dispatcher.Invoke(() => LongLimitValue.Value),
-                    LongRandomValue = LongRandomValue.Dispatcher.Invoke(() => LongRandomValue.Value),
-    
-                    // 对齐设置
-                    AlignIsChecked = AlignCheckBox.Dispatcher.Invoke(() => AlignCheckBox.IsChecked == true),
-                    AlignValue = AlignValue.Dispatcher.Invoke(() => AlignValue.Value),
-    
-                    // 处理原始面条
-                    ProcessOriginalIsChecked = ProcessOriginalCheckBox.Dispatcher.Invoke(() => ProcessOriginalCheckBox.IsChecked == true),
-    
-                    // OD设置
-                    ODValue = ODValue.Dispatcher.Invoke(() => ODValue.Value),
-    
-                    // 种子值
-                    SeedText = SeedTextBox.Dispatcher.Invoke(() => SeedTextBox.Text),
-    
-                    
-                };
-                var LN = new KRRLN();  
-                
-                var beatmap = LN.ProcessFiles(filePath,parameters);
-                
-                string? dir = Path.GetDirectoryName(filePath);
-                if (string.IsNullOrEmpty(dir)) dir = ".";
-                string outputPath = Path.Combine(dir, Path.GetFileNameWithoutExtension(filePath) + "_KRRLN.osu");
-                File.WriteAllText(outputPath, beatmap.ToString());
+                // 对齐设置
+                AlignIsChecked = AlignCheckBox.Dispatcher.Invoke(() => AlignCheckBox.IsChecked == true),
+                AlignValue = AlignValue.Dispatcher.Invoke(() => AlignValue.Value),
 
-                // 检查文件是否实际生成
-                if (!File.Exists(outputPath))
-                {
-                    MessageBox.Show(SharedUIComponents.IsChineseLanguage() ? 
-                        $"转换完成但文件未找到: {outputPath}" : 
-                        $"Conversion completed but file not found: {outputPath}", 
-                        SharedUIComponents.IsChineseLanguage() ? "文件未生成|File Not Generated" : "File Not Generated|文件未生成",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                // 处理原始面条
+                ProcessOriginalIsChecked = ProcessOriginalCheckBox.Dispatcher.Invoke(() => ProcessOriginalCheckBox.IsChecked == true),
 
-                // 显示成功消息
-                MessageBox.Show(SharedUIComponents.IsChineseLanguage() ? 
-                    $"文件转换成功！\n输出文件: {outputPath}" : 
-                    $"File conversion successful!\nOutput file: {outputPath}", 
-                    SharedUIComponents.IsChineseLanguage() ? "转换成功|Conversion Successful" : "Conversion Successful|转换成功",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                // OD设置
+                ODValue = ODValue.Dispatcher.Invoke(() => ODValue.Value),
 
-            }
-            catch (Exception ex)
-            {
-                Task.Run(() =>
-                {
-                    MessageBox.Show(SharedUIComponents.IsChineseLanguage() ? 
-                        $"处理文件时出错: {ex.Message}" : $"Error processing file: {ex.Message}", 
-                        SharedUIComponents.IsChineseLanguage() ? "处理错误" : "Processing Error",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                });
-            }
+                // 种子值
+                SeedText = SeedTextBox.Dispatcher.Invoke(() => SeedTextBox.Text),
+
+
+            };
+            var LN = new KRRLN();
+
+            return LN.ProcessFiles(filePath, parameters);
+        }
+
+        public string GetOutputFileName(string inputPath, Beatmap beatmap)
+        {
+            return Path.GetFileNameWithoutExtension(inputPath) + "_KRRLN.osu";
         }
         
 

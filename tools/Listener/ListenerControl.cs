@@ -3,12 +3,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Data;
+using krrTools.Localization;
 using krrTools.tools.Preview;
 using krrTools.tools.Shared;
-using krrTools.Tools.Shared;
 using Wpf.Ui.Controls;
 using MessageBox = System.Windows.MessageBox;
 using MessageBoxButton = System.Windows.MessageBoxButton;
@@ -215,7 +214,7 @@ namespace krrTools.tools.Listener
                     if (staged is { Length: > 0 })
                     {
                         // Use FileDispatcher to convert staged files
-                        mainWindow?._fileDispatcher?.ConvertFiles(staged.Where(p => !string.IsNullOrEmpty(p)).ToArray(), activeTag);
+                        mainWindow?._fileDispatcher.ConvertFiles(staged.Where(p => !string.IsNullOrEmpty(p)).ToArray(), activeTag);
                         return;
                     }
                 }
@@ -229,7 +228,7 @@ namespace krrTools.tools.Listener
             // Fallback/single-file behavior: process the current selected osu file
             if (!string.IsNullOrEmpty(_viewModel.CurrentOsuFilePath))
             {
-                mainWindow?._fileDispatcher?.ConvertFiles([_viewModel.CurrentOsuFilePath], activeTag);
+                mainWindow?._fileDispatcher.ConvertFiles([_viewModel.CurrentOsuFilePath], activeTag);
             }
         }
         

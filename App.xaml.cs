@@ -5,7 +5,7 @@ namespace krrTools;
 
 public static class LoggerFactoryHolder
 {
-    public static ILoggerFactory Factory { get; } = LoggerFactory.Create(builder =>
+    private static ILoggerFactory Factory { get; } = LoggerFactory.Create(builder =>
     {
         builder.AddConsole();
         builder.SetMinimumLevel(LogLevel.Information);
