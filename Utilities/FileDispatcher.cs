@@ -1,21 +1,21 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows;
-using krrTools.Tools.Preview;
+using krrTools.Configuration;
 using krrTools.Tools.DPtool;
 using krrTools.Tools.KRRLNTransformer;
-using System.IO;
+using krrTools.Tools.N2NC;
+using krrTools.Tools.Preview;
+using Microsoft.Extensions.Logging;
 using Wpf.Ui.Controls;
 using MessageBox = System.Windows.MessageBox;
 using MessageBoxButton = System.Windows.MessageBoxButton;
 using MessageBoxResult = System.Windows.MessageBoxResult;
-using Microsoft.Extensions.Logging;
-using krrTools.Tools.N2NC;
 // using static krrTools.Tools.LNTransformer.Setting;
-using krrTools.Configuration;
 
-namespace krrTools.Tools.Shared
+namespace krrTools.Utilities
 {
     public class FileDispatcher(Dictionary<string, DualPreviewControl> previewControls, TabView mainTabControl)
     {

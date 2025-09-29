@@ -6,7 +6,7 @@ using krrTools.UI;
 
 namespace krrTools.Tools.Listener
 {
-    internal partial class HotkeyWindow : Window
+    internal class HotkeyWindow : Window
     {
         private TextBox? HotkeyTextBox;
         public string Hotkey { get; private set; }

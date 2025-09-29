@@ -37,6 +37,10 @@ namespace krrTools.Configuration
         public const string DPCreatorPrefix = "Krr DP. & ";
         public const string DPDefaultTag = "krrcream's converter DP";
 
+        // KRR LN specific constants
+        public const string KRRLNCreatorPrefix = "Krr LN. & ";
+        public const string KRRLNDefaultTag = "krrcream's transformer LN";
+        
         // 统一的配置文件路径 (exe 所在文件夹)
         private static string ConfigFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ConfigFileName);
 
@@ -57,7 +61,7 @@ namespace krrTools.Configuration
         /// <summary>
         /// 加载统一的应用程序配置
         /// </summary>
-        public static AppConfig LoadConfig()
+        private static AppConfig LoadConfig()
         {
             lock (_configLock)
             {

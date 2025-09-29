@@ -22,12 +22,6 @@ namespace krrTools.UI
             remove => LocalizationManager.LanguageChanged -= value;
         }
 
-        // Set the ForceChinese flag and notify listeners
-        private static void SetForceChinese(bool? forceChinese)
-        {
-            LocalizationManager.SetForceChinese(forceChinese);
-        }
-
         // Toggle the language selection (used by simple toggle UIs)
         public static void ToggleLanguage()
         {
@@ -54,15 +48,12 @@ namespace krrTools.UI
         public static string? GetSavedApplicationTheme() => BaseOptionsManager.GetApplicationTheme();
         public static string? GetSavedWindowBackdropType() => BaseOptionsManager.GetWindowBackdropType();
         public static bool? GetSavedUpdateAccent() => BaseOptionsManager.GetUpdateAccent();
-        public static bool? GetForceChinese() => BaseOptionsManager.GetForceChinese();
 
-        // 统一UI样式相关常量，参考LN工具的字体风格
-        // Text color used throughout the Fluent-like UI — exposed public so other parts of the app can reuse it
-                public static readonly Brush UiTextBrush = new SolidColorBrush(Color.FromArgb(255, 33, 33, 33));
+        // 统一UI样式相关常量
+        public static readonly Brush UiTextBrush = new SolidColorBrush(Color.FromArgb(255, 33, 33, 33));
         public const double HeaderFontSize = 18.0;
         public const double ComFontSize = 16.0;
-        // Fluent / acrylic visual tokens
-        // Use a lighter translucent tint so the underlying acrylic blur is visible (less opaque)
+        
         private static SolidColorBrush _panelBackgroundBrush = new SolidColorBrush(Color.FromArgb(102, 255, 255, 255)); // ~40% white tint
         public static Brush PanelBackgroundBrush
         {
@@ -74,9 +65,9 @@ namespace krrTools.UI
             }
         }
 
+        // 设置程序透明度，但是滑条空间没添加，先留着
         public static void SetPanelBackgroundAlpha(float alpha)
         {
-            // Ensure brush is not frozen before modifying
             if (_panelBackgroundBrush.IsFrozen)
                 _panelBackgroundBrush = _panelBackgroundBrush.Clone();
             var c = _panelBackgroundBrush.Color;

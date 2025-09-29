@@ -1,13 +1,12 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using System.Diagnostics;
-using krrTools.Localization;
 using krrTools.Configuration;
-using krrTools.UI;
+using krrTools.Localization;
 
-namespace krrTools.Tools.Shared
+namespace krrTools.UI
 {
     /// <summary>
     /// A small factory that creates a shared presets panel for any options type T.

@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using krrTools.Localization;
@@ -211,7 +212,7 @@ public static class UIComponents
         return _titleBar;
     }
 
-    public static Border CreateStatusBar(Window window, ToggleSwitch? realTimeToggle = null, Button? listenerBtn = null)
+    public static Border CreateStatusBar(Window window, ToggleSwitch? realTimeToggle = null, ToggleButton listenerBtn = null)
     {
         var footer = new Border
         {

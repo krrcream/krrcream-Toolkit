@@ -9,7 +9,6 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Data;
-using System.Windows.Shell;
 using krrTools.Core.Scheduling;
 using krrTools.Localization;
 using krrTools.Tools.Shared;
@@ -24,11 +23,11 @@ using krrTools.Tools.N2NC;
 using Microsoft.Extensions.Logging;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
-using Button = Wpf.Ui.Controls.Button;
 using MessageBox = System.Windows.MessageBox;
 using Point = System.Windows.Point;
 using krrTools.Configuration;
 using krrTools.UI;
+using krrTools.Utilities;
 using Size = System.Windows.Size;
 using ToggleSwitch = Wpf.Ui.Controls.ToggleSwitch;
 using Grid = System.Windows.Controls.Grid;
@@ -45,10 +44,10 @@ public class MainWindow : FluentWindow
     private ContentControl? _currentSettingsContainer;
     private Grid _mainGrid = null!;
     private TabView MainTabControl = null!;
-    private Button GlobalOsuListenerButton = null!;
+    private ToggleButton GlobalOsuListenerButton = null!;
     private ToggleSwitch _realTimeToggle = null!;
     
-    private Slider? _alphaSlider;
+    private Slider? _alphaSlider; // 用于调整面板透明度, 备用
     private ListenerViewModel? _listenerVM;
     private Window? _currentListenerWindow;
     
@@ -129,17 +128,6 @@ public class MainWindow : FluentWindow
         Height = 750;
         ResizeMode = ResizeMode.CanResize;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        
-        // 设置WindowChrome以实现自定义标题栏
-        var windowChrome = new WindowChrome
-        {
-            CaptionHeight = 32,
-            CornerRadius = new CornerRadius(0),
-            GlassFrameThickness = new Thickness(0),
-            UseAeroCaptionButtons = true,
-            ResizeBorderThickness = new Thickness(4)
-        };
-        WindowChrome.SetWindowChrome(this, windowChrome);
 
         BuildUI();
         SharedUIComponents.SetPanelBackgroundAlpha(102);
@@ -167,14 +155,16 @@ public class MainWindow : FluentWindow
                 new RowDefinition { Height = GridLength.Auto }, // 选项卡行
                 new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }, // 主内容区域（设置 + 预览）
                 new RowDefinition { Height = GridLength.Auto }, // Footer状态栏行
+            },
+            Children =
+            {
+                new TitleBar()
+                {
+                    Title = Strings.WindowTitle,
+                },
             }
         };
-
-        // 创建自定义标题栏
-        var titleBar = UIComponents.CreateTitleBar(this, Title);
-        Grid.SetRow(titleBar, 0);
-        root.Children.Add(titleBar);
-
+        
         // 选项卡TabControl - 只显示选项卡头
         MainTabControl = new TabView
         {
@@ -235,7 +225,17 @@ public class MainWindow : FluentWindow
         _realTimeToggle.Checked += (_,_) => RealTimePreview = true;
         _realTimeToggle.Unchecked += (_,_) => RealTimePreview = false;
 
-        GlobalOsuListenerButton = SharedUIComponents.CreateStandardButton(Strings.OSUListenerButton);
+        // GlobalOsuListenerButton = SharedUIComponents.CreateStandardButton(Strings.OSUListenerButton);
+        GlobalOsuListenerButton = new ToggleButton
+        {
+            Content = new LocalizedStringHelper.LocalizedString(Strings.OSUListenerButton),
+            Width = 120,
+            Height = 24,
+            Margin = new Thickness(4, 0, 4, 0),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Center,
+            IsChecked = false
+        };
         GlobalOsuListenerButton.Click += GlobalOsuListenerButton_Click;
 
         var footer = UIComponents.CreateStatusBar(this, _realTimeToggle, GlobalOsuListenerButton);
@@ -280,7 +280,7 @@ public class MainWindow : FluentWindow
         Background = new ImageBrush
         {
             Stretch = Stretch.UniformToFill,
-            Opacity = 0.3,
+            Opacity = 0.25,
         };
     }
 

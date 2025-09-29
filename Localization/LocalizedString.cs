@@ -8,7 +8,7 @@ public static class LocalizedStringHelper
     /// <summary>
     /// A class that provides localized strings with automatic updates when language changes.
     /// </summary>
-    public class LocalizedString : INotifyPropertyChanged
+    public sealed class LocalizedString : INotifyPropertyChanged
     {
         private string _localizedText;
 
@@ -19,7 +19,7 @@ public static class LocalizedStringHelper
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
         }
 
-        public string Key { get; }
+        private string Key { get; }
 
         public string Value
         {
@@ -41,7 +41,7 @@ public static class LocalizedStringHelper
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        protected virtual void OnPropertyChanged(string propertyName)
+        private void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }

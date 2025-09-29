@@ -115,7 +115,7 @@ namespace krrTools.Data
         /// <summary>
         /// 弹出选择文件夹对话框
         /// </summary>
-        public static string? ShowFolderBrowserDialog(string description)
+        public static string ShowFolderBrowserDialog(string description)
         {
             using var dialog = new FolderBrowserDialog();
             dialog.Description = description;

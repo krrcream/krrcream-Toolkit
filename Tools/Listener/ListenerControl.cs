@@ -85,7 +85,7 @@ namespace krrTools.Tools.Listener
 
             var titleText = new TextBlock { FontSize = 16, FontWeight = FontWeights.Bold, VerticalAlignment = VerticalAlignment.Center, Width = 200 };
             titleText.SetBinding(TextBlock.TextProperty, new Binding("WindowTitle"));
-            Grid.SetColumn(titleText, 0);
+
             topGrid.Children.Add(titleText);
 
             var createBtn = SharedUIComponents.CreateStandardButton(Strings.CreateMapLabel);
@@ -93,13 +93,13 @@ namespace krrTools.Tools.Listener
             createBtn.Width = 120;
             createBtn.Margin = new Thickness(5);
             createBtn.Click += ConvertButton_Click;
-            Grid.SetColumn(createBtn, 1);
+
             topGrid.Children.Add(createBtn);
 
             var hotkeyText = new TextBlock { Margin = new Thickness(10,0,0,0), VerticalAlignment = VerticalAlignment.Center };
             // bind to centralized Config.Hotkey
             hotkeyText.SetBinding(TextBlock.TextProperty, new Binding("Config.Hotkey"));
-            Grid.SetColumn(hotkeyText, 2);
+
             topGrid.Children.Add(hotkeyText);
 
             var hotkeyBtn = SharedUIComponents.CreateStandardButton(Strings.SetHotkeyLabel);
@@ -107,11 +107,11 @@ namespace krrTools.Tools.Listener
             hotkeyBtn.Width = 100;
             hotkeyBtn.Margin = new Thickness(5);
             hotkeyBtn.Click += HotkeySetButton_Click;
-            Grid.SetColumn(hotkeyBtn, 3);
+
             topGrid.Children.Add(hotkeyBtn);
 
             topBorder.Child = topGrid;
-            Grid.SetRow(topBorder, 0);
+
             root.Children.Add(topBorder);
 
             // Content area
@@ -130,17 +130,16 @@ namespace krrTools.Tools.Listener
             songsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             var songsPathText = new TextBlock { Background = Brushes.Transparent, FontSize = 18, Foreground = Brushes.White };
             songsPathText.SetBinding(TextBlock.TextProperty, new Binding("Config.SongsPath") { Mode = BindingMode.OneWay });
-            Grid.SetColumn(songsPathText, 0);
+
             songsGrid.Children.Add(songsPathText);
             var browseBtn = SharedUIComponents.CreateStandardButton(Strings.BrowseLabel);
             browseBtn.Width = 80;
             browseBtn.Padding = new Thickness(10,2,10,2);
             browseBtn.Click += BrowseButton_Click;
-            Grid.SetColumn(browseBtn, 1);
+
             songsGrid.Children.Add(browseBtn);
             songsPanel.Children.Add(songsGrid);
-
-            Grid.SetRow(songsPanel, 0);
+            
             contentGrid.Children.Add(songsPanel);
 
             // Monitoring group
@@ -149,20 +148,25 @@ namespace krrTools.Tools.Listener
             header.Foreground = Brushes.White;
             group.Header = header;
 
-            var grpGrid = new Grid();
-            grpGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            grpGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            var grpGrid = new Grid()
+            {
+                RowDefinitions =
+                {
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }
+                }
+            };
 
             var statusText = new TextBlock { FontSize = 18, Margin = new Thickness(0,5,0,0), Foreground = Brushes.White, TextWrapping = TextWrapping.Wrap };
             statusText.SetBinding(TextBlock.TextProperty, new Binding("StatusMessage"));
-            Grid.SetRow(statusText, 0);
+
             grpGrid.Children.Add(statusText);
 
             group.Content = grpGrid;
-            Grid.SetRow(group, 1);
+
             contentGrid.Children.Add(group);
 
-            Grid.SetRow(contentGrid, 1);
+
             root.Children.Add(contentGrid);
 
             Content = root;

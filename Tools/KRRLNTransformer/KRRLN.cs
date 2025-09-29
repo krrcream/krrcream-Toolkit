@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using krrTools.Configuration;
 using krrTools.Data;
 using krrTools.Tools.OsuParser;
+using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
-using Microsoft.Extensions.Logging;
 
 namespace krrTools.Tools.KRRLNTransformer
 {
@@ -409,8 +411,23 @@ namespace krrTools.Tools.KRRLNTransformer
                     }
                 }
             }
-
+            changeMeta(beatmap);
             return beatmap;
         }
+        
+        //修改难度名，tag，和标签等
+        private void changeMeta(Beatmap beatmap)
+        {
+            beatmap.MetadataSection.Version = $"[KRR LN.]{beatmap.MetadataSection.Version}";
+            beatmap.MetadataSection.Creator = "Krr LN. & " + beatmap.MetadataSection.Creator;
+            var currentTags = beatmap.MetadataSection.Tags ?? [];
+            var tagToAdd = BaseOptionsManager.KRRLNDefaultTag;
+            if (!currentTags.Contains(tagToAdd))
+            {
+                var newTags = currentTags.Concat([tagToAdd]).ToArray();
+                beatmap.MetadataSection.Tags = newTags;
+            }
     }
+}
+
 }

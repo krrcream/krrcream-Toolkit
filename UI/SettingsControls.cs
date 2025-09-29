@@ -8,22 +8,11 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Threading;
 using krrTools.Localization;
-using krrTools.UI;
 using krrTools.Configuration;
 
 namespace krrTools.UI
 {
-    // A simple flow-style container mirroring the concise initializer pattern
-    public class SettingsFlowPanel : StackPanel
-    {
-        public SettingsFlowPanel()
-        {
-            Orientation = Orientation.Vertical;
-        }
-    }
-
-    // A compact settings slider that binds to a property path on a provided source object.
-    // It exposes the inner Slider and Label so existing code can keep using references if needed.
+    // 一个带标签和滑块的设置控件，支持双语标签和数据绑定
     public class SettingsSlider : StackPanel
     {
         public TextBlock LabelTextBlock { get; private set; }
@@ -36,9 +25,8 @@ namespace krrTools.UI
             set
             {
                 _labelText = value;
-                if (LabelTextBlock != null && _isInitialized)
+                if (_isInitialized)
                 {
-                    // Remove old label and create new one with bilingual support
                     Children.Remove(LabelTextBlock);
                     LabelTextBlock = SharedUIComponents.CreateHeaderLabel(_labelText);
                     Children.Insert(0, LabelTextBlock);
@@ -51,7 +39,7 @@ namespace krrTools.UI
         // Enum-based provider support
         public IEnumSettingsProvider? EnumProvider { get; set; }
         public Enum? EnumKey { get; set; }
-        public double Min { get; set; } = 0;
+        public double Min { get; set; } = 1;
         public double Max { get; set; } = 100;
         public double TickFrequency { get; set; } = double.NaN;
         public double KeyboardStep { get; set; } = 1.0;
@@ -120,7 +108,7 @@ namespace krrTools.UI
                 };
 
                 // subscribe provider change notifications
-                EnumProvider.PropertyChanged += (s, ev) =>
+                EnumProvider.PropertyChanged += (_, ev) =>
                 {
                     if (ev.PropertyName == EnumKey.ToString())
                     {
@@ -272,6 +260,7 @@ namespace krrTools.UI
         }
     }
 
+    // 用于简化泛型实例化的包装类
     public class SettingsSlider<T> : SettingsSlider
     {
         // Generic wrapper to allow usage like `new SettingsSlider<double> { ... }`.
