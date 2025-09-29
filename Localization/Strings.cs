@@ -18,6 +18,7 @@ namespace krrTools.Localization
         // Footer
         public const string FooterCopyright = "© 2025 krrcream. All rights reserved.";
         public const string FooterCopyrightCN = "© 2025 krrcream. 保留所有权利。";
+        public const string KrrcreamUrl = "https://github.com/krrcream";
         public const string GitHubLinkText = "github";
         public const string GitHubLinkUrl = "https://github.com/krrcream/krrcream-Toolkit";
         
@@ -72,6 +73,22 @@ namespace krrTools.Localization
         public const string OriginalLNsCheckbox = "Original LNs|原始长条";
         public const string OriginalLNsTooltip = "Keep original LNs|保留原始长条";
         public const string InstructionsLink = "Instructions|使用说明";
+
+        // KRR LN Transformer texts
+        public const string KRRShortLNHeader = "Short LN|短面";
+        public const string KRRShortPercentageLabel = "Short LN {0}%|短面占比 {0}%";
+        public const string KRRShortLevelLabel = "Short Level {0}|短面强度 {0}";
+        public const string KRRShortLimitLabel = "Short Limit {0}|短面限制 {0}";
+        public const string KRRShortRandomLabel = "Short Random {0}|短面随机 {0}";
+        public const string KRRLongLNHeader = "Long LN|长面条";
+        public const string KRRLongPercentageLabel = "Long LN {0}%|长面占比 {0}%";
+        public const string KRRLongLevelLabel = "Long Level {0}|长面强度 {0}";
+        public const string KRRLongLimitLabel = "Long Limit {0}|长面限制 {0}";
+        public const string KRRLongRandomLabel = "Long Random {0}|长面随机 {0}";
+        public const string KRRAlignLabel = "Align 1/{0}|对齐 1/{0}";
+        public const string KRRProcessOriginalLabel = "Process Original LNs|处理原始长条";
+        public const string KRRODLabel = "OD {0}|判定难度 {0}";
+        public const string KRRSeedLabel = "Seed|种子";
 
         // DP Tool texts
         public const string DPKeysTemplate = "Keys: {0}|键数: {0}";

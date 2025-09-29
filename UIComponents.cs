@@ -1,7 +1,6 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using krrTools.Localization;
@@ -10,7 +9,10 @@ using Wpf.Ui.Controls;
 using Button = Wpf.Ui.Controls.Button;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 using ToggleSwitch = Wpf.Ui.Controls.ToggleSwitch;
-using krrTools.tools.Shared;
+using Border = Wpf.Ui.Controls.Border;
+using Grid = Wpf.Ui.Controls.Grid;
+using StackPanel = Wpf.Ui.Controls.StackPanel;
+using krrTools.UI;
 
 namespace krrTools;
 
@@ -129,29 +131,29 @@ public static class UIComponents
         _closeButton.SetValue(System.Windows.Shell.WindowChrome.IsHitTestVisibleInChromeProperty, true);
 
         // 为关闭按钮添加悬停效果
-        _closeButton.MouseEnter += delegate { _closeButton.Background = new SolidColorBrush(Color.FromRgb(232, 17, 35)); };
+        _closeButton.MouseEnter += delegate { _closeButton.Background = new SolidColorBrush(Color.FromArgb(255, 232, 17, 35)); };
         _closeButton.MouseLeave += delegate { _closeButton.Background = Brushes.Transparent; };
         _closeButton.Foreground = new SolidColorBrush(Colors.Black);
 
         // 为最小化和最大化按钮添加悬停效果
-        _minimizeButton.MouseEnter += delegate { _minimizeButton.Background = new SolidColorBrush(Color.FromRgb(220, 220, 220)); };
+        _minimizeButton.MouseEnter += delegate { _minimizeButton.Background = new SolidColorBrush(Color.FromArgb(255, 220, 220, 220)); };
         _minimizeButton.MouseLeave += delegate { _minimizeButton.Background = Brushes.Transparent; };
 
-        _maximizeButton.MouseEnter += delegate { _maximizeButton.Background = new SolidColorBrush(Color.FromRgb(220, 220, 220)); };
+        _maximizeButton.MouseEnter += delegate { _maximizeButton.Background = new SolidColorBrush(Color.FromArgb(255, 220, 220, 220)); };
         _maximizeButton.MouseLeave += delegate { _maximizeButton.Background = Brushes.Transparent; };
         _closeButton.Click += delegate { window.Close(); };
 
         buttonPanel.Children.Add(_closeButton);
 
         // 添加按钮的按下效果
-        _minimizeButton.PreviewMouseDown += delegate { _minimizeButton.Background = new SolidColorBrush(Color.FromRgb(180, 180, 180)); };
-        _minimizeButton.PreviewMouseUp += delegate { _minimizeButton.Background = new SolidColorBrush(Color.FromRgb(220, 220, 220)); };
+        _minimizeButton.PreviewMouseDown += delegate { _minimizeButton.Background = new SolidColorBrush(Color.FromArgb(255, 180, 180, 180)); };
+        _minimizeButton.PreviewMouseUp += delegate { _minimizeButton.Background = new SolidColorBrush(Color.FromArgb(255, 220, 220, 220)); };
 
-        _maximizeButton.PreviewMouseDown += delegate { _maximizeButton.Background = new SolidColorBrush(Color.FromRgb(180, 180, 180)); };
-        _maximizeButton.PreviewMouseUp += delegate { _maximizeButton.Background = new SolidColorBrush(Color.FromRgb(220, 220, 220)); };
+        _maximizeButton.PreviewMouseDown += delegate { _maximizeButton.Background = new SolidColorBrush(Color.FromArgb(255, 180, 180, 180)); };
+        _maximizeButton.PreviewMouseUp += delegate { _maximizeButton.Background = new SolidColorBrush(Color.FromArgb(255, 220, 220, 220)); };
 
-        _closeButton.PreviewMouseDown += delegate { _closeButton.Background = new SolidColorBrush(Color.FromRgb(200, 15, 30)); };
-        _closeButton.PreviewMouseUp += delegate { _closeButton.Background = new SolidColorBrush(Color.FromRgb(232, 17, 35)); };
+        _closeButton.PreviewMouseDown += delegate { _closeButton.Background = new SolidColorBrush(Color.FromArgb(255, 200, 15, 30)); };
+        _closeButton.PreviewMouseUp += delegate { _closeButton.Background = new SolidColorBrush(Color.FromArgb(255, 232, 17, 35)); };
 
         titleGrid.Children.Add(buttonPanel);
 
@@ -237,36 +239,43 @@ public static class UIComponents
         {
             Orientation = Orientation.Horizontal,
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(12, 0, 0, 0)
+            // Margin = new Thickness(12, 0, 0, 0)
         };
 
-        var copyrightText = new TextBlock
+        var copyrightButton = new HyperlinkButton
         {
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 10, 0)
+            Margin = new Thickness(0, 0, 10, 0),
+            NavigateUri = Strings.KrrcreamUrl
         };
 
         void UpdateCopyrightText()
         {
-            copyrightText.Text = SharedUIComponents.IsChineseLanguage() ? Strings.FooterCopyrightCN : Strings.FooterCopyright;
+            copyrightButton.Content = SharedUIComponents.IsChineseLanguage() ? Strings.FooterCopyrightCN : Strings.FooterCopyright;
         }
 
         UpdateCopyrightText(); // 初始化文本
         SharedUIComponents.LanguageChanged += UpdateCopyrightText;
-        copyrightText.Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= UpdateCopyrightText;
+        copyrightButton.Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= UpdateCopyrightText;
 
-        var githubLink = new Hyperlink(new Run(Strings.GitHubLinkText))
+        var githubLink = new HyperlinkButton()
         {
-            NavigateUri = new Uri(Strings.GitHubLinkUrl)
+            Content = Strings.GitHubLinkText,
+            NavigateUri = Strings.GitHubLinkUrl
         };
-        githubLink.RequestNavigate += Hyperlink_RequestNavigate;
+        githubLink.Click += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = Strings.GitHubLinkUrl,
+            UseShellExecute = true
+        });
         var githubTextBlock = new TextBlock
         {
-            Margin = new Thickness(0, 10, 0, 0)
+            Margin = new Thickness(0, 10, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center
         };
         githubTextBlock.Inlines.Add(githubLink);
 
-        leftPanel.Children.Add(copyrightText);
+        leftPanel.Children.Add(copyrightButton);
         leftPanel.Children.Add(githubTextBlock);
 
         Grid.SetColumn(leftPanel, 0);
@@ -328,8 +337,11 @@ public static class UIComponents
 
         void UpdateLanguageSwitchText()
         {
-            langSwitch.Content = Strings.Localize(Strings.SettingsMenuLanguage);
-            langSwitch.InvalidateVisual();
+            window.Dispatcher.Invoke(() =>
+            {
+                langSwitch.Content = Strings.Localize(Strings.SettingsMenuLanguage);
+                langSwitch.InvalidateVisual();
+            });
         }
 
         UpdateLanguageSwitchText();
@@ -527,15 +539,5 @@ public static class UIComponents
         ApplyThemeSettings(accentSwitch.IsChecked == true);
         
         return footer;
-    }
-
-    private static void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
-    {
-        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-        {
-            FileName = e.Uri.AbsoluteUri,
-            UseShellExecute = true
-        });
-        e.Handled = true;
     }
 }

@@ -1,0 +1,39 @@
+// TODO: 将所有"ModuleName"替换为你的实际模块名称
+
+using krrTools.Tools.Shared;
+
+namespace krrTools.Tools.ModuleName
+{
+    /// <summary>
+    /// ModuleName视图模型类
+    /// 继承自ToolViewModelBase，处理数据绑定和业务逻辑
+    /// </summary>
+    public class ModuleNameViewModel : ToolViewModelBase<ModuleNameOptions>
+    {
+        /// <summary>
+        /// 构造函数
+        /// TODO: 修改工具名称参数
+        /// </summary>
+        public ModuleNameViewModel() : base("ModuleNameTool", autoSave: true)
+        {
+            // TODO: 初始化额外的属性或逻辑（如果需要）
+        }
+
+        // TODO: 添加UI绑定属性（如果需要）
+        // 示例：
+        // private bool _isProcessing;
+        // public bool IsProcessing
+        // {
+        //     get => _isProcessing;
+        //     set => SetProperty(ref _isProcessing, value);
+        // }
+
+        // TODO: 添加命令或方法（如果需要）
+        // 示例：
+        // public RelayCommand SomeCommand => new RelayCommand(ExecuteSomeCommand);
+        // private void ExecuteSomeCommand()
+        // {
+        //     // 命令逻辑
+        // }
+    }
+}

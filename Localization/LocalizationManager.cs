@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using System.ComponentModel;
 using System.Reflection;
-using krrTools.tools.Shared;
+using krrTools.Configuration;
 
 namespace krrTools.Localization
 {
@@ -18,7 +18,7 @@ namespace krrTools.Localization
         public static void SetForceChinese(bool? forceChinese)
         {
             ForceChinese = forceChinese;
-            OptionsManager.SetForceChinese(forceChinese);
+            BaseOptionsManager.SetForceChinese(forceChinese);
             LanguageChanged?.Invoke();
         }
 
@@ -27,7 +27,7 @@ namespace krrTools.Localization
             SetForceChinese(!IsChineseLanguage());
         }
 
-        public static bool? GetForceChinese() => OptionsManager.GetForceChinese();
+        public static bool? GetForceChinese() => BaseOptionsManager.GetForceChinese();
 
         /// <summary>
         /// 检查当前是否为中文语言
@@ -75,7 +75,7 @@ namespace krrTools.Localization
             {
                 var parts = tooltipText.Split('|', 2);
                 element.ToolTip = IsChineseLanguage() && parts.Length > 1 ? parts[1] : parts[0];
-                void UpdateTip() { var p = tooltipText.Split('|', 2); element.ToolTip = IsChineseLanguage() && p.Length > 1 ? p[1] : p[0]; }
+                void UpdateTip() { element.Dispatcher.Invoke(() => { var p = tooltipText.Split('|', 2); element.ToolTip = IsChineseLanguage() && p.Length > 1 ? p[1] : p[0]; }); }
                 LanguageChanged += UpdateTip;
                 element.Unloaded += (_, _) => LanguageChanged -= UpdateTip;
             }

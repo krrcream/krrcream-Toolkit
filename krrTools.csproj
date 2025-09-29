@@ -25,15 +25,27 @@
         <PackageReference Include="OsuMemoryDataProvider" Version="0.11.1" />
         <PackageReference Include="OsuParsers" Version="1.7.2" />
         <PackageReference Include="WPF-UI" Version="4.0.3" />
+        <PackageReference Include="WPF-UI.DependencyInjection" Version="4.0.3" />
+        <PackageReference Include="WPF-UI.Violeta" Version="4.0.3.6" />
     </ItemGroup>
 
     <ItemGroup>
-      <EmbeddedResource Include="tools\Preview\mania-PreView.osu" />
+      <EmbeddedResource Include="Tools\Preview\mania-PreView.osu" />
+      <EmbeddedResource Remove="tools\YLsLNTransformer\**" />
     </ItemGroup>
 
     <ItemGroup>
       <None Remove="img\**" />
       <Content Remove="img\**" />
+      <None Remove="tools\YLsLNTransformer\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="tools\YLsLNTransformer\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Page Remove="tools\YLsLNTransformer\**" />
     </ItemGroup>
     
 </Project>

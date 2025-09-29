@@ -10,26 +10,28 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Data;
 using System.Windows.Shell;
+using krrTools.Core.Scheduling;
 using krrTools.Localization;
 using krrTools.Tools.Shared;
-using krrTools.tools.Preview;
-using krrTools.tools.DPtool;
-using krrTools.tools.FilesManager;
-using krrTools.tools.KRRLNTransformer;
-using krrTools.tools.KrrLV;
-using krrTools.tools.Listener;
-using krrTools.tools.LNTransformer;
-using krrTools.tools.N2NC;
-using krrTools.tools.Shared;
+using krrTools.Tools.Preview;
+using krrTools.Tools.DPtool;
+using krrTools.Tools.FilesManager;
+using krrTools.Tools.KRRLNTransformer;
+using krrTools.Tools.KrrLV;
+using krrTools.Tools.Listener;
+// using krrTools.Tools.LNTransformer;
+using krrTools.Tools.N2NC;
 using Microsoft.Extensions.Logging;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 using Button = Wpf.Ui.Controls.Button;
 using MessageBox = System.Windows.MessageBox;
 using Point = System.Windows.Point;
+using krrTools.Configuration;
+using krrTools.UI;
 using Size = System.Windows.Size;
 using ToggleSwitch = Wpf.Ui.Controls.ToggleSwitch;
-using static krrTools.tools.LNTransformer.Setting;
+using Grid = System.Windows.Controls.Grid;
 
 namespace krrTools;
 
@@ -56,7 +58,7 @@ public class MainWindow : FluentWindow
 
     private N2NCViewModel? _converterVM;
     private DPToolViewModel? _dpVM;
-    private YLsLNTransformerViewModel? _lnVM;
+    // private YLsLNTransformerViewModel? _lnVM;
     private DateTime _lastPreviewRefresh = DateTime.MinValue;
     
     private string? _internalOsuPath;
@@ -86,8 +88,8 @@ public class MainWindow : FluentWindow
         }
     }
     
-    private void SaveRealTimePreview() => OptionsManager.SetRealTimePreview(_realTimePreview);
-    private void LoadRealTimePreview() => _realTimePreview = OptionsManager.GetRealTimePreview();
+    private void SaveRealTimePreview() => BaseOptionsManager.SetRealTimePreview(_realTimePreview);
+    private void LoadRealTimePreview() => _realTimePreview = BaseOptionsManager.GetRealTimePreview();
 
     private void DebouncedRefresh(DualPreviewControl control, int ms = 150)
     {
@@ -98,25 +100,25 @@ public class MainWindow : FluentWindow
     }
 
     public N2NCControl ConvWindowInstance => _convWindowInstance;
-    public YLsLNTransformerControl LNWindowInstance => _lnWindowInstance;
+    // public YLsLNTransformerControl LNWindowInstance => _lnWindowInstance;
     public KRRLNTransformerControl KRRLNTransformerInstance => _krrLnTransformerInstance;
     public DPToolControl DPWindowInstance => _dpWindowInstance;
     private N2NCControl _convWindowInstance = null!;
-    private YLsLNTransformerControl _lnWindowInstance = null!;
+    // private YLsLNTransformerControl _lnWindowInstance = null!;
     private KRRLNTransformerControl _krrLnTransformerInstance = null!;
     private DPToolControl _dpWindowInstance = null!;
 
-    private ContentControl? N2NCSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.N2NCToolName);
-    private ContentControl? LNSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.YLsLNToolName);
-    private ContentControl? DPSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.DPToolName);
-    private ContentControl? KRRLNSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.KRRsLNToolName);
-    private ContentControl? LVCalSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.LVCalToolName);
-    private ContentControl? FilesManagerHost => _settingsHosts.GetValueOrDefault(OptionsManager.FilesManagerToolName);
+    private ContentControl? N2NCSettingsHost => _settingsHosts.GetValueOrDefault(BaseOptionsManager.N2NCToolName);
+    // private ContentControl? LNSettingsHost => _settingsHosts.GetValueOrDefault(OptionsManager.YLsLNToolName);
+    private ContentControl? DPSettingsHost => _settingsHosts.GetValueOrDefault(BaseOptionsManager.DPToolName);
+    private ContentControl? KRRLNSettingsHost => _settingsHosts.GetValueOrDefault(BaseOptionsManager.KRRsLNToolName);
+    private ContentControl? LVCalSettingsHost => _settingsHosts.GetValueOrDefault(BaseOptionsManager.LVCalToolName);
+    private ContentControl? FilesManagerHost => _settingsHosts.GetValueOrDefault(BaseOptionsManager.FilesManagerToolName);
 
-    public DualPreviewControl? N2NCPreview => _previewControls.GetValueOrDefault(OptionsManager.N2NCToolName);
-    public DualPreviewControl? LNPreview => _previewControls.GetValueOrDefault(OptionsManager.YLsLNToolName);
-    public DualPreviewControl? DPPreview => _previewControls.GetValueOrDefault(OptionsManager.DPToolName);
-    public DualPreviewControl? KRRLNPreview => _previewControls.GetValueOrDefault(OptionsManager.KRRsLNToolName);
+    public DualPreviewControl? N2NCPreview => _previewControls.GetValueOrDefault(BaseOptionsManager.N2NCToolName);
+    // public DualPreviewControl? LNPreview => _previewControls.GetValueOrDefault(OptionsManager.YLsLNToolName);
+    public DualPreviewControl? DPPreview => _previewControls.GetValueOrDefault(BaseOptionsManager.DPToolName);
+    public DualPreviewControl? KRRLNPreview => _previewControls.GetValueOrDefault(BaseOptionsManager.KRRsLNToolName);
 
     public MainWindow()
     {
@@ -256,7 +258,7 @@ public class MainWindow : FluentWindow
     private void InitializeToolScheduler()
     {
         ToolScheduler.RegisterTool(new N2NCTool());
-        ToolScheduler.RegisterTool(new YLsLNTransformerTool());
+        // ToolScheduler.RegisterTool(new YLsLNTransformerTool());
         ToolScheduler.RegisterTool(new DPTool());
         ToolScheduler.RegisterTool(new KRRLNTool());
     }
@@ -285,15 +287,15 @@ public class MainWindow : FluentWindow
     #region 创建带预览器选项卡
     private void BuildPreviewTabs()
     {
-        var previewConfigs = new[] { OptionsManager.N2NCToolName,OptionsManager.KRRsLNToolName ,OptionsManager.YLsLNToolName, OptionsManager.DPToolName };
+        var previewConfigs = new[] { BaseOptionsManager.N2NCToolName,BaseOptionsManager.KRRsLNToolName /* ,OptionsManager.YLsLNToolName */, BaseOptionsManager.DPToolName };
         foreach (var cfg in previewConfigs)
         {
             var headerText = cfg switch
             {
-                OptionsManager.N2NCToolName => Strings.TabN2NC,
-                OptionsManager.KRRsLNToolName => Strings.TabKRRsLN,
-                OptionsManager.YLsLNToolName => Strings.TabYLsLN,
-                OptionsManager.DPToolName => Strings.TabDPTool,
+                BaseOptionsManager.N2NCToolName => Strings.TabN2NC,
+                BaseOptionsManager.KRRsLNToolName => Strings.TabKRRsLN,
+                // OptionsManager.YLsLNToolName => Strings.TabYLsLN,
+                BaseOptionsManager.DPToolName => Strings.TabDPTool,
                 _ => cfg
             };
             var headerLabel = SharedUIComponents.CreateHeaderLabel(headerText);
@@ -326,12 +328,12 @@ public class MainWindow : FluentWindow
     {
         var simpleConfigs = new[]
         {
-            new { ToolKey = OptionsManager.LVCalToolName },
-            new { ToolKey = OptionsManager.FilesManagerToolName }
+            new { ToolKey = BaseOptionsManager.LVCalToolName },
+            new { ToolKey = BaseOptionsManager.FilesManagerToolName }
         };
         foreach (var cfg in simpleConfigs)
         {
-            var headerText = cfg.ToolKey == OptionsManager.LVCalToolName ? Strings.TabKrrLV : Strings.TabFilesManager;
+            var headerText = cfg.ToolKey == BaseOptionsManager.LVCalToolName ? Strings.TabKrrLV : Strings.TabFilesManager;
             var headerLabel = SharedUIComponents.CreateHeaderLabel(headerText);
             headerLabel.FontSize = 14;
             var tab = new TabViewItem
@@ -362,20 +364,20 @@ public class MainWindow : FluentWindow
         _converterVM = N2NCSettingsHost?.DataContext as N2NCViewModel;
         if (_converterVM != null)
         {
-            _converterVM.PropertyChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(OptionsManager.N2NCToolName);
+            _converterVM.PropertyChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(BaseOptionsManager.N2NCToolName);
         }
 
         _dpVM = DPSettingsHost?.DataContext as DPToolViewModel;
         if (_dpVM != null)
         {
-            _dpVM.PropertyChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(OptionsManager.DPToolName);
+            _dpVM.PropertyChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(BaseOptionsManager.DPToolName);
         }
 
-        _lnVM = LNSettingsHost?.DataContext as YLsLNTransformerViewModel;
-        if (_lnVM != null)
-        {
-            _lnVM.PropertyChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(OptionsManager.YLsLNToolName);
-        }
+        // _lnVM = LNSettingsHost?.DataContext as YLsLNTransformerViewModel;
+        // if (_lnVM != null)
+        // {
+        //     _lnVM.PropertyChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(OptionsManager.YLsLNToolName);
+        // }
     }
 
     private void RefreshGlobalPreviewIfCurrentTool(string toolName)
@@ -486,33 +488,33 @@ public class MainWindow : FluentWindow
             krrLn.Content = null;
 
             // 监听KRRLN设置变化
-            krrLn.SettingsChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(OptionsManager.KRRsLNToolName);
+            krrLn.SettingsChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(BaseOptionsManager.KRRsLNToolName);
         }
         
         
-        // LNTransformer 嵌入
-        _lnWindowInstance = new YLsLNTransformerControl();
-        var ln = _lnWindowInstance;
-        if (ln.Content is UIElement lnContent && LNSettingsHost != null)
-        {
-            // 复制资源
-            var keys = ln.Resources.Keys.Cast<object>().ToList();
-            foreach (var k in keys)
-            {
-                // Skip implicit Window styles
-                var res = ln.Resources[k];
-                if (res is Style s && s.TargetType == typeof(Window))
-                    continue;
-                if (!LNSettingsHost.Resources.Contains(k))
-                    LNSettingsHost.Resources.Add(k, ln.Resources[k]);
-            }
+        // // LNTransformer 嵌入
+        // _lnWindowInstance = new YLsLNTransformerControl();
+        // var ln = _lnWindowInstance;
+        // if (ln.Content is UIElement lnContent && LNSettingsHost != null)
+        // {
+        //     // 复制资源
+        //     var keys = ln.Resources.Keys.Cast<object>().ToList();
+        //     foreach (var k in keys)
+        //     {
+        //         // Skip implicit Window styles
+        //         var res = ln.Resources[k];
+        //         if (res is Style s && s.TargetType == typeof(Window))
+        //             continue;
+        //         if (!LNSettingsHost.Resources.Contains(k))
+        //             LNSettingsHost.Resources.Add(k, ln.Resources[k]);
+        //     }
 
-            ClearFixedSizes(lnContent);
+        //     ClearFixedSizes(lnContent);
 
-            LNSettingsHost.DataContext = ln.DataContext;
-            LNSettingsHost.Content = lnContent;
-            ln.Content = null;
-        }
+        //     LNSettingsHost.DataContext = ln.DataContext;
+        //     LNSettingsHost.Content = lnContent;
+        //     ln.Content = null;
+        // }
 
         // DP Tool 嵌入
         _dpWindowInstance = new DPToolControl();
@@ -640,14 +642,14 @@ public class MainWindow : FluentWindow
 
         var toolKey = tab.Tag.ToString();
         // Only allow LV and GetFiles tools to detach
-        if (toolKey != OptionsManager.LVCalToolName && toolKey != OptionsManager.FilesManagerToolName) return;
+        if (toolKey != BaseOptionsManager.LVCalToolName && toolKey != BaseOptionsManager.FilesManagerToolName) return;
 
         var header = tab.Header?.ToString() ?? "Detached";
 
         Func<ContentControl> createFreshWindow = toolKey switch
         {
-            OptionsManager.LVCalToolName => () => new KrrLVControl(),
-            OptionsManager.FilesManagerToolName => () => new FilesManagerControl(),
+            BaseOptionsManager.LVCalToolName => () => new KrrLVControl(),
+            BaseOptionsManager.FilesManagerToolName => () => new FilesManagerControl(),
             _ => throw new ArgumentOutOfRangeException()
         };
 
@@ -782,19 +784,19 @@ public class MainWindow : FluentWindow
         var sourceId = 0;
         switch (selectedTab?.Tag as string)
         {
-            case OptionsManager.N2NCToolName:
+            case BaseOptionsManager.N2NCToolName:
                 source = _convWindowInstance;
                 sourceId = 1;
                 break;
-            case OptionsManager.YLsLNToolName:
-                source = _lnWindowInstance;
-                sourceId = 2;
-                break;
-            case OptionsManager.DPToolName:
+            // case OptionsManager.YLsLNToolName:
+            //     source = _lnWindowInstance;
+            //     sourceId = 2;
+            //     break;
+            case BaseOptionsManager.DPToolName:
                 source = _dpWindowInstance;
                 sourceId = 3;
                 break;
-            case OptionsManager.KRRsLNToolName:
+            case BaseOptionsManager.KRRsLNToolName:
                 source = _krrLnTransformerInstance;
                 sourceId = 4;
                 break;
@@ -908,11 +910,11 @@ public class MainWindow : FluentWindow
                     N2NCPreview.ApplyDropZoneStagedUI(arr);
                 }
 
-                if (LNPreview != null)
-                {
-                    LNPreview.LoadPreview(arr, suppressBroadcast: true);
-                    LNPreview.ApplyDropZoneStagedUI(arr);
-                }
+                // if (LNPreview != null)
+                // {
+                //     LNPreview.LoadPreview(arr, suppressBroadcast: true);
+                //     LNPreview.ApplyDropZoneStagedUI(arr);
+                // }
 
                 if (DPPreview != null)
                 {
@@ -938,7 +940,7 @@ public class MainWindow : FluentWindow
     {
         var selectedTag = (MainTabControl.SelectedItem as TabViewItem)?.Tag as string;
         // 判断是否为转换工具，配套增加预览器
-        var isConverter = selectedTag is OptionsManager.N2NCToolName or OptionsManager.YLsLNToolName or OptionsManager.DPToolName or OptionsManager.KRRsLNToolName;
+        var isConverter = selectedTag is BaseOptionsManager.N2NCToolName /* or OptionsManager.YLsLNToolName */ or BaseOptionsManager.DPToolName or BaseOptionsManager.KRRsLNToolName;
         if (_previewControls.TryGetValue("Global", out var preview))
         {
             preview.Visibility = isConverter ? Visibility.Visible : Visibility.Collapsed;
@@ -951,7 +953,7 @@ public class MainWindow : FluentWindow
                     ToolScheduler = ToolScheduler,
                     ConverterOptionsProvider = () => _converterVM?.Options ?? new N2NCOptions(),
                     KRRLNOptionsProvider = () => _krrLnTransformerInstance.Options,
-                    LNOptionsProvider = () => _lnVM?.Options ?? new YLsLNTransformerOptions(),
+                    // LNOptionsProvider = () => _lnVM?.Options ?? new YLsLNTransformerOptions(),
                     DPOptionsProvider = () => _dpVM?.Options ?? new DPToolOptions(),
                     CurrentTool = selectedTag
                 };

@@ -1,5 +1,5 @@
 using System.ComponentModel;
-using krrTools.tools.Shared;
+using krrTools.UI;
 
 namespace krrTools.Localization;
 
