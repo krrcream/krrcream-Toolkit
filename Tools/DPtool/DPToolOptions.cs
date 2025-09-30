@@ -1,5 +1,5 @@
-﻿using krrTools.Configuration;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using krrTools.Configuration;
 
 namespace krrTools.Tools.DPtool
 {

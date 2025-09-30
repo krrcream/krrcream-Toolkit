@@ -1,49 +1,44 @@
 using System;
-using System.Threading.Tasks;
+using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Core;
 using krrTools.Data;
+using krrTools.Localization;
 using krrTools.Tools.Listener;
-using krrTools.Beatmaps;
+using OsuParsers.Beatmaps;
 
 namespace krrTools.Tools.N2NC
 {
     /// <summary>
-    /// N2NC工具包装器
+    /// N2NC工具模块
     /// </summary>
-    public class N2NCTool : ITool
+    public class N2NCTool : ToolModuleBase<N2NCOptions, N2NCViewModel, N2NCControl>
     {
-        public string Name => BaseOptionsManager.N2NCToolName;
+        /// <summary>
+        /// 模块类型
+        /// </summary>
+        public override ToolModuleType ModuleType => ToolModuleType.N2NC;
+
+        /// <summary>
+        /// 模块显示名称
+        /// </summary>
+        public override string DisplayName => Strings.TabN2NC;
+
+        /// <summary>
+        /// 核心算法：处理Beatmap
+        /// </summary>
+        protected override Beatmap ProcessBeatmap(Beatmap input, N2NCOptions options)
+        {
+            var converter = new N2NC { options = options };
+            return converter.NToNCToData(input);
+        }
 
         public IToolOptions DefaultOptions => new N2NCOptions();
 
-        public string? ProcessFile(string filePath)
+        public string? ProcessFile(string filePath, IToolOptions? options = null)
         {
-            var options = BaseOptionsManager.LoadOptions<N2NCOptions>(BaseOptionsManager.N2NCToolName, BaseOptionsManager.ConfigFileName) ?? new N2NCOptions();
-            return ProcessFileWithOptions(filePath, options);
-        }
-
-        public async Task<string?> ProcessFileAsync(string filePath)
-        {
-            return await Task.Run(() => ProcessFile(filePath));
-        }
-
-        public object? ProcessFileToData(string filePath)
-        {
-            var options = BaseOptionsManager.LoadOptions<N2NCOptions>(BaseOptionsManager.N2NCToolName, BaseOptionsManager.ConfigFileName) ?? new N2NCOptions();
-            return ProcessFileToDataWithOptions(filePath, options);
-        }
-
-        public OsuParsers.Beatmaps.Beatmap? ProcessBeatmapToData(OsuParsers.Beatmaps.Beatmap inputBeatmap)
-        {
-            var options = BaseOptionsManager.LoadOptions<N2NCOptions>(BaseOptionsManager.N2NCToolName, BaseOptionsManager.ConfigFileName) ?? new N2NCOptions();
-            return ProcessBeatmapToDataWithOptions(inputBeatmap, options);
-        }
-
-        public string? ProcessFileWithOptions(string filePath, IToolOptions options)
-        {
-            // TODO: 实现比较乱，需要重构、统一
-            if (options is not N2NCOptions n2ncOptions)
+            var opts = options ?? BaseOptionsManager.LoadOptions<N2NCOptions>(ConverterEnum.N2NC) ?? new N2NCOptions();
+            if (opts is not N2NCOptions n2ncOptions)
                 return null;
 
             // 先读取Beatmap
@@ -78,13 +73,19 @@ namespace krrTools.Tools.N2NC
             return null;
         }
 
-        public OsuParsers.Beatmaps.Beatmap? ProcessBeatmapToDataWithOptions(OsuParsers.Beatmaps.Beatmap inputBeatmap, IToolOptions options)
+        public Beatmap? ProcessBeatmapToData(Beatmap inputBeatmap, IToolOptions? options = null)
         {
             if (options is not N2NCOptions n2ncOptions)
-                return null;
+                n2ncOptions = new N2NCOptions();
 
             var converter = new N2NC { options = n2ncOptions };
             return converter.NToNCToData(inputBeatmap);
+        }
+
+        public object? TestFileToData(string filePath)
+        {
+            var options = new N2NCOptions();
+            return ProcessFileToDataWithOptions(filePath, options);
         }
 
         private object? ProcessFileToDataWithOptions(string filePath, IToolOptions options)

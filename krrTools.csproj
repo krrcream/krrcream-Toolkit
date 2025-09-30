@@ -19,33 +19,45 @@
     
     <ItemGroup>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+        <PackageReference Include="Coosu.Beatmap" Version="2.3.41" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.0.0-1.25277.114">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.9" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.9" />
         <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.9" />
         <PackageReference Include="OsuFileIO" Version="0.1.1" />
         <PackageReference Include="OsuFileIO.Analyzer" Version="0.1.1" />
         <PackageReference Include="OsuMemoryDataProvider" Version="0.11.1" />
         <PackageReference Include="OsuParsers" Version="1.7.2" />
         <PackageReference Include="WPF-UI" Version="4.0.3" />
-        <PackageReference Include="WPF-UI.DependencyInjection" Version="4.0.3" />
+        <PackageReference Include="WPF-UI.Tray" Version="4.0.3" />
         <PackageReference Include="WPF-UI.Violeta" Version="4.0.3.6" />
+        <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0" />
     </ItemGroup>
 
     <ItemGroup>
       <EmbeddedResource Include="Tools\Preview\mania-PreView.osu" />
       <EmbeddedResource Remove="tools\YLsLNTransformer\**" />
+      <EmbeddedResource Remove="publish\**" />
     </ItemGroup>
 
     <ItemGroup>
       <None Remove="img\**" />
       <Content Remove="img\**" />
       <None Remove="tools\YLsLNTransformer\**" />
+      <None Remove="publish\**" />
     </ItemGroup>
 
     <ItemGroup>
       <Compile Remove="tools\YLsLNTransformer\**" />
+      <Compile Remove="publish\**" />
     </ItemGroup>
 
     <ItemGroup>
       <Page Remove="tools\YLsLNTransformer\**" />
+      <Page Remove="publish\**" />
     </ItemGroup>
     
 </Project>

@@ -1,16 +1,24 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Windows.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace krrTools.Configuration
 {
-    // Interface for tool options to support unified handling across different tools
+    // 工具选项接口，所有工具选项类必须实现此接口
     public interface IToolOptions
     {
         void Validate();
     }
 
-    // Base class for tool option objects that need validation/notifications
+    /// <summary>
+    /// 预览选项提供者接口
+    /// </summary>
+    public interface IPreviewOptionsProvider
+    {
+        IToolOptions GetPreviewOptions();
+    }
+
+    // 基类，实现了基本的选项加载和保存逻辑
     public abstract class ToolOptionsBase : ObservableObject, IToolOptions
     {
         /// <summary>
@@ -25,29 +33,30 @@ namespace krrTools.Configuration
     /// </summary>
     public abstract class UnifiedToolOptions : ToolOptionsBase
     {
-        /// <summary>
-        /// 选中的预设
-        /// </summary>
         public PresetKind SelectedPreset { get; set; } = PresetKind.Default;
     }
 
     /// <summary>
-    /// Unified base class for tool ViewModels that need options management
+    /// 基类，提供选项加载和保存功能
     /// </summary>
     /// <typeparam name="TOptions">The options type for this tool</typeparam>
     public abstract class ToolViewModelBase<TOptions> : ObservableObject where TOptions : class, IToolOptions, new()
     {
-        private TOptions _options = new TOptions();
-        private readonly string _toolName;
+        private TOptions _options;
+        private readonly object _toolEnum;
         private readonly bool _autoSave;
 
-        protected ToolViewModelBase(string toolName, bool autoSave = true)
+        protected ToolViewModelBase(object toolEnum, bool autoSave = true, TOptions? injectedOptions = null)
         {
-            _toolName = toolName;
+            _toolEnum = toolEnum;
             _autoSave = autoSave;
+            _options = injectedOptions ?? new TOptions();
 
-            // Load options on initialization
-            DoLoadOptions();
+            // Load options on initialization if not injected
+            if (injectedOptions == null)
+            {
+                DoLoadOptions();
+            }
 
             // Subscribe to property changes for auto-save if enabled
             if (_autoSave)
@@ -86,27 +95,11 @@ namespace krrTools.Configuration
             }
         }
 
-        /// <summary>
-        /// Load options from persistent storage
-        /// </summary>
-        public virtual void LoadOptions()
-        {
-            // Default implementation - can be overridden
-        }
-
-        /// <summary>
-        /// Save options to persistent storage
-        /// </summary>
-        public virtual void SaveOptions()
-        {
-            // Default implementation - can be overridden
-        }
-
         private void DoLoadOptions()
         {
             try
             {
-                var saved = BaseOptionsManager.LoadOptions<TOptions>(_toolName, BaseOptionsManager.ConfigFileName);
+                var saved = BaseOptionsManager.LoadOptions<TOptions>(_toolEnum);
                 if (saved != null)
                 {
                     Options = saved;
@@ -124,7 +117,7 @@ namespace krrTools.Configuration
             {
                 var optionsToSave = Options;
                 optionsToSave.Validate();
-                BaseOptionsManager.SaveOptions(_toolName, BaseOptionsManager.ConfigFileName, optionsToSave);
+                BaseOptionsManager.SaveOptions(_toolEnum, optionsToSave);
             }
             catch
             {
@@ -152,57 +145,35 @@ namespace krrTools.Configuration
     }
 
     /// <summary>
-    /// Options common to a single hand/side (used by DP tool to represent left/right)
-    /// </summary>
-    public class SideOptions : ToolOptionsBase
-    {
-        // 用户设置的默认值应该在ViewModel中定义
-        public override void Validate()
-        {
-        }
-    }
-
-    /// <summary>
     /// Unified base class for tool controls that need options management
     /// </summary>
     /// <typeparam name="TOptions">The options type for this tool</typeparam>
     public abstract class ToolControlBase<TOptions> : UserControl where TOptions : class, IToolOptions, new()
     {
-        private readonly string _toolName;
+        private readonly object _toolEnum;
 
-        protected ToolControlBase(string toolName)
+        protected ToolControlBase(object toolEnum, TOptions? injectedOptions = null)
         {
-            _toolName = toolName;
-            // Load options on initialization
-            DoLoadOptions();
+            _toolEnum = toolEnum;
+            Options = injectedOptions ?? new TOptions();
+
+            // Load options on initialization if not injected
+            if (injectedOptions == null)
+            {
+                DoLoadOptions();
+            }
         }
 
         /// <summary>
         /// The options for this tool
         /// </summary>
-        public TOptions Options { get; private set; } = new TOptions();
-
-        /// <summary>
-        /// Load options from persistent storage
-        /// </summary>
-        public virtual void LoadOptions()
-        {
-            // Default implementation - can be overridden
-        }
-
-        /// <summary>
-        /// Save options to persistent storage
-        /// </summary>
-        public virtual void SaveOptions()
-        {
-            // Default implementation - can be overridden
-        }
+        protected TOptions Options { get; private set; }
 
         private void DoLoadOptions()
         {
             try
             {
-                var saved = BaseOptionsManager.LoadOptions<TOptions>(_toolName, BaseOptionsManager.ConfigFileName);
+                var saved = BaseOptionsManager.LoadOptions<TOptions>(_toolEnum);
                 if (saved != null)
                 {
                     Options = saved;
@@ -220,7 +191,7 @@ namespace krrTools.Configuration
             {
                 var optionsToSave = Options;
                 optionsToSave.Validate();
-                BaseOptionsManager.SaveOptions(_toolName, BaseOptionsManager.ConfigFileName, optionsToSave);
+                BaseOptionsManager.SaveOptions(_toolEnum, optionsToSave);
             }
             catch
             {

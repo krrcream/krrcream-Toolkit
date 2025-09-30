@@ -1,7 +1,8 @@
+
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using krrTools.Beatmaps;
 using krrTools.Data;
@@ -9,7 +10,6 @@ using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 
 namespace krrTools.Tools.Preview;
-
 // 提供用于预览的转换辅助方法（仅在内存中操作，不写出文件）
 public static class PreviewTransformation
 {
@@ -29,23 +29,6 @@ public static class PreviewTransformation
         var quarterMs = 60000.0 / Math.Max(1.0, bpm);
         var res = MatrixToNotes(matrix, timeAxis, cs, maxRows);
         return (res.columns, res.notes, quarterMs);
-    }
-
-    // 内存beatmap构建矩阵
-    private static bool TryBuildMatrixFromBeatmap(
-        Beatmap beatmap,
-        out int[,] matrix,
-        out List<int> timeAxis,
-        out int cs)
-    {
-        matrix = new int[0, 0];
-        timeAxis = new List<int>();
-        cs = (int)beatmap.DifficultySection.CircleSize;
-
-        var tuple = beatmap.BuildMatrix();
-        matrix = tuple.Item1;
-        timeAxis = tuple.Item2;
-        return true;
     }
 
     // 返回第一个非空时间点（毫秒），找不到返回 null

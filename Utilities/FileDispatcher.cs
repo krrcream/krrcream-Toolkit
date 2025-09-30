@@ -1,19 +1,18 @@
+// using static krrTools.Tools.LNTransformer.Setting;
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
 using krrTools.Configuration;
-using krrTools.Tools.DPtool;
-using krrTools.Tools.KRRLNTransformer;
-using krrTools.Tools.N2NC;
+using krrTools.Localization;
 using krrTools.Tools.Preview;
 using Microsoft.Extensions.Logging;
 using Wpf.Ui.Controls;
 using MessageBox = System.Windows.MessageBox;
 using MessageBoxButton = System.Windows.MessageBoxButton;
 using MessageBoxResult = System.Windows.MessageBoxResult;
-// using static krrTools.Tools.LNTransformer.Setting;
 
 namespace krrTools.Utilities
 {
@@ -43,27 +42,38 @@ namespace krrTools.Utilities
             // Try to find existing Control instance from MainWindow
             var mainWindow = Application.Current?.Windows.OfType<MainWindow>().FirstOrDefault();
             object? conv = null;
-            if (activeTabTag == BaseOptionsManager.N2NCToolName)
-                conv = mainWindow?.ConvWindowInstance;
-            // else if (activeTabTag == OptionsManager.YLsLNToolName)
-            //     conv = mainWindow?.LNWindowInstance;
-            else if (activeTabTag == BaseOptionsManager.DPToolName)
-                conv = mainWindow?.DPWindowInstance;
-            else if (activeTabTag == BaseOptionsManager.KRRsLNToolName)
-                conv = mainWindow?.KRRLNTransformerInstance;
+
+            if (mainWindow != null)
+            {
+                conv = activeTabTag switch
+                {
+                    "N2NC" => mainWindow.ConvWindowInstance,
+                    "DP" => mainWindow.DPWindowInstance,
+                    "KRRLN" => mainWindow.KRRLNTransformerInstance,
+                    _ => null
+                };
+            }
 
             if (conv == null)
             {
-                // Fallback: create new instance if not found
-                if (activeTabTag == BaseOptionsManager.N2NCToolName)
-                    conv = new N2NCControl();
-                // else if (activeTabTag == OptionsManager.YLsLNToolName)
-                //     conv = new YLsLNTransformerControl();
-                else if (activeTabTag == BaseOptionsManager.DPToolName)
-                    conv = new DPToolControl();
-                else if (activeTabTag == BaseOptionsManager.KRRsLNToolName)
-                    conv = new KRRLNTransformerControl();
-                _logger.LogWarning("使用备用{Converter}实例 - 选项可能未正确加载", activeTabTag);
+                // Fallback: create new instance using reflection
+                var controlType = BaseOptionsManager.GetControlType(activeTabTag);
+                if (controlType != null)
+                {
+                    try
+                    {
+                        conv = Activator.CreateInstance(controlType);
+                        _logger.LogWarning("使用反射创建{Converter}实例 - 选项可能未正确加载", activeTabTag);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "创建控件实例失败: {ToolName}", activeTabTag);
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("未找到工具{Converter}对应的控件类型", activeTabTag);
+                }
             }
 
             var created = new List<string>();
@@ -83,8 +93,8 @@ namespace krrTools.Utilities
                         if (File.Exists(outputPath))
                         {
                             var result = MessageBox.Show(
-                                $"文件已存在：{Path.GetFileName(outputPath)}\n\n是否覆盖？",
-                                "文件冲突",
+                                Strings.FileAlreadyExists.Localize() + ": " + Path.GetFileName(outputPath) + "\n\n" + Strings.OverwriteQuestion.Localize(),
+                                Strings.FileConflict.Localize(),
                                 MessageBoxButton.YesNo,
                                 MessageBoxImage.Question);
 
@@ -168,8 +178,8 @@ namespace krrTools.Utilities
                 title = "转换失败";
                 icon = MessageBoxImage.Warning;
                 message = failed.Count > 0 
-                    ? "转换失败，所有文件都未能成功转换。" 
-                    : "转换未产生任何输出。";
+                    ? Strings.ConversionFailedAllFiles.Localize()
+                    : Strings.ConversionNoOutput.Localize();
             }
 
             MessageBox.Show(message, title, MessageBoxButton.OK, icon);
@@ -177,7 +187,7 @@ namespace krrTools.Utilities
 
         private string GetActiveTabTag()
         {
-            return (mainTabControl.SelectedItem as TabViewItem)?.Tag as string ?? BaseOptionsManager.N2NCToolName;
+            return (mainTabControl.SelectedItem as TabViewItem)?.Tag as string ?? "N2NC";
         }
     }
 }

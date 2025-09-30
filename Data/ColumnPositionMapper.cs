@@ -1,8 +1,8 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 
 namespace krrTools.Data;
-
 public static class ColumnPositionMapper
 {
     private static readonly Dictionary<int, int[]> KeyValueMap = new Dictionary<int, int[]>

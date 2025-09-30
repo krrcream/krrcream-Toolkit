@@ -1,5 +1,5 @@
-using krrTools.Configuration;
 using krrTools.Core;
+using krrTools.Localization;
 using OsuParsers.Beatmaps;
 
 namespace krrTools.Tools.KRRLNTransformer
@@ -11,9 +11,7 @@ namespace krrTools.Tools.KRRLNTransformer
     {
         public override ToolModuleType ModuleType => ToolModuleType.KRRLN;
 
-        public override string ModuleName => BaseOptionsManager.KRRsLNToolName;
-
-        public override string DisplayName => "KRR LN Transformer";
+        public override string DisplayName => Strings.TabKRRsLN;
 
         protected override Beatmap ProcessBeatmap(Beatmap input, KRRLNTransformerOptions options)
         {

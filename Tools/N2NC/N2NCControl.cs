@@ -1,16 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using krrTools.Beatmaps;
+using krrTools.Configuration;
 using krrTools.Data;
 using krrTools.Localization;
-using OsuParsers.Beatmaps;
-using krrTools.Configuration;
 using krrTools.UI;
+using OsuParsers.Beatmaps;
 
 namespace krrTools.Tools.N2NC
 {
@@ -57,20 +57,32 @@ namespace krrTools.Tools.N2NC
 
     public class N2NCControl : ToolControlBase<N2NCOptions>
     {
+        public event EventHandler? SettingsChanged;
         private Slider? TargetKeysSlider;
         private Slider? MaxKeysSlider;
         private Slider? MinKeysSlider;
         private TextBox? SeedTextBox;
         private Button? GenerateSeedButton;
         private readonly Dictionary<KeySelectionFlags, CheckBox> checkboxMap = new();
-        private readonly N2NCViewModel _viewModel = new();
+        private readonly N2NCViewModel _viewModel;
 
 
-        public N2NCControl() : base(BaseOptionsManager.N2NCToolName)
+        public N2NCControl() : base(ConverterEnum.N2NC)
         {
+            _viewModel = new N2NCViewModel(Options);
             DataContext = _viewModel;
             BuildConverterUI();
-            _viewModel.LoadOptions();
+            // Options are now loaded automatically via DI
+            SharedUIComponents.LanguageChanged += OnLanguageChanged;
+            Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
+        }
+
+        public N2NCControl(N2NCOptions options) : base(ConverterEnum.N2NC, options)
+        {
+            _viewModel = new N2NCViewModel(options);
+            DataContext = _viewModel;
+            BuildConverterUI();
+            // Options are now loaded automatically via DI
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
             Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
         }
@@ -130,14 +142,6 @@ namespace krrTools.Tools.N2NC
             return new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         }
 
-        private Grid CreateMainGrid()
-        {
-            var grid = new Grid { Margin = new Thickness(0) };
-            for (int i = 0; i < 8; i++)
-                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            return grid;
-        }
-
         private FrameworkElement CreateTargetKeysPanel(Thickness rowMargin)
         {
             // Target keys
@@ -159,8 +163,10 @@ namespace krrTools.Tools.N2NC
 
             // 绑定标签文本为 "本地化标签: 值"
             // 实现不友好，后续参考DP或预设的本地化
-            var targetBinding = new MultiBinding();
-            targetBinding.StringFormat = "{0}";
+            var targetBinding = new MultiBinding
+            {
+                StringFormat = "{0}"
+            };
             targetBinding.Bindings.Add(new Binding("Value") { Source = new LocalizedStringHelper.LocalizedString(Strings.N2NCTargetKeysTemplate) });
             targetBinding.Bindings.Add(new Binding("TargetKeys") { Source = _viewModel });
             targetBinding.Converter = new LabelConverter();
@@ -189,8 +195,10 @@ namespace krrTools.Tools.N2NC
             Grid.SetColumn(maxLabel, 0);
             labelRow.Children.Add(maxLabel);
             // 绑定标签文本为 "本地化标签: 值"
-            var maxBinding = new MultiBinding();
-            maxBinding.StringFormat = "{0}";
+            var maxBinding = new MultiBinding
+            {
+                StringFormat = "{0}"
+            };
             maxBinding.Bindings.Add(new Binding("Value") { Source = new LocalizedStringHelper.LocalizedString(Strings.N2NCMaxKeysTemplate) });
             maxBinding.Bindings.Add(new Binding(nameof(N2NCViewModel.MaxKeys)) { Source = _viewModel });
             maxBinding.Converter = new LabelConverter();
@@ -221,8 +229,10 @@ namespace krrTools.Tools.N2NC
             Grid.SetColumn(minLabel, 0);
             labelRow.Children.Add(minLabel);
             // 绑定标签文本为 "本地化标签: 值"
-            var minBinding = new MultiBinding();
-            minBinding.StringFormat = "{0}";
+            var minBinding = new MultiBinding
+            {
+                StringFormat = "{0}"
+            };
             minBinding.Bindings.Add(new Binding("Value") { Source = new LocalizedStringHelper.LocalizedString(Strings.N2NCMinKeysTemplate) });
             minBinding.Bindings.Add(new Binding(nameof(N2NCViewModel.MinKeys)) { Source = _viewModel });
             minBinding.Converter = new LabelConverter();
@@ -253,8 +263,10 @@ namespace krrTools.Tools.N2NC
             Grid.SetColumn(transformLabel, 0);
             labelRow.Children.Add(transformLabel);
             // 绑定标签文本为 "本地化标签: 值"
-            var transformBinding = new MultiBinding();
-            transformBinding.StringFormat = "{0}";
+            var transformBinding = new MultiBinding
+            {
+                StringFormat = "{0}"
+            };
             transformBinding.Bindings.Add(new Binding("Value") { Source = new LocalizedStringHelper.LocalizedString(Strings.N2NCTransformSpeedTemplate) });
             transformBinding.Bindings.Add(new Binding(nameof(N2NCViewModel.TransformSpeedDisplay)) { Source = _viewModel });
             transformBinding.Converter = new LabelConverter();
@@ -370,6 +382,8 @@ namespace krrTools.Tools.N2NC
                     foreach (var kvp in checkboxMap)
                         kvp.Value.IsChecked = GetKeySelectionFlag(kvp.Key);
                 }
+                // Trigger settings changed event for preview updates
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
 
             var filterLabel = Strings.Localize(Strings.FilterLabel);
@@ -403,7 +417,7 @@ namespace krrTools.Tools.N2NC
         {
             // Use shared PresetPanelFactory to manage presets for ConverterOptions
             FrameworkElement panel = PresetPanelFactory.CreatePresetPanel(
-                BaseOptionsManager.N2NCToolName,
+                "N2NC",
                 () => _viewModel.GetConversionOptions(),
                 (opt) =>
                 {
@@ -445,66 +459,6 @@ namespace krrTools.Tools.N2NC
         private void SetupEventHandlers()
         {
             // 可以在这里添加事件处理逻辑
-        }
-
-        // 添加获取预设显示名称的方法
-        private string GetPresetDisplayName(PresetKind preset)
-        {
-            return SharedUIComponents.GetLocalizedEnumDisplayName(preset);
-        }
-
-        private void ApplyPreset(PresetKind preset)
-        {
-            switch (preset)
-            {
-                case PresetKind.Default:
-                    _viewModel.TargetKeys = 4;
-                    _viewModel.MaxKeys = 4;
-                    _viewModel.MinKeys = 2;
-                    _viewModel.TransformSpeed = 1.0;
-                    _viewModel.Seed = 0;
-                    _viewModel.KeySelection = KeySelectionFlags.K4 | KeySelectionFlags.K5 | KeySelectionFlags.K6 | KeySelectionFlags.K7 | KeySelectionFlags.K8;
-                    break;
-                case PresetKind.TenK:
-                    _viewModel.TargetKeys = 6;
-                    _viewModel.MaxKeys = 6;
-                    _viewModel.MinKeys = 4;
-                    _viewModel.TransformSpeed = 2.0;
-                    _viewModel.Seed = 0;
-                    _viewModel.KeySelection = KeySelectionFlags.K6 | KeySelectionFlags.K7 | KeySelectionFlags.K8 | KeySelectionFlags.K9 | KeySelectionFlags.K10;
-                    break;
-                case PresetKind.EightK:
-                    _viewModel.TargetKeys = 4;
-                    _viewModel.MaxKeys = 4;
-                    _viewModel.MinKeys = 2;
-                    _viewModel.TransformSpeed = 0.5;
-                    _viewModel.Seed = 0;
-                    _viewModel.KeySelection = KeySelectionFlags.K4 | KeySelectionFlags.K5 | KeySelectionFlags.K6 | KeySelectionFlags.K7;
-                    break;
-                case PresetKind.SevenK:
-                    _viewModel.TargetKeys = 8;
-                    _viewModel.MaxKeys = 8;
-                    _viewModel.MinKeys = 6;
-                    _viewModel.TransformSpeed = 1.5;
-                    _viewModel.Seed = 0;
-                    _viewModel.KeySelection = KeySelectionFlags.K8 | KeySelectionFlags.K9 | KeySelectionFlags.K10 | KeySelectionFlags.K10Plus;
-                    break;
-            }
-        }
-
-        // 保存当前选项
-        private void ConverterWindow_Closing(object? sender, CancelEventArgs e)
-        {
-            try
-            {
-                var opt = _viewModel.GetConversionOptions();
-                opt.Validate();
-                BaseOptionsManager.SaveOptions(BaseOptionsManager.N2NCToolName, BaseOptionsManager.ConfigFileName, opt);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to save converter options: {ex.Message}");
-            }
         }
 
         private void TargetKeysSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -577,7 +531,7 @@ namespace krrTools.Tools.N2NC
             return N2NCService.ProcessSingleFile(filePath, _viewModel.GetConversionOptions());
         }
 
-        public string GetOutputFileName(string inputPath, Beatmap beatmap)
+        public string GetOutputFileName(string inputPath, ManiaBeatmap beatmap)
         {
             return beatmap.GetOsuFileName() + ".osu";
         }

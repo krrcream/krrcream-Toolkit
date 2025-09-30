@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
+using krrTools.Localization;
 using krrTools.UI;
 
 namespace krrTools.Tools.KrrLV
@@ -192,7 +193,7 @@ namespace krrTools.Tools.KrrLV
                 {
                     try
                     {
-                        Title = SharedUIComponents.IsChineseLanguage() ? "\u5904\u7406\u4e2d..." : "Processing...";
+                        Title = Strings.ProcessingTitle.Localize();
                     }
                     catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"ProcessingWindow inner OnLanguageChanged failed: {ex.Message}"); }
                 }));

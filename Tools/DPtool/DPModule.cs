@@ -1,5 +1,5 @@
-using krrTools.Configuration;
 using krrTools.Core;
+using krrTools.Localization;
 using OsuParsers.Beatmaps;
 
 namespace krrTools.Tools.DPtool
@@ -11,9 +11,7 @@ namespace krrTools.Tools.DPtool
     {
         public override ToolModuleType ModuleType => ToolModuleType.DP;
 
-        public override string ModuleName => BaseOptionsManager.DPToolName;
-
-        public override string DisplayName => "DP Tool";
+        public override string DisplayName => Strings.TabDPTool;
 
         protected override Beatmap ProcessBeatmap(Beatmap input, DPToolOptions options)
         {

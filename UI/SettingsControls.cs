@@ -7,8 +7,8 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Threading;
-using krrTools.Localization;
 using krrTools.Configuration;
+using krrTools.Localization;
 
 namespace krrTools.UI
 {

@@ -1,14 +1,12 @@
 using System;
-using System.IO;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
-using krrTools.Tools.DPtool;
-// using krrTools.Tools.LNTransformer;
-using krrTools.Tools.N2NC;
-using krrTools.Tools.KRRLNTransformer;
+using krrTools.Core;
 using krrTools.Utilities;
 
 namespace krrTools.Configuration
@@ -23,16 +21,6 @@ namespace krrTools.Configuration
         public const string PresetsFolderName = "presets";
         public const string PipelinesFolderName = "pipelines";
 
-        // tool identifiers
-        public const string N2NCToolName = "Converter";
-        public const string DPToolName = "DPTool";
-        // public const string YLsLNToolName = "YLsLNTransformer";
-        public const string KRRsLNToolName = "KRRsLNTransformer";
-
-        // Add tool identifiers for simple tabs
-        public const string LVCalToolName = "LVCalculator";
-        public const string FilesManagerToolName = "FilesManager";
-
         // DP specific constants
         public const string DPCreatorPrefix = "Krr DP. & ";
         public const string DPDefaultTag = "krrcream's converter DP";
@@ -40,7 +28,7 @@ namespace krrTools.Configuration
         // KRR LN specific constants
         public const string KRRLNCreatorPrefix = "Krr LN. & ";
         public const string KRRLNDefaultTag = "krrcream's transformer LN";
-        
+
         // 统一的配置文件路径 (exe 所在文件夹)
         private static string ConfigFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ConfigFileName);
 
@@ -48,8 +36,73 @@ namespace krrTools.Configuration
         private static AppConfig? _cachedConfig;
         private static readonly Lock _configLock = new Lock();
 
+        // 工具映射 - 自动注册
+        private static readonly Dictionary<object, Type> _toolMappings = new();
+
+        // 静态构造函数 - 自动注册工具
+        static BaseOptionsManager()
+        {
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            foreach (var type in assemblies.SelectMany(a => a.GetTypes())
+                .Where(t => typeof(IToolModule).IsAssignableFrom(t) && !t.IsAbstract))
+            {
+                try
+                {
+                    var instance = (IToolModule)Activator.CreateInstance(type);
+                    _toolMappings[instance.EnumValue] = instance.OptionsType;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to register tool module {type.Name}: {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取控件类型 - 直接映射
+        /// </summary>
+        public static Type? GetControlType(string toolName)
+        {
+            return toolName switch
+            {
+                "N2NC" => typeof(Tools.N2NC.N2NCControl),
+                "DP" => typeof(Tools.DPtool.DPToolControl),
+                "KRRLN" => typeof(Tools.KRRLNTransformer.KRRLNTransformerControl),
+                _ => null
+            };
+        }
+
+        /// <summary>
+        /// 获取源ID - 从DI容器获取
+        /// </summary>
+        public static int GetSourceId(object toolEnum)
+        {
+            if (toolEnum is string toolName)
+            {
+                return toolName switch
+                {
+                    "N2NC" => 1,
+                    "DP" => 3,
+                    "KRRLN" => 4,
+                    _ => 0
+                };
+            }
+            else if (toolEnum is ConverterEnum converter)
+            {
+                return converter switch
+                {
+                    ConverterEnum.N2NC => 1,
+                    ConverterEnum.DP => 3,
+                    ConverterEnum.KRRLN => 4,
+                    _ => 0
+                };
+            }
+            return 0;
+        }
+
         // 预设和管道使用的文件夹路径
-        private static string BaseFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), BaseAppFolderName);
+        private static string BaseFolder =>
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), BaseAppFolderName);
 
         private static string GetToolFolder(string toolName)
         {
@@ -79,13 +132,15 @@ namespace krrTools.Configuration
                     string json = File.ReadAllText(path);
                     var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                     _cachedConfig = JsonSerializer.Deserialize<AppConfig>(json, opts) ?? new AppConfig();
-                    
+
                     return _cachedConfig;
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Failed to load config file '{path}': {ex.Message}");
+                    Debug.WriteLine(
+                        $"Failed to load config file '{path}': {ex.Message}. Creating default config and overwriting file.");
                     _cachedConfig = new AppConfig();
+                    SaveConfig(); // 覆盖损坏的文件
                     return _cachedConfig;
                 }
             }
@@ -103,13 +158,15 @@ namespace krrTools.Configuration
                 string path = ConfigFilePath;
                 try
                 {
-                    var opts = new JsonSerializerOptions { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
+                    var opts = new JsonSerializerOptions
+                        { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
                     string json = JsonSerializer.Serialize(_cachedConfig, opts);
                     File.WriteAllText(path, json);
                 }
                 catch (Exception ex)
                 {
                     Debug.WriteLine($"Failed to save config file '{path}': {ex.Message}");
+                    throw new IOException($"Unable to save configuration to '{path}': {ex.Message}", ex);
                 }
             }
         }
@@ -117,122 +174,108 @@ namespace krrTools.Configuration
         /// <summary>
         /// 获取指定工具的选项
         /// </summary>
-        public static T? LoadOptions<T>(string toolName, string filename)
+        public static T? LoadOptions<T>(object toolEnum)
         {
             var config = LoadConfig();
 
-            object? options = toolName switch
+            if (toolEnum is ConverterEnum converter)
             {
-                N2NCToolName => config.N2NC,
-                DPToolName => config.DP,
-                // YLsLNToolName => config.LNTransformer,
-                KRRsLNToolName => config.KRRLNTransformer,
-                _ => null
-            };
+                return (T?)config.Converters.GetValueOrDefault(converter);
+            }
+            else if (toolEnum is ModuleEnum module)
+            {
+                return (T?)config.Modules.GetValueOrDefault(module);
+            }
 
-            return options is T typedOptions ? typedOptions : default;
+            return default;
         }
 
         /// <summary>
         /// 保存指定工具的选项
         /// </summary>
-        public static void SaveOptions<T>(string toolName, string filename, T options)
+        public static void SaveOptions<T>(object toolEnum, T options)
         {
             var config = LoadConfig();
 
-            switch (toolName)
+            if (toolEnum is ConverterEnum converter)
             {
-                case N2NCToolName:
-                    config.N2NC = options as N2NCOptions;
-                    break;
-                case DPToolName:
-                    config.DP = options as DPToolOptions;
-                    break;
-                // case YLsLNToolName:
-                //     config.LNTransformer = options as YLsLNTransformerOptions;
-                //     break;
-                case KRRsLNToolName:
-                    config.KRRLNTransformer = options as KRRLNTransformerOptions;
-                    break;
+                config.Converters[converter] = options;
+            }
+            else if (toolEnum is ModuleEnum module)
+            {
+                config.Modules[module] = options;
             }
 
             SaveConfig();
         }
 
         /// <summary>
+        /// 获取应用设置
+        /// </summary>
+        public static T GetAppSetting<T>(Func<AppConfig, T> getter)
+        {
+            return getter(LoadConfig());
+        }
+
+        /// <summary>
+        /// 设置应用设置
+        /// </summary>
+        public static void SetAppSetting(Action<AppConfig> setter)
+        {
+            var config = LoadConfig();
+            setter(config);
+            SaveConfig();
+        }
+
+        /// <summary>
         /// 获取实时预览设置
         /// </summary>
-        public static bool GetRealTimePreview() => LoadConfig().RealTimePreview;
+        public static bool GetRealTimePreview() => GetAppSetting(c => c.RealTimePreview);
 
         /// <summary>
         /// 保存实时预览设置
         /// </summary>
-        public static void SetRealTimePreview(bool value)
-        {
-            var config = LoadConfig();
-            config.RealTimePreview = value;
-            SaveConfig();
-        }
+        public static void SetRealTimePreview(bool value) => SetAppSetting(c => c.RealTimePreview = value);
 
         /// <summary>
         /// 获取应用程序主题设置
         /// </summary>
-        public static string? GetApplicationTheme() => LoadConfig().ApplicationTheme;
+        public static string? GetApplicationTheme() => GetAppSetting(c => c.ApplicationTheme);
 
         /// <summary>
         /// 保存应用程序主题设置
         /// </summary>
-        public static void SetApplicationTheme(string? theme)
-        {
-            var config = LoadConfig();
-            config.ApplicationTheme = theme;
-            SaveConfig();
-        }
+        public static void SetApplicationTheme(string? theme) => SetAppSetting(c => c.ApplicationTheme = theme);
 
         /// <summary>
         /// 获取窗口背景类型设置
         /// </summary>
-        public static string? GetWindowBackdropType() => LoadConfig().WindowBackdropType;
+        public static string? GetWindowBackdropType() => GetAppSetting(c => c.WindowBackdropType);
 
         /// <summary>
         /// 保存窗口背景类型设置
         /// </summary>
-        public static void SetWindowBackdropType(string? backdropType)
-        {
-            var config = LoadConfig();
-            config.WindowBackdropType = backdropType;
-            SaveConfig();
-        }
+        public static void SetWindowBackdropType(string? backdropType) => SetAppSetting(c => c.WindowBackdropType = backdropType);
 
         /// <summary>
         /// 获取是否更新主题色设置
         /// </summary>
-        public static bool? GetUpdateAccent() => LoadConfig().UpdateAccent;
+        public static bool? GetUpdateAccent() => GetAppSetting(c => c.UpdateAccent);
 
         /// <summary>
         /// 保存是否更新主题色设置
         /// </summary>
-        public static void SetUpdateAccent(bool? updateAccent)
-        {
-            var config = LoadConfig();
-            config.UpdateAccent = updateAccent;
-            SaveConfig();
-        }
+        public static void SetUpdateAccent(bool? updateAccent) => SetAppSetting(c => c.UpdateAccent = updateAccent);
 
         /// <summary>
         /// 获取是否强制中文设置
         /// </summary>
-        public static bool? GetForceChinese() => LoadConfig().ForceChinese;
+        public static bool? GetForceChinese() => GetAppSetting(c => c.ForceChinese);
 
         /// <summary>
         /// 保存是否强制中文设置
         /// </summary>
-        public static void SetForceChinese(bool? forceChinese)
-        {
-            var config = LoadConfig();
-            config.ForceChinese = forceChinese;
-            SaveConfig();
-        }
+        public static void SetForceChinese(bool? forceChinese) => SetAppSetting(c => c.ForceChinese = forceChinese);
 
         // Preset helpers: save preset by name (filename-safe) and list available presets
         public static void SavePreset<T>(string toolName, string presetName, T options)
@@ -241,7 +284,8 @@ namespace krrTools.Configuration
             Directory.CreateDirectory(folder);
             string safe = MakeSafeFilename(presetName) + ".json";
             string path = Path.Combine(folder, safe);
-            var opts = new JsonSerializerOptions { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
+            var opts = new JsonSerializerOptions
+                { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
             string json = JsonSerializer.Serialize(options, opts);
             File.WriteAllText(path, json);
         }
@@ -266,6 +310,7 @@ namespace krrTools.Configuration
                     // Swallow malformed preset but log for diagnostics
                     Debug.WriteLine($"Failed to load preset '{file}': {ex.Message}");
                 }
+
                 yield return (name, opt);
             }
         }
@@ -283,7 +328,8 @@ namespace krrTools.Configuration
             Directory.CreateDirectory(folder);
             string safe = MakeSafeFilename(presetName) + ".json";
             string path = Path.Combine(folder, safe);
-            var opts = new JsonSerializerOptions { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
+            var opts = new JsonSerializerOptions
+                { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
             string json = JsonSerializer.Serialize(pipelineOptions, opts);
             File.WriteAllText(path, json);
         }
@@ -307,18 +353,8 @@ namespace krrTools.Configuration
                 {
                     Debug.WriteLine($"Failed to load pipeline preset '{file}': {ex.Message}");
                 }
-                yield return (name, opt);
-            }
-        }
 
-        public static void DeletePipelinePreset(string presetName)
-        {
-            string folder = GetToolFolder(PipelinesFolderName);
-            string safe = MakeSafeFilename(presetName) + ".json";
-            string path = Path.Combine(folder, safe);
-            if (File.Exists(path))
-            {
-                File.Delete(path);
+                yield return (name, opt);
             }
         }
     }

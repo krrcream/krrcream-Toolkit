@@ -1,15 +1,16 @@
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using krrTools.Localization;
-using OsuParsers.Beatmaps;
+using krrTools.Beatmaps;
 using krrTools.Configuration;
+using krrTools.Localization;
 using krrTools.UI;
+using OsuParsers.Beatmaps;
 
 namespace krrTools.Tools.KRRLNTransformer;
-
 public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
 {
     public event EventHandler? SettingsChanged;
@@ -29,6 +30,8 @@ public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
     private Slider ODValue = null!;
     private TextBox SeedTextBox = null!;
 
+    private readonly KRRLNTransformerViewModel _viewModel;
+
     private readonly Dictionary<int, string> AlignValuesDict = new Dictionary<int, string>
     {
         { 1, "1/16" },
@@ -42,10 +45,24 @@ public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
         { 9, "1/1" }
     };
 
-    private const double ERROR = 2.0;
-
-    public KRRLNTransformerControl() : base(BaseOptionsManager.KRRsLNToolName)
+    public KRRLNTransformerControl() : base(ConverterEnum.KRRLN)
     {
+        _viewModel = new KRRLNTransformerViewModel(Options);
+        DataContext = _viewModel;
+        // Initialize control UI
+        BuildUI();
+        SharedUIComponents.LanguageChanged += HandleLanguageChanged;
+        Unloaded += (_, _) =>
+        {
+            SharedUIComponents.LanguageChanged -= HandleLanguageChanged;
+            Content = null;
+        };
+    }
+
+    public KRRLNTransformerControl(KRRLNTransformerOptions options) : base(ConverterEnum.KRRLN, options)
+    {
+        _viewModel = new KRRLNTransformerViewModel(options);
+        DataContext = _viewModel;
         // Initialize control UI
         BuildUI();
         SharedUIComponents.LanguageChanged += HandleLanguageChanged;
@@ -373,42 +390,13 @@ public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
     // 添加处理单个文件的方法
     public Beatmap ProcessSingleFile(string filePath)
     {
-        var parameters = new KRRLNTransformerOptions
-        {
-            // 短面条设置
-            ShortPercentageValue = ShortPercentageValue.Dispatcher.Invoke(() => ShortPercentageValue.Value),
-            ShortLevelValue = ShortLevelValue.Dispatcher.Invoke(() => ShortLevelValue.Value),
-            ShortLimitValue = ShortLimitValue.Dispatcher.Invoke(() => ShortLimitValue.Value),
-            ShortRandomValue = ShortRandomValue.Dispatcher.Invoke(() => ShortRandomValue.Value),
-
-            // 长面条设置
-            LongPercentageValue = LongPercentageValue.Dispatcher.Invoke(() => LongPercentageValue.Value),
-            LongLevelValue = LongLevelValue.Dispatcher.Invoke(() => LongLevelValue.Value),
-            LongLimitValue = LongLimitValue.Dispatcher.Invoke(() => LongLimitValue.Value),
-            LongRandomValue = LongRandomValue.Dispatcher.Invoke(() => LongRandomValue.Value),
-
-            // 对齐设置
-            AlignIsChecked = AlignCheckBox.Dispatcher.Invoke(() => AlignCheckBox.IsChecked == true),
-            AlignValue = AlignValue.Dispatcher.Invoke(() => AlignValue.Value),
-
-            // 处理原始面条
-            ProcessOriginalIsChecked =
-                ProcessOriginalCheckBox.Dispatcher.Invoke(() => ProcessOriginalCheckBox.IsChecked == true),
-
-            // OD设置
-            ODValue = ODValue.Dispatcher.Invoke(() => ODValue.Value),
-
-            // 种子值
-            SeedText = SeedTextBox.Dispatcher.Invoke(() => SeedTextBox.Text),
-
-
-        };
+        var parameters = GetOptions();
         var LN = new KRRLN();
 
         return LN.ProcessFiles(filePath, parameters);
     }
 
-    public string GetOutputFileName(string inputPath, Beatmap beatmap)
+    public string GetOutputFileName(string inputPath, ManiaBeatmap beatmap)
     {
         return Path.GetFileNameWithoutExtension(inputPath) + "_KRRLN.osu";
     }
@@ -430,29 +418,29 @@ public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
             return new KRRLNTransformerOptions
             {
                 // 短面条设置
-                ShortPercentageValue = ShortPercentageValue.Value,
-                ShortLevelValue = ShortLevelValue.Value,
-                ShortLimitValue = ShortLimitValue.Value,
-                ShortRandomValue = ShortRandomValue.Value,
+                ShortPercentageValue = Dispatcher.Invoke(() => ShortPercentageValue.Value),
+                ShortLevelValue = Dispatcher.Invoke(() => ShortLevelValue.Value),
+                ShortLimitValue = Dispatcher.Invoke(() => ShortLimitValue.Value),
+                ShortRandomValue = Dispatcher.Invoke(() => ShortRandomValue.Value),
 
                 // 长面条设置
-                LongPercentageValue = LongPercentageValue.Value,
-                LongLevelValue = LongLevelValue.Value,
-                LongLimitValue = LongLimitValue.Value,
-                LongRandomValue = LongRandomValue.Value,
+                LongPercentageValue = Dispatcher.Invoke(() => LongPercentageValue.Value),
+                LongLevelValue = Dispatcher.Invoke(() => LongLevelValue.Value),
+                LongLimitValue = Dispatcher.Invoke(() => LongLimitValue.Value),
+                LongRandomValue = Dispatcher.Invoke(() => LongRandomValue.Value),
 
                 // 对齐设置
-                AlignIsChecked = AlignCheckBox.IsChecked == true,
-                AlignValue = AlignValue.Value,
+                AlignIsChecked = Dispatcher.Invoke(() => AlignCheckBox.IsChecked == true),
+                AlignValue = Dispatcher.Invoke(() => AlignValue.Value),
 
                 // 处理原始面条
-                ProcessOriginalIsChecked = ProcessOriginalCheckBox.IsChecked == true,
+                ProcessOriginalIsChecked = Dispatcher.Invoke(() => ProcessOriginalCheckBox.IsChecked == true),
 
                 // OD设置
-                ODValue = ODValue.Value,
+                ODValue = Dispatcher.Invoke(() => ODValue.Value),
 
                 // 种子值
-                SeedText = SeedTextBox.Text,
+                SeedText = Dispatcher.Invoke(() => SeedTextBox.Text),
             };
         }
         catch

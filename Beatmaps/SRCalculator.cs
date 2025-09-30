@@ -1,12 +1,12 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using OsuParsers.Beatmaps;
 
 namespace krrTools.Beatmaps;
-
 public struct Note(int k, int h, int t)
 {
     public readonly int K = k;
@@ -120,7 +120,7 @@ public class SRCalculator
             var Pbar = task25.Result;
 
             stopwatch.Stop();
-            System.Diagnostics.Debug.WriteLine($"Section 23/24/25 Time: {stopwatch.ElapsedMilliseconds}ms");
+            Debug.WriteLine($"Section 23/24/25 Time: {stopwatch.ElapsedMilliseconds}ms");
 
             stopwatch.Restart();
             var task26 = Task.Run(() => CalculateSection26(deltaKs));
@@ -134,13 +134,13 @@ public class SRCalculator
             var (Rbar, Is) = task27.Result;
 
             stopwatch.Stop();
-            System.Diagnostics.Debug.WriteLine($"Section 26/27 Time: {stopwatch.ElapsedMilliseconds}ms");
+            Debug.WriteLine($"Section 26/27 Time: {stopwatch.ElapsedMilliseconds}ms");
 
             // Final calculation
             stopwatch.Restart();
             var result = CalculateSection3(Jbar, Xbar, Pbar, Abar, Rbar, KS);
             stopwatch.Stop();
-            System.Diagnostics.Debug.WriteLine($"Section 3 Time: {stopwatch.ElapsedMilliseconds}ms");
+            Debug.WriteLine($"Section 3 Time: {stopwatch.ElapsedMilliseconds}ms");
 
             return result;
         }

@@ -6,7 +6,6 @@ using System.Windows;
 using System.Windows.Controls;
 using krrTools.Configuration;
 using krrTools.Tools.DPtool;
-using krrTools.Tools.N2NC;
 // using krrTools.Tools.LNTransformer;
 using krrTools.UI;
 
@@ -34,25 +33,19 @@ namespace krrTools.Tools.Preview
             
             try
             {
-                if (settingsContent is FrameworkElement fe && processor is PreviewProcessor pp)
+                if (settingsContent is FrameworkElement fe && processor is PreviewProcessor pp && fe.DataContext is IPreviewOptionsProvider provider)
                 {
-                    // 根据工具类型设置相应的选项提供器
-                    if (pp.CurrentTool == BaseOptionsManager.N2NCToolName && fe.DataContext is N2NCViewModel convVm)
+                    pp.ConverterOptionsProvider = () => provider.GetPreviewOptions();
+                    
+                    // 特殊处理DP工具：监听Options变化
+                    if (fe.DataContext is DPToolViewModel dpVm && pp.ToolScheduler != null)
                     {
-                        pp.ConverterOptionsProvider = () => convVm.GetConversionOptions();
-                        if (convVm is INotifyPropertyChanged npc)
-                            npc.PropertyChanged += (_, _) => _previewControl.Refresh();
+                        dpVm.Options.PropertyChanged += (_, _) => _previewControl.Refresh();
                     }
-                    else if (pp.CurrentTool == BaseOptionsManager.DPToolName && fe.DataContext is DPToolViewModel dpVm)
-                    {
-                        pp.DPOptionsProvider = () => dpVm.Options;
-                        if (dpVm is INotifyPropertyChanged npc)
-                        {
-                            npc.PropertyChanged += (_, _) => _previewControl.Refresh();
-                            // Options 也会触发 PropertyChanged
-                            dpVm.Options.PropertyChanged += (_, _) => _previewControl.Refresh();
-                        }
-                    }
+                    
+                    // 监听ViewModel的变化
+                    if (fe.DataContext is INotifyPropertyChanged npc)
+                        npc.PropertyChanged += (_, _) => _previewControl.Refresh();
                 }
             }
             catch (Exception ex)

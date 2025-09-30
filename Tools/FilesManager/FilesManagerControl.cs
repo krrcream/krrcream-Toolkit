@@ -9,6 +9,8 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Media;
+using krrTools.Data;
+using krrTools.Localization;
 using krrTools.UI;
 
 namespace krrTools.Tools.FilesManager
@@ -25,7 +27,10 @@ namespace krrTools.Tools.FilesManager
 
         public FilesManagerControl()
         {
-            var viewModel = new FilesManagerViewModel();
+            var viewModel = new FilesManagerViewModel
+            {
+                Dispatcher = Dispatcher
+            };
             DataContext = viewModel;
             // Initialize control UI
             BuildUI();
@@ -140,7 +145,7 @@ namespace krrTools.Tools.FilesManager
 
             var setSongsBtn = SharedUIComponents.CreateStandardButton("Set Songs Path|设置 Songs 目录");
             setSongsBtn.Width = 160; setSongsBtn.Height = 40;
-            setSongsBtn.SetBinding(ButtonBase.CommandProperty, new Binding("SetSongsFolderCommand"));
+            setSongsBtn.Click += SetSongsBtn_Click;
             // disable when processing (inverse)
             setSongsBtn.SetBinding(IsEnabledProperty, new Binding("IsProcessing") { Converter = _inverseBoolConverter });
             Grid.SetColumn(setSongsBtn, 1);
@@ -197,7 +202,7 @@ namespace krrTools.Tools.FilesManager
 
                 if (selectedItems.Count == 0)
                 {
-                    MessageBox.Show("No items selected.", "Delete", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(Strings.NoItemsSelected.Localize(), Strings.Delete.Localize(), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -215,7 +220,7 @@ namespace krrTools.Tools.FilesManager
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error deleting files: " + ex.Message, "Delete Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(Strings.ErrorDeletingFiles.Localize() + ": " + ex.Message, Strings.DeleteError.Localize(), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -243,7 +248,7 @@ namespace krrTools.Tools.FilesManager
             // 刷新ICollectionView以更新UI
             managerViewModel.FilteredOsuFiles.Refresh();
 
-            MessageBox.Show($"{filesToDelete.Count} file(s) deleted successfully.", "Delete", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(string.Format(Strings.FilesDeletedSuccessfullyTemplate.Localize(), filesToDelete.Count), Strings.Delete.Localize(), MessageBoxButton.OK, MessageBoxImage.Information);
             return Task.CompletedTask;
         }
 
@@ -256,6 +261,17 @@ namespace krrTools.Tools.FilesManager
                 BuildUI();
                 DataContext = dc;
             }));
+        }
+
+        private async void SetSongsBtn_Click(object sender, RoutedEventArgs e)
+        {
+            var owner = Window.GetWindow(this);
+            var selectedPath = FilesHelper.ShowFolderBrowserDialog("Please select the osu! Songs folder", owner);
+            if (!string.IsNullOrEmpty(selectedPath))
+            {
+                var vm = (FilesManagerViewModel)DataContext;
+                await vm.ProcessAsync(selectedPath);
+            }
         }
     }
 

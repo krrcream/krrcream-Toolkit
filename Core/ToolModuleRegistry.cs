@@ -1,32 +1,21 @@
 using System.Collections.Generic;
-using System.Diagnostics;
 using krrTools.Configuration;
-using krrTools.Tools.DPtool;
-using krrTools.Tools.KRRLNTransformer;
-using krrTools.Tools.N2NC;
 
 namespace krrTools.Core
 {
     /// <summary>
-    /// 工具模块注册表
+    /// 工具模块注册表（兼容性层，使用 IModuleManager 替代）
     /// </summary>
     public static class ToolModuleRegistry
     {
-        private static readonly Dictionary<ToolModuleType, IToolModule> _modules = new();
-        private static readonly ToolScheduler _toolScheduler = new();
+        private static IModuleManager? _moduleManager;
 
-        static ToolModuleRegistry()
+        /// <summary>
+        /// 初始化注册表（由 DI 容器调用）
+        /// </summary>
+        public static void Initialize(IModuleManager moduleManager)
         {
-            // 注册所有模块
-            RegisterModule(new N2NCModule());
-            RegisterModule(new DPModule());
-            RegisterModule(new KRRLNModule());
-
-            // 将所有模块的工具注册到调度器
-            foreach (var module in _modules.Values)
-            {
-                _toolScheduler.RegisterTool(module.CreateTool());
-            }
+            _moduleManager = moduleManager;
         }
 
         /// <summary>
@@ -34,11 +23,7 @@ namespace krrTools.Core
         /// </summary>
         public static void RegisterModule(IToolModule module)
         {
-            if (_modules.TryAdd(module.ModuleType, module))
-            {
-                _toolScheduler.RegisterTool(module.CreateTool());
-                Debug.WriteLine($"Registered module: {module.DisplayName}");
-            }
+            _moduleManager?.RegisterModule(module);
         }
 
         /// <summary>
@@ -46,24 +31,19 @@ namespace krrTools.Core
         /// </summary>
         public static void UnregisterModule(IToolModule module)
         {
-            if (_modules.Remove(module.ModuleType))
-            {
-                // 注意：ToolScheduler目前不支持注销工具
-                // _toolScheduler.UnregisterTool(module.CreateTool());
-                Debug.WriteLine($"Unregistered module: {module.DisplayName}");
-            }
+            _moduleManager?.UnregisterModule(module);
         }
 
         /// <summary>
         /// 获取所有模块
         /// </summary>
-        public static IEnumerable<IToolModule> GetAllModules() => _modules.Values;
+        public static IEnumerable<IToolModule> GetAllModules() => _moduleManager?.GetAllModules() ?? [];
     }
 
     /// <summary>
     /// 工具模块接口
     /// </summary>
-    public interface IToolModule
+    public partial interface IToolModule
     {
         ToolModuleType ModuleType { get; }
         string ModuleName { get; }

@@ -23,8 +23,8 @@ namespace krrTools.Core
     /// </summary>
     public abstract class ToolModuleBase<TOptions, TViewModel, TControl> : IToolModule
         where TOptions : ToolOptionsBase, new()
-        where TViewModel : ToolViewModelBase<TOptions>, new()
-        where TControl : ToolControlBase<TOptions>, new()
+        where TViewModel : ToolViewModelBase<TOptions>
+        where TControl : ToolControlBase<TOptions>
     {
         /// <summary>
         /// 模块类型
@@ -32,9 +32,19 @@ namespace krrTools.Core
         public abstract ToolModuleType ModuleType { get; }
 
         /// <summary>
+        /// 枚举值（实现 Configuration.IToolModule）
+        /// </summary>
+        public object EnumValue => ModuleType;
+
+        /// <summary>
+        /// 选项类型（实现 Configuration.IToolModule）
+        /// </summary>
+        public Type OptionsType => typeof(TOptions);
+
+        /// <summary>
         /// 模块内部名称（用于配置和文件）
         /// </summary>
-        public abstract string ModuleName { get; }
+        public virtual string ModuleName => ModuleType.ToString();
 
         /// <summary>
         /// 模块显示名称
@@ -49,12 +59,40 @@ namespace krrTools.Core
         /// <summary>
         /// 创建ViewModel
         /// </summary>
-        protected virtual TViewModel CreateViewModel() => new TViewModel();
+        protected virtual TViewModel CreateViewModel()
+        {
+            // Try to get injected options from DI container
+            var services = App.Services;
+            if (services.GetService(typeof(TOptions)) is TOptions options)
+            {
+                // Use the DI constructor
+                return (TViewModel)Activator.CreateInstance(typeof(TViewModel), options, true)!;
+            }
+            else
+            {
+                // Fallback to default constructor with tool enum
+                return (TViewModel)Activator.CreateInstance(typeof(TViewModel), ModuleType, true)!;
+            }
+        }
 
         /// <summary>
         /// 创建UI控件
         /// </summary>
-        protected virtual TControl CreateControl() => new TControl();
+        protected virtual TControl CreateControl()
+        {
+            // Try to get injected options from DI container
+            var services = App.Services;
+            if (services.GetService(typeof(TOptions)) is TOptions options)
+            {
+                // Use the DI constructor
+                return (TControl)Activator.CreateInstance(typeof(TControl), options)!;
+            }
+            else
+            {
+                // Fallback to default constructor with tool enum
+                return (TControl)Activator.CreateInstance(typeof(TControl), ModuleType)!;
+            }
+        }
 
         /// <summary>
         /// 创建工具实例
@@ -103,9 +141,10 @@ namespace krrTools.Core
 
         public IToolOptions DefaultOptions => module.CreateDefaultOptions();
 
-        public string? ProcessFile(string filePath)
+        public string? ProcessFile(string filePath, IToolOptions? options = null)
         {
-            return ProcessFileWithOptions(filePath, DefaultOptions);
+            var opts = options ?? DefaultOptions;
+            return ProcessFileWithOptions(filePath, opts);
         }
 
         public async Task<string?> ProcessFileAsync(string filePath)
@@ -113,14 +152,15 @@ namespace krrTools.Core
             return await Task.Run(() => ProcessFile(filePath));
         }
 
-        public object? ProcessFileToData(string filePath)
+        public object? TestFileToData(string filePath)
         {
             return ProcessFileToDataWithOptions(filePath, DefaultOptions);
         }
 
-        public Beatmap? ProcessBeatmapToData(Beatmap inputBeatmap)
+        public Beatmap? ProcessBeatmapToData(Beatmap inputBeatmap, IToolOptions? options = null)
         {
-            return ProcessBeatmapToDataWithOptions(inputBeatmap, DefaultOptions);
+            var opts = options ?? DefaultOptions;
+            return ProcessBeatmapToDataWithOptions(inputBeatmap, opts);
         }
 
         public string? ProcessFileWithOptions(string filePath, IToolOptions options)

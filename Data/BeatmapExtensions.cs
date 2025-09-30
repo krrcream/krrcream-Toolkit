@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,7 +8,6 @@ using krrTools.Beatmaps;
 using OsuParsers.Beatmaps;
 
 namespace krrTools.Data;
-
 public static class BeatmapExtensions
 {
     public static double GetBPM(this Beatmap? beatmap, bool asMs = false)

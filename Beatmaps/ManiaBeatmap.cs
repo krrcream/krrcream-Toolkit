@@ -1,14 +1,13 @@
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using krrTools.Data;
 using OsuFileIO.HitObject.Mania;
 using OsuParsers.Beatmaps;
-using OsuParsers.Beatmaps.Objects.Mania;
 using OsuParsers.Decoders;
 
 namespace krrTools.Beatmaps;
-
 /// <summary>
 /// Mania模式的Beatmap封装类，未来的统一主体接口
 /// 包括路径实现和对象实现
@@ -55,16 +54,15 @@ public class ManiaBeatmap : Beatmap
         MinBPM = enumerable.Min();
         MaxBPM = enumerable.Max();
         BPM = beatmap.GetBPM();
+
         
-        NoteCount = beatmap.HitObjects.Count;
-        LNCount = HitObjects.OfType<ManiaHoldNote>().Count();
-        // LNCount = beatmap.HitObjects.Count(ho => (ho.EndTime - ho.StartTime > 10));
         LNPercent = beatmap.GetLNPercent();
     }
 
     public int KeyCount => (int)DifficultySection.CircleSize;
     
     public string FilePath { get; set; } = string.Empty;
+    public string InputFilePath { get; set; } = string.Empty;
     public double MinBPM { get; set; }
     public double MaxBPM { get; set; }
     public double BPM { get; set; }
@@ -72,8 +70,8 @@ public class ManiaBeatmap : Beatmap
     public double KRR_LV { get; set; }
     public double YLS_LV { get; set; }
     public double TotalTime { get; set; }
-    public int NoteCount { get; set; }
-    public int LNCount { get; set; }
+    public int NoteCount => GeneralSection.CirclesCount;
+    public int LNCount => GeneralSection.SlidersCount;
     public double LNPercent { get; set; }
     
     public List<ManiaHitObject> ManiaHitObjects { get; set; } = new List<ManiaHitObject>();

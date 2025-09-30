@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
-using OsuParsers.Decoders;
 using System.Linq;
 using System.Windows;
-using System.Globalization;
 using krrTools.Data;
+using krrTools.Localization;
 using OsuFileIO.Analyzer;
 using OsuFileIO.OsuFile;
 using OsuFileIO.OsuFileReader;
+using OsuParsers.Decoders;
 using ManiaHitObject = OsuFileIO.HitObject.Mania.ManiaHitObject;
 
 namespace krrTools.Beatmaps
@@ -114,7 +115,7 @@ namespace krrTools.Beatmaps
             string? songFolder = Path.GetDirectoryName(newBeatmapFile);
             if (string.IsNullOrEmpty(songFolder))
             {
-                MessageBox.Show($"Invalid beatmap file path: {newBeatmapFile}", "Error");
+                MessageBox.Show(Strings.InvalidBeatmapFilePath.Localize() + ": " + newBeatmapFile, Strings.Error.Localize());
                 return null;
             }
 
@@ -125,7 +126,7 @@ namespace krrTools.Beatmaps
             string? parentDir = Path.GetDirectoryName(songFolder);
             if (string.IsNullOrEmpty(parentDir))
             {
-                MessageBox.Show($"Unable to determine parent directory for: {songFolder}", "Error");
+                MessageBox.Show(Strings.UnableToDetermineParentDirectory.Localize() + ": " + songFolder, Strings.Error.Localize());
                 return null;
             }
 
@@ -139,7 +140,7 @@ namespace krrTools.Beatmaps
                 // Ensure source directory exists before creating archive
                 if (!Directory.Exists(songFolder))
                 {
-                    MessageBox.Show($"Source song folder does not exist: {songFolder}", "Error");
+                    MessageBox.Show(Strings.SourceSongFolderDoesNotExist.Localize() + ": " + songFolder, Strings.Error.Localize());
                     return null;
                 }
 
@@ -159,7 +160,7 @@ namespace krrTools.Beatmaps
             }
             catch (Exception e)
             {
-                MessageBox.Show($"Failed to add beatmap to archive: {Environment.NewLine}{Environment.NewLine}{e.Message}", "Error");
+                MessageBox.Show(Strings.FailedToAddBeatmapToArchive.Localize() + ": " + Environment.NewLine + Environment.NewLine + e.Message, Strings.Error.Localize());
                 return null;
             }
 
@@ -173,7 +174,7 @@ namespace krrTools.Beatmaps
             }
             catch (Exception e)
             {
-                MessageBox.Show($"Failed to delete the temporary beatmap file: {newBeatmapFile} {Environment.NewLine}{Environment.NewLine}{e.Message}", "Warning");
+                MessageBox.Show(Strings.FailedToDeleteTemporaryBeatmapFile.Localize() + ": " + newBeatmapFile + " " + Environment.NewLine + Environment.NewLine + e.Message, Strings.Warning.Localize());
             }
 
             // 4. 打开 .osz（仅当调用方请求时）

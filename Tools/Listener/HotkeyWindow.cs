@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using krrTools.Localization;
 using krrTools.UI;
 
 namespace krrTools.Tools.Listener
@@ -27,7 +28,7 @@ namespace krrTools.Tools.Listener
                 {
                     try
                     {
-                        Title = SharedUIComponents.IsChineseLanguage() ? "设置热键" : "Set Hotkey";
+                        Title = Strings.SetHotkeyTitle.Localize();
                         // update any labels/buttons by rebuilding
                         var dc = DataContext;
                         Content = null;
@@ -42,7 +43,7 @@ namespace krrTools.Tools.Listener
 
         private void BuildUI()
         {
-            Title = SharedUIComponents.IsChineseLanguage() ? "设置热键" : "Set Hotkey";
+            Title = Strings.SetHotkeyTitle.Localize();
             Width = 350;
             Height = 250;
             ResizeMode = ResizeMode.NoResize;
@@ -54,7 +55,7 @@ namespace krrTools.Tools.Listener
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            var tb = new Wpf.Ui.Controls.TextBlock { Text = SharedUIComponents.IsChineseLanguage() ? "按下您想要的按键组合：" : "Press your desired key combination:", Margin = new Thickness(0, 0, 0, 10) };
+            var tb = new Wpf.Ui.Controls.TextBlock { Text = Strings.PressDesiredKeyCombination.Localize(), Margin = new Thickness(0, 0, 0, 10) };
             Grid.SetRow(tb, 0);
             grid.Children.Add(tb);
 
@@ -72,9 +73,9 @@ namespace krrTools.Tools.Listener
             var sp = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
             Grid.SetRow(sp, 2);
 
-            var saveBtn = new Wpf.Ui.Controls.Button { Content = SharedUIComponents.IsChineseLanguage() ? "保存" : "Save", Appearance = Wpf.Ui.Controls.ControlAppearance.Primary, Width = 80, Margin = new Thickness(0, 0, 10, 0) };
+            var saveBtn = new Wpf.Ui.Controls.Button { Content = Strings.Save.Localize(), Appearance = Wpf.Ui.Controls.ControlAppearance.Primary, Width = 80, Margin = new Thickness(0, 0, 10, 0) };
             saveBtn.Click += SaveButton_Click;
-            var cancelBtn = new Wpf.Ui.Controls.Button { Content = SharedUIComponents.IsChineseLanguage() ? "取消" : "Cancel", Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary, Width = 80 };
+            var cancelBtn = new Wpf.Ui.Controls.Button { Content = Strings.Cancel.Localize(), Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary, Width = 80 };
             cancelBtn.Click += CancelButton_Click;
 
             sp.Children.Add(saveBtn);

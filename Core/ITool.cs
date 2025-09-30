@@ -1,5 +1,5 @@
-using System.Threading.Tasks;
 using krrTools.Configuration;
+using OsuParsers.Beatmaps;
 
 namespace krrTools.Core
 {
@@ -19,47 +19,19 @@ namespace krrTools.Core
         IToolOptions DefaultOptions { get; }
 
         /// <summary>
-        /// 同步处理单个文件（使用内部加载的设置）
+        /// 处理单个文件（options 为 null 时使用内部加载的默认设置）
         /// </summary>
         /// <param name="filePath">输入文件路径</param>
+        /// <param name="options">工具选项，为 null 时使用默认</param>
         /// <returns>输出文件路径，失败返回null</returns>
-        string? ProcessFile(string filePath);
+        string? ProcessFile(string filePath, IToolOptions? options = null);
 
         /// <summary>
-        /// 异步处理单个文件（使用内部加载的设置）
-        /// </summary>
-        /// <param name="filePath">输入文件路径</param>
-        /// <returns>输出文件路径，失败返回null</returns>
-        Task<string?> ProcessFileAsync(string filePath);
-
-        /// <summary>
-        /// 处理单个文件并返回转换后的数据（用于预览，使用内部加载的设置）
-        /// </summary>
-        /// <param name="filePath">输入文件路径</param>
-        /// <returns>转换后的数据，失败返回null</returns>
-        object? ProcessFileToData(string filePath);
-
-        /// <summary>
-        /// 处理Beatmap对象并返回转换后的Beatmap（用于预览，使用内部加载的设置）
+        /// 处理Beatmap对象并返回转换后的Beatmap（options 为 null 时使用内部加载的默认设置）
         /// </summary>
         /// <param name="inputBeatmap">输入Beatmap</param>
+        /// <param name="options">工具选项，为 null 时使用默认</param>
         /// <returns>转换后的Beatmap，失败返回null</returns>
-        OsuParsers.Beatmaps.Beatmap? ProcessBeatmapToData(OsuParsers.Beatmaps.Beatmap inputBeatmap);
-
-        /// <summary>
-        /// 使用指定选项处理单个文件（用于UI预览等需要临时选项的场景）
-        /// </summary>
-        /// <param name="filePath">输入文件路径</param>
-        /// <param name="options">工具选项</param>
-        /// <returns>输出文件路径，失败返回null</returns>
-        string? ProcessFileWithOptions(string filePath, IToolOptions options);
-
-        /// <summary>
-        /// 使用指定选项处理Beatmap对象（用于UI预览等需要临时选项的场景）
-        /// </summary>
-        /// <param name="inputBeatmap">输入Beatmap</param>
-        /// <param name="options">工具选项</param>
-        /// <returns>转换后的Beatmap，失败返回null</returns>
-        OsuParsers.Beatmaps.Beatmap? ProcessBeatmapToDataWithOptions(OsuParsers.Beatmaps.Beatmap inputBeatmap, IToolOptions options);
+        Beatmap? ProcessBeatmapToData(Beatmap inputBeatmap, IToolOptions? options = null);
     }
 }

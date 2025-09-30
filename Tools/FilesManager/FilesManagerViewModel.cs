@@ -16,6 +16,8 @@ namespace krrTools.Tools.FilesManager
 {
     public partial class FilesManagerViewModel : ObservableObject
     {
+        public System.Windows.Threading.Dispatcher? Dispatcher { get; set; }
+
         // TODO: 改为WPF控件，更换输入框过滤功能的控件功能，找一个类似Excel的筛选功能
         public FilesManagerViewModel()
         {
@@ -181,7 +183,7 @@ namespace krrTools.Tools.FilesManager
             }
         }
 
-        private async Task ProcessAsync(string doPath)
+        public async Task ProcessAsync(string doPath)
         {
             ProgressValue = 0;
             ProgressText = "Loading...";
@@ -196,6 +198,7 @@ namespace krrTools.Tools.FilesManager
 
                 // Clear existing data
                 OsuFiles.Clear();
+                FilteredOsuFiles.Refresh();
 
                 // 分批处理文件，避免UI冻结
                 const int batchSize = 50;
@@ -226,12 +229,13 @@ namespace krrTools.Tools.FilesManager
                     if (batch.Count >= batchSize || i == files.Length - 1)
                     {
                         // 在UI线程上更新数据
-                        Application.Current.Dispatcher.Invoke((Action)(() =>
+                        Dispatcher?.Invoke((Action)(() =>
                         {
                             foreach (var item in batch)
                             {
                                 OsuFiles.Add(item);
                             }
+                            FilteredOsuFiles.Refresh();
                         }));
                         
                         batch.Clear();

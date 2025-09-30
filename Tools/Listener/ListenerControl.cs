@@ -3,8 +3,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Data;
+using System.Windows.Media;
+using krrTools.Configuration;
 using krrTools.Localization;
 using krrTools.Tools.Preview;
 using krrTools.UI;
@@ -18,7 +19,7 @@ using TextBlock = System.Windows.Controls.TextBlock;
 
 namespace krrTools.Tools.Listener
 {
-    internal class ListenerControl : UserControl
+    internal class ListenerControl : Window
     {
         private readonly ListenerViewModel _viewModel;
         private readonly object? _sourceWindow;
@@ -39,7 +40,8 @@ namespace krrTools.Tools.Listener
 
         internal ListenerControl(object? sourceWindow = null, int sourceId = 0)
         {
-            // Initialize control UI
+            Width = 600;
+            Height = 400;
             BuildUI();
             _viewModel = new ListenerViewModel();
             DataContext = _viewModel;
@@ -102,7 +104,7 @@ namespace krrTools.Tools.Listener
                 Width = 200
             };
             titleText.SetBinding(TextBlock.TextProperty, new Binding("WindowTitle"));
-            Grid.SetColumn(titleText, 0);
+            System.Windows.Controls.Grid.SetColumn(titleText, 0);
             topGrid.Children.Add(titleText);
 
             var createBtn = SharedUIComponents.CreateStandardButton(Strings.CreateMapLabel);
@@ -110,13 +112,13 @@ namespace krrTools.Tools.Listener
             createBtn.Width = 120;
             createBtn.Margin = new Thickness(5);
             createBtn.Click += ConvertButton_Click;
-            Grid.SetColumn(createBtn, 1);
+            System.Windows.Controls.Grid.SetColumn(createBtn, 1);
             topGrid.Children.Add(createBtn);
 
             var hotkeyText = new TextBlock { Margin = new Thickness(10,0,0,0), VerticalAlignment = VerticalAlignment.Center };
             // bind to centralized Config.Hotkey
             hotkeyText.SetBinding(TextBlock.TextProperty, new Binding("Config.Hotkey"));
-            Grid.SetColumn(hotkeyText, 2);
+            System.Windows.Controls.Grid.SetColumn(hotkeyText, 2);
             topGrid.Children.Add(hotkeyText);
 
             var hotkeyBtn = SharedUIComponents.CreateStandardButton(Strings.SetHotkeyLabel);
@@ -124,11 +126,11 @@ namespace krrTools.Tools.Listener
             hotkeyBtn.Width = 100;
             hotkeyBtn.Margin = new Thickness(5);
             hotkeyBtn.Click += HotkeySetButton_Click;
-            Grid.SetColumn(hotkeyBtn, 3);
+            System.Windows.Controls.Grid.SetColumn(hotkeyBtn, 3);
             topGrid.Children.Add(hotkeyBtn);
 
             topBorder.Child = topGrid;
-            Grid.SetRow(topBorder, 0);
+            System.Windows.Controls.Grid.SetRow(topBorder, 0);
             root.Children.Add(topBorder);
 
             // Content area
@@ -151,17 +153,17 @@ namespace krrTools.Tools.Listener
             // 路径不存在时的弹窗手动选择
             var songsPathText = new TextBlock { Background = Brushes.Transparent, FontSize = 18, Foreground = Brushes.White };
             songsPathText.SetBinding(TextBlock.TextProperty, new Binding("Config.SongsPath") { Mode = BindingMode.OneWay });
-            Grid.SetColumn(songsPathText, 0);
+            System.Windows.Controls.Grid.SetColumn(songsPathText, 0);
             songsGrid.Children.Add(songsPathText);
             var browseBtn = SharedUIComponents.CreateStandardButton(Strings.BrowseLabel);
             browseBtn.Width = 80;
             browseBtn.Padding = new Thickness(10,2,10,2);
             browseBtn.Click += BrowseButton_Click;
-            Grid.SetColumn(browseBtn, 1);
+            System.Windows.Controls.Grid.SetColumn(browseBtn, 1);
             songsGrid.Children.Add(browseBtn);
             songsPanel.Children.Add(songsGrid);
 
-            Grid.SetRow(songsPanel, 0);
+            System.Windows.Controls.Grid.SetRow(songsPanel, 0);
             contentGrid.Children.Add(songsPanel);
 
             // Monitoring group
@@ -181,14 +183,14 @@ namespace krrTools.Tools.Listener
 
             var statusText = new TextBlock { FontSize = 18, Margin = new Thickness(0,5,0,0), Foreground = Brushes.White, TextWrapping = TextWrapping.Wrap };
             statusText.SetBinding(TextBlock.TextProperty, new Binding("StatusMessage"));
-            Grid.SetRow(statusText, 0);
+            System.Windows.Controls.Grid.SetRow(statusText, 0);
             grpGrid.Children.Add(statusText);
 
             group.Content = grpGrid;
-            Grid.SetRow(group, 1);
+            System.Windows.Controls.Grid.SetRow(group, 1);
             contentGrid.Children.Add(group);
 
-            Grid.SetRow(contentGrid, 1);
+            System.Windows.Controls.Grid.SetRow(contentGrid, 1);
             root.Children.Add(contentGrid);
 
             Content = root;
@@ -219,7 +221,7 @@ namespace krrTools.Tools.Listener
                 string message = string.IsNullOrEmpty(_viewModel.Config.SongsPath) ?
                     "Please set the Songs directory first." :
                     "No beatmap is currently selected.";
-                MessageBox.Show(message, "Cannot Convert", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(message, Strings.CannotConvert.Localize(), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -230,7 +232,7 @@ namespace krrTools.Tools.Listener
 
             if (string.IsNullOrEmpty(activeTag))
             {
-                MessageBox.Show("No active tab selected.", "Cannot Convert", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(Strings.NoActiveTabSelected.Localize(), Strings.CannotConvert.Localize(), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -265,7 +267,7 @@ namespace krrTools.Tools.Listener
         {
             try
             {
-                var hostWindow = Window.GetWindow(this) ?? Application.Current?.MainWindow;
+                var hostWindow = GetWindow(this) ?? Application.Current?.MainWindow;
                 if (hostWindow == null) throw new InvalidOperationException("ListenerControl must be hosted in a Window to register hotkeys.");
                 _globalHotkey = new GlobalHotkey(_viewModel.Config.Hotkey ?? string.Empty, () => {
                     // 在UI线程执行转换操作
@@ -275,7 +277,7 @@ namespace krrTools.Tools.Listener
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to register hotkey: {ex.Message}");
-                MessageBox.Show($"Failed to register hotkey: {ex.Message}\n\nPlease bind a new hotkey.", "Hotkey Error", 
+                MessageBox.Show(Strings.FailedToRegisterHotkey.Localize() + ": " + ex.Message + "\n\nPlease bind a new hotkey.", Strings.HotkeyError.Localize(), 
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
@@ -337,23 +339,16 @@ namespace krrTools.Tools.Listener
 
                      if (Application.Current?.MainWindow is MainWindow main)
                      {
-                         // Use null-guards and log any exceptions at top level
-                         if (main.N2NCPreview != null)
+                         // Load to global preview if current tool is a converter
+                         var selectedTag = (main.TabControl.SelectedItem as TabViewItem)?.Tag;
+                         if (selectedTag is ConverterEnum)
                          {
-                             main.N2NCPreview.LoadPreview(arr, suppressBroadcast: true);
-                             main.N2NCPreview.ApplyDropZoneStagedUI(arr);
-                         }
-
-                         // if (main.LNPreview != null)
-                         // {
-                         //     main.LNPreview.LoadPreview(arr, suppressBroadcast: true);
-                         //     main.LNPreview.ApplyDropZoneStagedUI(arr);
-                         // }
-
-                         if (main.DPPreview != null)
-                         {
-                             main.DPPreview.LoadPreview(arr, suppressBroadcast: true);
-                             main.DPPreview.ApplyDropZoneStagedUI(arr);
+                             var globalPreview = main.PreviewControl;
+                             if (globalPreview != null)
+                             {
+                                 globalPreview.LoadPreview(arr, suppressBroadcast: true);
+                                 globalPreview.ApplyDropZoneStagedUI(arr);
+                             }
                          }
                      }
                  }

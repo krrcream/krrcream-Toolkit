@@ -1,6 +1,6 @@
 using System;
-using System.Globalization;
 using System.ComponentModel;
+using System.Globalization;
 using System.Reflection;
 using krrTools.Configuration;
 

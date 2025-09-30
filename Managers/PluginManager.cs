@@ -76,9 +76,6 @@ namespace krrTools.Managers
                         var module = (IToolModule)Activator.CreateInstance(moduleType)!;
                         _loadedPlugins.Add(module);
 
-                        // 自动注册到ToolModuleRegistry
-                        ToolModuleRegistry.RegisterModule(module);
-
                         Debug.WriteLine($"Loaded plugin module: {module.DisplayName} ({module.ModuleName})");
                     }
                     catch (Exception ex)
@@ -98,11 +95,6 @@ namespace krrTools.Managers
         /// </summary>
         public static void UnloadAllPlugins()
         {
-            foreach (var plugin in _loadedPlugins)
-            {
-                ToolModuleRegistry.UnregisterModule(plugin);
-            }
-
             _loadedPlugins.Clear();
             _loadedAssemblies.Clear();
         }

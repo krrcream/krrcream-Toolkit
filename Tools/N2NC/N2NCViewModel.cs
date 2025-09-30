@@ -19,8 +19,9 @@ namespace krrTools.Tools.N2NC
         K10Plus = 1 << 7
     }
 
-    public class N2NCViewModel : ToolViewModelBase<N2NCOptions>
+    public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProvider
     {
+        public N2NCViewModel(N2NCOptions options) : base(ConverterEnum.N2NC, true, options) { }
         // TODO: 参数是历史遗留问题，改成自动属性访问器
         private double _targetKeys = 10;
         private double _maxKeys = 10;
@@ -31,7 +32,7 @@ namespace krrTools.Tools.N2NC
         // Backing field for flags-based selection
         private KeySelectionFlags _keySelection = KeySelectionFlags.None;
 
-        public N2NCViewModel() : base(BaseOptionsManager.N2NCToolName, autoSave: true)
+        public N2NCViewModel() : base(ConverterEnum.N2NC, autoSave: true)
         {
             // Additional initialization if needed
         }
@@ -287,6 +288,8 @@ namespace krrTools.Tools.N2NC
                 SelectedPreset = SelectedPreset
             };
         }
+
+        public IToolOptions GetPreviewOptions() => GetConversionOptions();
 
     }
 }

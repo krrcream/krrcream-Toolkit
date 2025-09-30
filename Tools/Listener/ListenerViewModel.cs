@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Diagnostics;
-using OsuMemoryDataProvider;
 using System.IO;
 using System.Text.Json;
 using System.Windows.Forms;
-using OsuParsers.Beatmaps;
+using CommunityToolkit.Mvvm.ComponentModel;
+using krrTools.Beatmaps;
+using krrTools.Data;
+using krrTools.Localization;
+using OsuMemoryDataProvider;
 using OsuParsers.Decoders;
 using Application = System.Windows.Application;
-using CommunityToolkit.Mvvm.ComponentModel;
-using krrTools.Localization;
 
 namespace krrTools.Tools.Listener
 {
@@ -226,7 +227,7 @@ namespace krrTools.Tools.Listener
                                              "\n" + $"HP:{_memoryReader.GetMapHp()}" + 
                                               "\n" + $"CS:{_memoryReader.GetMapCs()}";
 
-                                Beatmap beatmap = BeatmapDecoder.Decode(CurrentOsuFilePath);
+                                ManiaBeatmap beatmap = BeatmapDecoder.Decode(CurrentOsuFilePath).GetManiaBeatmap();
                                 String BG = beatmap.EventsSection.BackgroundImage;
                                 if (!string.IsNullOrWhiteSpace(BG))
                                 {

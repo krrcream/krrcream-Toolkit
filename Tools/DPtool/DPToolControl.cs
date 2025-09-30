@@ -4,16 +4,18 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using krrTools.Localization;
-using OsuParsers.Beatmaps;
+using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Data;
+using krrTools.Localization;
 using krrTools.UI;
+using OsuParsers.Beatmaps;
 
 namespace krrTools.Tools.DPtool
 {
     public class DPToolControl : ToolControlBase<DPToolOptions>
     {
+        public event EventHandler? SettingsChanged;
         private enum DPOptionKey
         {
             SingleSideKeyCount,
@@ -33,11 +35,28 @@ namespace krrTools.Tools.DPtool
         private CheckBox? ModifyKeysCheckBox, LMirrorCheckBox, LDensityCheckBox, LRemoveCheckBox, RMirrorCheckBox, RDensityCheckBox, RRemoveCheckBox;
         private Slider? KeysSlider, LMaxKeysSlider, LMinKeysSlider, RMaxKeysSlider, RMinKeysSlider;
 
-        private readonly DPToolViewModel _viewModel = new();
+        private readonly DPToolViewModel _viewModel;
         private IEnumSettingsProvider? _enumProvider;
 
-        public DPToolControl() : base(BaseOptionsManager.DPToolName)
+        public DPToolControl() : base(ConverterEnum.DP)
         {
+            _viewModel = new DPToolViewModel(Options);
+            DataContext = _viewModel;
+
+            BuildDPToolUI();
+            SetupBindings();
+
+            SharedUIComponents.LanguageChanged += OnLanguageChanged;
+            Unloaded += (_, _) =>
+            {
+                SharedUIComponents.LanguageChanged -= OnLanguageChanged;
+                DPToolWindow_Closed();
+            };
+        }
+
+        public DPToolControl(DPToolOptions options) : base(ConverterEnum.DP, options)
+        {
+            _viewModel = new DPToolViewModel(options);
             DataContext = _viewModel;
 
             BuildDPToolUI();
@@ -65,14 +84,8 @@ namespace krrTools.Tools.DPtool
 
         private void DPToolWindow_Closed()
         {
-            try
-            {
-                BaseOptionsManager.SaveOptions(BaseOptionsManager.DPToolName, BaseOptionsManager.ConfigFileName, _viewModel.Options);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to save DPTool options: {ex.Message}");
-            }
+            // Options are automatically saved by ViewModel auto-save functionality
+            // No manual saving needed
         }
 
         private void BuildDPToolUI()
@@ -232,7 +245,7 @@ namespace krrTools.Tools.DPtool
             grid.Children.Add(rightPanel);
 
             // Presets panel (preserve existing factory usage)
-            var presetInner = PresetPanelFactory.CreatePresetPanel(BaseOptionsManager.DPToolName, () => _viewModel.Options, (opt) =>
+            var presetInner = PresetPanelFactory.CreatePresetPanel("DP", () => _viewModel.Options, (opt) =>
             {
                 if (opt == null) return;
                 var target = _viewModel.Options;
@@ -279,7 +292,7 @@ namespace krrTools.Tools.DPtool
             }
         }
 
-        public string GetOutputFileName(string inputPath, Beatmap beatmap)
+        public string GetOutputFileName(string inputPath, ManiaBeatmap beatmap)
         {
             return beatmap.GetOsuFileName() + ".osu";
         }
@@ -342,6 +355,8 @@ namespace krrTools.Tools.DPtool
                                 if (RMinKeysSlider != null) RMinKeysSlider.IsEnabled = _viewModel.Options.RDensity;
                                 break;
                         }
+                        // Trigger settings changed event for preview updates
+                        SettingsChanged?.Invoke(this, EventArgs.Empty);
                     }
                     catch (Exception ex) { Debug.WriteLine($"Options change handler error: {ex.Message}"); }
                 };

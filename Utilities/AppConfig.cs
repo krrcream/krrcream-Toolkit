@@ -1,7 +1,6 @@
-using krrTools.Tools.DPtool;
+using System.Collections.Generic;
+using krrTools.Configuration;
 // using krrTools.Tools.LNTransformer;
-using krrTools.Tools.N2NC;
-using krrTools.Tools.KRRLNTransformer;
 
 namespace krrTools.Utilities
 {
@@ -11,24 +10,14 @@ namespace krrTools.Utilities
     public class AppConfig
     {
         /// <summary>
-        /// N2NC 转换器设置
+        /// 转换器工具设置
         /// </summary>
-        public N2NCOptions? N2NC { get; set; }
+        public Dictionary<ConverterEnum, object?> Converters { get; set; } = new();
 
         /// <summary>
-        /// DP 工具设置
+        /// 其他模块设置
         /// </summary>
-        public DPToolOptions? DP { get; set; }
-
-        // /// <summary>
-        // /// LN 转换器设置
-        // /// </summary>
-        // public YLsLNTransformerOptions? LNTransformer { get; set; }
-
-        /// <summary>
-        /// KRRLN 转换器设置
-        /// </summary>
-        public KRRLNTransformerOptions? KRRLNTransformer { get; set; }
+        public Dictionary<ModuleEnum, object?> Modules { get; set; } = new();
 
         /// <summary>
         /// 实时预览设置

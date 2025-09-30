@@ -5,10 +5,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using krrTools.Configuration;
 using krrTools.Data;
-using OsuParsers.Beatmaps;
 using krrTools.Tools.N2NC;
-using OsuParsers.Beatmaps.Objects;
 using Microsoft.Extensions.Logging;
+using OsuParsers.Beatmaps;
+using OsuParsers.Beatmaps.Objects;
 
 namespace krrTools.Tools.DPtool
 {
@@ -82,8 +82,8 @@ namespace krrTools.Tools.DPtool
                 TransformSpeed = 4
             };
             Conv.options = convOptions;
-            double BPM = beatmap.GetBPM();
-            double beatLength = 60000 / BPM * 4;
+
+            double beatLength = 60000 / beatmap.BPM * 4;
             double convertTime = Math.Max(1, convOptions.TransformSpeed * beatLength - 10);
             var (matrix, timeAxis) = beatmap.BuildMatrix();
 

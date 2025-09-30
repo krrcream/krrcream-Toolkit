@@ -13,6 +13,18 @@ namespace krrTools.Core
         private readonly Dictionary<string, ITool> _tools = new();
 
         /// <summary>
+        /// 构造函数，注入模块管理器
+        /// </summary>
+        public ToolScheduler(IModuleManager moduleManager)
+        {
+            // 将所有模块的工具注册到调度器
+            foreach (var module in moduleManager.GetAllModules())
+            {
+                RegisterTool(module.CreateTool());
+            }
+        }
+
+        /// <summary>
         /// 注册工具
         /// </summary>
         /// <param name="tool">工具实例</param>
@@ -30,20 +42,6 @@ namespace krrTools.Core
         }
 
         /// <summary>
-        /// 异步执行单个工具（使用工具内部加载的设置）
-        /// </summary>
-        /// <param name="toolName">工具名称</param>
-        /// <param name="filePath">输入文件路径</param>
-        /// <returns>输出文件路径，失败返回null</returns>
-        public async Task<string?> ExecuteSingleAsync(string toolName, string filePath)
-        {
-            if (!_tools.TryGetValue(toolName, out var tool))
-                return null;
-
-            return await tool.ProcessFileAsync(filePath);
-        }
-
-        /// <summary>
         /// 异步执行单个工具（使用指定的选项）
         /// </summary>
         /// <param name="toolName">工具名称</param>
@@ -55,7 +53,7 @@ namespace krrTools.Core
             if (!_tools.TryGetValue(toolName, out var tool))
                 return null;
 
-            return await Task.Run(() => tool.ProcessFileWithOptions(filePath, options));
+            return await Task.Run(() => tool.ProcessFile(filePath, options));
         }
 
         /// <summary>
@@ -84,7 +82,7 @@ namespace krrTools.Core
             if (!_tools.TryGetValue(toolName, out var tool))
                 return null;
 
-            return tool.ProcessFileWithOptions(filePath, options);
+            return tool.ProcessFile(filePath, options);
         }
 
         /// <summary>
@@ -132,7 +130,7 @@ namespace krrTools.Core
             if (!_tools.TryGetValue(toolName, out var tool))
                 return null;
 
-            return tool.ProcessBeatmapToDataWithOptions(beatmap, options);
+            return tool.ProcessBeatmapToData(beatmap, options);
         }
 
         /// <summary>

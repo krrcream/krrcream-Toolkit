@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Windows;
+using krrTools.Data;
+using krrTools.Localization;
 using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
-using krrTools.Data;
-using krrTools.UI;
 
 namespace krrTools.Tools.N2NC
 {
@@ -33,8 +33,8 @@ namespace krrTools.Tools.N2NC
             catch (Exception ex)
             {
                 _logger.LogError(ex, "处理文件时出错");
-                MessageBox.Show((SharedUIComponents.IsChineseLanguage() ? "处理文件时出错: " : "Error processing file: ") + ex.Message, 
-                    SharedUIComponents.IsChineseLanguage() ? "处理错误|Processing Error" : "Processing Error|处理错误", 
+                MessageBox.Show(Strings.ErrorProcessingFile.Localize() + ": " + ex.Message, 
+                    Strings.ProcessingError.Localize(), 
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }

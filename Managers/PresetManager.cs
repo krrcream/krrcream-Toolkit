@@ -9,6 +9,7 @@ using krrTools.Core;
 using krrTools.Tools.DPtool;
 using krrTools.Tools.KRRLNTransformer;
 using krrTools.Tools.N2NC;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace krrTools.Managers
 {
@@ -218,7 +219,8 @@ namespace krrTools.Managers
         private static Type? GetToolTypeFromName(string toolName)
         {
             // 根据工具名称找到对应的模块类型
-            foreach (var module in ToolModuleRegistry.GetAllModules())
+            var moduleManager = App.Services.GetRequiredService<IModuleManager>();
+            foreach (var module in moduleManager.GetAllModules())
             {
                 if (module.ModuleName == toolName)
                 {

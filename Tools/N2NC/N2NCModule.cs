@@ -1,6 +1,6 @@
-using OsuParsers.Beatmaps;
-using krrTools.Configuration;
 using krrTools.Core;
+using krrTools.Localization;
+using OsuParsers.Beatmaps;
 
 namespace krrTools.Tools.N2NC
 {
@@ -11,9 +11,7 @@ namespace krrTools.Tools.N2NC
     {
         public override ToolModuleType ModuleType => ToolModuleType.N2NC;
 
-        public override string ModuleName => BaseOptionsManager.N2NCToolName;
-
-        public override string DisplayName => "N2NC Converter";
+        public override string DisplayName => Strings.TabN2NC;
 
         protected override Beatmap ProcessBeatmap(Beatmap input, N2NCOptions options)
         {

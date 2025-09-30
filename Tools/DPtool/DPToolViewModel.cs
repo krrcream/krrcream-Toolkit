@@ -2,7 +2,8 @@
 
 namespace krrTools.Tools.DPtool
 {
-    public class DPToolViewModel() : ToolViewModelBase<DPToolOptions>(BaseOptionsManager.DPToolName, autoSave: false)
+    public class DPToolViewModel(DPToolOptions options) : ToolViewModelBase<DPToolOptions>(ConverterEnum.DP, false, options), IPreviewOptionsProvider
     {
+        public IToolOptions GetPreviewOptions() => Options;
     }
 }

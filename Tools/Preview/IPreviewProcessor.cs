@@ -11,9 +11,7 @@ namespace krrTools.Tools.Preview
 
         string? CurrentTool { get; set; }
 
-        FrameworkElement BuildOriginalVisual(string[] filePaths);
-
-        FrameworkElement BuildConvertedVisual(string[] filePaths);
+        FrameworkElement BuildVisual(string[] filePaths, bool converted);
     }
 }
 

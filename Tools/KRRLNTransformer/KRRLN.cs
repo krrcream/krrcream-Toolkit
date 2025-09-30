@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Data;
-using krrTools.Beatmaps;
 using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
@@ -18,6 +18,14 @@ namespace krrTools.Tools.KRRLNTransformer
         public Beatmap ProcessFiles(string filepath, KRRLNTransformerOptions parameters)
         {
             _logger.LogInformation("转换器读取转换: {FilePath}", filepath);
+            ManiaBeatmap beatmap = LoadBeatmap(filepath);
+            int[,] mergeMTX = BuildAndProcessMatrix(beatmap, parameters);
+            ApplyChangesToHitObjects(beatmap, mergeMTX, parameters);
+            return SaveBeatmap(beatmap);
+        }
+
+        private ManiaBeatmap LoadBeatmap(string filepath)
+        {
             if (!File.Exists(filepath))
             {
                 throw new FileNotFoundException($"文件未找到: {filepath}");
@@ -28,8 +36,13 @@ namespace krrTools.Tools.KRRLNTransformer
                 throw new ArgumentException("文件扩展名必须为.osu");
             }
 
-            Beatmap beatmap = BeatmapDecoder.Decode(filepath).GetManiaBeatmap();
+            ManiaBeatmap beatmap = BeatmapDecoder.Decode(filepath).GetManiaBeatmap();
+            beatmap.InputFilePath = filepath;
+            return beatmap;
+        }
 
+        private int[,] BuildAndProcessMatrix(ManiaBeatmap beatmap, KRRLNTransformerOptions parameters)
+        {
             var ANA = new OsuAnalyzer();
             double BPM = beatmap.GetBPM();
 
@@ -74,7 +87,6 @@ namespace krrTools.Tools.KRRLNTransformer
             GenerateTailLength(shortMTX, (int)parameters.ShortLevelValue);
             GenerateTailLength(longMTX, (int)parameters.LongLevelValue);
 
-
             int[,] mergeALBMTX = new int[matrix.GetLength(0), matrix.GetLength(1)];
 
             for (int i = 0; i < matrix.GetLength(0); i++)
@@ -99,15 +111,19 @@ namespace krrTools.Tools.KRRLNTransformer
                     }
                 }
             }
-            // 生成面尾长度
 
+            return mergeALBMTX;
+        }
 
-            // 修改面尾
+        private void ApplyChangesToHitObjects(ManiaBeatmap beatmap, int[,] mergeMTX, KRRLNTransformerOptions parameters)
+        {
+            var (matrix, _) = beatmap.BuildMatrix(); // 重新构建以获取索引
+
             for (int i = 0; i < matrix.GetLength(0); i++)
             {
                 for (int j = 0; j < matrix.GetLength(1); j++)
                 {
-                    if (mergeALBMTX[i, j] > 0)
+                    if (mergeMTX[i, j] > 0)
                     {
                         if (beatmap.HitObjects[matrix[i, j]].EndTime - beatmap.HitObjects[matrix[i, j]].StartTime > 9
                             && !parameters.ProcessOriginalIsChecked)
@@ -115,48 +131,25 @@ namespace krrTools.Tools.KRRLNTransformer
                             continue;
                         }
 
-                        beatmap.HitObjects[matrix[i, j]].EndTime = mergeALBMTX[i, j];
+                        beatmap.HitObjects[matrix[i, j]].EndTime = mergeMTX[i, j];
                     }
                 }
             }
+        }
 
-
-            return BeatmapSave();
-
-            Beatmap BeatmapSave()
+        private ManiaBeatmap SaveBeatmap(ManiaBeatmap beatmap)
+        {
+            // 修改难度名，tag，和标签等
+            beatmap.MetadataSection.Version = $"[KRR LN.]{beatmap.MetadataSection.Version}";
+            beatmap.MetadataSection.Creator = "Krr LN. & " + beatmap.MetadataSection.Creator;
+            var currentTags = beatmap.MetadataSection.Tags ?? [];
+            var tagToAdd = BaseOptionsManager.KRRLNDefaultTag;
+            if (!currentTags.Contains(tagToAdd))
             {
-                // 添加作者前缀并更新 CircleSize 与版本说明
-                beatmap.MetadataSection.Creator = "测试" + beatmap.MetadataSection.Creator;
-                beatmap.MetadataSection.Version = "[LN] " + beatmap.MetadataSection.Version;
-
-                // 处理 tags：确保不是 null，然后添加默认 DP tag（避免重复）
-                var currentTags = beatmap.MetadataSection.Tags ?? [];
-                var tagToAdd = BaseOptionsManager.DPDefaultTag;
-                if (!currentTags.Contains(tagToAdd))
-                {
-                    var newTags = currentTags.Concat([tagToAdd]).ToArray();
-                    beatmap.MetadataSection.Tags = newTags;
-                }
-
-                string directory = Path.GetDirectoryName(filepath) ?? string.Empty;
-                string baseFilename = beatmap.GetOsuFileName();
-                string filename = baseFilename + ".osu";
-                string fullPath = Path.Combine(directory, filename);
-                if (fullPath.Length > 255)
-                {
-                    int excessLength = fullPath.Length - 255;
-                    int charsToTrim = excessLength + 3; // 多截掉3个字符用于添加"..."
-
-                    if (charsToTrim < baseFilename.Length)
-                    {
-                        baseFilename = baseFilename.Substring(0, baseFilename.Length - charsToTrim) + "...";
-                        filename = baseFilename + ".osu";
-                        fullPath = Path.Combine(directory, filename);
-                    }
-                }
-                return beatmap ;
+                var newTags = currentTags.Concat([tagToAdd]).ToArray();
+                beatmap.MetadataSection.Tags = newTags;
             }
-
+            return beatmap;
         }
 
         private int[,] CalculateAvailableTime(int[,] matrix, List<int> timeAxis)
@@ -184,7 +177,6 @@ namespace krrTools.Tools.KRRLNTransformer
                     // 如果当前元素大于等于0
                     if (matrix[row, col] >= 0)
                     {
-                        int currentRowIndex = matrix[row, col];
                         int nextRowIndex = -1;
 
                         // 寻找同一列中下一个大于等于0的元素
@@ -192,7 +184,7 @@ namespace krrTools.Tools.KRRLNTransformer
                         {
                             if (matrix[nextRow, col] >= 0)
                             {
-                                nextRowIndex = matrix[nextRow, col];
+                                nextRowIndex = nextRow;
                                 break;
                             }
                         }
@@ -201,12 +193,12 @@ namespace krrTools.Tools.KRRLNTransformer
                         if (nextRowIndex == -1)
                         {
                             // 如果没有下一个元素，使用最后时间轴的时间
-                            availableTime[row, col] = timeAxis[timeAxis.Count - 1] - timeAxis[currentRowIndex];
+                            availableTime[row, col] = timeAxis[timeAxis.Count - 1] - timeAxis[row];
                         }
                         else
                         {
                             // 计算与下一个时间轴的时间差
-                            availableTime[row, col] = timeAxis[nextRowIndex] - timeAxis[currentRowIndex];
+                            availableTime[row, col] = timeAxis[nextRowIndex] - timeAxis[row];
                         }
                     }
                 }
@@ -245,7 +237,7 @@ namespace krrTools.Tools.KRRLNTransformer
                     int removeCount = validPositions.Count - x;
 
                     // 使用权重法随机选择要移除的位置
-                    List<int> positionsToRemove = SelectPositionsByWeight(mtx, i, validPositions, removeCount, random);
+                    List<int> positionsToRemove = SelectPositionsByWeight(validPositions, removeCount, random);
 
                     // 将选中的位置设置为-1
                     foreach (int col in positionsToRemove)
@@ -263,7 +255,7 @@ namespace krrTools.Tools.KRRLNTransformer
                     {
                         // 使用权重法随机选择要移除的位置
                         List<int> positionsToRemove =
-                            SelectPositionsByWeight(mtx, i, validPositions, removeCount, random);
+                            SelectPositionsByWeight(validPositions, removeCount, random);
 
                         // 将选中的位置设置为-1
                         foreach (int col in positionsToRemove)
@@ -275,8 +267,7 @@ namespace krrTools.Tools.KRRLNTransformer
             }
         }
 
-        private List<int> SelectPositionsByWeight(int[,] mtx, int row, List<int> validPositions, int removeCount,
-            Random random)
+        private List<int> SelectPositionsByWeight(List<int> validPositions, int removeCount, Random random)
         {
             List<int> positionsToRemove = new List<int>();
             List<int> availablePositions = new List<int>(validPositions);
@@ -353,95 +344,8 @@ namespace krrTools.Tools.KRRLNTransformer
 
         public Beatmap ProcessBeatmapToData(Beatmap beatmap, KRRLNTransformerOptions parameters)
         {
-            var ANA = new OsuAnalyzer();
-            double BPM = beatmap.GetBPM();
-
-            var beatLengthDict = beatmap.GetBeatLengthList();
-            var (matrix, timeAxis) = beatmap.BuildMatrix();
-            var beatLengthAxis = ANA.GetBeatLengthAxis(beatLengthDict, BPM, timeAxis);
-            var AvailableTime = CalculateAvailableTime(matrix, timeAxis);
-
-            int[,] longMTX = new int[matrix.GetLength(0), matrix.GetLength(1)];
-            int[,] shortMTX = new int[matrix.GetLength(0), matrix.GetLength(1)];
-
-            for (int i = 0; i < matrix.GetLength(0); i++)
-            {
-                for (int j = 0; j < matrix.GetLength(1); j++)
-                {
-                    longMTX[i, j] = -1;
-                    shortMTX[i, j] = -1;
-                }
-            }
-
-            for (int i = 0; i < matrix.GetLength(0); i++)
-            {
-                for (int j = 0; j < matrix.GetLength(1); j++)
-                {
-                    if (AvailableTime[i, j] >= 0) // 只处理有效位置
-                    {
-                        double threshold = beatLengthAxis[i] * 2;
-                        if (AvailableTime[i, j] > threshold)
-                        {
-                            longMTX[i, j] = AvailableTime[i, j];
-                        }
-                        else
-                        {
-                            shortMTX[i, j] = AvailableTime[i, j];
-                        }
-                    }
-                }
-            }
-
-            ProcessMatrix(shortMTX, (int)parameters.ShortPercentageValue, (int)parameters.ShortLimitValue);
-            ProcessMatrix(longMTX, (int)parameters.LongPercentageValue, (int)parameters.LongLimitValue);
-            GenerateTailLength(shortMTX, (int)parameters.ShortLevelValue);
-            GenerateTailLength(longMTX, (int)parameters.LongLevelValue);
-
-
-            int[,] mergeALBMTX = new int[matrix.GetLength(0), matrix.GetLength(1)];
-
-            for (int i = 0; i < matrix.GetLength(0); i++)
-            {
-                for (int j = 0; j < matrix.GetLength(1); j++)
-                {
-                    mergeALBMTX[i, j] = -1;
-                }
-            }
-
-            for (int i = 0; i < matrix.GetLength(0); i++)
-            {
-                for (int j = 0; j < matrix.GetLength(1); j++)
-                {
-                    if (shortMTX[i, j] >= 0)
-                    {
-                        mergeALBMTX[i, j] = shortMTX[i, j];
-                    }
-                    else if (longMTX[i, j] >= 0)
-                    {
-                        mergeALBMTX[i, j] = longMTX[i, j];
-                    }
-                }
-            }
-            // 生成面尾长度
-
-
-            // 修改面尾
-            for (int i = 0; i < matrix.GetLength(0); i++)
-            {
-                for (int j = 0; j < matrix.GetLength(1); j++)
-                {
-                    if (mergeALBMTX[i, j] > 0)
-                    {
-                        if (beatmap.HitObjects[matrix[i, j]].EndTime - beatmap.HitObjects[matrix[i, j]].StartTime > 9
-                            && !parameters.ProcessOriginalIsChecked)
-                        {
-                            continue;
-                        }
-
-                        beatmap.HitObjects[matrix[i, j]].EndTime = mergeALBMTX[i, j];
-                    }
-                }
-            }
+            int[,] mergeMTX = BuildAndProcessMatrix((ManiaBeatmap)beatmap, parameters);
+            ApplyChangesToHitObjects((ManiaBeatmap)beatmap, mergeMTX, parameters);
             changeMeta(beatmap);
             return beatmap;
         }

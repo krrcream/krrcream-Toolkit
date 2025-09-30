@@ -1,8 +1,8 @@
+
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace krrTools.Tools.KrrLV;
-
 public class KRRLVAnalysisItem : ObservableObject
 {
         

@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Media;
+using krrTools.Data;
 using krrTools.UI;
 
 namespace krrTools.Tools.KrrLV
@@ -50,7 +51,7 @@ namespace krrTools.Tools.KrrLV
 
             var browseBtn = SharedUIComponents.CreateStandardButton("Browse|浏览");
             browseBtn.Width = 100; browseBtn.Height = 40;
-            browseBtn.SetBinding(ButtonBase.CommandProperty, new Binding("BrowseCommand"));
+            browseBtn.Click += BrowseBtn_Click;
             Grid.SetColumn(browseBtn, 0);
             buttonGrid.Children.Add(browseBtn);
 
@@ -85,6 +86,17 @@ namespace krrTools.Tools.KrrLV
         {
             e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ?
                 DragDropEffects.Copy : DragDropEffects.None;
+        }
+
+        private void BrowseBtn_Click(object sender, RoutedEventArgs e)
+        {
+            var owner = Window.GetWindow(this);
+            var selected = FilesHelper.ShowFolderBrowserDialog("选择文件夹", owner);
+            if (!string.IsNullOrEmpty(selected))
+            {
+                _viewModel.PathInput = selected;
+                _viewModel.ProcessDroppedFiles([selected]);
+            }
         }
 
         private void OnLanguageChanged()

@@ -9,15 +9,14 @@ namespace krrTools.Localization
 
         // Tab headers
         public const string TabN2NC = "NtoN Converter|NtoN转换器";
-        public const string TabYLsLN = "YLS LN Transformer|凉雨转面器";
+        // public const string TabYLsLN = "YLS LN Transformer|凉雨转面器";
         public const string TabKRRsLN = "KRR LN Transformer|KRR转面器";
         public const string TabDPTool = "DP Tool|DP 工具";
         public const string TabKrrLV = "KRR LV Analysis|KRR LV分析器";
         public const string TabFilesManager = "Files Manager|文件管理";
 
         // Footer
-        public const string FooterCopyright = "© 2025 krrcream. All rights reserved.";
-        public const string FooterCopyrightCN = "© 2025 krrcream. 保留所有权利。";
+        public const string FooterCopyright = "© 2025 krrcream. All rights reserved.|© 2025 krrcream. 保留所有权利。";
         public const string KrrcreamUrl = "https://github.com/krrcream";
         public const string GitHubLinkText = "github";
         public const string GitHubLinkUrl = "https://github.com/krrcream/krrcream-Toolkit";
@@ -122,7 +121,58 @@ namespace krrTools.Localization
         public const string ConversionNoOutputMessage = "Conversion did not produce any output.";
         public const string DPSettingsLoadFallback = "DP settings failed to load here — showing fallback. If this persists, try reopening the DP tool.";
         public const string LVSettingsLoadFallback = "LV Calculator failed to load here — showing fallback.";
-        public const string GetFilesSettingsLoadFallback = "osu! file manager failed to load here — showing fallback.\nTry opening it in a separate window if the issue persists.";
+        public const string GetFilesSettingsLoadFallback = "osu! file manager failed to load here — showing fallback.\nTry opening it in a separate window if the issue persists.|osu! 文件管理器加载失败 — 显示备用方案。\n如果问题持续，请尝试在单独窗口中打开。";
+        
+        // Error messages
+        public const string ErrorProcessingFile = "Error processing file|处理文件时出错";
+        public const string ProcessingError = "Processing Error|处理错误";
+        public const string PackagingAddingBeatmapFailed = "Packaging/adding beatmap failed|打包/添加谱面失败";
+        public const string Error = "Error|错误";
+        public const string ErrorDeletingFiles = "Error deleting files|删除文件时出错";
+        public const string FilesDeletedSuccessfully = "{0} file(s) deleted successfully.|成功删除了 {0} 个文件。";
+        
+        // Hotkey window
+        public const string SetHotkeyTitle = "Set Hotkey|设置热键";
+        public const string PressDesiredKeyCombination = "Press your desired key combination:|按下您想要的按键组合：";
+        public const string Save = "Save|保存";
+        public const string Cancel = "Cancel|取消";
+        
+        // Processing window
+        public const string ProcessingTitle = "Processing...|处理中...";
+        
+        // Success messages
+        public const string FileProcessedSuccessfully = "File processed successfully!|文件处理成功！";
+        public const string Success = "Success|成功";
+        
+        // Listener
+        public const string CannotConvert = "Cannot Convert|无法转换";
+        public const string NoActiveTabSelected = "No active tab selected.|未选择活动标签页。";
+        public const string HotkeyError = "Hotkey Error|热键错误";
+        public const string FailedToRegisterHotkey = "Failed to register hotkey|注册热键失败";
+        
+        // Files Manager
+        public const string NoItemsSelected = "No items selected.|未选择项目。";
+        public const string Delete = "Delete|删除";
+        public const string DeleteError = "Delete Error|删除错误";
+        public const string FilesDeletedSuccessfullyTemplate = "{0} file(s) deleted successfully.|成功删除了 {0} 个文件。";
+        
+        // OsuAnalyze errors
+        public const string InvalidBeatmapFilePath = "Invalid beatmap file path|无效的谱面文件路径";
+        public const string UnableToDetermineParentDirectory = "Unable to determine parent directory|无法确定父目录";
+        public const string SourceSongFolderDoesNotExist = "Source song folder does not exist|源歌曲文件夹不存在";
+        public const string FailedToCreateOutputPath = "Failed to create {0}|创建 {0} 失败";
+        public const string FailedToAddBeatmapToArchive = "Failed to add beatmap to archive|添加谱面到存档失败";
+        public const string FailedToDeleteTemporaryBeatmapFile = "Failed to delete the temporary beatmap file|删除临时谱面文件失败";
+        public const string Warning = "Warning|警告";
+        
+        // File Dispatcher
+        public const string FileAlreadyExists = "File already exists|文件已存在";
+        public const string OverwriteQuestion = "Overwrite?|是否覆盖？";
+        public const string FileConflict = "File Conflict|文件冲突";
+        
+        // Conversion messages
+        public const string ConversionFailedAllFiles = "Conversion failed, all files could not be converted successfully.|转换失败，所有文件都未能成功转换。";
+        public const string ConversionNoOutput = "Conversion did not produce any output.|转换未产生任何输出。";
         
         /// <summary>
         /// Localize a string with format "EN|中文" based on current language setting

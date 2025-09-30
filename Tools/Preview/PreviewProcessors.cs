@@ -1,20 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using krrTools.Data;
-using krrTools.Tools.DPtool;
-using krrTools.Tools.KRRLNTransformer;
-// using krrTools.Tools.LNTransformer;
-using krrTools.Tools.N2NC;
 using krrTools.Beatmaps;
-using OsuParsers.Beatmaps;
-using Microsoft.Extensions.Logging;
 using krrTools.Configuration;
 using krrTools.Core;
+using krrTools.Data;
+using Microsoft.Extensions.Logging;
+using OsuParsers.Beatmaps;
 
 namespace krrTools.Tools.Preview
 {
@@ -24,17 +19,14 @@ namespace krrTools.Tools.Preview
 
         public string ToolKey => "Preview";
         public string? CurrentTool { get; set; }
-        public int? ColumnOverride { get; set; }
+        public int ColumnOverride { get; set; } // 0表示不覆盖，使用实际列数
 
-        public int? LastOriginalStartMs { get; private set; }
-        public int? LastConvertedStartMs { get; private set; }
+        public int LastStartMs { get; private set; }
 
         // 选项提供器
-        public ToolScheduler? ToolScheduler { get; set; }
-        public Func<N2NCOptions?>? ConverterOptionsProvider { get; set; }
-        public Func<DPToolOptions?>? DPOptionsProvider { get; set; }
-        // public Func<YLsLNTransformerOptions?>? LNOptionsProvider { get; set; }
-        public Func<KRRLNTransformerOptions?>? KRRLNOptionsProvider { get; set; }
+        public ToolScheduler? ToolScheduler { get; init; }
+
+        public Func<object>? ConverterOptionsProvider { get; set; }
 
         private Func<string, string, int, int, object?>? ConversionProvider { get; set; }
 
@@ -46,122 +38,68 @@ namespace krrTools.Tools.Preview
 
                 if (ToolScheduler != null)
                 {
-                    // 使用ToolScheduler处理
-                    if (toolName == BaseOptionsManager.N2NCToolName)
+                    if (ConverterOptionsProvider != null)
                     {
-                        var opt = ConverterOptionsProvider?.Invoke();
-                        if (opt == null) return null;
-                        return ToolScheduler.ProcessBeatmap(toolName, maniaBeatmap, opt);
+                        var options = ConverterOptionsProvider();
+                        if (options is IToolOptions toolOptions)
+                        {
+                            return ToolScheduler.ProcessBeatmap(toolName, maniaBeatmap, toolOptions);
+                        }
                     }
-                    
-                    if (toolName == BaseOptionsManager.DPToolName)
-                    {
-                        var opt = DPOptionsProvider?.Invoke();
-                        if (opt == null) return null;
-                        return ToolScheduler.ProcessBeatmap(toolName, maniaBeatmap, opt);
-                    }
-                    
-                    // if (toolName == OptionsManager.YLsLNToolName)
-                    // {
-                    //     var opt = LNOptionsProvider?.Invoke();
-                    //     if (opt == null) return null;
-                    //     return ToolScheduler.ProcessBeatmap(toolName, maniaBeatmap, opt);
-                    // }
-
-                    if (toolName == BaseOptionsManager.KRRsLNToolName)
-                    {
-                        var opt = KRRLNOptionsProvider?.Invoke();
-                        if (opt == null) return null;
-                        return ToolScheduler.ProcessBeatmap(toolName, maniaBeatmap, opt);
-                    }
-                }
-                else
-                {
-                    // 回退到直接调用工具（保持兼容性）
-                    if (toolName == BaseOptionsManager.N2NCToolName)
-                    {
-                        var tool = new N2NCTool();
-                        var opt = ConverterOptionsProvider?.Invoke();
-                        if (opt == null) return null;
-                        return tool.ProcessBeatmapToDataWithOptions(maniaBeatmap, opt);
-                    }
-                    
-                    if (toolName == BaseOptionsManager.DPToolName)
-                    {
-                        var tool = new DPTool();
-                        var opt = DPOptionsProvider?.Invoke();
-                        if (opt == null) return null;
-                        return tool.ProcessBeatmapToDataWithOptions(maniaBeatmap, opt);
-                    }
-                    
-                    // if (toolName == OptionsManager.YLsLNToolName)
-                    // {
-                    //     var tool = new YLsLNTransformerTool();
-                    //     var opt = LNOptionsProvider?.Invoke();
-                    //     if (opt == null) return null;
-                    //     return tool.ProcessBeatmapToDataWithOptions(maniaBeatmap, opt);
-                    // }
-
-                    if (toolName == BaseOptionsManager.KRRsLNToolName)
-                    {
-                        var tool = new KRRLNTool();
-                        var opt = KRRLNOptionsProvider?.Invoke();
-                        if (opt == null) return null;
-                        return tool.ProcessBeatmapToDataWithOptions(maniaBeatmap, opt);
-                    }
+                    return ToolScheduler.ProcessBeatmap(toolName, maniaBeatmap);
                 }
 
                 return maniaBeatmap;
             };
         }
 
-        public FrameworkElement BuildOriginalVisual(string[] filePaths)
+        public FrameworkElement BuildVisual(string[] filePaths, bool converted)
         {
-            return BuildPreview(filePaths, false, null, null);
-        }
-
-        public FrameworkElement BuildConvertedVisual(string[] filePaths)
-        {
-            return BuildPreview(filePaths, true, ConversionProvider, CurrentTool);
+            if (converted)
+            {
+                return BuildNotesPreview(filePaths, true, ConversionProvider, CurrentTool);
+            }
+            
+            return BuildNotesPreview(filePaths, false, null, null);
         }
         
-        private FrameworkElement BuildPreview(string[] filePaths, bool converted,
+        private FrameworkElement BuildNotesPreview(string[] filePaths, bool converted,
             Func<string, string, int, int, object?>? conversionProvider, string? toolName)
         {
-            var path = filePaths is { Length: > 0 } ? filePaths[0] : string.Empty;
-            _logger.LogInformation("预览器读取转换: {Path}, 转换: {Converted}", path, converted);
-            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return new TextBlock { Text = "(无文件)" };
+            // 仅预览第一个文件
+            var previewOnePath = filePaths is { Length: > 0 } ? filePaths[0] : string.Empty;
+            
+            _logger.LogInformation("预览器读取转换: {Path}, 转换: {Converted}", previewOnePath, converted);
 
-            int? first = PreviewTransformation.GetFirstNonEmptyTime(path);
+            int? first = PreviewTransformation.GetFirstNonEmptyTime(previewOnePath);
             if (!first.HasValue)
             {
-                var full = PreviewTransformation.BuildOriginal(path, 1);
+                var full = PreviewTransformation.BuildOriginal(previewOnePath, 1);
                 if (full.notes.Count > 0) first = full.notes.Min(n => n.StartTime);
             }
             if (!first.HasValue) return new TextBlock { Text = "(无可用音符)" };
 
-            ManiaBeatmap maniaBeatmap = FilesHelper.GetManiaBeatmap(path);
+            ManiaBeatmap maniaBeatmap = FilesHelper.GetManiaBeatmap(previewOnePath);
             
             var quarterMs = maniaBeatmap.GetBPM(true);
             int startMs = first.Value;
             int windowMs = Math.Max(PreviewConstants.MinWindowLengthMs,
                 (int)Math.Round(quarterMs * PreviewConstants.PreviewWindowUnitCount / PreviewConstants.PreviewWindowUnitBeatDenominator));
             int endMs = startMs + windowMs;
-
-            if (converted)
-                LastConvertedStartMs = startMs;
-            else
-                LastOriginalStartMs = startMs;
+            
+            LastStartMs = startMs;
 
             (int columns, List<ManiaBeatmap.PreViewManiaNote> notes, double quarterMs) data;
             if (converted)
             {
                 if (conversionProvider == null)
                     return new TextBlock { Text = "(无转换提供器)" };
-                var rawData = conversionProvider(toolName ?? "", path, startMs, endMs);
+                var rawData = conversionProvider(toolName ?? "", previewOnePath, startMs, endMs);
                 if (rawData is Beatmap beatmap)
                 {
-                    data = PreviewTransformation.BuildFromBeatmapWindow(beatmap, startMs, endMs);
+                    // 如果是ManiaBeatmap直接使用，否则尝试转换为ManiaBeatmap
+                    var processedManiaBeatmap = rawData is ManiaBeatmap mb ? mb : beatmap.GetManiaBeatmap();
+                    data = PreviewTransformation.BuildFromBeatmapWindow(processedManiaBeatmap, startMs, endMs);
                 }
                 else
                 {
@@ -170,22 +108,22 @@ namespace krrTools.Tools.Preview
             }
             else
             {
-                data = PreviewTransformation.BuildOriginalWindow(path, startMs, endMs);
+                data = PreviewTransformation.BuildOriginalWindow(previewOnePath, startMs, endMs);
             }
 
-            var previewElement = BuildFromRealNotes(data);
+            var previewElement = BuildNotes(data);
             return previewElement;
         }
 
         // 从实际音符构建显示
-        private FrameworkElement BuildFromRealNotes((int columns, List<ManiaBeatmap.PreViewManiaNote> notes, double quarterMs) data)
+        private FrameworkElement BuildNotes((int columns, List<ManiaBeatmap.PreViewManiaNote> notes, double quarterMs) data)
         {
             if (data.columns <= 0 || data.notes.Count == 0)
                 return new TextBlock { Text = "(无可用数据)" };
 
             var displayColumns = data.columns;
-            if (ColumnOverride is > 0)
-                displayColumns = ColumnOverride.Value;
+            if (ColumnOverride > 0)
+                displayColumns = ColumnOverride;
 
             return BuildManiaTimeRowsFromNotes(data.notes, displayColumns, 10, data.quarterMs);
         }
@@ -214,7 +152,10 @@ namespace krrTools.Tools.Preview
             }
 
             // 使用动态控件显示；控件自适应父容器大小
-            int displayColumns = columns; if (displayColumns <= 0) displayColumns = 1;
+            int displayColumns = columns; 
+            
+            if (displayColumns <= 0) displayColumns = 1;
+            
             var dyn = new DynamicPreviewControl(grouped, displayColumns, quarterMs)
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,

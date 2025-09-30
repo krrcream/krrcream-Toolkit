@@ -1,21 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using OsuFileIO.Analyzer;
-using System.Windows;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
-using krrTools.Tools.Listener;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Forms;
-using krrTools.Beatmaps;
-using krrTools.UI;
-using krrTools.Utilities;
-using OsuFileIO.HitObject.Mania;
-using OsuFileIO.OsuFile;
-using OsuFileIO.OsuFileReader;
 using System.Windows.Interop;
+using krrTools.Beatmaps;
+using krrTools.Localization;
+using krrTools.Tools.Listener;
+using krrTools.Utilities;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
@@ -53,8 +49,8 @@ namespace krrTools.Data
                             // Packaging failure: inform user and log
                             Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                             {
-                                    MessageBox.Show((SharedUIComponents.IsChineseLanguage() ? "打包/添加谱面失败: " : "Packaging/adding beatmap failed: ") + ex.Message,
-                                        SharedUIComponents.IsChineseLanguage() ? "错误|Error" : "Error|错误",
+                                    MessageBox.Show(Strings.PackagingAddingBeatmapFailed.Localize() + ": " + ex.Message,
+                                        Strings.Error.Localize(),
                                     MessageBoxButton.OK, MessageBoxImage.Error);
                             }));
                             Debug.WriteLine($"Packaging/adding beatmap failed: {ex.Message}");
@@ -65,7 +61,7 @@ namespace krrTools.Data
                     {
                         if (showSuccessMessage)
                         {
-                                MessageBoxResultHelper.ShowSuccess(SharedUIComponents.IsChineseLanguage());
+                                MessageBoxResultHelper.ShowSuccess();
                         }
                         onCompleted?.Invoke();
                     }));
@@ -74,8 +70,8 @@ namespace krrTools.Data
                 {
                     Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                     {
-                            MessageBox.Show((SharedUIComponents.IsChineseLanguage() ? "处理文件时出错: " : "Error processing file: ") + ex.Message,
-                                SharedUIComponents.IsChineseLanguage() ? "处理错误|Processing Error" : "Processing Error|处理错误",
+                            MessageBox.Show(Strings.ErrorProcessingFile.Localize() + ": " + ex.Message,
+                                Strings.ProcessingError.Localize(),
                             MessageBoxButton.OK, MessageBoxImage.Error);
                         onCompleted?.Invoke();
                     }));
@@ -124,6 +120,27 @@ namespace krrTools.Data
             if (Application.Current?.MainWindow != null)
             {
                 var hwnd = new WindowInteropHelper(Application.Current.MainWindow).Handle;
+                dialog.ShowDialog(new Win32Window(hwnd));
+            }
+            else
+            {
+                dialog.ShowDialog();
+            }
+            return dialog.SelectedPath;
+        }
+
+        /// <summary>
+        /// 弹出选择文件夹对话框，使用指定的窗口作为父窗口
+        /// </summary>
+        public static string ShowFolderBrowserDialog(string description, Window owner)
+        {
+            using var dialog = new FolderBrowserDialog();
+            dialog.Description = description;
+            dialog.RootFolder = Environment.SpecialFolder.MyComputer;
+            dialog.ShowNewFolderButton = true;
+            if (owner != null)
+            {
+                var hwnd = new WindowInteropHelper(owner).Handle;
                 dialog.ShowDialog(new Win32Window(hwnd));
             }
             else
@@ -201,31 +218,13 @@ namespace krrTools.Data
             
             return new ManiaBeatmap(filePath);
         }
-
-        private static double GetMainBpm(string? filePath)
-        {
-            if (filePath == null || !File.Exists(filePath))
-                throw new ArgumentNullException(nameof(filePath));
-
-            var reader = new OsuFileReaderBuilder(filePath).Build();
-            var beatmap = reader.ReadFile();
-            double BPM = 0;
-            
-            if (beatmap is IReadOnlyBeatmap<ManiaHitObject> maniaHitObject)
-            {
-                var result = maniaHitObject.Analyze();
-                BPM = result.Bpm;
-
-            }
-            return BPM;
-        }
         
         /// <summary>
         /// 验证并异步处理 .osu 文件
         /// </summary>
         public static void ValidateAndRun(string filePath, Action<string> action, Action? onCompleted = null, bool showSuccessMessage = true)
         {
-            if (!FilesHelper.EnsureIsOsuFile(filePath)) return;
+            if (!EnsureIsOsuFile(filePath)) return;
             Task.Run(() =>
             {
                 try
@@ -235,7 +234,7 @@ namespace krrTools.Data
                     {
                         if (showSuccessMessage)
                         {
-                                MessageBoxResultHelper.ShowSuccess(SharedUIComponents.IsChineseLanguage());
+                                MessageBoxResultHelper.ShowSuccess();
                         }
                         onCompleted?.Invoke();
                     }));
@@ -244,8 +243,8 @@ namespace krrTools.Data
                 {
                     Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                     {
-                            MessageBox.Show((SharedUIComponents.IsChineseLanguage() ? "处理文件时出错: " : "Error processing file: ") + ex.Message,
-                                SharedUIComponents.IsChineseLanguage() ? "处理错误|Processing Error" : "Processing Error|处理错误",
+                            MessageBox.Show(Strings.ErrorProcessingFile.Localize() + ": " + ex.Message,
+                                Strings.ProcessingError.Localize(),
                             MessageBoxButton.OK, MessageBoxImage.Error);
                         onCompleted?.Invoke();
                     }));

@@ -1,70 +1,31 @@
-using System.Threading.Tasks;
-using krrTools.Configuration;
 using krrTools.Core;
-using krrTools.Data;
+using krrTools.Localization;
 using OsuParsers.Beatmaps;
 
 namespace krrTools.Tools.DPtool
 {
     /// <summary>
-    /// DP工具包装器
+    /// DP工具模块
     /// </summary>
-    public class DPTool : ITool
+    public class DPTool : ToolModuleBase<DPToolOptions, DPToolViewModel, DPToolControl>
     {
-        public string Name => BaseOptionsManager.DPToolName;
+        /// <summary>
+        /// 模块类型
+        /// </summary>
+        public override ToolModuleType ModuleType => ToolModuleType.DP;
 
-        public IToolOptions DefaultOptions => new DPToolOptions();
+        /// <summary>
+        /// 模块显示名称
+        /// </summary>
+        public override string DisplayName => Strings.TabDPTool;
 
-        public string? ProcessFile(string filePath)
+        /// <summary>
+        /// 核心算法：处理Beatmap
+        /// </summary>
+        protected override Beatmap ProcessBeatmap(Beatmap input, DPToolOptions options)
         {
-            var options = BaseOptionsManager.LoadOptions<DPToolOptions>(BaseOptionsManager.DPToolName, BaseOptionsManager.ConfigFileName) ?? new DPToolOptions();
-            return ProcessFileWithOptions(filePath, options);
-        }
-
-        public async Task<string?> ProcessFileAsync(string filePath)
-        {
-            return await Task.Run(() => ProcessFile(filePath));
-        }
-
-        public object? ProcessFileToData(string filePath)
-        {
-            var options = BaseOptionsManager.LoadOptions<DPToolOptions>(BaseOptionsManager.DPToolName, BaseOptionsManager.ConfigFileName) ?? new DPToolOptions();
-            return ProcessFileToDataWithOptions(filePath, options);
-        }
-
-        public Beatmap? ProcessBeatmapToData(Beatmap inputBeatmap)
-        {
-            var options = BaseOptionsManager.LoadOptions<DPToolOptions>(BaseOptionsManager.DPToolName, BaseOptionsManager.ConfigFileName) ?? new DPToolOptions();
-            return ProcessBeatmapToDataWithOptions(inputBeatmap, options);
-        }
-
-        public string? ProcessFileWithOptions(string filePath, IToolOptions options)
-        {
-            if (options is not DPToolOptions dpOptions)
-                return null;
-
             var dp = new DP();
-            return dp.ProcessFile(filePath, dpOptions);
-        }
-
-        public Beatmap? ProcessBeatmapToDataWithOptions(Beatmap inputBeatmap, IToolOptions options)
-        {
-            if (options is not DPToolOptions dpOptions)
-                return null;
-
-            var dp = new DP();
-            return dp.DPBeatmapToData(inputBeatmap, dpOptions);
-        }
-
-        private object? ProcessFileToDataWithOptions(string filePath, IToolOptions options)
-        {
-            // DP tool primarily works with beatmaps, so return the processed beatmap
-            if (options is not DPToolOptions dpOptions)
-                return null;
-
-            var beatmap = FilesHelper.GetManiaBeatmap(filePath);
-            var dp = new DP();
-            return dp.DPBeatmapToData(beatmap, dpOptions);
+            return dp.DPBeatmapToData(input, options) ?? input;
         }
     }
 }

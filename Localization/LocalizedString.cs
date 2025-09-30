@@ -1,8 +1,8 @@
+
 using System.ComponentModel;
 using krrTools.UI;
 
 namespace krrTools.Localization;
-
 public static class LocalizedStringHelper
 {
     /// <summary>
