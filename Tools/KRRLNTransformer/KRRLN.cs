@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using krrTools.Beatmaps;
 using krrTools.Configuration;
+using krrTools.Core;
 using krrTools.Data;
 using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
@@ -11,20 +12,30 @@ using OsuParsers.Decoders;
 
 namespace krrTools.Tools.KRRLNTransformer
 {
-    public class KRRLN
+    public class KRRLN : AbstractBeatmapTransformer<KRRLNTransformerOptions>
     {
-        private static readonly ILogger<KRRLN> _logger = LoggerFactoryHolder.CreateLogger<KRRLN>();
 
-        public Beatmap ProcessFiles(string filepath, KRRLNTransformerOptions parameters)
+        protected override int[,] ProcessMatrix(int[,] matrix, List<int> timeAxis, Beatmap beatmap, KRRLNTransformerOptions options)
         {
-            _logger.LogInformation("转换器读取转换: {FilePath}", filepath);
-            ManiaBeatmap beatmap = LoadBeatmap(filepath);
-            int[,] mergeMTX = BuildAndProcessMatrix(beatmap, parameters);
-            ApplyChangesToHitObjects(beatmap, mergeMTX, parameters);
-            return SaveBeatmap(beatmap);
+            return BuildAndProcessMatrix(matrix, timeAxis, (ManiaBeatmap)beatmap, options);
         }
 
-        private ManiaBeatmap LoadBeatmap(string filepath)
+        protected override void ApplyChangesToHitObjects(Beatmap beatmap, int[,] processedMatrix, KRRLNTransformerOptions options)
+        {
+            ApplyChangesToHitObjects((ManiaBeatmap)beatmap, processedMatrix, options);
+        }
+
+        protected override void ModifyMetadata(Beatmap beatmap, KRRLNTransformerOptions options)
+        {
+            changeMeta(beatmap);
+        }
+
+        protected override string SaveBeatmap(Beatmap beatmap, string originalPath)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override ManiaBeatmap LoadBeatmap(string filepath)
         {
             if (!File.Exists(filepath))
             {
@@ -41,13 +52,12 @@ namespace krrTools.Tools.KRRLNTransformer
             return beatmap;
         }
 
-        private int[,] BuildAndProcessMatrix(ManiaBeatmap beatmap, KRRLNTransformerOptions parameters)
+        private int[,] BuildAndProcessMatrix(int[,] matrix, List<int> timeAxis, ManiaBeatmap beatmap, KRRLNTransformerOptions parameters)
         {
             var ANA = new OsuAnalyzer();
             double BPM = beatmap.GetBPM();
 
             var beatLengthDict = beatmap.GetBeatLengthList();
-            var (matrix, timeAxis) = beatmap.BuildMatrix();
             var beatLengthAxis = ANA.GetBeatLengthAxis(beatLengthDict, BPM, timeAxis);
             var AvailableTime = CalculateAvailableTime(matrix, timeAxis);
 
@@ -137,20 +147,7 @@ namespace krrTools.Tools.KRRLNTransformer
             }
         }
 
-        private ManiaBeatmap SaveBeatmap(ManiaBeatmap beatmap)
-        {
-            // 修改难度名，tag，和标签等
-            beatmap.MetadataSection.Version = $"[KRR LN.]{beatmap.MetadataSection.Version}";
-            beatmap.MetadataSection.Creator = "Krr LN. & " + beatmap.MetadataSection.Creator;
-            var currentTags = beatmap.MetadataSection.Tags ?? [];
-            var tagToAdd = BaseOptionsManager.KRRLNDefaultTag;
-            if (!currentTags.Contains(tagToAdd))
-            {
-                var newTags = currentTags.Concat([tagToAdd]).ToArray();
-                beatmap.MetadataSection.Tags = newTags;
-            }
-            return beatmap;
-        }
+
 
         private int[,] CalculateAvailableTime(int[,] matrix, List<int> timeAxis)
         {
@@ -342,14 +339,10 @@ namespace krrTools.Tools.KRRLNTransformer
             }
         }
 
-        public Beatmap ProcessBeatmapToData(Beatmap beatmap, KRRLNTransformerOptions parameters)
+        public new Beatmap ProcessBeatmapToData(Beatmap beatmap, KRRLNTransformerOptions parameters)
         {
-            int[,] mergeMTX = BuildAndProcessMatrix((ManiaBeatmap)beatmap, parameters);
-            ApplyChangesToHitObjects((ManiaBeatmap)beatmap, mergeMTX, parameters);
-            changeMeta(beatmap);
-            return beatmap;
+            return base.ProcessBeatmapToData(beatmap, parameters);
         }
-        
         //修改难度名，tag，和标签等
         private void changeMeta(Beatmap beatmap)
         {

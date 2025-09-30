@@ -81,7 +81,6 @@ namespace krrTools.Tools.DPtool
                 TargetKeys = options.SingleSideKeyCount,
                 TransformSpeed = 4
             };
-            Conv.options = convOptions;
 
             double beatLength = 60000 / beatmap.BPM * 4;
             double convertTime = Math.Max(1, convOptions.TransformSpeed * beatLength - 10);
@@ -168,7 +167,6 @@ namespace krrTools.Tools.DPtool
                 TargetKeys = options.SingleSideKeyCount,
                 TransformSpeed = 4
             };
-            Conv.options = convOptions;
             double BPM = beatmap.GetBPM();
             double beatLength = 60000 / BPM * 4;
             double convertTime = Math.Max(1, convOptions.TransformSpeed * beatLength - 10);

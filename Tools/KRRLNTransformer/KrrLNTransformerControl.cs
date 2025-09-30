@@ -393,7 +393,7 @@ public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
         var parameters = GetOptions();
         var LN = new KRRLN();
 
-        return LN.ProcessFiles(filePath, parameters);
+        return LN.ProcessFile(filePath, parameters);
     }
 
     public string GetOutputFileName(string inputPath, ManiaBeatmap beatmap)

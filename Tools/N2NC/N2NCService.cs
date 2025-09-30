@@ -24,8 +24,8 @@ namespace krrTools.Tools.N2NC
                     return null;
                 }
 
-                var converter = new N2NC { options = options };
-                var beatmap = converter.NToNC(filePath);
+                var converter = new N2NC();
+                var beatmap = converter.ProcessFile(filePath, options);
                 _logger.LogInformation("转换器处理完成");
 
                 return beatmap;
@@ -45,8 +45,8 @@ namespace krrTools.Tools.N2NC
         /// </summary>
         public static Beatmap ProcessBeatmap(Beatmap beatmap, N2NCOptions options)
         {
-            var converter = new N2NC { options = options };
-            var resultBeatmap = converter.NToNCToData(beatmap);
+            var converter = new N2NC();
+            var resultBeatmap = converter.ProcessBeatmapToData(beatmap, options);
             return resultBeatmap;
         }
     }

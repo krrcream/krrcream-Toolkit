@@ -29,8 +29,8 @@ namespace krrTools.Tools.N2NC
         /// </summary>
         protected override Beatmap ProcessBeatmap(Beatmap input, N2NCOptions options)
         {
-            var converter = new N2NC { options = options };
-            return converter.NToNCToData(input);
+            var converter = new N2NC();
+            return converter.ProcessBeatmapToData(input, options);
         }
 
         public IToolOptions DefaultOptions => new N2NCOptions();
@@ -73,13 +73,13 @@ namespace krrTools.Tools.N2NC
             return null;
         }
 
-        public Beatmap? ProcessBeatmapToData(Beatmap inputBeatmap, IToolOptions? options = null)
+        public Beatmap ProcessBeatmapToData(Beatmap inputBeatmap, IToolOptions? options = null)
         {
             if (options is not N2NCOptions n2ncOptions)
                 n2ncOptions = new N2NCOptions();
 
-            var converter = new N2NC { options = n2ncOptions };
-            return converter.NToNCToData(inputBeatmap);
+            var converter = new N2NC();
+            return converter.ProcessBeatmapToData(inputBeatmap, n2ncOptions);
         }
 
         public object? TestFileToData(string filePath)
@@ -95,8 +95,8 @@ namespace krrTools.Tools.N2NC
 
             var beatmap = FilesHelper.GetManiaBeatmap(filePath);
 
-            var converter = new N2NC { options = n2ncOptions };
-            return converter.NToNCToData(beatmap);
+            var converter = new N2NC();
+            return converter.ProcessBeatmapToData(beatmap, n2ncOptions);
         }
     }
 }
