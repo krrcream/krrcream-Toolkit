@@ -1,13 +1,12 @@
 using System;
 using System.Threading.Tasks;
-using krrTools.Data;
-using krrTools.Tools.N2NC;
-using krrTools.Tools.Listener;
-using krrTools.Tools.OsuParser;
-using krrTools.Core.Interfaces;
 using krrTools.Configuration;
+using krrTools.Core;
+using krrTools.Data;
+using krrTools.Tools.Listener;
+using krrTools.Beatmaps;
 
-namespace krrTools.Tools.Shared
+namespace krrTools.Tools.N2NC
 {
     /// <summary>
     /// N2NC工具包装器
@@ -43,18 +42,15 @@ namespace krrTools.Tools.Shared
 
         public string? ProcessFileWithOptions(string filePath, IToolOptions options)
         {
+            // TODO: 实现比较乱，需要重构、统一
             if (options is not N2NCOptions n2ncOptions)
                 return null;
 
             // 先读取Beatmap
             var beatmap = FilesHelper.GetManiaBeatmap(filePath);
-            if (beatmap == null)
-                return null;
 
             // 处理Beatmap
             var processedBeatmap = N2NCService.ProcessBeatmap(beatmap, n2ncOptions);
-            if (processedBeatmap == null)
-                return null;
 
             // 生成输出路径
             var outputPath = BeatmapOutputHelper.GenerateOutputPath(filePath, "N2NC");
@@ -62,7 +58,7 @@ namespace krrTools.Tools.Shared
             // 写入文件
             if (BeatmapOutputHelper.WriteBeatmapToFile(processedBeatmap, outputPath))
             {
-                // 处理Listener逻辑（如果需要的话）
+                // 处理Listener逻辑（如果需要的话），未来应该抽象成独立的服务
                 try
                 {
                     if (ListenerControl.IsOpen)
@@ -87,7 +83,7 @@ namespace krrTools.Tools.Shared
             if (options is not N2NCOptions n2ncOptions)
                 return null;
 
-            var converter = new krrTools.Tools.N2NC.N2NC { options = n2ncOptions };
+            var converter = new N2NC { options = n2ncOptions };
             return converter.NToNCToData(inputBeatmap);
         }
 
@@ -98,21 +94,8 @@ namespace krrTools.Tools.Shared
 
             var beatmap = FilesHelper.GetManiaBeatmap(filePath);
 
-            var converter = new krrTools.Tools.N2NC.N2NC { options = n2ncOptions };
+            var converter = new N2NC { options = n2ncOptions };
             return converter.NToNCToData(beatmap);
-        }
-
-        // 保留旧方法名以向后兼容，但标记为过时
-        [Obsolete("Use ProcessFileWithOptions instead")]
-        public object? ProcessFileToData(string filePath, IToolOptions options)
-        {
-            return ProcessFileToDataWithOptions(filePath, options);
-        }
-
-        [Obsolete("Use ProcessBeatmapToDataWithOptions instead")]
-        public OsuParsers.Beatmaps.Beatmap? ProcessBeatmapToData(OsuParsers.Beatmaps.Beatmap inputBeatmap, IToolOptions options)
-        {
-            return ProcessBeatmapToDataWithOptions(inputBeatmap, options);
         }
     }
 }

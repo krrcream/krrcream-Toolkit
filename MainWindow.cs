@@ -9,9 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Data;
-using krrTools.Core.Scheduling;
 using krrTools.Localization;
-using krrTools.Tools.Shared;
 using krrTools.Tools.Preview;
 using krrTools.Tools.DPtool;
 using krrTools.Tools.FilesManager;
@@ -26,6 +24,7 @@ using Wpf.Ui.Controls;
 using MessageBox = System.Windows.MessageBox;
 using Point = System.Windows.Point;
 using krrTools.Configuration;
+using krrTools.Core;
 using krrTools.UI;
 using krrTools.Utilities;
 using Size = System.Windows.Size;
@@ -225,8 +224,8 @@ public class MainWindow : FluentWindow
         _realTimeToggle.Checked += (_,_) => RealTimePreview = true;
         _realTimeToggle.Unchecked += (_,_) => RealTimePreview = false;
 
-        // GlobalOsuListenerButton = SharedUIComponents.CreateStandardButton(Strings.OSUListenerButton);
-        var localizedListenerText = new LocalizedStringHelper.LocalizedString(Strings.OSUListenerButton);
+        // GlobalOsuListenerButton = SharedUIComponents.CreateStandardButton(Strings.OSUListener);
+        var localizedListenerText = new LocalizedStringHelper.LocalizedString(Strings.OSUListener);
         GlobalOsuListenerButton = new ToggleButton
         {
             Width = 120,
@@ -809,7 +808,7 @@ public class MainWindow : FluentWindow
         };
         _currentListenerWindow = new Window
         {
-            Title = Strings.ListenerTitlePrefix,
+            Title = Strings.OSUListener,
             Content = listenerControl,
             Width = 800,
             Height = 600

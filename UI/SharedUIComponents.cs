@@ -50,9 +50,9 @@ namespace krrTools.UI
         public static bool? GetSavedUpdateAccent() => BaseOptionsManager.GetUpdateAccent();
 
         // 统一UI样式相关常量
-        public static readonly Brush UiTextBrush = new SolidColorBrush(Color.FromArgb(255, 33, 33, 33));
+        private static readonly Brush UiTextBrush = new SolidColorBrush(Color.FromArgb(255, 33, 33, 33));
         public const double HeaderFontSize = 18.0;
-        public const double ComFontSize = 16.0;
+        private const double ComFontSize = 16.0;
         
         private static SolidColorBrush _panelBackgroundBrush = new SolidColorBrush(Color.FromArgb(102, 255, 255, 255)); // ~40% white tint
         public static Brush PanelBackgroundBrush
@@ -137,7 +137,7 @@ namespace krrTools.UI
          /// <summary>
          /// 设置本地化的ToolTip
          /// </summary>
-         public static void SetLocalizedToolTip(FrameworkElement element, string? tooltipText)
+         private static void SetLocalizedToolTip(FrameworkElement element, string? tooltipText)
          {
              LocalizationManager.SetLocalizedToolTip(element, tooltipText);
          }

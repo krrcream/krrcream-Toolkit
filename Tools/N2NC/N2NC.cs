@@ -6,7 +6,7 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using krrTools.Data;
-using krrTools.Tools.OsuParser;
+using krrTools.Beatmaps;
 using OsuParsers.Beatmaps;
 using OsuParsers.Beatmaps.Objects;
 using OsuParsers.Decoders;
@@ -101,14 +101,8 @@ namespace krrTools.Tools.N2NC
             return new ManiaBeatmap(beatmap);
         }
 
-        private static string GetUniqueFilePath(string path)
-        {
-            // Always overwrite existing files
-            return path;
-        }
-
-
-        // 生成转换矩阵
+        // TODO：统一生成基础矩阵，再由模块处理更好。
+        // 未来库完善，矩阵可弃用，仅供测试模式下输出运行模型
         public (int[,], int[,]) convertMTX(int turn, List<int> timeAxis,
             double convertTime, int CS, Random random)
         {
@@ -404,8 +398,8 @@ namespace krrTools.Tools.N2NC
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"convert方法发生异常: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"异常堆栈: {ex.StackTrace}");
+                Debug.WriteLine($"convert方法发生异常: {ex.Message}");
+                Debug.WriteLine($"异常堆栈: {ex.StackTrace}");
                 throw;
             }
         }

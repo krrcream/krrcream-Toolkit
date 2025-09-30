@@ -8,6 +8,7 @@ using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 using Application = System.Windows.Application;
 using CommunityToolkit.Mvvm.ComponentModel;
+using krrTools.Localization;
 
 namespace krrTools.Tools.Listener
 {
@@ -16,15 +17,16 @@ namespace krrTools.Tools.Listener
         private string _currentOsuFilePath = string.Empty;
         private System.Timers.Timer? _checkTimer; // 明确指定命名空间
 #pragma warning disable CS0618 // IOsuMemoryReader is obsolete but kept for compatibility
+        // TODO: 过时？是否需要找一个新的内存读取方法替换？
         private readonly IOsuMemoryReader _memoryReader;
 #pragma warning restore CS0618
         private string _lastBeatmapId = string.Empty;
         private readonly string _configPath;
 
-        // Config object centralizes related settings (SongsPath, Hotkey, RealTimePreview)
+        // 记忆路径、热键等配置
         internal ListenerConfig Config { get; }
 
-        // Suppress config saving during load to avoid unnecessary writes or recursion
+        // 支持集中保存配置变化
         private bool _suppressConfigSave;
 
         internal event EventHandler? HotkeyChanged;
@@ -36,8 +38,8 @@ namespace krrTools.Tools.Listener
             Config.Hotkey = hotkey;
         }
 
-        public string WindowTitle { get; set; } = "osu!Listener";
-        public string BGPath { get; set; } = string.Empty;
+        public string WindowTitle = Strings.OSUListener.Localize();
+        public string BGPath = string.Empty; // 用于背景图片绑定
 
         public string CurrentOsuFilePath
         {
@@ -54,8 +56,6 @@ namespace krrTools.Tools.Listener
                 }
             }
         }
-
-        public string StatusMessage { get; set; } = string.Empty;
 
         internal ListenerViewModel()
         {
@@ -171,15 +171,15 @@ namespace krrTools.Tools.Listener
         {
             try
             {
-                StatusMessage = "Monitoring osu! song selection...";
-                
                 // 设置定时检查
                 SetupTimer();
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"InitializeOsuMonitoring failed: {ex.Message}");
-                Application.Current?.Dispatcher?.BeginInvoke(new Action(() => StatusMessage = "Initialization failed"));
+                Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                {
+                }));
             }
         }
 
@@ -199,7 +199,6 @@ namespace krrTools.Tools.Listener
                 {
                     Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                     {
-                        StatusMessage = "osu! is not running";
                         CurrentOsuFilePath = string.Empty;
                     }));
                     return;
@@ -221,13 +220,12 @@ namespace krrTools.Tools.Listener
                             {
                                 CurrentOsuFilePath = Path.Combine(Config.SongsPath, mapFolderName, beatmapFile);
 
+                                // TODO: 监听信息未来统一整理
                                 string Mes = $"Detected selected beatmap:\n{beatmapFile}\n" +
                                              "\n" + $"OD:{_memoryReader.GetMapOd()}" + 
                                              "\n" + $"HP:{_memoryReader.GetMapHp()}" + 
                                               "\n" + $"CS:{_memoryReader.GetMapCs()}";
-                                
-                                StatusMessage = Mes;
-                                
+
                                 Beatmap beatmap = BeatmapDecoder.Decode(CurrentOsuFilePath);
                                 String BG = beatmap.EventsSection.BackgroundImage;
                                 if (!string.IsNullOrWhiteSpace(BG))
@@ -238,21 +236,21 @@ namespace krrTools.Tools.Listener
                             else
                             {
                                 CurrentOsuFilePath = Path.Combine(mapFolderName, beatmapFile);
-                                StatusMessage = "Please set Songs directory for full path";
                             }
                             _lastBeatmapId = beatmapFile;
                         }
                     }
                     else
                     {
-                        StatusMessage = "osu! is running, waiting for beatmap selection...";
                     }
                 }));
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"CheckOsuBeatmap failed: {ex.Message}");
-                Application.Current?.Dispatcher?.BeginInvoke(new Action(() => StatusMessage = "Failed to read osu! memory"));
+                Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                {
+                }));
             }
         }
 
@@ -267,7 +265,6 @@ namespace krrTools.Tools.Listener
             if (dialog.ShowDialog() == DialogResult.OK)
             {
                 Config.SongsPath = dialog.SelectedPath;
-                StatusMessage = $"Songs directory set: {Config.SongsPath}";
             }
         }
 

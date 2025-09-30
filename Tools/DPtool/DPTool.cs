@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 using krrTools.Configuration;
-using krrTools.Core.Interfaces;
+using krrTools.Core;
 using krrTools.Data;
 using OsuParsers.Beatmaps;
 

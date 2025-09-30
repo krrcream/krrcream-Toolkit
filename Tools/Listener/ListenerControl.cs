@@ -63,27 +63,44 @@ namespace krrTools.Tools.Listener
             _viewModel.Config.PropertyChanged += ViewModel_ConfigPropertyChanged;
             
             //TODO: 监听 Tab页活动，切换对应处理器，不切换标签，需要检查功能
-            _viewModel.WindowTitle = Strings.ListenerTitlePrefix;
+            _viewModel.WindowTitle = Strings.OSUListener.Localize();
         }
 
         private void BuildUI()
         {
+            // TODO: 垃圾UI，未来重构，推荐Overlay覆盖层，结合XAML构建；
+            // 如果可能，制作悬浮球点击展开，则监听窗口内置，调整为小窗口模式。
             Background = new SolidColorBrush(Color.FromRgb(0xBD, 0xBD, 0xBD));
 
             // Root grid
-            var root = new Grid();
-            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            var root = new Grid()
+            {
+                RowDefinitions =
+                {
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }
+                }
+            };
 
             // Top border with buttons
-            var topBorder = new Border { Background = Brushes.LightGray, Padding = new Thickness(10) };
+            var topBorder = new Border
+            {
+                Background = Brushes.LightGray, 
+                Padding = new Thickness(10)
+            };
             var topGrid = new Grid();
             topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            var titleText = new TextBlock { FontSize = 16, FontWeight = FontWeights.Bold, VerticalAlignment = VerticalAlignment.Center, Width = 200 };
+            var titleText = new TextBlock
+            {
+                FontSize = 16, 
+                FontWeight = FontWeights.Bold, 
+                VerticalAlignment = VerticalAlignment.Center, 
+                Width = 200
+            };
             titleText.SetBinding(TextBlock.TextProperty, new Binding("WindowTitle"));
             Grid.SetColumn(titleText, 0);
             topGrid.Children.Add(titleText);
@@ -128,6 +145,10 @@ namespace krrTools.Tools.Listener
             var songsGrid = new Grid();
             songsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             songsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            
+            // TODO: 歌曲路径应该从配置绑定，根据监进程
+            // 注意文件名过长时的显示问题；多客户端时的路径问题
+            // 路径不存在时的弹窗手动选择
             var songsPathText = new TextBlock { Background = Brushes.Transparent, FontSize = 18, Foreground = Brushes.White };
             songsPathText.SetBinding(TextBlock.TextProperty, new Binding("Config.SongsPath") { Mode = BindingMode.OneWay });
             Grid.SetColumn(songsPathText, 0);

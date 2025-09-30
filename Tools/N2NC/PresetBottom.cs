@@ -7,6 +7,8 @@ using krrTools.UI;
 
 namespace krrTools.Tools.N2NC
 {
+    // TODO: 未来抽象类，最好做成带+号的按钮列表组件，让模块自己去实例化
+    // 现在先这样写着，N2NC里有预设模版的备份
     public abstract class PresetBottom : Window
     {
         private readonly N2NCViewModel _viewModel;
@@ -59,13 +61,19 @@ namespace krrTools.Tools.N2NC
 
             var root = new StackPanel { Margin = new Thickness(16), VerticalAlignment = VerticalAlignment.Center };
 
+            // 全局切换本地化，其他组件可参考实现，但英文状态下字体偏小，需要修复
             foreach (var kv in PresetTemplates)
             {
                 var opts = kv.Value.Options;
 
                 // Use localized enum name (Description attribute) if available
                 var localized = SharedUIComponents.GetLocalizedEnumDisplayName(kv.Key);
-                var btn = new Button { Content = localized, Margin = new Thickness(0, 0, 0, 8), Height = 36 };
+                var btn = new Button
+                {
+                    Content = localized, 
+                    Margin = new Thickness(0, 0, 0, 8), 
+                    Height = 36
+                };
                 btn.Click += (_, _) => { ApplyPresetToViewModel(_viewModel, opts); Close(); };
                 root.Children.Add(btn);
             }
@@ -73,6 +81,7 @@ namespace krrTools.Tools.N2NC
             Content = root;
         }
 
+        // 备用的，N2N中有预设按钮，目前没加载
         public static N2NCOptions GetPresetOptions(PresetKind kind)
         {
             if (PresetTemplates.TryGetValue(kind, out var entry))

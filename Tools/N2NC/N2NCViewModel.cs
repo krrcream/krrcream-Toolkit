@@ -21,6 +21,7 @@ namespace krrTools.Tools.N2NC
 
     public class N2NCViewModel : ToolViewModelBase<N2NCOptions>
     {
+        // TODO: 参数是历史遗留问题，改成自动属性访问器
         private double _targetKeys = 10;
         private double _maxKeys = 10;
         private double _minKeys = 2;

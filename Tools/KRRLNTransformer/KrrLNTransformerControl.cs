@@ -371,7 +371,7 @@ public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
     }
 
     // 添加处理单个文件的方法
-    public Beatmap? ProcessSingleFile(string filePath)
+    public Beatmap ProcessSingleFile(string filePath)
     {
         var parameters = new KRRLNTransformerOptions
         {

@@ -1,6 +1,6 @@
-using krrTools.Core.Modules;
 using OsuParsers.Beatmaps;
 using krrTools.Configuration;
+using krrTools.Core;
 
 namespace krrTools.Tools.N2NC
 {
@@ -15,9 +15,11 @@ namespace krrTools.Tools.N2NC
 
         public override string DisplayName => "N2NC Converter";
 
-        public override Beatmap ProcessBeatmap(Beatmap input, N2NCOptions options)
+        protected override Beatmap ProcessBeatmap(Beatmap input, N2NCOptions options)
         {
-            return N2NCService.ProcessBeatmap(input, options);
+            var converter = new N2NC { options = options };
+            var resultBeatmap = converter.NToNCToData(input);
+            return resultBeatmap;
         }
     }
 }

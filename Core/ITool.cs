@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using krrTools.Configuration;
 
-namespace krrTools.Core.Interfaces
+namespace krrTools.Core
 {
     /// <summary>
     /// 统一工具接口，所有转换工具都应实现此接口

@@ -1,10 +1,9 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using krrTools.Configuration;
-using krrTools.Core.Interfaces;
 using OsuParsers.Beatmaps;
 
-namespace krrTools.Core.Scheduling
+namespace krrTools.Core
 {
     /// <summary>
     /// 工具调度器，负责管理和执行工具

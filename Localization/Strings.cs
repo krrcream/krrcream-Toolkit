@@ -12,7 +12,7 @@ namespace krrTools.Localization
         public const string TabYLsLN = "YLS LN Transformer|凉雨转面器";
         public const string TabKRRsLN = "KRR LN Transformer|KRR转面器";
         public const string TabDPTool = "DP Tool|DP 工具";
-        public const string TabKrrLV = "KrrLV Calculation|KrrLV 计算";
+        public const string TabKrrLV = "KRR LV Analysis|KRR LV分析器";
         public const string TabFilesManager = "Files Manager|文件管理";
 
         // Footer
@@ -40,7 +40,7 @@ namespace krrTools.Localization
         public const string BackdropTabbed = "Tabbed|标签页";
         
         // Listener
-        public const string OSUListenerButton = "OSU Listener|osu 侦听";
+        public const string OSUListener = "OSU Listener|osu 侦听";
         public const string ListenerTitlePrefix = "osu!Listener";
 
         public const string CreateMapLabel = "Create Map|创建谱面";

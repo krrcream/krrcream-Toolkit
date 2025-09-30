@@ -14,24 +14,9 @@ using Application = System.Windows.Application;
 
 namespace krrTools.Tools.FilesManager
 {
-    
-    public class OsuFileInfo
-    {
-        public string Title { get; set; } = string.Empty;
-        public string Diff { get; set; } = string.Empty;
-        public string Artist { get; set; } = string.Empty;
-        public string Creator { get; set; } = string.Empty;
-        public string FilePath { get; set; } = string.Empty;
-        public int Keys { get; set; }
-        public double OD { get; set; }
-        public double HP { get; set; }
-        public int BeatmapID { get; set; }
-        public int BeatmapSetID { get; set; }
-    }
-    
     public partial class FilesManagerViewModel : ObservableObject
     {
-        
+        // TODO: 改为WPF控件，更换输入框过滤功能的控件功能，找一个类似Excel的筛选功能
         public FilesManagerViewModel()
         {
             // 初始化过滤视图
@@ -41,7 +26,7 @@ namespace krrTools.Tools.FilesManager
         }
         
         [ObservableProperty] 
-        private ObservableCollection<OsuFileInfo> _osuFiles = new();
+        private ObservableCollection<FilesManagerInfo> _osuFiles = new();
         
         [ObservableProperty]
         private ICollectionView _filteredOsuFiles;
@@ -104,14 +89,22 @@ namespace krrTools.Tools.FilesManager
 
         public async void ProcessDroppedFiles(string[] files)
         {
-            if (files.Length == 1 && Directory.Exists(files[0]))
+            try
             {
-                await ProcessAsync(files[0]);
+                if (files.Length == 1 && Directory.Exists(files[0]))
+                {
+                    await ProcessAsync(files[0]);
+                }
+                else
+                {
+                    // For multiple files or single file, process as individual files
+                    await ProcessFilesAsync(files);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                // For multiple files or single file, process as individual files
-                await ProcessFilesAsync(files);
+                System.Diagnostics.Debug.WriteLine($"ProcessDroppedFiles error: {ex.Message}");
+                ProgressText = $"处理出错: {ex.Message}";
             }
         }
 
@@ -132,7 +125,7 @@ namespace krrTools.Tools.FilesManager
 
                 // 分批处理文件，避免UI冻结
                 const int batchSize = 50;
-                var batch = new ObservableCollection<OsuFileInfo>();
+                var batch = new ObservableCollection<FilesManagerInfo>();
                 
                 for (int i = 0; i < validFiles.Length; i++)
                 {
@@ -206,7 +199,7 @@ namespace krrTools.Tools.FilesManager
 
                 // 分批处理文件，避免UI冻结
                 const int batchSize = 50;
-                var batch = new ObservableCollection<OsuFileInfo>();
+                var batch = new ObservableCollection<FilesManagerInfo>();
                 
                 for (int i = 0; i < files.Length; i++)
                 {
@@ -262,13 +255,13 @@ namespace krrTools.Tools.FilesManager
             }
         }
 
-        private OsuFileInfo? ParseOsuFile(string filePath)
+        private FilesManagerInfo? ParseOsuFile(string filePath)
         {
             try
             {
                 var beatmap = BeatmapDecoder.Decode(filePath);
                 
-                var fileInfo = new OsuFileInfo
+                var fileInfo = new FilesManagerInfo
                 {
                     FilePath = filePath,
                     Title = beatmap.MetadataSection.Title ?? string.Empty,
@@ -295,7 +288,7 @@ namespace krrTools.Tools.FilesManager
         
         private bool FilterPredicate(object item)
         {
-            if (item is not OsuFileInfo fileInfo) return false;
+            if (item is not FilesManagerInfo fileInfo) return false;
 
             // 转换为小写进行模糊匹配
             string title = fileInfo.Title.ToLower();

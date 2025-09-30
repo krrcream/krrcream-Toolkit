@@ -1,13 +1,11 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using krrTools.Configuration;
-using krrTools.Core.Interfaces;
-using krrTools.Core.Scheduling;
 using krrTools.Tools.DPtool;
 using krrTools.Tools.KRRLNTransformer;
 using krrTools.Tools.N2NC;
 
-namespace krrTools.Core.Modules
+namespace krrTools.Core
 {
     /// <summary>
     /// 工具模块注册表

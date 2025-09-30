@@ -1,5 +1,5 @@
 using krrTools.Configuration;
-using krrTools.Core.Modules;
+using krrTools.Core;
 using OsuParsers.Beatmaps;
 
 namespace krrTools.Tools.DPtool
@@ -15,7 +15,7 @@ namespace krrTools.Tools.DPtool
 
         public override string DisplayName => "DP Tool";
 
-        public override Beatmap ProcessBeatmap(Beatmap input, DPToolOptions options)
+        protected override Beatmap ProcessBeatmap(Beatmap input, DPToolOptions options)
         {
             var dp = new DP();
             return dp.DPBeatmapToData(input, options);

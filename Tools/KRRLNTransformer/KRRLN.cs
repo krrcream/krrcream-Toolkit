@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using krrTools.Configuration;
 using krrTools.Data;
-using krrTools.Tools.OsuParser;
+using krrTools.Beatmaps;
 using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
@@ -121,12 +121,42 @@ namespace krrTools.Tools.KRRLNTransformer
             }
 
 
-            return beatmap;
+            return BeatmapSave();
 
-            string? dir = Path.GetDirectoryName(filepath);
-            if (string.IsNullOrEmpty(dir)) dir = ".";
-            string outputPath = Path.Combine(dir, Path.GetFileNameWithoutExtension(filepath) + "_KRRLN.osu");
-            File.WriteAllText(outputPath, beatmap.ToString());
+            Beatmap BeatmapSave()
+            {
+                // 添加作者前缀并更新 CircleSize 与版本说明
+                beatmap.MetadataSection.Creator = "测试" + beatmap.MetadataSection.Creator;
+                beatmap.MetadataSection.Version = "[LN] " + beatmap.MetadataSection.Version;
+
+                // 处理 tags：确保不是 null，然后添加默认 DP tag（避免重复）
+                var currentTags = beatmap.MetadataSection.Tags ?? [];
+                var tagToAdd = BaseOptionsManager.DPDefaultTag;
+                if (!currentTags.Contains(tagToAdd))
+                {
+                    var newTags = currentTags.Concat([tagToAdd]).ToArray();
+                    beatmap.MetadataSection.Tags = newTags;
+                }
+
+                string directory = Path.GetDirectoryName(filepath) ?? string.Empty;
+                string baseFilename = beatmap.GetOsuFileName();
+                string filename = baseFilename + ".osu";
+                string fullPath = Path.Combine(directory, filename);
+                if (fullPath.Length > 255)
+                {
+                    int excessLength = fullPath.Length - 255;
+                    int charsToTrim = excessLength + 3; // 多截掉3个字符用于添加"..."
+
+                    if (charsToTrim < baseFilename.Length)
+                    {
+                        baseFilename = baseFilename.Substring(0, baseFilename.Length - charsToTrim) + "...";
+                        filename = baseFilename + ".osu";
+                        fullPath = Path.Combine(directory, filename);
+                    }
+                }
+                return beatmap ;
+            }
+
         }
 
         private int[,] CalculateAvailableTime(int[,] matrix, List<int> timeAxis)
@@ -154,6 +184,7 @@ namespace krrTools.Tools.KRRLNTransformer
                     // 如果当前元素大于等于0
                     if (matrix[row, col] >= 0)
                     {
+                        int currentRowIndex = matrix[row, col];
                         int nextRowIndex = -1;
 
                         // 寻找同一列中下一个大于等于0的元素
@@ -161,7 +192,7 @@ namespace krrTools.Tools.KRRLNTransformer
                         {
                             if (matrix[nextRow, col] >= 0)
                             {
-                                nextRowIndex = nextRow;
+                                nextRowIndex = matrix[nextRow, col];
                                 break;
                             }
                         }
@@ -170,12 +201,12 @@ namespace krrTools.Tools.KRRLNTransformer
                         if (nextRowIndex == -1)
                         {
                             // 如果没有下一个元素，使用最后时间轴的时间
-                            availableTime[row, col] = timeAxis[^1] - timeAxis[row];
+                            availableTime[row, col] = timeAxis[timeAxis.Count - 1] - timeAxis[currentRowIndex];
                         }
                         else
                         {
                             // 计算与下一个时间轴的时间差
-                            availableTime[row, col] = timeAxis[nextRowIndex] - timeAxis[row];
+                            availableTime[row, col] = timeAxis[nextRowIndex] - timeAxis[currentRowIndex];
                         }
                     }
                 }
@@ -427,7 +458,6 @@ namespace krrTools.Tools.KRRLNTransformer
                 var newTags = currentTags.Concat([tagToAdd]).ToArray();
                 beatmap.MetadataSection.Tags = newTags;
             }
+        }
     }
-}
-
 }

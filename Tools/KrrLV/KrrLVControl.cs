@@ -87,11 +87,6 @@ namespace krrTools.Tools.KrrLV
                 DragDropEffects.Copy : DragDropEffects.None;
         }
 
-        private void OnUnloaded(object? sender, RoutedEventArgs e)
-        {
-            _viewModel.Dispose();
-        }
-
         private void OnLanguageChanged()
         {
 

@@ -21,7 +21,7 @@ namespace krrTools.Tools.KRRLNTransformer
         public double AlignValue { get; set; } = 4;
     
         // 处理原始面条
-        public bool ProcessOriginalIsChecked { get; set; } = false;
+        public bool ProcessOriginalIsChecked { get; set; }
     
         // OD设置
         public double ODValue { get; set; } = 8;

@@ -12,78 +12,19 @@ using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using krrTools.Tools.OsuParser;
+using krrTools.Beatmaps;
 using Microsoft.Extensions.Logging;
 using krrTools.Data;
 
 namespace krrTools.Tools.KrrLV
 {
-    public class OsuFileItem : ObservableObject
-    {
-        
-        private readonly ProcessingWindow _processingWindow = new ProcessingWindow();
-        private int _processedCount;
-        private int _totalCount;
-        
-        public string? FileName { get; set; }
 
-        public string? FilePath { get; init; }
-
-        public string? Status { get; set; }
-
-        public string? Diff { get; set; }
-        
-        public string? Title { get; set; }
-
-        public string? Artist { get; set; }
-
-        public string? Creator { get; set; }
-
-        public double Keys { get; set; }
-
-        public string? BPM { get; set; }
-        
-        public double OD { get; set; }
-
-        public double HP { get; set; }
-
-        public double LNPercent { get; set; }
-
-        public double BeatmapID { get; set; }
-
-        public double BeatmapSetID { get; set; }
-        
-        public double XxySR { get; set; }
-    
-        public double KrrLV { get; set; }
-        
-        public double YlsLV { get; set; }
-        
-        public int ProcessedCount
-        {
-            get => _processedCount;
-            set
-            {
-                _processedCount = value;
-                OnPropertyChanged();
-                // 更新进度条
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    _processingWindow.UpdateProgress(value, _totalCount);
-                });
-            }
-        }
-
-        public int TotalCount
-        {
-            get => _totalCount;
-            set
-            {
-                _totalCount = value;
-                OnPropertyChanged();
-            }
-        }
-    }
+    /// <summary>
+    /// KrrLV工具的ViewModel，负责处理文件分析和UI交互逻辑
+    /// TODO:   1.代码重构，提取公共方法, 统一为WPF控件;
+    ///         2.优化UI更新逻辑，减少频繁更新;
+    ///         3.完善异常处理和日志记录;
+    /// </summary>
     
     public partial class KrrLVViewModel : ObservableObject
     {
@@ -93,12 +34,12 @@ namespace krrTools.Tools.KrrLV
         private string _pathInput = null!;
 
         [ObservableProperty]
-        private ObservableCollection<OsuFileItem> _osuFiles = new ObservableCollection<OsuFileItem>();
+        private ObservableCollection<KRRLVAnalysisItem> _osuFiles = new ObservableCollection<KRRLVAnalysisItem>();
 
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(4, 4); // 最多4个并发线程
         private readonly DispatcherTimer _updateTimer;
         private ProcessingWindow? _processingWindow;
-        private readonly List<OsuFileItem> _pendingItems = new List<OsuFileItem>();
+        private readonly List<KRRLVAnalysisItem> _pendingItems = new List<KRRLVAnalysisItem>();
         private readonly Lock _pendingItemsLock = new Lock();
 
         private int _totalCount;
@@ -125,11 +66,11 @@ namespace krrTools.Tools.KrrLV
 
         private void UpdateTimer_Tick(object? sender, EventArgs e)
         {
-            List<OsuFileItem> itemsToAdd;
+            List<KRRLVAnalysisItem> itemsToAdd;
             lock (_pendingItemsLock)
             {
                 if (_pendingItems.Count == 0) return;
-                itemsToAdd = new List<OsuFileItem>(_pendingItems);
+                itemsToAdd = new List<KRRLVAnalysisItem>(_pendingItems);
                 _pendingItems.Clear();
             }
             
@@ -157,7 +98,7 @@ namespace krrTools.Tools.KrrLV
             {
                 try
                 {
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    Process.Start(new ProcessStartInfo
                     {
                         FileName = PathInput,
                         UseShellExecute = true
@@ -336,7 +277,7 @@ namespace krrTools.Tools.KrrLV
                 if (OsuFiles.Any(f => f.FilePath != null && f.FilePath.Equals(uniqueId, StringComparison.OrdinalIgnoreCase)))
                     return;
 
-                var item = new OsuFileItem
+                var item = new KRRLVAnalysisItem
                 {
                     FileName = entry.Name,
                     FilePath = uniqueId, // 使用唯一标识符
@@ -358,7 +299,7 @@ namespace krrTools.Tools.KrrLV
             }
         }
     
-    private void AnalyzeOszEntry(OsuFileItem item, ZipArchiveEntry entry)
+    private void AnalyzeOszEntry(KRRLVAnalysisItem item, ZipArchiveEntry entry)
 {
     try
     {
@@ -449,7 +390,7 @@ namespace krrTools.Tools.KrrLV
         if (OsuFiles.Any(f => f.FilePath != null && f.FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase)))
             return;
 
-        var item = new OsuFileItem
+        var item = new KRRLVAnalysisItem
         {
             FileName = Path.GetFileName(filePath),
             FilePath = filePath,
@@ -467,7 +408,7 @@ namespace krrTools.Tools.KrrLV
     }
 
 
-    private void Analyze(OsuFileItem item)
+    private void Analyze(KRRLVAnalysisItem item)
     {
         try
         {
@@ -477,7 +418,7 @@ namespace krrTools.Tools.KrrLV
             // 使用Dispatcher将更新操作调度到UI线程
             Application.Current.Dispatcher.Invoke(() =>
             {
-                // 更新 OsuFileItem 的属性
+                // 更新 KRRLVAnalysisItem 的属性
                 item.Diff = result.Diff;
                 item.Title = result.Title;
                 item.Artist = result.Artist;
@@ -540,7 +481,7 @@ namespace krrTools.Tools.KrrLV
     
     private static double FittingFormula(double x)
     {
-        // TODO: Implement the actual fitting formula based on your requirements
+        // TODO: 样式
         // For now, returning a placeholder value
         return x * 1.5; // Replace with actual formula
     }

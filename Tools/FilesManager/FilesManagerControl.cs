@@ -190,28 +190,37 @@ namespace krrTools.Tools.FilesManager
 
         private async void DeleteMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            var selectedItems = (_fileDataGrid?.SelectedItems.Cast<OsuFileInfo>().ToList()) ?? new List<OsuFileInfo>();
-
-            if (selectedItems.Count == 0)
+            try
             {
-                MessageBox.Show("No items selected.", "Delete", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
+                var selectedItems = (_fileDataGrid?.SelectedItems.Cast<FilesManagerInfo>().ToList()) ??
+                                    new List<FilesManagerInfo>();
+
+                if (selectedItems.Count == 0)
+                {
+                    MessageBox.Show("No items selected.", "Delete", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                string message = "Are you sure you want to delete " + selectedItems.Count +
+                                 " .osu file(s)? This action cannot be undone.";
+                string caption = "Confirm Delete";
+
+                var result = MessageBox.Show(message, caption, MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    var vm = (FilesManagerViewModel)DataContext;
+                    await DeleteSelectedFilesAsync(selectedItems, vm);
+                }
             }
-
-            string message = "Are you sure you want to delete " + selectedItems.Count + " .osu file(s)? This action cannot be undone.";
-            string caption = "Confirm Delete";
-
-            var result = MessageBox.Show(message, caption, MessageBoxButton.YesNo, MessageBoxImage.Warning);
-
-            if (result == MessageBoxResult.Yes)
+            catch (Exception ex)
             {
-                var vm = (FilesManagerViewModel)DataContext;
-                await DeleteSelectedFilesAsync(selectedItems, vm);
+                MessageBox.Show("Error deleting files: " + ex.Message, "Delete Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         //异步后台删除文件
-        private Task DeleteSelectedFilesAsync(List<OsuFileInfo> filesToDelete, FilesManagerViewModel managerViewModel)
+        private Task DeleteSelectedFilesAsync(List<FilesManagerInfo> filesToDelete, FilesManagerViewModel managerViewModel)
         {
             foreach (var file in filesToDelete)
             {

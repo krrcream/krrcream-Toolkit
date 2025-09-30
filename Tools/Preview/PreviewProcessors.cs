@@ -5,17 +5,16 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using krrTools.Core.Scheduling;
 using krrTools.Data;
 using krrTools.Tools.DPtool;
 using krrTools.Tools.KRRLNTransformer;
 // using krrTools.Tools.LNTransformer;
 using krrTools.Tools.N2NC;
-using krrTools.Tools.Shared;
-using krrTools.Tools.OsuParser;
+using krrTools.Beatmaps;
 using OsuParsers.Beatmaps;
 using Microsoft.Extensions.Logging;
 using krrTools.Configuration;
+using krrTools.Core;
 
 namespace krrTools.Tools.Preview
 {
@@ -36,14 +35,6 @@ namespace krrTools.Tools.Preview
         public Func<DPToolOptions?>? DPOptionsProvider { get; set; }
         // public Func<YLsLNTransformerOptions?>? LNOptionsProvider { get; set; }
         public Func<KRRLNTransformerOptions?>? KRRLNOptionsProvider { get; set; }
-
-        public class ManiaNote
-        {
-            public int X;
-            public int Time;
-            public bool IsHold;
-            public int? EndTime;
-        }
 
         private Func<string, string, int, int, object?>? ConversionProvider { get; set; }
 
@@ -145,7 +136,7 @@ namespace krrTools.Tools.Preview
             if (!first.HasValue)
             {
                 var full = PreviewTransformation.BuildOriginal(path, 1);
-                if (full.notes.Count > 0) first = full.notes.Min(n => n.Time);
+                if (full.notes.Count > 0) first = full.notes.Min(n => n.StartTime);
             }
             if (!first.HasValue) return new TextBlock { Text = "(无可用音符)" };
 
@@ -162,7 +153,7 @@ namespace krrTools.Tools.Preview
             else
                 LastOriginalStartMs = startMs;
 
-            (int columns, List<ManiaNote> notes, double quarterMs) data;
+            (int columns, List<ManiaBeatmap.PreViewManiaNote> notes, double quarterMs) data;
             if (converted)
             {
                 if (conversionProvider == null)
@@ -174,7 +165,7 @@ namespace krrTools.Tools.Preview
                 }
                 else
                 {
-                    data = (0, new List<ManiaNote>(), 0.0);
+                    data = (0, new List<ManiaBeatmap.PreViewManiaNote>(), 0.0);
                 }
             }
             else
@@ -187,7 +178,7 @@ namespace krrTools.Tools.Preview
         }
 
         // 从实际音符构建显示
-        private FrameworkElement BuildFromRealNotes((int columns, List<ManiaNote> notes, double quarterMs) data)
+        private FrameworkElement BuildFromRealNotes((int columns, List<ManiaBeatmap.PreViewManiaNote> notes, double quarterMs) data)
         {
             if (data.columns <= 0 || data.notes.Count == 0)
                 return new TextBlock { Text = "(无可用数据)" };
@@ -200,19 +191,19 @@ namespace krrTools.Tools.Preview
         }
 
         // 根据时间行构建动态预览控件（按时间分组、限制行数）
-        private FrameworkElement BuildManiaTimeRowsFromNotes(List<ManiaNote> allNotes, int columns, int maxRows, double quarterMs = 0, Func<int, ManiaNote, ManiaNote>? noteTransform = null)
+        private FrameworkElement BuildManiaTimeRowsFromNotes(List<ManiaBeatmap.PreViewManiaNote> allNotes, int columns, int maxRows, double quarterMs = 0, Func<int, ManiaBeatmap.PreViewManiaNote, ManiaBeatmap.PreViewManiaNote>? noteTransform = null)
         {
             if (allNotes.Count == 0) return new TextBlock { Text = "(无数据)" };
-            var timeGroups = allNotes.GroupBy(n => n.Time).OrderBy(g => g.Key).Take(maxRows).ToList();
+            var timeGroups = allNotes.GroupBy(n => n.StartTime).OrderBy(g => g.Key).Take(maxRows).ToList();
             if (timeGroups.Count == 0) return new TextBlock { Text = "(无数据)" };
 
-            List<(int time, List<ManiaNote> notes)> grouped;
+            List<(int time, List<ManiaBeatmap.PreViewManiaNote> notes)> grouped;
             if (noteTransform != null)
             {
-                grouped = new List<(int time, List<ManiaNote> notes)>(timeGroups.Count);
+                grouped = new List<(int time, List<ManiaBeatmap.PreViewManiaNote> notes)>(timeGroups.Count);
                 foreach (var g in timeGroups)
                 {
-                    var list = new List<ManiaNote>(g.Count());
+                    var list = new List<ManiaBeatmap.PreViewManiaNote>(g.Count());
                     foreach (var n in g) list.Add(noteTransform(columns, n));
                     grouped.Add((g.Key, list));
                 }

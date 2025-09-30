@@ -5,7 +5,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using krrTools.Localization;
-using krrTools.Tools.Shared;
 using OsuParsers.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Data;

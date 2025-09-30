@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using krrTools.Tools.OsuParser;
+using krrTools.Beatmaps;
 using OsuParsers.Beatmaps;
 
 namespace krrTools.Data;
@@ -134,7 +134,7 @@ public static class BeatmapExtensions
     public static string SaveSafely(this Beatmap beatmap, string originalFilePath)
     {
         // 检查文件是否存在，不需要检查目录
-        string? outDir;
+        string outDir;
     
         if (string.IsNullOrEmpty(originalFilePath) || !File.Exists(originalFilePath))
         {
@@ -144,21 +144,21 @@ public static class BeatmapExtensions
         else
         {
             // 文件存在，使用原文件所在目录
-            outDir = Path.GetDirectoryName(originalFilePath);
+            outDir = originalFilePath;
         }
     
         // 调用 SaveSafelyToDir 方法
         return beatmap.SaveSafelyToDir(outDir);
     }
 
-    private static string SaveSafelyToDir(this Beatmap beatmap, string? outDir)
+    private static string SaveSafelyToDir(this Beatmap beatmap, string outDir)
     {
         // 确保目录存在，如果不存在则创建
         try
         {
             if (!Directory.Exists(outDir))
-            {
-                if (outDir != null) Directory.CreateDirectory(outDir);
+            { 
+                Directory.CreateDirectory(outDir);
             }
         }
         catch (Exception ex)

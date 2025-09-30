@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using OsuParsers.Beatmaps;
 
-namespace krrTools.Tools.OsuParser;
+namespace krrTools.Beatmaps;
 
 public struct Note(int k, int h, int t)
 {

@@ -5,12 +5,14 @@ namespace krrTools.Utilities
 {
     internal static class MessageBoxResultHelper
     {
-        public static void TryShowSuccess(bool isChinese)
+        public static void ShowSuccess(bool isChinese)
         {
             // Central place to show success; can be adjusted to suppress/pop notifications later
-            MessageBox.Show(isChinese ? "文件处理成功！|File processed successfully!" : "File processed successfully!|文件处理成功！",
+            MessageBox.Show(
+                isChinese ? "文件处理成功！|File processed successfully!" : "File processed successfully!|文件处理成功！",
                 isChinese ? "成功|Success" : "Success|成功",
-                MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBoxButton.OK, 
+                MessageBoxImage.Information);
         }
     }
 }

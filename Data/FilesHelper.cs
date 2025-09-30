@@ -9,7 +9,7 @@ using System.IO;
 using System.IO.Compression;
 using krrTools.Tools.Listener;
 using System.Windows.Forms;
-using krrTools.Tools.OsuParser;
+using krrTools.Beatmaps;
 using krrTools.UI;
 using krrTools.Utilities;
 using OsuFileIO.HitObject.Mania;
@@ -65,7 +65,7 @@ namespace krrTools.Data
                     {
                         if (showSuccessMessage)
                         {
-                                MessageBoxResultHelper.TryShowSuccess(SharedUIComponents.IsChineseLanguage());
+                                MessageBoxResultHelper.ShowSuccess(SharedUIComponents.IsChineseLanguage());
                         }
                         onCompleted?.Invoke();
                     }));
@@ -235,7 +235,7 @@ namespace krrTools.Data
                     {
                         if (showSuccessMessage)
                         {
-                                MessageBoxResultHelper.TryShowSuccess(SharedUIComponents.IsChineseLanguage());
+                                MessageBoxResultHelper.ShowSuccess(SharedUIComponents.IsChineseLanguage());
                         }
                         onCompleted?.Invoke();
                     }));

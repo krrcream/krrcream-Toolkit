@@ -2,11 +2,10 @@ using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using krrTools.Configuration;
-using krrTools.Core.Interfaces;
 using krrTools.Data;
 using OsuParsers.Beatmaps;
 
-namespace krrTools.Core.Modules
+namespace krrTools.Core
 {
     /// <summary>
     /// 转换模块类型枚举
@@ -45,17 +44,17 @@ namespace krrTools.Core.Modules
         /// <summary>
         /// 创建默认选项
         /// </summary>
-        public virtual TOptions CreateDefaultOptions() => new TOptions();
+        protected virtual TOptions CreateDefaultOptions() => new TOptions();
 
         /// <summary>
         /// 创建ViewModel
         /// </summary>
-        public virtual TViewModel CreateViewModel() => new TViewModel();
+        protected virtual TViewModel CreateViewModel() => new TViewModel();
 
         /// <summary>
         /// 创建UI控件
         /// </summary>
-        public virtual TControl CreateControl() => new TControl();
+        protected virtual TControl CreateControl() => new TControl();
 
         /// <summary>
         /// 创建工具实例
@@ -65,7 +64,7 @@ namespace krrTools.Core.Modules
         /// <summary>
         /// 核心算法：处理Beatmap
         /// </summary>
-        public abstract Beatmap ProcessBeatmap(Beatmap input, TOptions options);
+        protected abstract Beatmap ProcessBeatmap(Beatmap input, TOptions options);
 
         /// <summary>
         /// 非泛型版本：处理Beatmap（用于GenericTool）
@@ -98,18 +97,11 @@ namespace krrTools.Core.Modules
     /// <summary>
     /// 通用工具实现
     /// </summary>
-    public class GenericTool : ITool
+    public class GenericTool(IToolModule module) : ITool
     {
-        private readonly IToolModule _module;
+        public string Name => module.ModuleName;
 
-        public GenericTool(IToolModule module)
-        {
-            _module = module;
-        }
-
-        public string Name => _module.ModuleName;
-
-        public IToolOptions DefaultOptions => _module.CreateDefaultOptions();
+        public IToolOptions DefaultOptions => module.CreateDefaultOptions();
 
         public string? ProcessFile(string filePath)
         {
@@ -137,8 +129,6 @@ namespace krrTools.Core.Modules
             {
                 // 读取原始Beatmap
                 var beatmap = FilesHelper.GetManiaBeatmap(filePath);
-                if (beatmap == null)
-                    return null;
 
                 // 处理Beatmap
                 var processedBeatmap = ProcessBeatmapToDataWithOptions(beatmap, options);
@@ -146,7 +136,7 @@ namespace krrTools.Core.Modules
                     return null;
 
                 // 生成输出路径
-                var outputPath = BeatmapOutputHelper.GenerateOutputPath(filePath, _module.ModuleName);
+                var outputPath = BeatmapOutputHelper.GenerateOutputPath(filePath, module.ModuleName);
 
                 // 写入文件
                 if (BeatmapOutputHelper.WriteBeatmapToFile(processedBeatmap, outputPath))
@@ -167,7 +157,7 @@ namespace krrTools.Core.Modules
             try
             {
                 // 直接调用模块的ProcessBeatmapWithOptions方法
-                return _module.ProcessBeatmapWithOptions(inputBeatmap, options);
+                return module.ProcessBeatmapWithOptions(inputBeatmap, options);
             }
             catch (Exception ex)
             {

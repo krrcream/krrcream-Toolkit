@@ -5,12 +5,13 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using krrTools.Beatmaps;
 
 namespace krrTools.Tools.Preview
 {
     internal class DynamicPreviewControl : Grid
     {
-        private readonly List<PreviewProcessor.ManiaNote> _notes;
+        private readonly List<ManiaBeatmap.PreViewManiaNote> _notes;
         private readonly int _columns;
         private readonly double _quarterMs;
         private readonly double _firstTime;
@@ -18,7 +19,7 @@ namespace krrTools.Tools.Preview
         private double _lastAvailableHeight = -1;
         private double _lastAvailableWidth = -1;
 
-        public DynamicPreviewControl(List<(int time, List<PreviewProcessor.ManiaNote> notes)> grouped, int columns, double quarterMs)
+        public DynamicPreviewControl(List<(int time, List<ManiaBeatmap.PreViewManiaNote> notes)> grouped, int columns, double quarterMs)
         {
             // grouped 已排序；展开为单一 notes 列表并记录第一个时间点
             _notes = grouped.SelectMany(g => g.notes).ToList();
@@ -49,7 +50,7 @@ namespace krrTools.Tools.Preview
             double firstTime = _firstTime;
             double quarterWindow = _quarterMs > 0
                 ? _quarterMs * PreviewConstants.PreviewWindowUnitCount / PreviewConstants.PreviewWindowUnitBeatDenominator
-                : Math.Max(PreviewConstants.MinWindowLengthMs, (_notes.Count > 0 ? _notes.Max(n => n.Time) : 0) - firstTime);
+                : Math.Max(PreviewConstants.MinWindowLengthMs, (_notes.Count > 0 ? _notes.Max(n => n.StartTime) : 0) - firstTime);
             double timeWindow = Math.Max(PreviewConstants.MinWindowLengthMs, quarterWindow);
 
             // 高度：以控件可用高度为准，保底
@@ -119,10 +120,10 @@ namespace krrTools.Tools.Preview
             foreach (var n in _notes)
             {
                 // 计算 落在 第几列（X: 0..512 映射到列）
-                var lane = (int)Math.Floor(n.X / (512.0 / calcCols));
+                var lane = (int)Math.Floor(n.Index / (512.0 / calcCols));
                 if (lane < 0) lane = 0; else if (lane >= _columns) lane = Math.Max(0, _columns - 1);
 
-                double relStart = Math.Max(0, Math.Min(timeWindow, n.Time - firstTime));
+                double relStart = Math.Max(0, Math.Min(timeWindow, n.StartTime - firstTime));
                 double yStart = mapBase + mapSpan - (relStart / timeWindow) * mapSpan;
 
                 double rectHeight = PreviewConstants.NoteFixedHeight;
@@ -132,7 +133,7 @@ namespace krrTools.Tools.Preview
                 if (!n.IsHold)
                 {
                     var tapRect = MakeRect(rectWidth, rectHeight, PreviewConstants.TapNoteBrush, 3);
-                    tapRect.ToolTip = $"Tap {n.Time}";
+                    tapRect.ToolTip = $"Tap {n.StartTime}";
                     Canvas.SetLeft(tapRect, rectLeft);
                     Canvas.SetTop(tapRect, yStart - rectHeight);
                     SetZIndex(tapRect, 10);
@@ -143,7 +144,7 @@ namespace krrTools.Tools.Preview
                     bool hasEnd = n.EndTime.HasValue;
                     double relEndRaw = hasEnd ? (n.EndTime.GetValueOrDefault() - firstTime) : double.NaN;
                     bool endInWindow = hasEnd && (relEndRaw > 0) && (relEndRaw <= timeWindow);
-                    bool endAfterStart = hasEnd && (n.EndTime.GetValueOrDefault() > n.Time);
+                    bool endAfterStart = hasEnd && (n.EndTime.GetValueOrDefault() > n.StartTime);
 
                     double headTop = yStart - rectHeight;
 
@@ -165,7 +166,7 @@ namespace krrTools.Tools.Preview
                         }
 
                         var headRect = MakeRect(rectWidth, rectHeight, PreviewConstants.HoldHeadBrush, 3);
-                        headRect.ToolTip = (object)$"Hold {n.Time} → {n.EndTime.GetValueOrDefault()}";
+                        headRect.ToolTip = (object)$"Hold {n.StartTime} → {n.EndTime.GetValueOrDefault()}";
                         Canvas.SetLeft(headRect, rectLeft);
                         Canvas.SetTop(headRect, headTop);
                         SetZIndex(headRect, 10);
@@ -181,7 +182,7 @@ namespace krrTools.Tools.Preview
                     else
                     {
                         var headRectOnly = MakeRect(rectWidth, rectHeight, PreviewConstants.HoldHeadBrush, 3);
-                        headRectOnly.ToolTip = hasEnd ? (object)$"Hold {n.Time} → {n.EndTime.GetValueOrDefault()}" : (object)$"Hold {n.Time}";
+                        headRectOnly.ToolTip = hasEnd ? (object)$"Hold {n.StartTime} → {n.EndTime.GetValueOrDefault()}" : (object)$"Hold {n.StartTime}";
                         Canvas.SetLeft(headRectOnly, rectLeft);
                         Canvas.SetTop(headRectOnly, headTop);
                         SetZIndex(headRectOnly, 10);

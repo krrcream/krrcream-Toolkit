@@ -13,7 +13,7 @@ using OsuFileIO.OsuFile;
 using OsuFileIO.OsuFileReader;
 using ManiaHitObject = OsuFileIO.HitObject.Mania.ManiaHitObject;
 
-namespace krrTools.Tools.OsuParser
+namespace krrTools.Beatmaps
 {
     public class OsuAnalysisResult
     {

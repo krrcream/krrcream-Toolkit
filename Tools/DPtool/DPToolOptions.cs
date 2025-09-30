@@ -6,8 +6,9 @@ namespace krrTools.Tools.DPtool
     /// <summary>
     /// 侧边选项类，用于封装单侧的DP参数
     /// </summary>
-    public class SideOptions : ObservableObject
+    public class DPtoolOptions : ObservableObject
     {
+        // TODO: 改成自动属性访问器
         private bool _mirror;
         private bool _density;
         private int _maxKeys = 5;
@@ -54,9 +55,9 @@ namespace krrTools.Tools.DPtool
         private bool _modifySingleSideKeyCount;
         private int _singleSideKeyCount = 5;
 
-        // Use SideOptions to hold left/right specific settings (mirror/density/min/max)
-        public SideOptions Left { get; } = new SideOptions();
-        public SideOptions Right { get; } = new SideOptions();
+        // Use DPtoolOptions to hold left/right specific settings (mirror/density/min/max)
+        public DPtoolOptions Left { get; } = new DPtoolOptions();
+        public DPtoolOptions Right { get; } = new DPtoolOptions();
 
         private int _lMaxKeys = 5;
         private int _lMinKeys = 1;
@@ -103,7 +104,7 @@ namespace krrTools.Tools.DPtool
                 if (Left.Mirror != value)
                 {
                     Left.Mirror = value;
-                    OnPropertyChanged(nameof(LMirror));
+                    OnPropertyChanged();
                 }
             }
         }
@@ -116,7 +117,7 @@ namespace krrTools.Tools.DPtool
                 if (Left.Density != value)
                 {
                     Left.Density = value;
-                    OnPropertyChanged(nameof(LDensity));
+                    OnPropertyChanged();
                 }
             }
         }
@@ -147,7 +148,7 @@ namespace krrTools.Tools.DPtool
                 if (Right.Mirror != value)
                 {
                     Right.Mirror = value;
-                    OnPropertyChanged(nameof(RMirror));
+                    OnPropertyChanged();
                 }
             }
         }
@@ -160,7 +161,7 @@ namespace krrTools.Tools.DPtool
                 if (Right.Density != value)
                 {
                     Right.Density = value;
-                    OnPropertyChanged(nameof(RDensity));
+                    OnPropertyChanged();
                 }
             }
         }

@@ -7,18 +7,19 @@ using System.Windows.Interop;
 
 namespace krrTools.Tools.Listener
 {
+    // TODO: 统一快捷键绑定，比如 WPF InputBinding
     public class GlobalHotkey
     {
-        private int _id;
-        private IntPtr _hwnd;
-        private int _fsModifiers;
-        private int _vk;
-        private Action _action;
-        private HwndSource? _source;
-
         private const int MOD_ALT = 0x0001;
         private const int MOD_CONTROL = 0x0002;
         private const int MOD_SHIFT = 0x0004;
+        
+        private int _fsModifiers;
+        private int _id;
+        private int _vk;
+        private IntPtr _hwnd;
+        private Action _action;
+        private HwndSource? _source;
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vk);

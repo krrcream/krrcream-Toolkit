@@ -10,6 +10,7 @@ namespace krrTools.Tools.N2NC
     {
         public double TargetKeys { get; set; } = 10;
 
+        //TODO: 功能脱节，需要检查修复
         public double MaxKeys { get; set; } = 10;
 
         public double MinKeys { get; set; } = 2;

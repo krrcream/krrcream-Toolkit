@@ -8,7 +8,6 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using krrTools.Data;
 using krrTools.Localization;
-using krrTools.Tools.Shared;
 using OsuParsers.Beatmaps;
 using krrTools.Configuration;
 using krrTools.UI;
@@ -17,9 +16,11 @@ namespace krrTools.Tools.N2NC
 {
     public class LabelConverter : IMultiValueConverter
     {
+        // TODO: 这个转换器可以放到一个公共位置供所有控件使用, 但是用法不好，
+        //另一种实现方法是DP工具中的OnLanguageChanged()，后续统一
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            if (values.Length >= 2 && values[0] is string labelStr)
+            if (values is [string labelStr, _, ..])
             {
                 string valStr;
                 if (values[1] == DependencyProperty.UnsetValue)
@@ -28,7 +29,7 @@ namespace krrTools.Tools.N2NC
                 }
                 else
                 {
-                    valStr = values[1]?.ToString() ?? "0";
+                    valStr = values[1].ToString() ?? "0";
                 }
                 if (labelStr.Contains("{0}"))
                 {
@@ -40,7 +41,7 @@ namespace krrTools.Tools.N2NC
                 }
             }
             
-            if (values.Length >= 1 && values[0] is string lbl)
+            if (values is [string lbl, ..])
             {
                 return Strings.Localize(lbl);
             }
@@ -157,6 +158,7 @@ namespace krrTools.Tools.N2NC
             labelRow.Children.Add(targetLabel);
 
             // 绑定标签文本为 "本地化标签: 值"
+            // 实现不友好，后续参考DP或预设的本地化
             var targetBinding = new MultiBinding();
             targetBinding.StringFormat = "{0}";
             targetBinding.Bindings.Add(new Binding("Value") { Source = new LocalizedStringHelper.LocalizedString(Strings.N2NCTargetKeysTemplate) });

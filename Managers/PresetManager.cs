@@ -5,7 +5,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using krrTools.Configuration;
-using krrTools.Core.Modules;
+using krrTools.Core;
 using krrTools.Tools.DPtool;
 using krrTools.Tools.KRRLNTransformer;
 using krrTools.Tools.N2NC;
