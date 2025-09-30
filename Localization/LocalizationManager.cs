@@ -27,8 +27,6 @@ namespace krrTools.Localization
             SetForceChinese(!IsChineseLanguage());
         }
 
-        public static bool? GetForceChinese() => BaseOptionsManager.GetForceChinese();
-
         /// <summary>
         /// 检查当前是否为中文语言
         /// </summary>
