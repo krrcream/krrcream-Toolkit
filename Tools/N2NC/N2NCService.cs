@@ -10,29 +10,25 @@ namespace krrTools.Tools.N2NC
     // TODO: 文件处理放在外部，这个文件未来要移除
     public static class N2NCService
     {
-        private static readonly ILogger _logger = LoggerFactoryHolder.CreateLogger<string>();
         
         public static Beatmap? ProcessSingleFile(string filePath, N2NCOptions options, bool openOsz = false)
         {
             try
             {
-                _logger.LogInformation("转换器读取转换: {FilePath}", filePath);
-
                 if (!FilesHelper.EnsureIsOsuFile(filePath)) 
                 {
-                    _logger.LogWarning("文件不是有效的.osu文件: {FilePath}", filePath);
+                    Logger.Log(LogLevel.Warning, "文件不是有效的.osu文件: {FilePath}", filePath);
                     return null;
                 }
 
                 var converter = new N2NC();
                 var beatmap = converter.ProcessFile(filePath, options);
-                _logger.LogInformation("转换器处理完成");
 
                 return beatmap;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "处理文件时出错");
+                Logger.Log(LogLevel.Error, "处理文件时出错: {Message}", ex.Message);
                 MessageBox.Show(Strings.ErrorProcessingFile.Localize() + ": " + ex.Message, 
                     Strings.ProcessingError.Localize(), 
                     MessageBoxButton.OK, MessageBoxImage.Error);

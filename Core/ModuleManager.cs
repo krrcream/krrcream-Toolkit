@@ -11,6 +11,17 @@ namespace krrTools.Core
         private readonly Dictionary<ToolModuleType, IToolModule> _modules = new();
 
         /// <summary>
+        /// 构造函数，通过 DI 注入所有模块
+        /// </summary>
+        public ModuleManager(IEnumerable<IToolModule> modules)
+        {
+            foreach (var module in modules)
+            {
+                RegisterModule(module);
+            }
+        }
+
+        /// <summary>
         /// 获取所有模块
         /// </summary>
         public IEnumerable<IToolModule> GetAllModules() => _modules.Values;

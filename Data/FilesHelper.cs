@@ -11,7 +11,6 @@ using System.Windows.Interop;
 using krrTools.Beatmaps;
 using krrTools.Localization;
 using krrTools.Tools.Listener;
-using krrTools.Utilities;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
@@ -27,57 +26,31 @@ namespace krrTools.Data
         }
         public static void ValidateAndRunWithPackaging(string filePath, Func<string, string?> processor, bool openOsz = false, Action? onCompleted = null, bool showSuccessMessage = true)
         {
-            if (!EnsureIsOsuFile(filePath)) return;
-
-            Task.Run(() =>
+            ValidateAndRun(filePath, path =>
             {
-                try
+                string? produced = processor(path);
+                if (!string.IsNullOrEmpty(produced))
                 {
-                    string? produced = processor(filePath);
-
-                    if (!string.IsNullOrEmpty(produced))
+                    try
                     {
-                        try
+                        if (ListenerControl.IsOpen)
                         {
-                            if (ListenerControl.IsOpen)
-                            {
-                                OsuAnalyzer.AddNewBeatmapToSongFolder(produced, openOsz);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            // Packaging failure: inform user and log
-                            Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
-                            {
-                                    MessageBox.Show(Strings.PackagingAddingBeatmapFailed.Localize() + ": " + ex.Message,
-                                        Strings.Error.Localize(),
-                                    MessageBoxButton.OK, MessageBoxImage.Error);
-                            }));
-                            Debug.WriteLine($"Packaging/adding beatmap failed: {ex.Message}");
+                            OsuAnalyzer.AddNewBeatmapToSongFolder(produced, openOsz);
                         }
                     }
-
-                    Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                    catch (Exception ex)
                     {
-                        if (showSuccessMessage)
+                        // Packaging failure: inform user and log
+                        Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                         {
-                                MessageBoxResultHelper.ShowSuccess();
-                        }
-                        onCompleted?.Invoke();
-                    }));
+                                MessageBox.Show(Strings.PackagingAddingBeatmapFailed.Localize() + ": " + ex.Message,
+                                    Strings.Error.Localize(),
+                                MessageBoxButton.OK, MessageBoxImage.Error);
+                        }));
+                        Debug.WriteLine($"Packaging/adding beatmap failed: {ex.Message}");
+                    }
                 }
-                catch (Exception ex)
-                {
-                    Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
-                    {
-                            MessageBox.Show(Strings.ErrorProcessingFile.Localize() + ": " + ex.Message,
-                                Strings.ProcessingError.Localize(),
-                            MessageBoxButton.OK, MessageBoxImage.Error);
-                        onCompleted?.Invoke();
-                    }));
-                    Debug.WriteLine($"ValidateAndRunWithPackaging error: {ex.Message}");
-                }
-            });
+            }, onCompleted, showSuccessMessage);
         }
 
         /// <summary>
@@ -138,15 +111,10 @@ namespace krrTools.Data
             dialog.Description = description;
             dialog.RootFolder = Environment.SpecialFolder.MyComputer;
             dialog.ShowNewFolderButton = true;
-            if (owner != null)
-            {
-                var hwnd = new WindowInteropHelper(owner).Handle;
-                dialog.ShowDialog(new Win32Window(hwnd));
-            }
-            else
-            {
-                dialog.ShowDialog();
-            }
+
+            var hwnd = new WindowInteropHelper(owner).Handle;
+            dialog.ShowDialog(new Win32Window(hwnd));
+
             return dialog.SelectedPath;
         }
         
@@ -232,10 +200,6 @@ namespace krrTools.Data
                     action(filePath);
                     Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                     {
-                        if (showSuccessMessage)
-                        {
-                                MessageBoxResultHelper.ShowSuccess();
-                        }
                         onCompleted?.Invoke();
                     }));
                 }

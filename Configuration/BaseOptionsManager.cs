@@ -2,11 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
-using krrTools.Core;
 using krrTools.Utilities;
 
 namespace krrTools.Configuration
@@ -14,7 +12,7 @@ namespace krrTools.Configuration
     public static class BaseOptionsManager
     {
         // 统一的配置文件名
-        public const string ConfigFileName = "config.json";
+        private const string ConfigFileName = "config.json";
 
         // base application folder under LocalAppData (用于预设和管道)
         public const string BaseAppFolderName = "krrTools";
@@ -34,29 +32,21 @@ namespace krrTools.Configuration
 
         // 缓存的配置实例
         private static AppConfig? _cachedConfig;
-        private static readonly Lock _configLock = new Lock();
+        private static readonly Lock _configLock = new();
 
-        // 工具映射 - 自动注册
-        private static readonly Dictionary<object, Type> _toolMappings = new();
-
-        // 静态构造函数 - 自动注册工具
-        static BaseOptionsManager()
+        // JSON 序列化选项缓存
+        private static readonly JsonSerializerOptions _jsonOpts = new()
         {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            foreach (var type in assemblies.SelectMany(a => a.GetTypes())
-                .Where(t => typeof(IToolModule).IsAssignableFrom(t) && !t.IsAbstract))
-            {
-                try
-                {
-                    var instance = (IToolModule)Activator.CreateInstance(type);
-                    _toolMappings[instance.EnumValue] = instance.OptionsType;
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Failed to register tool module {type.Name}: {ex.Message}");
-                }
-            }
-        }
+            PropertyNameCaseInsensitive = true,
+            WriteIndented = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+
+        // 辅助方法：序列化
+        private static string SerializeToJson<T>(T obj) => JsonSerializer.Serialize(obj, _jsonOpts);
+
+        // 辅助方法：反序列化
+        private static T? DeserializeFromJson<T>(string json) => JsonSerializer.Deserialize<T>(json, _jsonOpts);
 
         /// <summary>
         /// 获取控件类型 - 直接映射
@@ -73,31 +63,17 @@ namespace krrTools.Configuration
         }
 
         /// <summary>
-        /// 获取源ID - 从DI容器获取
+        /// 获取源ID - 从枚举获取
         /// </summary>
-        public static int GetSourceId(object toolEnum)
+        public static int GetSourceId(ConverterEnum converter)
         {
-            if (toolEnum is string toolName)
+            return converter switch
             {
-                return toolName switch
-                {
-                    "N2NC" => 1,
-                    "DP" => 3,
-                    "KRRLN" => 4,
-                    _ => 0
-                };
-            }
-            else if (toolEnum is ConverterEnum converter)
-            {
-                return converter switch
-                {
-                    ConverterEnum.N2NC => 1,
-                    ConverterEnum.DP => 3,
-                    ConverterEnum.KRRLN => 4,
-                    _ => 0
-                };
-            }
-            return 0;
+                ConverterEnum.N2NC => 1,
+                ConverterEnum.DP => 3,
+                ConverterEnum.KRRLN => 4,
+                _ => 0
+            };
         }
 
         // 预设和管道使用的文件夹路径
@@ -174,45 +150,55 @@ namespace krrTools.Configuration
         /// <summary>
         /// 获取指定工具的选项
         /// </summary>
-        public static T? LoadOptions<T>(object toolEnum)
+        public static T? LoadOptions<T>(ConverterEnum converter)
         {
             var config = LoadConfig();
-
-            if (toolEnum is ConverterEnum converter)
+            object? value = config.Converters.GetValueOrDefault(converter);
+            if (value is JsonElement jsonElement)
             {
-                return (T?)config.Converters.GetValueOrDefault(converter);
+                return jsonElement.Deserialize<T>();
             }
-            else if (toolEnum is ModuleEnum module)
-            {
-                return (T?)config.Modules.GetValueOrDefault(module);
-            }
+            return (T?)value;
+        }
 
-            return default;
+        /// <summary>
+        /// 获取指定模块的选项
+        /// </summary>
+        public static T? LoadOptions<T>(ModuleEnum module)
+        {
+            var config = LoadConfig();
+            object? value = config.Modules.GetValueOrDefault(module);
+            if (value is JsonElement jsonElement)
+            {
+                return jsonElement.Deserialize<T>();
+            }
+            return (T?)value;
         }
 
         /// <summary>
         /// 保存指定工具的选项
         /// </summary>
-        public static void SaveOptions<T>(object toolEnum, T options)
+        public static void SaveOptions<T>(ConverterEnum converter, T options)
         {
             var config = LoadConfig();
+            config.Converters[converter] = options;
+            SaveConfig();
+        }
 
-            if (toolEnum is ConverterEnum converter)
-            {
-                config.Converters[converter] = options;
-            }
-            else if (toolEnum is ModuleEnum module)
-            {
-                config.Modules[module] = options;
-            }
-
+        /// <summary>
+        /// 保存指定模块的选项
+        /// </summary>
+        public static void SaveOptions<T>(ModuleEnum module, T options)
+        {
+            var config = LoadConfig();
+            config.Modules[module] = options;
             SaveConfig();
         }
 
         /// <summary>
         /// 获取应用设置
         /// </summary>
-        public static T GetAppSetting<T>(Func<AppConfig, T> getter)
+        private static T GetAppSetting<T>(Func<AppConfig, T> getter)
         {
             return getter(LoadConfig());
         }
@@ -220,7 +206,7 @@ namespace krrTools.Configuration
         /// <summary>
         /// 设置应用设置
         /// </summary>
-        public static void SetAppSetting(Action<AppConfig> setter)
+        private static void SetAppSetting(Action<AppConfig> setter)
         {
             var config = LoadConfig();
             setter(config);
@@ -270,23 +256,20 @@ namespace krrTools.Configuration
         /// <summary>
         /// 获取是否强制中文设置
         /// </summary>
-        public static bool? GetForceChinese() => GetAppSetting(c => c.ForceChinese);
+        public static bool GetForceChinese() => GetAppSetting(c => c.ForceChinese);
 
         /// <summary>
         /// 保存是否强制中文设置
         /// </summary>
-        public static void SetForceChinese(bool? forceChinese) => SetAppSetting(c => c.ForceChinese = forceChinese);
+        public static void SetForceChinese(bool forceChinese) => SetAppSetting(c => c.ForceChinese = forceChinese);
 
-        // Preset helpers: save preset by name (filename-safe) and list available presets
         public static void SavePreset<T>(string toolName, string presetName, T options)
         {
             string folder = GetToolFolder(Path.Combine(toolName, PresetsFolderName));
             Directory.CreateDirectory(folder);
             string safe = MakeSafeFilename(presetName) + ".json";
             string path = Path.Combine(folder, safe);
-            var opts = new JsonSerializerOptions
-                { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
-            string json = JsonSerializer.Serialize(options, opts);
+            string json = SerializeToJson(options);
             File.WriteAllText(path, json);
         }
 
@@ -302,8 +285,7 @@ namespace krrTools.Configuration
                 try
                 {
                     string json = File.ReadAllText(file);
-                    var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    opt = JsonSerializer.Deserialize<T>(json, opts);
+                    opt = DeserializeFromJson<T>(json);
                 }
                 catch (Exception ex)
                 {
@@ -321,7 +303,6 @@ namespace krrTools.Configuration
             return name;
         }
 
-        // Pipeline preset helpers
         public static void SavePipelinePreset(string presetName, PipelineOptions pipelineOptions)
         {
             string folder = GetToolFolder(PipelinesFolderName);

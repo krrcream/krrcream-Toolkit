@@ -1,7 +1,7 @@
 using System;
-using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Media;
 using krrTools.Configuration;
 using krrTools.Localization;
@@ -12,7 +12,6 @@ namespace krrTools.Tools.DPtool
     public class DPToolControl : ToolControlBase<DPToolOptions>
     {
         public event EventHandler? SettingsChanged;
-
         private readonly DPToolViewModel _viewModel;
 
         // UI控件引用，用于属性变更时的启用/禁用逻辑
@@ -29,29 +28,7 @@ namespace krrTools.Tools.DPtool
 
             BuildTemplatedUI();
 
-            SharedUIComponents.LanguageChanged += OnLanguageChanged;
-            Unloaded += (_, _) =>
-            {
-                SharedUIComponents.LanguageChanged -= OnLanguageChanged;
-                DPToolWindow_Closed();
-            };
-        }
-
-        private void OnLanguageChanged()
-        {
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                var dc = DataContext;
-                Content = null;
-                BuildTemplatedUI();
-                DataContext = dc;
-            }));
-        }
-
-        private void DPToolWindow_Closed()
-        {
-            // Options are automatically saved by ViewModel auto-save functionality
-            // No manual saving needed
+            // Options are now loaded automatically via DI
         }
 
         private void BuildTemplatedUI()
@@ -81,12 +58,14 @@ namespace krrTools.Tools.DPtool
 
             // Placeholder keys panel
             var keysPanel = new StackPanel { Margin = new Thickness(0, 0, 0, 15) };
-            var keysExpl = SharedUIComponents.CreateHeaderLabel(Strings.DPKeysTooltip);
+            var keysExpl = new TextBlock { FontSize = UIConstants.HeaderFontSize, FontWeight = FontWeights.Bold };
+            keysExpl.SetBinding(TextBlock.TextProperty, new Binding("Value") { Source = Strings.DPKeysTooltip.GetLocalizedString() });
             keysPanel.Children.Add(keysExpl);
 
             // Left/Right panels
             // Left
-            var leftLabel = SharedUIComponents.CreateHeaderLabel(Strings.DPLeftLabel);
+            var leftLabel = new TextBlock { FontSize = UIConstants.HeaderFontSize, FontWeight = FontWeights.Bold };
+            leftLabel.SetBinding(TextBlock.TextProperty, new Binding("Value") { Source = Strings.DPLeftLabel.GetLocalizedString() });
             lMirrorCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
             lDensityCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
             lRemoveCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
@@ -103,7 +82,8 @@ namespace krrTools.Tools.DPtool
             leftPanel.Children.Add(_lMinKeysSlider);
 
             // Right
-            var rightLabel = SharedUIComponents.CreateHeaderLabel(Strings.DPRightLabel);
+            var rightLabel = new TextBlock { FontSize = UIConstants.HeaderFontSize, FontWeight = FontWeights.Bold };
+            rightLabel.SetBinding(TextBlock.TextProperty, new Binding("Value") { Source = Strings.DPRightLabel.GetLocalizedString() });
             rMirrorCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
             rDensityCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
             rRemoveCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
@@ -153,7 +133,7 @@ namespace krrTools.Tools.DPtool
                 target.RRemove = opt.RRemove;
             });
 
-            var presetsPanel = SharedUIComponents.CreateLabeledRow(Strings.PresetsLabel.Localize(), presetInner, new Thickness(0, 0, 0, 10));
+            var presetsPanel = SharedUIComponents.CreateLabeledRow(Strings.PresetsLabel, presetInner, new Thickness(0, 0, 0, 10));
 
             // Root stack
             var stackPanel = new StackPanel { Margin = new Thickness(15), HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
@@ -164,36 +144,11 @@ namespace krrTools.Tools.DPtool
 
             // Assign the built UI to the control's content
             Content = stackPanel;
+        }
 
-            // Setup property change notifications for preview updates and slider enabling
-            if (_viewModel.Options is INotifyPropertyChanged npc)
-            {
-                npc.PropertyChanged += (_, e) =>
-                {
-                    switch (e.PropertyName)
-                    {
-                        case nameof(_viewModel.Options.ModifySingleSideKeyCount):
-                            if (_keysSlider != null) _keysSlider.IsEnabled = _viewModel.Options.ModifySingleSideKeyCount;
-                            break;
-                        case nameof(_viewModel.Options.LDensity):
-                            if (_lMaxKeysSlider != null) _lMaxKeysSlider.IsEnabled = _viewModel.Options.LDensity;
-                            if (_lMinKeysSlider != null) _lMinKeysSlider.IsEnabled = _viewModel.Options.LDensity;
-                            break;
-                        case nameof(_viewModel.Options.RDensity):
-                            if (_rMaxKeysSlider != null) _rMaxKeysSlider.IsEnabled = _viewModel.Options.RDensity;
-                            if (_rMinKeysSlider != null) _rMinKeysSlider.IsEnabled = _viewModel.Options.RDensity;
-                            break;
-                    }
-                    SettingsChanged?.Invoke(this, EventArgs.Empty);
-                };
-            }
-
-            // Set initial enabled state
-            if (_keysSlider != null) _keysSlider.IsEnabled = _viewModel.Options.ModifySingleSideKeyCount;
-            if (_lMaxKeysSlider != null) _lMaxKeysSlider.IsEnabled = _viewModel.Options.LDensity;
-            if (_lMinKeysSlider != null) _lMinKeysSlider.IsEnabled = _viewModel.Options.LDensity;
-            if (_rMaxKeysSlider != null) _rMaxKeysSlider.IsEnabled = _viewModel.Options.RDensity;
-            if (_rMinKeysSlider != null) _rMinKeysSlider.IsEnabled = _viewModel.Options.RDensity;
+        protected virtual void OnSettingsChanged()
+        {
+            SettingsChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 }

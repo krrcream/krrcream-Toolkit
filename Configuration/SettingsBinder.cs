@@ -7,6 +7,10 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using krrTools.Localization;
 using krrTools.UI;
+using Wpf.Ui.Controls;
+using StackPanel = System.Windows.Controls.StackPanel;
+using TextBlock = System.Windows.Controls.TextBlock;
+using TextBox = System.Windows.Controls.TextBox;
 
 namespace krrTools.Configuration
 {
@@ -51,15 +55,20 @@ namespace krrTools.Configuration
                 if (attr == null) continue;
 
                 UIElement? control = null;
-                string label = GetLocalizedString(attr.LabelKey);
-                string? tooltip = string.IsNullOrEmpty(attr.TooltipKey) ? null : GetLocalizedString(attr.TooltipKey);
+                var localizedLabel = GetLocalizedString(attr.LabelKey).GetLocalizedString();
+                var localizedTooltip = string.IsNullOrEmpty(attr.TooltipKey) ? null : GetLocalizedString(attr.TooltipKey).GetLocalizedString();
 
                 switch (attr.UIType)
                 {
                     case UIType.Toggle:
                         if (prop.PropertyType == typeof(bool))
                         {
-                            var checkBox = SharedUIComponents.CreateStandardCheckBox(label, tooltip);
+                            var checkBox = SharedUIComponents.CreateStandardCheckBox("", localizedTooltip?.Value);
+                            checkBox.SetBinding(ContentControl.ContentProperty, new Binding("Value") { Source = localizedLabel });
+                            if (localizedTooltip != null)
+                            {
+                                checkBox.SetBinding(FrameworkElement.ToolTipProperty, new Binding("Value") { Source = localizedTooltip });
+                            }
                             BindToggle(checkBox, options, prop.Name);
                             control = checkBox;
                         }
@@ -68,15 +77,20 @@ namespace krrTools.Configuration
                     case UIType.Slider:
                         if (IsNumericType(prop.PropertyType))
                         {
-                            var sliderSettings = new SettingsSlider<double>
+                            var sliderSettings = new SettingsSlider
                             {
-                                LabelText = label,
-                                TooltipText = tooltip ?? "",
+                                LabelText = "", // 空
+                                TooltipText = localizedTooltip?.Value ?? "",
                                 Min = attr.Min as double? ?? 0,
                                 Max = attr.Max as double? ?? 100,
                                 TickFrequency = attr.TickFrequency ?? 1,
                                 KeyboardStep = attr.KeyboardStep ?? 1
                             };
+                            sliderSettings.Label.SetBinding(TextBlock.TextProperty, new Binding("Value") { Source = localizedLabel });
+                            if (localizedTooltip != null)
+                            {
+                                sliderSettings.Label.SetBinding(FrameworkElement.ToolTipProperty, new Binding("Value") { Source = localizedTooltip });
+                            }
                             BindSlider(sliderSettings.InnerSlider, options, prop.Name);
                             control = sliderSettings;
                         }
@@ -93,9 +107,31 @@ namespace krrTools.Configuration
                                 UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
                             };
                             textBox.SetBinding(TextBox.TextProperty, binding);
-                            control = SharedUIComponents.CreateLabeledRow(label, textBox, new Thickness(0, 0, 0, 10));
+                            control = SharedUIComponents.CreateLabeledRow(localizedLabel.Value, textBox, new Thickness(0, 0, 0, 10));
                         }
 
+                        break;
+                    case UIType.ComboBox:
+                        // 可根据需要实现
+                        break;
+                    case UIType.NumberBox:
+                        if (IsNumericType(prop.PropertyType))
+                        {
+                            var textBox = new NumberBox()
+                            {
+                                Value = (prop.GetValue(options) as double? ?? 
+                                    (double)(prop.GetValue(options) ?? 114514)),
+                                Minimum = attr.Min as double? ?? 0,
+                            };
+                            var binding = new Binding(prop.Name)
+                            {
+                                Source = options,
+                                Mode = BindingMode.TwoWay,
+                                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+                            };
+                            textBox.SetBinding(TextBox.TextProperty, binding);
+                            control = SharedUIComponents.CreateLabeledRow(localizedLabel.Value, textBox, new Thickness(0, 0, 0, 10));
+                        }
                         break;
                 }
 

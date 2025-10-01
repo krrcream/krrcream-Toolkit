@@ -73,8 +73,6 @@ namespace krrTools.Tools.N2NC
             DataContext = _viewModel;
             BuildConverterUI();
             // Options are now loaded automatically via DI
-            SharedUIComponents.LanguageChanged += OnLanguageChanged;
-            Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
         }
 
         public N2NCControl(N2NCOptions options) : base(ConverterEnum.N2NC, options)
@@ -83,19 +81,6 @@ namespace krrTools.Tools.N2NC
             DataContext = _viewModel;
             BuildConverterUI();
             // Options are now loaded automatically via DI
-            SharedUIComponents.LanguageChanged += OnLanguageChanged;
-            Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
-        }
-
-        private void OnLanguageChanged()
-        {
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                var dm = DataContext;
-                Content = null;
-                DataContext = dm;
-                BuildConverterUI();
-            }));
         }
 
         private void BuildConverterUI()
@@ -132,9 +117,6 @@ namespace krrTools.Tools.N2NC
             // 组装界面 - use ScrollViewer directly as top-level Content (removed extra Grid layer)
             scrollViewer.Content = grid;
             Content = scrollViewer;
-
-            // 事件处理
-            SetupEventHandlers();
         }
 
         private ScrollViewer CreateScrollViewer()
@@ -167,7 +149,7 @@ namespace krrTools.Tools.N2NC
             {
                 StringFormat = "{0}"
             };
-            targetBinding.Bindings.Add(new Binding("Value") { Source = new LocalizedStringHelper.LocalizedString(Strings.KeysSliderLabel) });
+            targetBinding.Bindings.Add(new Binding("Value") { Source = new DynamicLocalizedString(Strings.KeysSliderLabel) });
             targetBinding.Bindings.Add(new Binding("TargetKeys") { Source = _viewModel });
             targetBinding.Converter = new LabelConverter();
             targetLabel.SetBinding(TextBlock.TextProperty, targetBinding);
@@ -177,7 +159,9 @@ namespace krrTools.Tools.N2NC
             mainPanel.Children.Add(labelRow);
             mainPanel.Children.Add(sliderPanel);
             return mainPanel;
-        }        private FrameworkElement CreateMaxKeysPanel(Thickness rowMargin)
+        }        
+        
+        private FrameworkElement CreateMaxKeysPanel(Thickness rowMargin)
         {
             var maxInner = new Grid();
             maxInner.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -195,14 +179,7 @@ namespace krrTools.Tools.N2NC
             Grid.SetColumn(maxLabel, 0);
             labelRow.Children.Add(maxLabel);
             // 绑定标签文本为 "本地化标签: 值"
-            var maxBinding = new MultiBinding
-            {
-                StringFormat = "{0}"
-            };
-            maxBinding.Bindings.Add(new Binding("Value") { Source = new LocalizedStringHelper.LocalizedString(Strings.N2NCMaxKeysTemplate) });
-            maxBinding.Bindings.Add(new Binding(nameof(N2NCViewModel.MaxKeys)) { Source = _viewModel });
-            maxBinding.Converter = new LabelConverter();
-            maxLabel.SetBinding(TextBlock.TextProperty, maxBinding);
+            maxLabel.SetBinding(TextBlock.TextProperty, new Binding(nameof(N2NCViewModel.MaxKeysDisplay)) { Source = _viewModel });
 
             // 主面板：标签行 + 滑条行
             var mainPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = rowMargin };
@@ -220,25 +197,16 @@ namespace krrTools.Tools.N2NC
             MinKeysSlider.SetBinding(RangeBase.MaximumProperty, new Binding(nameof(N2NCViewModel.MinKeysMaximum)) { Mode = BindingMode.OneWay, Source = _viewModel });
             Grid.SetColumn(MinKeysSlider, 0);
             minInner.Children.Add(MinKeysSlider);
-
-            // 创建标签行：标签 + 数值 合并为一个标签显示 "标签: 值"
+            
             var labelRow = new Grid();
             labelRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             var minLabel = SharedUIComponents.CreateHeaderLabel("");
             minLabel.Margin = new Thickness(0, 0, 8, 0);
             Grid.SetColumn(minLabel, 0);
             labelRow.Children.Add(minLabel);
-            // 绑定标签文本为 "本地化标签: 值"
-            var minBinding = new MultiBinding
-            {
-                StringFormat = "{0}"
-            };
-            minBinding.Bindings.Add(new Binding("Value") { Source = new LocalizedStringHelper.LocalizedString(Strings.N2NCMinKeysTemplate) });
-            minBinding.Bindings.Add(new Binding(nameof(N2NCViewModel.MinKeys)) { Source = _viewModel });
-            minBinding.Converter = new LabelConverter();
-            minLabel.SetBinding(TextBlock.TextProperty, minBinding);
 
-            // 主面板：标签行 + 滑条行
+            minLabel.SetBinding(TextBlock.TextProperty, new Binding(nameof(N2NCViewModel.MinKeysDisplay)) { Source = _viewModel });
+            
             var mainPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = rowMargin };
             mainPanel.Children.Add(labelRow);
             mainPanel.Children.Add(minInner);
@@ -249,7 +217,7 @@ namespace krrTools.Tools.N2NC
         {
             var transformInner = new Grid();
             transformInner.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            // 创建整数档位滑块 (1-8)，每个档位对应一个节拍值
+
             var transformSlider = SharedUIComponents.CreateStandardSlider(1, 8, double.NaN, true); // 整数档位，启用刻度对齐
             transformSlider.SetBinding(RangeBase.ValueProperty, new Binding(nameof(N2NCViewModel.TransformSpeedSlot)) { Mode = BindingMode.TwoWay, Source = _viewModel });
             Grid.SetColumn(transformSlider, 0);
@@ -267,7 +235,7 @@ namespace krrTools.Tools.N2NC
             {
                 StringFormat = "{0}"
             };
-            transformBinding.Bindings.Add(new Binding("Value") { Source = new LocalizedStringHelper.LocalizedString(Strings.N2NCTransformSpeedTemplate) });
+            transformBinding.Bindings.Add(new Binding("Value") { Source = new DynamicLocalizedString(Strings.N2NCTransformSpeedTemplate) });
             transformBinding.Bindings.Add(new Binding(nameof(N2NCViewModel.TransformSpeedDisplay)) { Source = _viewModel });
             transformBinding.Converter = new LabelConverter();
             transformLabel.SetBinding(TextBlock.TextProperty, transformBinding);
@@ -456,39 +424,27 @@ namespace krrTools.Tools.N2NC
             return SharedUIComponents.CreateLabeledRow(Strings.PresetsLabel, panel, rowMargin);
         }
 
-        private void SetupEventHandlers()
-        {
-            // 可以在这里添加事件处理逻辑
-        }
-
         private void TargetKeysSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             // 保持数值状态同步并确保最大/最小滑块有效
             int newTarget = Math.Max(1, (int)Math.Round(e.NewValue));
-            try
+            if (Math.Abs(_viewModel.TargetKeys - newTarget) > 0)
+                _viewModel.TargetKeys = newTarget;
+
+            // 确保MaxKeys至少等于TargetKeys
+            if (MaxKeysSlider != null)
             {
-                if (Math.Abs(_viewModel.TargetKeys - newTarget) > 0)
-                    _viewModel.TargetKeys = newTarget;
-
-                // 确保MaxKeys至少等于TargetKeys
-                if (MaxKeysSlider != null)
-                {
-                    if (MaxKeysSlider.Value < newTarget)
-                        MaxKeysSlider.Value = newTarget;
-                }
-
-                // 确保MinKeys最大值最多为当前MaxKeys值
-                if (MinKeysSlider != null && MaxKeysSlider != null)
-                {
-                    MinKeysSlider.Maximum = MaxKeysSlider.Value;
-                    // 限制MinKeys到允许范围
-                    if (_viewModel.MinKeys > MinKeysSlider.Maximum)
-                        _viewModel.MinKeys = (int)MinKeysSlider.Maximum;
-                }
+                if (MaxKeysSlider.Value < newTarget)
+                    MaxKeysSlider.Value = newTarget;
             }
-            catch (Exception ex)
+
+            // 确保MinKeys最大值最多为当前MaxKeys值
+            if (MinKeysSlider != null && MaxKeysSlider != null)
             {
-                System.Diagnostics.Debug.WriteLine($"TargetKeysSlider_ValueChanged 错误: {ex.Message}");
+                MinKeysSlider.Maximum = MaxKeysSlider.Value;
+                // 限制MinKeys到允许范围
+                if (_viewModel.MinKeys > MinKeysSlider.Maximum)
+                    _viewModel.MinKeys = (int)MinKeysSlider.Maximum;
             }
         }
 
@@ -512,7 +468,7 @@ namespace krrTools.Tools.N2NC
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"MaxKeysSlider_ValueChanged 错误: {ex.Message}");
+
             }
         }
 

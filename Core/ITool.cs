@@ -32,6 +32,6 @@ namespace krrTools.Core
         /// <param name="inputBeatmap">输入Beatmap</param>
         /// <param name="options">工具选项，为 null 时使用默认</param>
         /// <returns>转换后的Beatmap，失败返回null</returns>
-        Beatmap? ProcessBeatmapToData(Beatmap inputBeatmap, IToolOptions? options = null);
+        Beatmap? ProcessBeatmap(Beatmap inputBeatmap, IToolOptions? options = null);
     }
 }

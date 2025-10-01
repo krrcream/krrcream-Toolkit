@@ -19,5 +19,10 @@ namespace krrTools.Tools.N2NC
             var resultBeatmap = converter.ProcessBeatmapToData(input, options);
             return resultBeatmap;
         }
+
+        protected override Beatmap ProcessSingleFile(string filePath, N2NCOptions options)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

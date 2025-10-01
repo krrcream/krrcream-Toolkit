@@ -19,7 +19,6 @@
     
     <ItemGroup>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-        <PackageReference Include="Coosu.Beatmap" Version="2.3.41" />
         <PackageReference Include="krrcream.OsuParsers" Version="1.8.0.1" />
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.0.0-1.25277.114">
           <PrivateAssets>all</PrivateAssets>
@@ -32,6 +31,8 @@
         <PackageReference Include="OsuFileIO.Analyzer" Version="0.1.1" />
         <PackageReference Include="OsuMemoryDataProvider" Version="0.11.1" />
         <PackageReference Include="WPF-UI" Version="4.0.3" />
+        <PackageReference Include="WPF-UI.Abstractions" Version="4.0.3" />
+        <PackageReference Include="WPF-UI.DependencyInjection" Version="4.0.3" />
         <PackageReference Include="WPF-UI.Tray" Version="4.0.3" />
         <PackageReference Include="WPF-UI.Violeta" Version="4.0.3.6" />
         <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0" />

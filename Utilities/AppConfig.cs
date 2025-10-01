@@ -42,6 +42,6 @@ namespace krrTools.Utilities
         /// <summary>
         /// 是否强制中文设置
         /// </summary>
-        public bool? ForceChinese { get; set; }
+        public bool ForceChinese { get; set; }
     }
 }

@@ -1,6 +1,8 @@
 using krrTools.Core;
 using krrTools.Localization;
 using OsuParsers.Beatmaps;
+using OsuParsers.Decoders;
+using System;
 
 namespace krrTools.Tools.KRRLNTransformer
 {
@@ -17,6 +19,13 @@ namespace krrTools.Tools.KRRLNTransformer
         {
             var transformer = new KRRLN();
             return transformer.ProcessBeatmapToData(input, options);
+        }
+
+        protected override Beatmap ProcessSingleFile(string filePath, KRRLNTransformerOptions options)
+        {
+            var beatmap = BeatmapDecoder.Decode(filePath);
+            if (beatmap == null) throw new Exception("Failed to load beatmap");
+            return ProcessBeatmap(beatmap, options);
         }
     }
 }

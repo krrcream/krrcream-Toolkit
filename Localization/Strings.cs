@@ -177,6 +177,21 @@ namespace krrTools.Localization
         public const string ConversionFailedAllFiles = "Conversion failed, all files could not be converted successfully.|转换失败，所有文件都未能成功转换。";
         public const string ConversionNoOutput = "Conversion did not produce any output.|转换未产生任何输出。";
         
+        // DualPreviewControl
+        public const string PreviewTitle = "预览 / Preview";
+        public const string OriginalHint = "原始预览 (Original)|原始预览";
+        public const string ConvertedHint = "结果预览 (Converted)|结果预览";
+        public const string DropHint = "Drag & Drop .osu files in here|将 .osu 文件拖到此区域";
+        public const string StartButtonText = "Start|开始转换";
+        public const string DropFilesHint = "{0} file(s) staged. Click Start to convert.|已暂存 {0} 个文件，点击开始转换。";
+        public const string NoDataAvailable = "No data available";
+        public const string NoProcessorSet = "No processor set";
+        public const string PreviewError = "Preview error: {0}";
+        public const string PreviewBuildFailed = "Preview build failed: {0}";
+        public const string DirectoryEnumerateFailed = "Directory enumerate failed for '{0}': {1}";
+        public const string AutoLoadSampleFailed = "Auto-load sample failed: {0}";
+        public const string BroadcastStagedPathsFailed = "公开暂存路径失败: {0}";
+        
         /// <summary>
         /// Localize a string with format "EN|中文" based on current language setting
         /// </summary>

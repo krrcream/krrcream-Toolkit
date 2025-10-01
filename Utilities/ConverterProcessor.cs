@@ -16,8 +16,6 @@ namespace krrTools.Utilities
 {
     public class ConverterProcessor : IPreviewProcessor
     {
-        private static readonly ILogger<ConverterProcessor> _logger = LoggerFactoryHolder.CreateLogger<ConverterProcessor>();
-
         public string ToolKey => "Preview";
         public string? CurrentTool { get; set; }
         public int ColumnOverride { get; set; } // 0表示不覆盖，使用实际列数
@@ -29,12 +27,12 @@ namespace krrTools.Utilities
 
         public Func<object>? ConverterOptionsProvider { get; set; }
 
-        private Func<string, string, int, int, object?>? ConversionProvider { get; set; }
+        private Func<string, string, object?>? ConversionProvider { get; set; }
 
         public ConverterProcessor()
         {
             // 分配活动工具、输入路径开始转换
-            ConversionProvider = (toolName, path, _, _) =>
+            ConversionProvider = (toolName, path) =>
             {
                 var maniaBeatmap = FilesHelper.GetManiaBeatmap(path);
 
@@ -46,9 +44,11 @@ namespace krrTools.Utilities
                         var options = ConverterOptionsProvider();
                         if (options is IToolOptions toolOptions)
                         {
+                            Logger.Log(LogLevel.Information, "使用实时设置进行转换");
                             return ToolScheduler.ProcessBeatmap(toolName, maniaBeatmap, toolOptions);
                         }
                     }
+                    Logger.Log(LogLevel.Information, "使用默认设置进行转换");
                     return ToolScheduler.ProcessBeatmap(toolName, maniaBeatmap);
                 }
 
@@ -56,81 +56,40 @@ namespace krrTools.Utilities
             };
         }
 
-        public FrameworkElement BuildVisual(string[] filePaths, bool converted)
+        public FrameworkElement BuildVisual(ManiaBeatmap beatmap, bool converted)
         {
             if (converted)
             {
-                return BuildNotesPreview(filePaths, true, ConversionProvider, CurrentTool);
+                return BuildConvertedPreview(beatmap);
             }
             
-            return BuildNotesPreview(filePaths, false, null, null);
+            return BuildOriginalPreview(beatmap);
         }
         
-        private FrameworkElement BuildNotesPreview(string[] filePaths, bool converted,
-            Func<string, string, int, int, object?>? conversionProvider, string? toolName)
+        private FrameworkElement BuildOriginalPreview(ManiaBeatmap beatmap)
         {
-            // 仅预览第一个文件
-            var previewOnePath = filePaths is { Length: > 0 } ? filePaths[0] : string.Empty;
-            
-            _logger.LogInformation("预览器读取转换: {Path}, 转换: {Converted}", previewOnePath, converted);
-
-            int? first = PreviewTransformation.GetFirstNonEmptyTime(previewOnePath);
-            if (!first.HasValue)
-            {
-                var full = PreviewTransformation.BuildOriginal(previewOnePath, 1);
-                if (full.notes.Count > 0) first = full.notes.Min(n => n.StartTime);
-            }
-            if (!first.HasValue) return new TextBlock { Text = "(无可用音符)" };
-
-            ManiaBeatmap maniaBeatmap = FilesHelper.GetManiaBeatmap(previewOnePath);
-            
-            var quarterMs = maniaBeatmap.GetBPM(true);
-            int startMs = first.Value;
-            int windowMs = Math.Max(PreviewConstants.MinWindowLengthMs,
-                (int)Math.Round(quarterMs * PreviewConstants.PreviewWindowUnitCount / PreviewConstants.PreviewWindowUnitBeatDenominator));
-            int endMs = startMs + windowMs;
-            
-            LastStartMs = startMs;
-
-            (int columns, List<ManiaBeatmap.PreViewManiaNote> notes, double quarterMs) data;
-            if (converted)
-            {
-                if (conversionProvider == null)
-                    return new TextBlock { Text = "(无转换提供器)" };
-                var rawData = conversionProvider(toolName ?? "", previewOnePath, startMs, endMs);
-                if (rawData is Beatmap beatmap)
-                {
-                    // 如果是ManiaBeatmap直接使用，否则尝试转换为ManiaBeatmap
-                    var processedManiaBeatmap = rawData is ManiaBeatmap mb ? mb : beatmap.GetManiaBeatmap();
-                    data = PreviewTransformation.BuildFromBeatmapWindow(processedManiaBeatmap, startMs, endMs);
-                }
-                else
-                {
-                    data = (0, new List<ManiaBeatmap.PreViewManiaNote>(), 0.0);
-                }
-            }
-            else
-            {
-                data = PreviewTransformation.BuildOriginalWindow(previewOnePath, startMs, endMs);
-            }
-
-            var previewElement = BuildNotes(data);
-            return previewElement;
+            var (columns, notes, quarterMs) = PreviewTransformation.BuildFromBeatmap(beatmap, 10);
+            return BuildManiaTimeRowsFromNotes(notes, columns, 10, quarterMs);
         }
-
-        // 从实际音符构建显示
-        private FrameworkElement BuildNotes((int columns, List<ManiaBeatmap.PreViewManiaNote> notes, double quarterMs) data)
+        
+        private FrameworkElement BuildConvertedPreview(ManiaBeatmap originalBeatmap)
         {
-            if (data.columns <= 0 || data.notes.Count == 0)
-                return new TextBlock { Text = "(无可用数据)" };
+            if (ConversionProvider == null || CurrentTool == null)
+                return new TextBlock { Text = "No conversion available" };
 
-            var displayColumns = data.columns;
-            if (ColumnOverride > 0)
-                displayColumns = ColumnOverride;
-
-            return BuildManiaTimeRowsFromNotes(data.notes, displayColumns, 10, data.quarterMs);
+            // 使用转换提供器处理谱面
+            var rawData = ConversionProvider(CurrentTool, originalBeatmap.FilePath);
+            if (rawData is Beatmap beatmap)
+            {
+                // 如果是ManiaBeatmap直接使用，否则尝试转换为ManiaBeatmap
+                var processedManiaBeatmap = rawData is ManiaBeatmap mb ? mb : beatmap.GetManiaBeatmap();
+                var (columns, notes, quarterMs) = PreviewTransformation.BuildFromBeatmap(processedManiaBeatmap, 10);
+                return BuildManiaTimeRowsFromNotes(notes, columns, 10, quarterMs);
+            }
+            
+            return new TextBlock { Text = "Conversion failed" };
         }
-
+        
         // 根据时间行构建动态预览控件（按时间分组、限制行数）
         private FrameworkElement BuildManiaTimeRowsFromNotes(List<ManiaBeatmap.PreViewManiaNote> allNotes, int columns, int maxRows, double quarterMs = 0, Func<int, ManiaBeatmap.PreViewManiaNote, ManiaBeatmap.PreViewManiaNote>? noteTransform = null)
         {
@@ -162,8 +121,7 @@ namespace krrTools.Utilities
             var dyn = new DynamicPreviewControl(grouped, displayColumns, quarterMs)
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Stretch,
-                Background = Brushes.Transparent
+                VerticalAlignment = VerticalAlignment.Stretch
             };
             return dyn;
         }

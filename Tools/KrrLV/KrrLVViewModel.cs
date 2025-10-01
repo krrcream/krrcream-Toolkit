@@ -27,8 +27,6 @@ namespace krrTools.Tools.KrrLV
     
     public partial class KrrLVViewModel : ObservableObject
     {
-        private static readonly ILogger<KrrLVViewModel> _logger = LoggerFactoryHolder.CreateLogger<KrrLVViewModel>();
-        
         [ObservableProperty]
         private string _pathInput = null!;
 
@@ -105,7 +103,7 @@ namespace krrTools.Tools.KrrLV
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "打开路径时出错");
+                    Logger.Log(LogLevel.Error, $"无法打开路径: {ex.Message}");
                 }
             }
         }
@@ -140,7 +138,7 @@ namespace krrTools.Tools.KrrLV
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "保存文件时出错");
+                    Logger.Log(LogLevel.Error, $"保存CSV文件失败: {ex.Message}");
                 }
             }
         }
@@ -240,7 +238,7 @@ namespace krrTools.Tools.KrrLV
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogError(ex, "处理.osz文件时出错");
+                                Logger.Log(LogLevel.Error, $"处理.osz文件失败: {ex.Message}");
                             }
                         }
                     }
@@ -261,7 +259,7 @@ namespace krrTools.Tools.KrrLV
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "处理文件时发生异常");
+                Logger.Log(LogLevel.Error, $"处理文件时发生异常: {ex.Message}");
             }
         }
 
@@ -294,7 +292,7 @@ namespace krrTools.Tools.KrrLV
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "处理.osz条目时出错");
+                Logger.Log(LogLevel.Error, $"处理.osz条目时发生异常: {ex.Message}");
             }
         }
     
@@ -362,7 +360,7 @@ namespace krrTools.Tools.KrrLV
     }
     catch (Exception ex)
     {
-        _logger.LogError(ex, "分析.osz条目时发生异常");
+        Logger.Log(LogLevel.Error, $"分析.osz条目时发生异常: {ex.Message}");
         Application.Current.Dispatcher.Invoke(() =>
         {
             item.Status = $"错误: {ex.Message}";

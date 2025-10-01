@@ -12,6 +12,7 @@ using System.Windows.Media;
 using krrTools.Data;
 using krrTools.Localization;
 using krrTools.UI;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.Tools.FilesManager
 {
@@ -265,12 +266,22 @@ namespace krrTools.Tools.FilesManager
 
         private async void SetSongsBtn_Click(object sender, RoutedEventArgs e)
         {
-            var owner = Window.GetWindow(this);
-            var selectedPath = FilesHelper.ShowFolderBrowserDialog("Please select the osu! Songs folder", owner);
-            if (!string.IsNullOrEmpty(selectedPath))
+            try
             {
-                var vm = (FilesManagerViewModel)DataContext;
-                await vm.ProcessAsync(selectedPath);
+                var owner = Window.GetWindow(this);
+                if (owner != null)
+                {
+                    var selectedPath = FilesHelper.ShowFolderBrowserDialog("Please select the osu! Songs folder", owner);
+                    if (!string.IsNullOrEmpty(selectedPath))
+                    {
+                        var vm = (FilesManagerViewModel)DataContext;
+                        await vm.ProcessAsync(selectedPath);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error,"Error setting Songs path: " + ex.Message);
             }
         }
     }

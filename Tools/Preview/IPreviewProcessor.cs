@@ -1,4 +1,5 @@
 using System.Windows;
+using krrTools.Beatmaps;
 
 namespace krrTools.Tools.Preview
 {
@@ -11,7 +12,7 @@ namespace krrTools.Tools.Preview
 
         string? CurrentTool { get; set; }
 
-        FrameworkElement BuildVisual(string[] filePaths, bool converted);
+        FrameworkElement BuildVisual(ManiaBeatmap beatmap, bool converted);
     }
 }
 

@@ -236,23 +236,18 @@ namespace krrTools.Tools.Listener
                 return;
             }
 
-            // If RealTimePreview is on and there are staged files, convert those instead of the single current file
+            // If RealTimePreview is on, convert the current file
             try
             {
-                if (_viewModel.Config.RealTimePreview)
+                if (_viewModel.Config.RealTimePreview && !string.IsNullOrEmpty(_viewModel.CurrentOsuFilePath))
                 {
-                    var staged = DualPreviewControl.GetSharedStagedPaths();
-                    if (staged is { Length: > 0 })
-                    {
-                        // Use FileDispatcher to convert staged files
-                        mainWindow?._fileDispatcher.ConvertFiles(staged.Where(p => !string.IsNullOrEmpty(p)).ToArray(), activeTag);
-                        return;
-                    }
+                    mainWindow?._fileDispatcher.ConvertFiles([_viewModel.CurrentOsuFilePath], activeTag);
+                    return;
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Error while attempting to process staged files: " + ex.Message);
+                Debug.WriteLine("Error while attempting to process current file: " + ex.Message);
                 // fall through to single-file behavior
             }
 
@@ -311,7 +306,7 @@ namespace krrTools.Tools.Listener
                         if (!_viewModel.Config.RealTimePreview)
                         {
                             // 清理之前通过实时预览暂存的文件（全局广播清除）
-                            DualPreviewControl.BroadcastStagedPaths(null);
+                            // DualPreviewControl.BroadcastStagedPaths(null);
                         }
                     }
                     catch (Exception ex) { Debug.WriteLine($"ListenerView.ViewModel_PropertyChanged: {ex.Message}"); }
@@ -332,10 +327,10 @@ namespace krrTools.Tools.Listener
                  {
                      if (!System.IO.File.Exists(osuPath)) return;
 
-                     var arr = new[] { osuPath };
+                     // var arr = new[] { osuPath };
 
                      // 广播到所有预览并尝试把文件加载进主窗口的预览控件
-                     DualPreviewControl.BroadcastStagedPaths(arr);
+                     // DualPreviewControl.BroadcastStagedPaths(arr);
 
                      if (Application.Current?.MainWindow is MainWindow main)
                      {
@@ -346,8 +341,12 @@ namespace krrTools.Tools.Listener
                              var globalPreview = main.PreviewControl;
                              if (globalPreview != null)
                              {
-                                 globalPreview.LoadPreview(arr, suppressBroadcast: true);
-                                 globalPreview.ApplyDropZoneStagedUI(arr);
+                                 var beatmaps = main._fileDispatcher.GetManiaBeatmaps([osuPath]);
+                                 if (beatmaps.Length > 0)
+                                 {
+                                     globalPreview.LoadPreview(beatmaps.FirstOrDefault());
+                                 }
+                                 // globalPreview.ApplyDropZoneStagedUI(arr);
                              }
                          }
                      }

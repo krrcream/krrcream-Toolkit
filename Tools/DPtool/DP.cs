@@ -7,7 +7,7 @@ using OsuParsers.Beatmaps.Objects;
 
 namespace krrTools.Tools.DPtool
 {
-    public class DPService
+    public class DP
     {
         // 常量定义
         private const int RANDOM_SEED = 114514;
@@ -145,12 +145,7 @@ namespace krrTools.Tools.DPtool
             beatmap.HitObjects.AddRange(newObjects);
             conv.HitObjectSort(beatmap);
         }
-
-        /// <summary>
-        /// 将矩阵进行左右镜像翻转
-        /// </summary>
-        /// <param name="matrix">要翻转的矩阵</param>
-        /// <returns>翻转后的新矩阵</returns>
+        
         private static int[,] Mirror(int[,] matrix)
         {
             int rows = matrix.GetLength(0);
@@ -167,12 +162,7 @@ namespace krrTools.Tools.DPtool
 
             return result;
         }
-
-        /// <summary>
-        /// 移除矩阵的一半（左半或右半），就地修改
-        /// </summary>
-        /// <param name="matrix">要修改的矩阵</param>
-        /// <param name="isLeft">true表示移除左半部分，false表示移除右半部分</param>
+        
         private static void RemoveHalf(int[,] matrix, bool isLeft)
         {
             int rows = matrix.GetLength(0);

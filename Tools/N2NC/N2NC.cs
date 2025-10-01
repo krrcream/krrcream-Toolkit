@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using krrTools.Beatmaps;
 using krrTools.Core;
 using krrTools.Data;
+using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 using OsuParsers.Beatmaps.Objects;
 using OsuParsers.Decoders;
@@ -51,7 +52,8 @@ namespace krrTools.Tools.N2NC
 
             if (P is { Count: > 0 } && !P.Contains(CS))
             {
-                throw new ArgumentException("不在筛选的键位模式里");
+                Logger.Log(LogLevel.Warning, "谱面键数 {CS} 不在筛选的键位模式里 {SelectedKeys}，跳过转换", CS, string.Join(",", P));
+                return matrix;
             }
 
             if (CS == targetKeys && (int)options.TargetKeys == targetKeys)
@@ -59,9 +61,9 @@ namespace krrTools.Tools.N2NC
                 return matrix;
             }
             double BPM = beatmap.GetBPM();
-            // Debug.WriteLine("BPM：" + BPM);
+            // _logger.LogDebug($"BPM：{BPM}");
             double beatLength = 60000 / BPM * 4;
-
+            // Debug.WriteLine("BPM：" + BPM);
             double convertTime = Math.Max(1, options.TransformSpeed * beatLength - 10);
 
             int[,] newMatrix = turn >= 0 ? 

@@ -1,6 +1,8 @@
+using System;
 using krrTools.Core;
 using krrTools.Localization;
 using OsuParsers.Beatmaps;
+using OsuParsers.Decoders;
 
 namespace krrTools.Tools.DPtool
 {
@@ -15,8 +17,15 @@ namespace krrTools.Tools.DPtool
 
         protected override Beatmap ProcessBeatmap(Beatmap input, DPToolOptions options)
         {
-            var dp = new DPService();
+            var dp = new DP();
             return dp.DPBeatmapToData(input, options);
+        }
+
+        protected override Beatmap ProcessSingleFile(string filePath, DPToolOptions options)
+        {
+            var beatmap = BeatmapDecoder.Decode(filePath);
+            if (beatmap == null) throw new Exception("Failed to load beatmap");
+            return ProcessBeatmap(beatmap, options);
         }
     }
 }

@@ -12,7 +12,7 @@ namespace krrTools.Tools.N2NC
     /// <summary>
     /// N2NC工具模块
     /// </summary>
-    public class N2NCTool : ToolModuleBase<N2NCOptions, N2NCViewModel, N2NCControl>
+    public abstract class N2NCTool : ToolModuleBase<N2NCOptions, N2NCViewModel, N2NCControl>
     {
         /// <summary>
         /// 模块类型

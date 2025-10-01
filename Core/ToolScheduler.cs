@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using krrTools.Beatmaps;
 using krrTools.Configuration;
 using OsuParsers.Beatmaps;
 
@@ -71,40 +73,6 @@ namespace krrTools.Core
         }
 
         /// <summary>
-        /// 同步执行单个工具（使用指定的选项）
-        /// </summary>
-        /// <param name="toolName">工具名称</param>
-        /// <param name="filePath">输入文件路径</param>
-        /// <param name="options">工具选项</param>
-        /// <returns>输出文件路径，失败返回null</returns>
-        public string? ExecuteSingle(string toolName, string filePath, IToolOptions options)
-        {
-            if (!_tools.TryGetValue(toolName, out var tool))
-                return null;
-
-            return tool.ProcessFile(filePath, options);
-        }
-
-        /// <summary>
-        /// 异步执行工具管道
-        /// </summary>
-        /// <param name="pipeline">管道步骤列表</param>
-        /// <param name="filePath">输入文件路径</param>
-        /// <returns>最终输出文件路径，失败返回null</returns>
-        public async Task<string?> ExecutePipelineAsync(IEnumerable<(string ToolName, IToolOptions Options)> pipeline, string filePath)
-        {
-            string currentPath = filePath;
-            foreach (var (toolName, options) in pipeline)
-            {
-                var result = await ExecuteSingleAsync(toolName, currentPath, options);
-                if (result == null)
-                    return null;
-                currentPath = result;
-            }
-            return currentPath;
-        }
-
-        /// <summary>
         /// 处理Beatmap对象（使用工具内部加载的设置）
         /// </summary>
         /// <param name="toolName">工具名称</param>
@@ -115,7 +83,7 @@ namespace krrTools.Core
             if (!_tools.TryGetValue(toolName, out var tool))
                 return null;
 
-            return tool.ProcessBeatmapToData(beatmap);
+            return tool.ProcessBeatmap(beatmap);
         }
 
         /// <summary>
@@ -130,7 +98,7 @@ namespace krrTools.Core
             if (!_tools.TryGetValue(toolName, out var tool))
                 return null;
 
-            return tool.ProcessBeatmapToData(beatmap, options);
+            return tool.ProcessBeatmap(beatmap, options);
         }
 
         /// <summary>
@@ -150,6 +118,24 @@ namespace krrTools.Core
                 currentBeatmap = result;
             }
             return currentBeatmap;
+        }
+
+        /// <summary>
+        /// 从路径加载ManiaBeatmap
+        /// </summary>
+        /// <param name="filePath">文件路径</param>
+        /// <returns>ManiaBeatmap实例，失败返回null</returns>
+        public ManiaBeatmap? LoadBeatmap(string filePath)
+        {
+            try
+            {
+                return new ManiaBeatmap(filePath);
+            }
+            catch (Exception)
+            {
+                // Log error if needed
+                return null;
+            }
         }
     }
 }

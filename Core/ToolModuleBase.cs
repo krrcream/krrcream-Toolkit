@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using krrTools.Configuration;
 using krrTools.Data;
+using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 
 namespace krrTools.Core
@@ -30,7 +31,7 @@ namespace krrTools.Core
         /// 模块类型
         /// </summary>
         public abstract ToolModuleType ModuleType { get; }
-
+        
         /// <summary>
         /// 枚举值（实现 Configuration.IToolModule）
         /// </summary>
@@ -103,15 +104,21 @@ namespace krrTools.Core
         /// 核心算法：处理Beatmap
         /// </summary>
         protected abstract Beatmap ProcessBeatmap(Beatmap input, TOptions options);
+        protected abstract Beatmap ProcessSingleFile(string filePath, TOptions options);
 
         /// <summary>
         /// 非泛型版本：处理Beatmap（用于GenericTool）
         /// </summary>
-        public Beatmap? ProcessBeatmapWithOptions(Beatmap input, IToolOptions options)
+
+        public Beatmap? ProcessBeatmapWithOptions(Object input, IToolOptions options)
         {
             if (options is TOptions concreteOptions)
             {
-                return ProcessBeatmap(input, concreteOptions);
+                if (input is Beatmap beatmap)
+                    return ProcessBeatmap(beatmap, concreteOptions);
+
+                if (input is string filePath)
+                    return ProcessSingleFile(filePath, concreteOptions);
             }
             return null;
         }
@@ -147,31 +154,29 @@ namespace krrTools.Core
             return ProcessFileWithOptions(filePath, opts);
         }
 
-        public async Task<string?> ProcessFileAsync(string filePath)
-        {
-            return await Task.Run(() => ProcessFile(filePath));
-        }
-
-        public object? TestFileToData(string filePath)
-        {
-            return ProcessFileToDataWithOptions(filePath, DefaultOptions);
-        }
-
-        public Beatmap? ProcessBeatmapToData(Beatmap inputBeatmap, IToolOptions? options = null)
+        public Beatmap? ProcessBeatmap(Beatmap inputBeatmap, IToolOptions? options = null)
         {
             var opts = options ?? DefaultOptions;
-            return ProcessBeatmapToDataWithOptions(inputBeatmap, opts);
+            
+            try
+            {
+                return module.ProcessBeatmapWithOptions(inputBeatmap, opts);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, "处理谱面时出错，使用模块 {ModuleName}: {ErrorMessage}", Name, ex.Message);
+            }
+            
+            return null;
         }
 
         private string? ProcessFileWithOptions(string filePath, IToolOptions options)
         {
             try
             {
-                // 读取原始Beatmap
-                var beatmap = FilesHelper.GetManiaBeatmap(filePath);
-
                 // 处理Beatmap
-                var processedBeatmap = ProcessBeatmapToDataWithOptions(beatmap, options);
+                var processedBeatmap = ProcessFileToDataWithOptions(filePath, options) as Beatmap;
+                
                 if (processedBeatmap == null)
                     return null;
 
@@ -186,21 +191,7 @@ namespace krrTools.Core
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error processing file with {Name}: {ex.Message}");
-            }
-
-            return null;
-        }
-
-        private Beatmap? ProcessBeatmapToDataWithOptions(Beatmap inputBeatmap, IToolOptions options)
-        {
-            try
-            {
-                return module.ProcessBeatmapWithOptions(inputBeatmap, options);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error processing beatmap with {Name}: {ex.Message}");
+                Logger.Log(LogLevel.Error, "处理文件时出错，使用模块 {ModuleName}: {ErrorMessage}", Name, ex.Message);
             }
 
             return null;
@@ -209,7 +200,10 @@ namespace krrTools.Core
         private object? ProcessFileToDataWithOptions(string filePath, IToolOptions options)
         {
             var beatmap = FilesHelper.GetManiaBeatmap(filePath);
-            return ProcessBeatmapToDataWithOptions(beatmap, options);
+            return ProcessBeatmap(beatmap, options);
         }
+        
+        public async Task<string?> ProcessFileAsync(string filePath) => await Task.Run(() => ProcessFile(filePath));
+        public object? TestFileToData(string filePath) => ProcessFileToDataWithOptions(filePath, DefaultOptions);
     }
 }

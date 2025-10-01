@@ -6,7 +6,6 @@ using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Core;
 using krrTools.Data;
-using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 
@@ -97,13 +96,13 @@ namespace krrTools.Tools.KRRLNTransformer
             GenerateTailLength(shortMTX, (int)parameters.ShortLevelValue);
             GenerateTailLength(longMTX, (int)parameters.LongLevelValue);
 
-            int[,] mergeALBMTX = new int[matrix.GetLength(0), matrix.GetLength(1)];
+            int[,] mergeAlbMtx = new int[matrix.GetLength(0), matrix.GetLength(1)];
 
             for (int i = 0; i < matrix.GetLength(0); i++)
             {
                 for (int j = 0; j < matrix.GetLength(1); j++)
                 {
-                    mergeALBMTX[i, j] = -1;
+                    mergeAlbMtx[i, j] = -1;
                 }
             }
 
@@ -113,16 +112,16 @@ namespace krrTools.Tools.KRRLNTransformer
                 {
                     if (shortMTX[i, j] >= 0)
                     {
-                        mergeALBMTX[i, j] = shortMTX[i, j];
+                        mergeAlbMtx[i, j] = shortMTX[i, j];
                     }
                     else if (longMTX[i, j] >= 0)
                     {
-                        mergeALBMTX[i, j] = longMTX[i, j];
+                        mergeAlbMtx[i, j] = longMTX[i, j];
                     }
                 }
             }
 
-            return mergeALBMTX;
+            return mergeAlbMtx;
         }
 
         private void ApplyChangesToHitObjects(ManiaBeatmap beatmap, int[,] mergeMTX, KRRLNTransformerOptions parameters)

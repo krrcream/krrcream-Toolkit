@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using krrTools.Configuration;
 
@@ -56,6 +57,6 @@ namespace krrTools.Core
         /// <summary>
         /// 非泛型版本：处理Beatmap（用于GenericTool）
         /// </summary>
-        OsuParsers.Beatmaps.Beatmap? ProcessBeatmapWithOptions(OsuParsers.Beatmaps.Beatmap input, IToolOptions options);
+        OsuParsers.Beatmaps.Beatmap? ProcessBeatmapWithOptions(Object input, IToolOptions options);
     }
 }

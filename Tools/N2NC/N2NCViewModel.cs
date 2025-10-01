@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using krrTools.Configuration;
+using krrTools.Localization;
 
 namespace krrTools.Tools.N2NC
 {
@@ -21,7 +22,10 @@ namespace krrTools.Tools.N2NC
 
     public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProvider
     {
-        public N2NCViewModel(N2NCOptions options) : base(ConverterEnum.N2NC, true, options) { }
+        public N2NCViewModel(N2NCOptions options) : base(ConverterEnum.N2NC, true, options) 
+        {
+            InitializeLocalized();
+        }
         // TODO: 参数是历史遗留问题，改成自动属性访问器
         private double _targetKeys = 10;
         private double _maxKeys = 10;
@@ -34,7 +38,14 @@ namespace krrTools.Tools.N2NC
 
         public N2NCViewModel() : base(ConverterEnum.N2NC, autoSave: true)
         {
-            // Additional initialization if needed
+            InitializeLocalized();
+        }
+
+        private void InitializeLocalized()
+        {
+            // Listen to language changes for display updates
+            Strings.N2NCMaxKeysTemplate.GetLocalizedString().PropertyChanged += (_, _) => OnPropertyChanged(nameof(MaxKeysDisplay));
+            Strings.N2NCMinKeysTemplate.GetLocalizedString().PropertyChanged += (_, _) => OnPropertyChanged(nameof(MinKeysDisplay));
         }
 
         public KeySelectionFlags KeySelection { get; set; } = KeySelectionFlags.None;
@@ -290,6 +301,10 @@ namespace krrTools.Tools.N2NC
         }
 
         public IToolOptions GetPreviewOptions() => GetConversionOptions();
+
+        // Localized display properties
+        public string MaxKeysDisplay => string.Format(Strings.N2NCMaxKeysTemplate.GetLocalizedString().Value, MaxKeys);
+        public string MinKeysDisplay => string.Format(Strings.N2NCMinKeysTemplate.GetLocalizedString().Value, MinKeys);
 
     }
 }

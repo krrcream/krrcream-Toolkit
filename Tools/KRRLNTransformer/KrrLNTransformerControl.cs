@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Localization;
@@ -15,19 +16,9 @@ public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
 {
     public event EventHandler? SettingsChanged;
 
-    // 命名控件
-    private Slider ShortPercentageValue = null!;
-    private Slider ShortLevelValue = null!;
-    private Slider ShortLimitValue = null!;
-    private Slider ShortRandomValue = null!;
-    private Slider LongPercentageValue = null!;
-    private Slider LongLevelValue = null!;
-    private Slider LongLimitValue = null!;
-    private Slider LongRandomValue = null!;
+    // 命名控件 - 只保留需要手动处理的控件
     private CheckBox AlignCheckBox = null!;
     private Slider AlignValue = null!;
-    private CheckBox ProcessOriginalCheckBox = null!;
-    private Slider ODValue = null!;
     private TextBox SeedTextBox = null!;
 
     private readonly KRRLNTransformerViewModel _viewModel;
@@ -51,10 +42,8 @@ public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
         DataContext = _viewModel;
         // Initialize control UI
         BuildUI();
-        SharedUIComponents.LanguageChanged += HandleLanguageChanged;
         Unloaded += (_, _) =>
         {
-            SharedUIComponents.LanguageChanged -= HandleLanguageChanged;
             Content = null;
         };
     }
@@ -65,10 +54,8 @@ public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
         DataContext = _viewModel;
         // Initialize control UI
         BuildUI();
-        SharedUIComponents.LanguageChanged += HandleLanguageChanged;
         Unloaded += (_, _) =>
         {
-            SharedUIComponents.LanguageChanged -= HandleLanguageChanged;
             Content = null;
         };
     }
@@ -80,61 +67,54 @@ public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
         var stack = CreateMainStackPanel();
 
         // 短面条设置区域标题
-        var shortHeader = SharedUIComponents.CreateHeaderLabel(Strings.KRRShortLNHeader);
-        shortHeader.FontWeight = FontWeights.Bold;
+        var shortHeader = new TextBlock { FontSize = UIConstants.HeaderFontSize, FontWeight = FontWeights.Bold };
+        shortHeader.SetBinding(TextBlock.TextProperty, new Binding("Value") { Source = Strings.KRRShortLNHeader.GetLocalizedString() });
         stack.Children.Add(shortHeader);
 
-        // 短面条百分比设置
-        var shortPercPanel = CreateShortPercentagePanel();
+        // 短面条设置 - 使用模板化控件
+        var shortPercPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortPercentageValue);
         stack.Children.Add(shortPercPanel);
 
-        // 短面条长度等级设置
-        var shortLevelPanel = CreateShortLevelPanel();
+        var shortLevelPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortLevelValue);
         stack.Children.Add(shortLevelPanel);
 
-        // 短面条限制设置
-        var shortLimitPanel = CreateShortLimitPanel();
+        var shortLimitPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortLimitValue);
         stack.Children.Add(shortLimitPanel);
 
-        // 短面条随机程度设置
-        var shortRandomPanel = CreateShortRandomPanel();
+        var shortRandomPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortRandomValue);
         stack.Children.Add(shortRandomPanel);
 
         // 长面条设置区域标题
-        var longHeader = SharedUIComponents.CreateHeaderLabel(Strings.KRRLongLNHeader);
-        longHeader.FontWeight = FontWeights.Bold;
-        longHeader.Margin = new Thickness(0, 15, 0, 0);
+        var longHeader = new TextBlock { FontSize = UIConstants.HeaderFontSize, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 15, 0, 0) };
+        longHeader.SetBinding(TextBlock.TextProperty, new Binding("Value") { Source = Strings.KRRLongLNHeader.GetLocalizedString() });
         stack.Children.Add(longHeader);
 
-        // 长面条百分比设置
-        var longPercPanel = CreateLongPercentagePanel();
+        // 长面条设置 - 使用模板化控件
+        var longPercPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LongPercentageValue);
         stack.Children.Add(longPercPanel);
 
-        // 长面条长度等级设置
-        var longLevelPanel = CreateLongLevelPanel();
+        var longLevelPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LongLevelValue);
         stack.Children.Add(longLevelPanel);
 
-        // 长面条限制设置
-        var longLimitPanel = CreateLongLimitPanel();
+        var longLimitPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LongLimitValue);
         stack.Children.Add(longLimitPanel);
 
-        // 长面条随机程度设置
-        var longRandomPanel = CreateLongRandomPanel();
+        var longRandomPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LongRandomValue);
         stack.Children.Add(longRandomPanel);
 
-        // 对齐设置
+        // 对齐设置 - 需要自定义显示格式，手动处理
         var alignPanel = CreateAlignPanel();
         stack.Children.Add(alignPanel);
 
-        // 处理原始面条复选框
-        var processOriginalPanel = CreateProcessOriginalPanel();
+        // 处理原始面条复选框 - 使用模板化控件
+        var processOriginalPanel = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.ProcessOriginalIsChecked);
         stack.Children.Add(processOriginalPanel);
 
-        // OD设置
-        var odPanel = CreateODPanel();
+        // OD设置 - 使用模板化控件
+        var odPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ODValue);
         stack.Children.Add(odPanel);
 
-        // SEED输入框
+        // SEED输入框 - 使用模板化控件，但需要特殊处理
         var seedPanel = CreateSeedPanel();
         stack.Children.Add(seedPanel);
 
@@ -152,217 +132,34 @@ public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
         return new StackPanel { Margin = new Thickness(15), HorizontalAlignment = HorizontalAlignment.Stretch };
     }
 
-    private FrameworkElement CreateShortPercentagePanel()
-    {
-        var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
-        var label = SharedUIComponents.CreateHeaderLabel(
-            Strings.FormatLocalized(Strings.KRRShortPercentageLabel, 0));
-        ShortPercentageValue = SharedUIComponents.CreateStandardSlider(0, 100, 1, true);
-        ShortPercentageValue.Value = 100;
-        ShortPercentageValue.ValueChanged += (_, e) =>
-        {
-            label.Text = Strings.FormatLocalized(Strings.KRRShortPercentageLabel, (int)e.NewValue);
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        };
-        label.Text = Strings.FormatLocalized(Strings.KRRShortPercentageLabel, (int)ShortPercentageValue.Value);
-        stack.Children.Add(label);
-        stack.Children.Add(ShortPercentageValue);
-        return stack;
-    }
-
-    private FrameworkElement CreateShortLevelPanel()
-    {
-        var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
-        var label = SharedUIComponents.CreateHeaderLabel(Strings.FormatLocalized(Strings.KRRShortLevelLabel, 0));
-        ShortLevelValue = SharedUIComponents.CreateStandardSlider(0, 10, 1, true);
-        ShortLevelValue.Value = 5;
-        ShortLevelValue.ValueChanged += (_, e) =>
-        {
-            label.Text = Strings.FormatLocalized(Strings.KRRShortLevelLabel, (int)e.NewValue);
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        };
-        label.Text = Strings.FormatLocalized(Strings.KRRShortLevelLabel, (int)ShortLevelValue.Value);
-        stack.Children.Add(label);
-        stack.Children.Add(ShortLevelValue);
-        return stack;
-    }
-
-    private FrameworkElement CreateShortLimitPanel()
-    {
-        var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
-        var label = SharedUIComponents.CreateHeaderLabel(Strings.FormatLocalized(Strings.KRRShortLimitLabel, 0));
-        ShortLimitValue = SharedUIComponents.CreateStandardSlider(0, 20, 1, true);
-        ShortLimitValue.Value = 20;
-        ShortLimitValue.ValueChanged += (_, e) =>
-        {
-            label.Text = Strings.FormatLocalized(Strings.KRRShortLimitLabel, (int)e.NewValue);
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        };
-        label.Text = Strings.FormatLocalized(Strings.KRRShortLimitLabel, (int)ShortLimitValue.Value);
-        stack.Children.Add(label);
-        stack.Children.Add(ShortLimitValue);
-        return stack;
-    }
-
-    private FrameworkElement CreateShortRandomPanel()
-    {
-        var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
-        var label = SharedUIComponents.CreateHeaderLabel(Strings.FormatLocalized(Strings.KRRShortRandomLabel, 0));
-        ShortRandomValue = SharedUIComponents.CreateStandardSlider(0, 100, 1, true);
-        ShortRandomValue.Value = 0;
-        ShortRandomValue.ValueChanged += (_, e) =>
-        {
-            label.Text = Strings.FormatLocalized(Strings.KRRShortRandomLabel, (int)e.NewValue);
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        };
-        label.Text = Strings.FormatLocalized(Strings.KRRShortRandomLabel, (int)ShortRandomValue.Value);
-        stack.Children.Add(label);
-        stack.Children.Add(ShortRandomValue);
-        return stack;
-    }
-
-    private FrameworkElement CreateLongPercentagePanel()
-    {
-        var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
-        var label = SharedUIComponents.CreateHeaderLabel(Strings.FormatLocalized(Strings.KRRLongPercentageLabel,
-            0));
-        LongPercentageValue = SharedUIComponents.CreateStandardSlider(0, 100, 1, true);
-        LongPercentageValue.Value = 100;
-        LongPercentageValue.ValueChanged += (_, e) =>
-        {
-            label.Text = Strings.FormatLocalized(Strings.KRRLongPercentageLabel, (int)e.NewValue);
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        };
-        label.Text = Strings.FormatLocalized(Strings.KRRLongPercentageLabel, (int)LongPercentageValue.Value);
-        stack.Children.Add(label);
-        stack.Children.Add(LongPercentageValue);
-        return stack;
-    }
-
-    private FrameworkElement CreateLongLevelPanel()
-    {
-        var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
-        var label = SharedUIComponents.CreateHeaderLabel(Strings.FormatLocalized(Strings.KRRLongLevelLabel, 0));
-        LongLevelValue = SharedUIComponents.CreateStandardSlider(0, 10, 1, true);
-        LongLevelValue.Value = 5;
-        LongLevelValue.ValueChanged += (_, e) =>
-        {
-            label.Text = Strings.FormatLocalized(Strings.KRRLongLevelLabel, (int)e.NewValue);
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        };
-        label.Text = Strings.FormatLocalized(Strings.KRRLongLevelLabel, (int)LongLevelValue.Value);
-        stack.Children.Add(label);
-        stack.Children.Add(LongLevelValue);
-        return stack;
-    }
-
-    private FrameworkElement CreateLongLimitPanel()
-    {
-        var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
-        var label = SharedUIComponents.CreateHeaderLabel(Strings.FormatLocalized(Strings.KRRLongLimitLabel, 0));
-        LongLimitValue = SharedUIComponents.CreateStandardSlider(0, 20, 1, true);
-        LongLimitValue.Value = 20;
-        LongLimitValue.ValueChanged += (_, e) =>
-        {
-            label.Text = Strings.FormatLocalized(Strings.KRRLongLimitLabel, (int)e.NewValue);
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        };
-        label.Text = Strings.FormatLocalized(Strings.KRRLongLimitLabel, (int)LongLimitValue.Value);
-        stack.Children.Add(label);
-        stack.Children.Add(LongLimitValue);
-        return stack;
-    }
-
-    private FrameworkElement CreateLongRandomPanel()
-    {
-        var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
-        var label = SharedUIComponents.CreateHeaderLabel(Strings.FormatLocalized(Strings.KRRLongRandomLabel, 0));
-        LongRandomValue = SharedUIComponents.CreateStandardSlider(0, 100, 1, true);
-        LongRandomValue.Value = 0;
-        LongRandomValue.ValueChanged += (_, e) =>
-        {
-            label.Text = Strings.FormatLocalized(Strings.KRRLongRandomLabel, (int)e.NewValue);
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        };
-        label.Text = Strings.FormatLocalized(Strings.KRRLongRandomLabel, (int)LongRandomValue.Value);
-        stack.Children.Add(label);
-        stack.Children.Add(LongRandomValue);
-        return stack;
-    }
-
     private FrameworkElement CreateAlignPanel()
     {
         var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
 
         var panel = new DockPanel();
         AlignCheckBox = SharedUIComponents.CreateStandardCheckBox("");
-        AlignCheckBox.IsChecked = true;
+        AlignCheckBox.SetBinding(CheckBox.IsCheckedProperty, new Binding("AlignIsChecked") { Source = _viewModel.Options, Mode = BindingMode.TwoWay });
         DockPanel.SetDock(AlignCheckBox, Dock.Left);
 
-        var label = SharedUIComponents.CreateHeaderLabel(Strings.FormatLocalized(Strings.KRRAlignLabel, ""));
+        var label = SharedUIComponents.CreateHeaderLabel("");
+        label.SetBinding(TextBlock.TextProperty, new Binding("AlignDisplayText") { Source = _viewModel });
         AlignValue = SharedUIComponents.CreateStandardSlider(1, 9, 1, true);
+        AlignValue.SetBinding(Slider.ValueProperty, new Binding("AlignValue") { Source = _viewModel.Options, Mode = BindingMode.TwoWay });
         AlignValue.Value = 6;
         AlignValue.IsEnabled = false;
-        AlignCheckBox.Checked += (_, _) =>
-        {
-            AlignValue.IsEnabled = true;
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        };
-        AlignCheckBox.Unchecked += (_, _) =>
-        {
-            AlignValue.IsEnabled = false;
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        };
 
-        AlignValue.ValueChanged += (_, e) =>
-        {
-            var key = (int)e.NewValue;
-            if (AlignValuesDict.TryGetValue(key, out var value))
-                label.Text = Strings.FormatLocalized(Strings.KRRAlignLabel, value);
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        };
+        // 绑定对齐复选框的启用/禁用逻辑
+        AlignCheckBox.Checked += (_, _) => AlignValue.IsEnabled = true;
+        AlignCheckBox.Unchecked += (_, _) => AlignValue.IsEnabled = false;
 
-        var initialKey = (int)AlignValue.Value;
-        if (AlignValuesDict.TryGetValue(initialKey, out var value1))
-            label.Text = Strings.FormatLocalized(Strings.KRRAlignLabel, value1);
+        AlignValue.ValueChanged += (_, _) => { };
+
+
 
         panel.Children.Add(AlignCheckBox);
         panel.Children.Add(label);
         stack.Children.Add(panel);
         stack.Children.Add(AlignValue);
-
-        return stack;
-    }
-
-    private FrameworkElement CreateProcessOriginalPanel()
-    {
-        var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
-        ProcessOriginalCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.KRRProcessOriginalLabel);
-        ProcessOriginalCheckBox.IsChecked = false;
-        ProcessOriginalCheckBox.Checked += (_, _) => SettingsChanged?.Invoke(this, EventArgs.Empty);
-        ProcessOriginalCheckBox.Unchecked += (_, _) => SettingsChanged?.Invoke(this, EventArgs.Empty);
-        stack.Children.Add(ProcessOriginalCheckBox);
-        return stack;
-    }
-
-    private FrameworkElement CreateODPanel()
-    {
-        var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
-        var panel = new DockPanel();
-
-        var label = SharedUIComponents.CreateHeaderLabel(Strings.FormatLocalized(Strings.ODSliderLabel, 0));
-        ODValue = SharedUIComponents.CreateStandardSlider(0, 10, 0.1, true);
-        ODValue.Value = 0;
-        ODValue.ValueChanged += (_, e) =>
-        {
-            label.Text = Strings.FormatLocalized(Strings.ODSliderLabel, e.NewValue);
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
-        };
-        label.Text = Strings.FormatLocalized(Strings.ODSliderLabel, ODValue.Value);
-
-        panel.Children.Add(label);
-        stack.Children.Add(panel);
-        stack.Children.Add(ODValue);
 
         return stack;
     }
@@ -387,81 +184,29 @@ public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
         return grid;
     }
 
-    // 添加处理单个文件的方法
-    public Beatmap ProcessSingleFile(string filePath)
-    {
-        var parameters = GetOptions();
-        var LN = new KRRLN();
-
-        return LN.ProcessFile(filePath, parameters);
-    }
-
-    public string GetOutputFileName(string inputPath, ManiaBeatmap beatmap)
-    {
-        return Path.GetFileNameWithoutExtension(inputPath) + "_KRRLN.osu";
-    }
-
-
-    private void HandleLanguageChanged()
-    {
-        Dispatcher.BeginInvoke(new Action(() =>
-        {
-            Content = null;
-            BuildUI();
-        }));
-    }
-
     public KRRLNTransformerOptions GetOptions()
     {
+        // 从ViewModel的Options获取大部分值（模板化控件自动绑定）
+        var options = _viewModel.Options;
+
+        // 手动处理未使用模板化控件的属性
         try
         {
-            return new KRRLNTransformerOptions
-            {
-                // 短面条设置
-                ShortPercentageValue = Dispatcher.Invoke(() => ShortPercentageValue.Value),
-                ShortLevelValue = Dispatcher.Invoke(() => ShortLevelValue.Value),
-                ShortLimitValue = Dispatcher.Invoke(() => ShortLimitValue.Value),
-                ShortRandomValue = Dispatcher.Invoke(() => ShortRandomValue.Value),
+            // 对齐设置 - 手动处理
+            options.AlignIsChecked = Dispatcher.Invoke(() => AlignCheckBox.IsChecked == true);
+            options.AlignValue = Dispatcher.Invoke(() => AlignValue.Value);
 
-                // 长面条设置
-                LongPercentageValue = Dispatcher.Invoke(() => LongPercentageValue.Value),
-                LongLevelValue = Dispatcher.Invoke(() => LongLevelValue.Value),
-                LongLimitValue = Dispatcher.Invoke(() => LongLimitValue.Value),
-                LongRandomValue = Dispatcher.Invoke(() => LongRandomValue.Value),
-
-                // 对齐设置
-                AlignIsChecked = Dispatcher.Invoke(() => AlignCheckBox.IsChecked == true),
-                AlignValue = Dispatcher.Invoke(() => AlignValue.Value),
-
-                // 处理原始面条
-                ProcessOriginalIsChecked = Dispatcher.Invoke(() => ProcessOriginalCheckBox.IsChecked == true),
-
-                // OD设置
-                ODValue = Dispatcher.Invoke(() => ODValue.Value),
-
-                // 种子值
-                SeedText = Dispatcher.Invoke(() => SeedTextBox.Text),
-            };
+            // 种子值 - 手动处理
+            options.SeedText = Dispatcher.Invoke(() => SeedTextBox.Text);
         }
         catch
         {
-            // 如果控件未初始化，返回默认选项
-            return new KRRLNTransformerOptions
-            {
-                ShortPercentageValue = 50,
-                ShortLevelValue = 5,
-                ShortLimitValue = 20,
-                ShortRandomValue = 50,
-                LongPercentageValue = 50,
-                LongLevelValue = 5,
-                LongLimitValue = 20,
-                LongRandomValue = 50,
-                AlignIsChecked = false,
-                AlignValue = 4,
-                ProcessOriginalIsChecked = false,
-                ODValue = 8,
-                SeedText = "114514"
-            };
+            // 如果控件未初始化，使用默认值
+            options.AlignIsChecked = true;
+            options.AlignValue = 6;
+            options.SeedText = "114514";
         }
+
+        return options;
     }
 }

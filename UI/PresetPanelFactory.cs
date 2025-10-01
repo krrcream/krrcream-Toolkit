@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using krrTools.Configuration;
 using krrTools.Localization;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.UI
 {
@@ -14,7 +15,7 @@ namespace krrTools.UI
     /// </summary>
     public static class PresetPanelFactory
     {
-        public static FrameworkElement CreatePresetPanel<T>(string toolName, Func<T?> getCurrentOptions, Action<T?> applyOptions)
+        public static FrameworkElement CreatePresetPanel<T>(string toolName, Func<T?> getCurrentOptions, Action<T?> applyOptions, ILogger? logger = null)
             where T : class
         {
             var outer = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 10, 0, 10) };
@@ -52,11 +53,11 @@ namespace krrTools.UI
                         }
                         catch (IOException ex)
                         {
-                            Debug.WriteLine($"Failed delete preset file: {ex.Message}");
+                            logger?.LogDebug($"Failed delete preset file: {ex.Message}");
                         }
                         catch (UnauthorizedAccessException ex)
                         {
-                            Debug.WriteLine($"Failed delete preset file: {ex.Message}");
+                            logger?.LogDebug($"Failed delete preset file: {ex.Message}");
                         }
                         Refresh();
                     };

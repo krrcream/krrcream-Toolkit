@@ -11,11 +11,9 @@ namespace krrTools.Core
 {
     public abstract class AbstractBeatmapTransformer<TOptions> where TOptions : class
     {
-        protected static readonly ILogger _logger = LoggerFactoryHolder.CreateLogger<AbstractBeatmapTransformer<TOptions>>();
 
         public Beatmap ProcessFile(string filePath, TOptions options)
         {
-            _logger.LogInformation("转换器读取转换: {FilePath}", filePath);
             var beatmap = LoadBeatmap(filePath);
             ProcessBeatmap(beatmap, options);
             ModifyMetadata(beatmap, options);
@@ -33,17 +31,36 @@ namespace krrTools.Core
         {
             if (!File.Exists(filePath))
             {
+                Logger.Log(LogLevel.Error, "读取文件失败: 文件未找到 - {FilePath}", filePath);
                 throw new FileNotFoundException($"文件未找到: {filePath}");
             }
 
             if (Path.GetExtension(filePath).ToLower() != ".osu")
             {
+                Logger.Log(LogLevel.Error, "读取文件失败: 文件扩展名不是.osu - {FilePath}", filePath);
                 throw new ArgumentException("文件扩展名必须为.osu");
             }
 
-            var beatmap = BeatmapDecoder.Decode(filePath).GetManiaBeatmap();
-            beatmap.InputFilePath = filePath;
-            return beatmap;
+            var beatmap = BeatmapDecoder.Decode(filePath);
+            if (beatmap == null)
+            {
+                Logger.Log(LogLevel.Error, "读取文件失败: 无法解析谱面文件 - {FilePath}", filePath);
+                throw new InvalidDataException("无法解析谱面文件");
+            }
+
+            var maniaBeatmap = beatmap.GetManiaBeatmap();
+            if (maniaBeatmap.HitObjects.Count == 0)
+            {
+                Logger.Log(LogLevel.Warning, "读取文件警告: 谱面为空 - {FilePath}", filePath);
+            }
+
+            if ((int)beatmap.GeneralSection.Mode != 3) // 3是Mania模式
+            {
+                Logger.Log(LogLevel.Warning, "读取文件警告: 非Mania谱面 - {FilePath}, 模式: {Mode}", filePath, beatmap.GeneralSection.Mode);
+            }
+
+            maniaBeatmap.InputFilePath = filePath;
+            return maniaBeatmap;
         }
 
         protected void ProcessBeatmap(Beatmap beatmap, TOptions options)

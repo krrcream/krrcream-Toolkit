@@ -8,30 +8,15 @@ using System.Windows;
 using krrTools.Configuration;
 using krrTools.Data;
 using krrTools.Localization;
-using krrTools.Tools.Preview;
 using Microsoft.Extensions.Logging;
 using Wpf.Ui.Controls;
 using MessageBox = System.Windows.MessageBox;
 using MessageBoxButton = System.Windows.MessageBoxButton;
-using MessageBoxResult = System.Windows.MessageBoxResult;
 
 namespace krrTools.Utilities
 {
-    public class FileDispatcher(Dictionary<string, DualPreviewControl> previewControls, TabView mainTabControl)
+    public class FileDispatcher(TabView mainTabControl)
     {
-        private static readonly ILogger<FileDispatcher> _logger = LoggerFactoryHolder.CreateLogger<FileDispatcher>();
-
-        public void LoadFiles(string[]? paths, string? activeTabTag = null)
-        {
-            activeTabTag ??= GetActiveTabTag();
-            if (previewControls.TryGetValue("Global", out var control))
-            {
-                control.CurrentTool = activeTabTag;
-                control.LoadPreview(paths);
-                control.StageFiles(paths);
-            }
-        }
-
         public void ConvertFiles(string[] paths, string? activeTabTag = null)
         {
             activeTabTag ??= GetActiveTabTag();
@@ -40,6 +25,8 @@ namespace krrTools.Utilities
 
         private void ConvertWithResults(string[] paths, string activeTabTag)
         {
+            var startTime = DateTime.Now;
+            Logger.Log(LogLevel.Information, "开始转换 - 调用模块: {ModuleName}, 使用活动设置, 文件数量: {FileCount}", activeTabTag, paths.Length);
             // Try to find existing Control instance from MainWindow
             var mainWindow = Application.Current?.Windows.OfType<MainWindow>().FirstOrDefault();
             object? conv = null;
@@ -48,9 +35,9 @@ namespace krrTools.Utilities
             {
                 conv = activeTabTag switch
                 {
-                    "N2NC" => mainWindow.ConvWindowInstance,
-                    "DP" => mainWindow.DPWindowInstance,
-                    "KRRLN" => mainWindow.KRRLNTransformerInstance,
+                    nameof(ConverterEnum.N2NC) => mainWindow.ConvWindowInstance,
+                    nameof(ConverterEnum.DP) => mainWindow.DPWindowInstance,
+                    nameof(ConverterEnum.KRRLN) => mainWindow.KRRLNTransformerInstance,
                     _ => null
                 };
             }
@@ -64,16 +51,16 @@ namespace krrTools.Utilities
                     try
                     {
                         conv = Activator.CreateInstance(controlType);
-                        _logger.LogWarning("使用反射创建{Converter}实例 - 选项可能未正确加载", activeTabTag);
+                        Logger.Log(LogLevel.Error,"使用反射创建{Converter}实例 - 选项可能未正确加载", activeTabTag);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "创建控件实例失败: {ToolName}", activeTabTag);
+                        Logger.Log(LogLevel.Error, "创建控件实例失败: {ToolName}", activeTabTag);
                     }
                 }
                 else
                 {
-                    _logger.LogWarning("未找到工具{Converter}对应的控件类型", activeTabTag);
+                    Logger.Log(LogLevel.Error,"未找到工具{Converter}对应的控件类型", activeTabTag);
                 }
             }
 
@@ -107,7 +94,7 @@ namespace krrTools.Utilities
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "转换器处理错误: {Path}", p);
+                    Logger.Log(LogLevel.Error, "并行转换文件失败: {FilePath}", p);
                     failed.Add(p);
                 }
             });
@@ -116,19 +103,22 @@ namespace krrTools.Utilities
             {
                 try
                 {
-                    DualPreviewControl.BroadcastStagedPaths(null);
+                    // DualPreviewControl.BroadcastStagedPaths(null);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "BroadcastStagedPaths错误");
+                    Logger.Log(LogLevel.Error, "广播已转换文件失败: {Error}", ex.Message);
                 }
             }
 
-            _logger.LogInformation("转换器: {Converter}, 生成文件数量: {CreatedCount}", activeTabTag, created.Count);
-            ShowConversionResult(created.ToList(), failed.ToList(), paths.Length);
+            Logger.Log(LogLevel.Information, "转换器: {Converter}, 生成文件数量: {CreatedCount}", activeTabTag, created.Count);
+            var duration = DateTime.Now - startTime;
+            Logger.Log(LogLevel.Information, "结束转换 - 成功数量: {SuccessCount}, 失败数量: {FailCount}, 用时: {Duration}s", created.Count, failed.Count, duration.TotalSeconds.ToString("F2"));
+
+            ShowConversionResult(created.ToList(), failed.ToList());
         }
 
-        private void ShowConversionResult(List<string> created, List<string> failed, int totalFiles)
+        private void ShowConversionResult(List<string> created, List<string> failed)
         {
             string message;
             string title;
@@ -140,14 +130,12 @@ namespace krrTools.Utilities
                 title = "转换成功";
                 icon = MessageBoxImage.Information;
                 
-                if (totalFiles == 1 && created.Count == 1)
+                if (created.Count == 1)
                 {
-                    // 只转换了一个文件且成功
                     message = $"转换成功！\n\n生成的文件：{created[0]}";
                 }
                 else
                 {
-                    // 转换了多个文件
                     var sb = new System.Text.StringBuilder();
                     sb.AppendLine($"成功转换 {created.Count} 个文件：");
                     foreach (var file in created)
@@ -166,7 +154,6 @@ namespace krrTools.Utilities
             }
             else
             {
-                // 转换失败
                 title = "转换失败";
                 icon = MessageBoxImage.Warning;
                 message = failed.Count > 0 
@@ -179,7 +166,30 @@ namespace krrTools.Utilities
 
         private string GetActiveTabTag()
         {
-            return (mainTabControl.SelectedItem as TabViewItem)?.Tag as string ?? "N2NC";
+            return (mainTabControl.SelectedItem as TabViewItem).Tag.ToString();
+        }
+
+        /// <summary>
+        /// 获取ManiaBeatmap对象，用于预览
+        /// </summary>
+        public Beatmaps.ManiaBeatmap[] GetManiaBeatmaps(string[] paths)
+        {
+            if (paths.Length == 0) return [];
+            
+            var beatmaps = new List<Beatmaps.ManiaBeatmap>();
+            foreach (var path in paths)
+            {
+                try
+                {
+                    var beatmap = FilesHelper.GetManiaBeatmap(path);
+                    beatmaps.Add(beatmap);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Error, "Failed to load beatmap {FilePath}: {Error}", path, ex.Message);
+                }
+            }
+            return beatmaps.ToArray();
         }
     }
 }

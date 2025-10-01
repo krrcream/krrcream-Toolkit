@@ -1,5 +1,5 @@
-
 using System;
+using System.Text;
 using System.Windows;
 using krrTools.Configuration;
 using krrTools.Core;
@@ -10,16 +10,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace krrTools;
-public static class LoggerFactoryHolder
-{
-    private static ILoggerFactory Factory { get; } = LoggerFactory.Create(builder =>
-    {
-        builder.AddConsole();
-        builder.SetMinimumLevel(LogLevel.Information);
-    });
-
-    public static ILogger<T> CreateLogger<T>() => Factory.CreateLogger<T>();
-}
 
 public partial class App
 {
@@ -27,12 +17,23 @@ public partial class App
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // 设置控制台编码为UTF-8以支持中文输出
+        Console.OutputEncoding = new UTF8Encoding(false);
+        Console.InputEncoding = Encoding.UTF8;
+
         var services = new ServiceCollection();
 
+        // 注册日志服务
+        services.AddLogging(builder =>
+        {
+            builder.AddConsole();
+            builder.SetMinimumLevel(LogLevel.Information);
+        });
+
         // 注册选项服务
-        services.AddSingleton(provider => BaseOptionsManager.LoadOptions<N2NCOptions>(ConverterEnum.N2NC) ?? new N2NCOptions());
-        services.AddSingleton(provider => BaseOptionsManager.LoadOptions<DPToolOptions>(ConverterEnum.DP) ?? new DPToolOptions());
-        services.AddSingleton(provider => BaseOptionsManager.LoadOptions<KRRLNTransformerOptions>(ConverterEnum.KRRLN) ?? new KRRLNTransformerOptions());
+        services.AddSingleton(BaseOptionsManager.LoadOptions<N2NCOptions>(ConverterEnum.N2NC) ?? new N2NCOptions());
+        services.AddSingleton(BaseOptionsManager.LoadOptions<DPToolOptions>(ConverterEnum.DP) ?? new DPToolOptions());
+        services.AddSingleton(BaseOptionsManager.LoadOptions<KRRLNTransformerOptions>(ConverterEnum.KRRLN) ?? new KRRLNTransformerOptions());
 
         // 注册模块管理器
         services.AddSingleton<IModuleManager, ModuleManager>();
@@ -46,6 +47,11 @@ public partial class App
         services.AddSingleton<ToolScheduler>();
 
         Services = services.BuildServiceProvider();
+
+        // 初始化全局Logger
+        var loggerFactory = Services.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger("Global");
+        Logger.Initialize(logger);
 
         // 初始化兼容性层
         var moduleManager = Services.GetRequiredService<IModuleManager>();

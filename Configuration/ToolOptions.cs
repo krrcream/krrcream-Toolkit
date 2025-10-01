@@ -46,19 +46,16 @@ namespace krrTools.Configuration
                 if (attr != null)
                 {
                     var value = prop.GetValue(this);
-                    if (value != null)
+                    
+                    if (value is IComparable comparable)
                     {
-                        // 自动验证 Min/Max for numeric types
-                        if (value is IComparable comparable)
+                        if (attr.Min != null && comparable.CompareTo(attr.Min) < 0)
                         {
-                            if (attr.Min != null && comparable.CompareTo(attr.Min) < 0)
-                            {
-                                prop.SetValue(this, attr.Min);
-                            }
-                            if (attr.Max != null && comparable.CompareTo(attr.Max) > 0)
-                            {
-                                prop.SetValue(this, attr.Max);
-                            }
+                            prop.SetValue(this, attr.Min);
+                        }
+                        if (attr.Max != null && comparable.CompareTo(attr.Max) > 0)
+                        {
+                            prop.SetValue(this, attr.Max);
                         }
                     }
                 }
@@ -91,7 +88,9 @@ namespace krrTools.Configuration
         Toggle, // CheckBox
         Slider, // Slider for numeric
         Text,   // TextBox for string
-        // 可以扩展 ComboBox 等
+        ComboBox, // 下拉框
+        NumberBox, // 数字输入框
+        // 可根据需要添加更多类型
     }
 
     /// <summary>
@@ -101,10 +100,10 @@ namespace krrTools.Configuration
     public abstract class ToolViewModelBase<TOptions> : ObservableObject where TOptions : class, IToolOptions, new()
     {
         private TOptions _options;
-        private readonly object _toolEnum;
+        private readonly ConverterEnum _toolEnum;
         private readonly bool _autoSave;
 
-        protected ToolViewModelBase(object toolEnum, bool autoSave = true, TOptions? injectedOptions = null)
+        protected ToolViewModelBase(ConverterEnum toolEnum, bool autoSave = true, TOptions? injectedOptions = null)
         {
             _toolEnum = toolEnum;
             _autoSave = autoSave;
@@ -165,7 +164,7 @@ namespace krrTools.Configuration
             }
             catch
             {
-                // Best-effort load; ignore errors and keep defaults
+
             }
         }
 
@@ -208,9 +207,9 @@ namespace krrTools.Configuration
     /// <typeparam name="TOptions">The options type for this tool</typeparam>
     public abstract class ToolControlBase<TOptions> : UserControl where TOptions : class, IToolOptions, new()
     {
-        private readonly object _toolEnum;
+        private readonly ConverterEnum _toolEnum;
 
-        protected ToolControlBase(object toolEnum, TOptions? injectedOptions = null)
+        protected ToolControlBase(ConverterEnum toolEnum, TOptions? injectedOptions = null)
         {
             _toolEnum = toolEnum;
             Options = injectedOptions ?? new TOptions();
