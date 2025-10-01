@@ -5,9 +5,9 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using krrTools.Configuration;
-using krrTools.Tools.DPtool;
 // using krrTools.Tools.LNTransformer;
 using krrTools.UI;
+using krrTools.Utilities;
 
 namespace krrTools.Tools.Preview
 {
@@ -33,14 +33,18 @@ namespace krrTools.Tools.Preview
             
             try
             {
-                if (settingsContent is FrameworkElement fe && processor is PreviewProcessor pp && fe.DataContext is IPreviewOptionsProvider provider)
+                if (settingsContent is FrameworkElement fe && processor is ConverterProcessor pp && fe.DataContext is IPreviewOptionsProvider provider)
                 {
                     pp.ConverterOptionsProvider = () => provider.GetPreviewOptions();
                     
-                    // 特殊处理DP工具：监听Options变化
-                    if (fe.DataContext is DPToolViewModel dpVm && pp.ToolScheduler != null)
+                    // 监听所有转换类工具的Options变化
+                    if (fe.DataContext.GetType().IsGenericType && fe.DataContext.GetType().GetGenericTypeDefinition() == typeof(ToolViewModelBase<>))
                     {
-                        dpVm.Options.PropertyChanged += (_, _) => _previewControl.Refresh();
+                        var optionsProperty = fe.DataContext.GetType().GetProperty("Options");
+                        if (optionsProperty != null && optionsProperty.GetValue(fe.DataContext) is INotifyPropertyChanged optionsNpc)
+                        {
+                            optionsNpc.PropertyChanged += (_, _) => _previewControl.Refresh();
+                        }
                     }
                     
                     // 监听ViewModel的变化
@@ -98,7 +102,7 @@ namespace krrTools.Tools.Preview
                 Margin = new Thickness(8),
                 Padding = new Thickness(0)
             };
-            // If settingsContent is already a ScrollViewer, use it directly to avoid nesting
+
             if (settingsContent is ScrollViewer existingScroll)
             {
                 settingsBorder.Child = existingScroll;

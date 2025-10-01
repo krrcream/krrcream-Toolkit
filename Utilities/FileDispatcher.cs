@@ -1,11 +1,12 @@
-// using static krrTools.Tools.LNTransformer.Setting;
-
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using krrTools.Configuration;
+using krrTools.Data;
 using krrTools.Localization;
 using krrTools.Tools.Preview;
 using Microsoft.Extensions.Logging;
@@ -76,10 +77,11 @@ namespace krrTools.Utilities
                 }
             }
 
-            var created = new List<string>();
-            var failed = new List<string>();
+            var created = new ConcurrentBag<string>();
+            var failed = new ConcurrentBag<string>();
 
-            foreach (var p in paths.Where(p => !string.IsNullOrEmpty(p)))
+            // 并行处理每个文件
+            Parallel.ForEach(paths.Where(p => !string.IsNullOrEmpty(p)), p =>
             {
                 try
                 {
@@ -88,25 +90,15 @@ namespace krrTools.Utilities
                     {
                         var outputFileName = (conv as dynamic)?.GetOutputFileName(p, beatmap);
                         var outputPath = Path.Combine(Path.GetDirectoryName(p) ?? "", outputFileName);
-
-                        // Handle file conflicts
-                        if (File.Exists(outputPath))
+                        
+                        if (BeatmapOutputHelper.SaveBeatmapToFile(beatmap, outputPath))
                         {
-                            var result = MessageBox.Show(
-                                Strings.FileAlreadyExists.Localize() + ": " + Path.GetFileName(outputPath) + "\n\n" + Strings.OverwriteQuestion.Localize(),
-                                Strings.FileConflict.Localize(),
-                                MessageBoxButton.YesNo,
-                                MessageBoxImage.Question);
-
-                            if (result != MessageBoxResult.Yes)
-                            {
-                                failed.Add(p);
-                                continue;
-                            }
+                            created.Add(outputPath);
                         }
-
-                        beatmap.Save(outputPath);
-                        created.Add(outputPath);
+                        else
+                        {
+                            failed.Add(p);
+                        }
                     }
                     else
                     {
@@ -118,7 +110,7 @@ namespace krrTools.Utilities
                     _logger.LogError(ex, "转换器处理错误: {Path}", p);
                     failed.Add(p);
                 }
-            }
+            });
 
             if (created.Count > 0)
             {
@@ -133,7 +125,7 @@ namespace krrTools.Utilities
             }
 
             _logger.LogInformation("转换器: {Converter}, 生成文件数量: {CreatedCount}", activeTabTag, created.Count);
-            ShowConversionResult(created, failed, paths.Length);
+            ShowConversionResult(created.ToList(), failed.ToList(), paths.Length);
         }
 
         private void ShowConversionResult(List<string> created, List<string> failed, int totalFiles)

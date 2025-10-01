@@ -167,7 +167,7 @@ namespace krrTools.Tools.N2NC
             {
                 StringFormat = "{0}"
             };
-            targetBinding.Bindings.Add(new Binding("Value") { Source = new LocalizedStringHelper.LocalizedString(Strings.N2NCTargetKeysTemplate) });
+            targetBinding.Bindings.Add(new Binding("Value") { Source = new LocalizedStringHelper.LocalizedString(Strings.KeysSliderLabel) });
             targetBinding.Bindings.Add(new Binding("TargetKeys") { Source = _viewModel });
             targetBinding.Converter = new LabelConverter();
             targetLabel.SetBinding(TextBlock.TextProperty, targetBinding);
@@ -284,10 +284,10 @@ namespace krrTools.Tools.N2NC
             SeedTextBox = SharedUIComponents.CreateStandardTextBox();
             SeedTextBox.Width = 160;
             SeedTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(N2NCViewModel.Seed)) { Mode = BindingMode.TwoWay, Source = _viewModel });
-            GenerateSeedButton = SharedUIComponents.CreateStandardButton(Strings.N2NCGenerateSeedLabel.Localize());
+            GenerateSeedButton = SharedUIComponents.CreateStandardButton(Strings.SeedGenerateLabel.Localize());
             GenerateSeedButton.Width = 100; // 设置固定宽度以保持按钮大小一致
             GenerateSeedButton.Click += GenerateSeedButton_Click;
-            GenerateSeedButton.ToolTip = Strings.N2NCGenerateSeedTooltip.Localize();
+            GenerateSeedButton.ToolTip = Strings.SeedGenerateTooltip.Localize();
             
             // 创建一个Grid来实现右侧对齐的布局
             var seedGrid = new Grid();

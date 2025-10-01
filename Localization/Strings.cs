@@ -40,7 +40,6 @@ namespace krrTools.Localization
         
         // Listener
         public const string OSUListener = "OSU Listener|osu 侦听";
-        public const string ListenerTitlePrefix = "osu!Listener";
 
         public const string CreateMapLabel = "Create Map|创建谱面";
         public const string SetHotkeyLabel = "Set Hotkey|设置快捷键";
@@ -50,27 +49,23 @@ namespace krrTools.Localization
         public const string MonitoringInformationHeader = "Monitoring Information|谱面信息";
 
         // N2NC
-        public const string N2NCTargetKeysTemplate = "Target Keys: {0}|目标键数: {0}";
         public const string N2NCMaxKeysTemplate = "Max Keys: {0}|上限权重: {0}";
         public const string N2NCMinKeysTemplate = "Min Keys: {0}|下限权重: {0}";
         public const string N2NCTransformSpeedTemplate = "Transform Speed: {0}|转换速度: {0}";
-        public const string N2NCGenerateSeedLabel = "Generate|随机生成";
-        public const string N2NCGenerateSeedTooltip = "Generate a random seed value|生成一个随机种子值";
         
         // LN Transformer
         public const string LevelTooltip = "Density Level (hover to see detailed description)\n-3: Very Low 0: Low 3: Medium 6: High 10: Very High|密度等级（鼠标悬停查看详细说明）\n-3: 极低 0: 低 3: 中等 6: 高 10: 极高";
         public const string LevelLabel = "Level {0}|强度 {0}";
         public const string LNPercentageLabel = "LN {0}%|LN占比 {0}%";
-        public const string DivideLabel = "Divide 1/{0}|面尾量化 1/{0}";
         public const string ColumnLabel = "Column {0}|列量级 {0}";
         public const string GapLabel = "Gap {0}|间隔 {0}";
-        public const string OverallDifficultyHeader = "Over Diffclut|判定难度OD";
         public const string IgnoreCheckbox = "Ignore|忽略";
         public const string IgnoreTooltip = "Skip already converted beatmaps|忽略已转换的谱面";
         public const string FixErrorsCheckbox = "Fix Errors|修复误差";
         public const string FixErrorsTooltip = "Fix timing errors|修复时间误差";
         public const string OriginalLNsCheckbox = "Original LNs|原始长条";
         public const string OriginalLNsTooltip = "Keep original LNs|保留原始长条";
+        
         public const string InstructionsLink = "Instructions|使用说明";
 
         // KRR LN Transformer texts
@@ -86,11 +81,17 @@ namespace krrTools.Localization
         public const string KRRLongRandomLabel = "Long Random {0}|长面随机 {0}";
         public const string KRRAlignLabel = "Align 1/{0}|对齐 1/{0}";
         public const string KRRProcessOriginalLabel = "Process Original LNs|处理原始长条";
-        public const string KRRODLabel = "OD {0}|判定难度 {0}";
-        public const string KRRSeedLabel = "Seed|种子";
-
-        // DP Tool texts
-        public const string DPKeysTemplate = "Keys: {0}|键数: {0}";
+        
+        // 通用控件名称
+        public const string ODSliderLabel = "OD {0}|判定难度 {0}";
+        public const string KeysSliderLabel = "Keys: {0}|键数: {0}";
+        public const string BeatDivideLabel = "Divide 1/{0}|节拍量化 1/{0}";
+        public const string SeedButtonLabel = "Seed|种子";
+        public const string SeedGenerateLabel = "Generate|随机生成";
+        public const string SeedGenerateTooltip = "Generate a random seed value|生成一个随机种子值";
+        
+        
+        // DP Tool专用
         public const string DPLeftMaxKeysTemplate = "Max Keys: {0}|最大键数: {0}";
         public const string DPLeftMinKeysTemplate = "Min Keys: {0}|最小键数: {0}";
         public const string DPRightMaxKeysTemplate = "Max Keys: {0}|最大键数: {0}";
@@ -107,6 +108,8 @@ namespace krrTools.Localization
 
         public const string DPMirrorTooltipRight = "Enable right-hand mirroring|启用右手镜像";
         public const string DPDensityTooltipRight = "Enable right-hand density adjustments|启用右手密度调整";
+        public const string RemoveLabel = "Remove|去除";
+        public const string RemoveTooltip = "Force remove half-zone|强制去除半区";
 
         // Presets
         public const string PresetsLabel = "Presets|预设";

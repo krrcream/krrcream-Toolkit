@@ -163,7 +163,7 @@ namespace krrTools.Core
             return ProcessBeatmapToDataWithOptions(inputBeatmap, opts);
         }
 
-        public string? ProcessFileWithOptions(string filePath, IToolOptions options)
+        private string? ProcessFileWithOptions(string filePath, IToolOptions options)
         {
             try
             {
@@ -179,7 +179,7 @@ namespace krrTools.Core
                 var outputPath = BeatmapOutputHelper.GenerateOutputPath(filePath, module.ModuleName);
 
                 // 写入文件
-                if (BeatmapOutputHelper.WriteBeatmapToFile(processedBeatmap, outputPath))
+                if (BeatmapOutputHelper.SaveBeatmapToFile(processedBeatmap, outputPath))
                 {
                     return outputPath;
                 }
@@ -192,11 +192,10 @@ namespace krrTools.Core
             return null;
         }
 
-        public Beatmap? ProcessBeatmapToDataWithOptions(Beatmap inputBeatmap, IToolOptions options)
+        private Beatmap? ProcessBeatmapToDataWithOptions(Beatmap inputBeatmap, IToolOptions options)
         {
             try
             {
-                // 直接调用模块的ProcessBeatmapWithOptions方法
                 return module.ProcessBeatmapWithOptions(inputBeatmap, options);
             }
             catch (Exception ex)

@@ -350,15 +350,15 @@ public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
         var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
         var panel = new DockPanel();
 
-        var label = SharedUIComponents.CreateHeaderLabel(Strings.FormatLocalized(Strings.KRRODLabel, 0));
+        var label = SharedUIComponents.CreateHeaderLabel(Strings.FormatLocalized(Strings.ODSliderLabel, 0));
         ODValue = SharedUIComponents.CreateStandardSlider(0, 10, 0.1, true);
         ODValue.Value = 0;
         ODValue.ValueChanged += (_, e) =>
         {
-            label.Text = Strings.FormatLocalized(Strings.KRRODLabel, e.NewValue);
+            label.Text = Strings.FormatLocalized(Strings.ODSliderLabel, e.NewValue);
             SettingsChanged?.Invoke(this, EventArgs.Empty);
         };
-        label.Text = Strings.FormatLocalized(Strings.KRRODLabel, ODValue.Value);
+        label.Text = Strings.FormatLocalized(Strings.ODSliderLabel, ODValue.Value);
 
         panel.Children.Add(label);
         stack.Children.Add(panel);
@@ -373,7 +373,7 @@ public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-        var label = SharedUIComponents.CreateHeaderLabel(Strings.KRRSeedLabel);
+        var label = SharedUIComponents.CreateHeaderLabel(Strings.SeedButtonLabel);
         Grid.SetColumn(label, 0);
 
         SeedTextBox = SharedUIComponents.CreateStandardTextBox();

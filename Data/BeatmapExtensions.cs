@@ -130,65 +130,7 @@ public static class BeatmapExtensions
 
         return $"{artist} - {title} ({creator}) [{version}]";
     }
-    
-    public static string SaveSafely(this Beatmap beatmap, string originalFilePath)
-    {
-        // 检查文件是否存在，不需要检查目录
-        string outDir;
-    
-        if (string.IsNullOrEmpty(originalFilePath) || !File.Exists(originalFilePath))
-        {
-            // 文件不存在，保存到程序目录下的 converted 文件夹
-            outDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "converted");
-        }
-        else
-        {
-            // 文件存在，使用原文件所在目录
-            outDir = originalFilePath;
-        }
-    
-        // 调用 SaveSafelyToDir 方法
-        return beatmap.SaveSafelyToDir(outDir);
-    }
 
-    private static string SaveSafelyToDir(this Beatmap beatmap, string outDir)
-    {
-        // 确保目录存在，如果不存在则创建
-        try
-        {
-            if (!Directory.Exists(outDir))
-            { 
-                Directory.CreateDirectory(outDir);
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Create directory failed: {ex.Message}");
-            // 如果创建失败，使用程序的当前目录作为备选
-            outDir = AppDomain.CurrentDomain.BaseDirectory;
-        }
-        
-        string baseFilename = beatmap.GetOsuFileName();
-        string filename = baseFilename + ".osu";
-        string fullPath = Path.Combine(outDir, filename);
-    
-        // 处理文件名过长问题
-        if (fullPath.Length > 255)
-        {
-            int excessLength = fullPath.Length - 255;
-            int charsToTrim = excessLength + 3;
-            if (charsToTrim < baseFilename.Length)
-            {
-                baseFilename = baseFilename.Substring(0, baseFilename.Length - charsToTrim) + "...";
-                filename = baseFilename + ".osu";
-                fullPath = Path.Combine(outDir, filename);
-            }
-        }
-        
-        beatmap.Save(fullPath);
-        return fullPath;
-    }
-    
     public static Dictionary<double, double> GetBeatLengthList(this Beatmap beatmap)
     {
         var tp = beatmap.TimingPoints

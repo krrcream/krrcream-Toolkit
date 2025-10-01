@@ -51,7 +51,7 @@ namespace krrTools.Tools.N2NC
             var outputPath = BeatmapOutputHelper.GenerateOutputPath(filePath, "N2NC");
 
             // 写入文件
-            if (BeatmapOutputHelper.WriteBeatmapToFile(processedBeatmap, outputPath))
+            if (BeatmapOutputHelper.SaveBeatmapToFile(processedBeatmap, outputPath))
             {
                 // 处理Listener逻辑（如果需要的话），未来应该抽象成独立的服务
                 try

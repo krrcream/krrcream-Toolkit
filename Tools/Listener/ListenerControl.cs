@@ -363,7 +363,7 @@ namespace krrTools.Tools.Listener
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                _viewModel.WindowTitle = Strings.ListenerTitlePrefix;
+                _viewModel.WindowTitle = Strings.OSUListener;
             }));
         }
     }

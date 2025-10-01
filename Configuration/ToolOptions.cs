@@ -1,4 +1,6 @@
+using System;
 using System.ComponentModel;
+using System.Reflection;
 using System.Windows.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -34,6 +36,62 @@ namespace krrTools.Configuration
     public abstract class UnifiedToolOptions : ToolOptionsBase
     {
         public PresetKind SelectedPreset { get; set; } = PresetKind.Default;
+
+        public override void Validate()
+        {
+            var properties = GetType().GetProperties();
+            foreach (var prop in properties)
+            {
+                var attr = prop.GetCustomAttribute<OptionAttribute>();
+                if (attr != null)
+                {
+                    var value = prop.GetValue(this);
+                    if (value != null)
+                    {
+                        // 自动验证 Min/Max for numeric types
+                        if (value is IComparable comparable)
+                        {
+                            if (attr.Min != null && comparable.CompareTo(attr.Min) < 0)
+                            {
+                                prop.SetValue(this, attr.Min);
+                            }
+                            if (attr.Max != null && comparable.CompareTo(attr.Max) > 0)
+                            {
+                                prop.SetValue(this, attr.Max);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// 选项属性，用于定义选项的元数据
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Property)]
+    public class OptionAttribute : Attribute
+    {
+        public string? LabelKey { get; set; } // Strings中的键，如 "DPModifyKeysCheckbox"
+        public string? TooltipKey { get; set; } // Strings中的键，如 "DPModifyKeysTooltip"
+        public object? DefaultValue { get; set; }
+        public object? Min { get; set; }
+        public object? Max { get; set; }
+        public UIType UIType { get; set; } = UIType.Toggle;
+        public Type? DataType { get; set; } // 数据类型，如 typeof(int), typeof(double) 等
+        public double? TickFrequency { get; set; } = 1;
+        public double? KeyboardStep { get; set; } = 1;
+    }
+
+    /// <summary>
+    /// UI控件类型枚举
+    /// </summary>
+    public enum UIType
+    {
+        Toggle, // CheckBox
+        Slider, // Slider for numeric
+        Text,   // TextBox for string
+        // 可以扩展 ComboBox 等
     }
 
     /// <summary>
@@ -197,6 +255,15 @@ namespace krrTools.Configuration
             {
                 // Best-effort save; ignore errors
             }
+        }
+
+        /// <summary>
+        /// 使用模板自动生成设置UI面板
+        /// </summary>
+        /// <returns>设置面板</returns>
+        protected virtual StackPanel CreateTemplatedSettingsPanel()
+        {
+            return SettingsBinder.CreateSettingsPanel(Options);
         }
     }
 

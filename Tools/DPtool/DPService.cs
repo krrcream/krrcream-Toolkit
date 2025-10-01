@@ -1,26 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using krrTools.Configuration;
 using krrTools.Data;
 using krrTools.Tools.N2NC;
-using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 using OsuParsers.Beatmaps.Objects;
 
 namespace krrTools.Tools.DPtool
 {
-    public class DP
+    public class DPService
     {
-        private static readonly ILogger<DP> _logger = LoggerFactoryHolder.CreateLogger<DP>();
+        // 常量定义
+        private const int RANDOM_SEED = 114514;
+        private const double TRANSFORM_SPEED = 4.0;
+        private const double BEAT_LENGTH_MULTIPLIER = 4.0;
 
         // 静态方法：处理矩阵，应用DP转换选项
-        public static int[,] ProcessMatrix(int[,] matrix, DPToolOptions options)
+        private static int[,] ProcessMatrix(int[,] matrix, DPToolOptions options)
         {
-            var Conv = new N2NC.N2NC();
-            var random = new Random(114514);
             int[,] orgMTX = matrix;
 
             //克隆两个矩阵分别叫做orgL和orgR
@@ -38,13 +34,13 @@ namespace krrTools.Tools.DPtool
 
             if (options.LDensity)
             {
-                var randomL = new Random(114514);
+                var randomL = new Random(RANDOM_SEED);
                 LimitDensity(orgL, options.LMaxKeys, randomL);
             }
 
             if (options.RDensity)
             {
-                var randomR = new Random(114514);
+                var randomR = new Random(RANDOM_SEED);
                 LimitDensity(orgR, options.RMaxKeys, randomR);
             }
 
@@ -64,111 +60,19 @@ namespace krrTools.Tools.DPtool
             return result;
         }
 
-        public string ProcessFile(string filePath, DPToolOptions options)
-        {
-            _logger.LogInformation("转换器读取转换: {FilePath}", filePath);
-            options.Left.Validate();
-            options.Right.Validate();
-
-            var beatmap = FilesHelper.GetManiaBeatmap(filePath);
-
-            var Conv = new N2NC.N2NC();
-            var random = new Random(114514);
-            int[,] orgMTX;
-            int CS = (int)beatmap.DifficultySection.CircleSize;
-            var convOptions = new N2NCOptions
-            {
-                TargetKeys = options.SingleSideKeyCount,
-                TransformSpeed = 4
-            };
-
-            double beatLength = 60000 / beatmap.BPM * 4;
-            double convertTime = Math.Max(1, convOptions.TransformSpeed * beatLength - 10);
-            var (matrix, timeAxis) = beatmap.BuildMatrix();
-
-            if (options.ModifySingleSideKeyCount && options.SingleSideKeyCount > beatmap.DifficultySection.CircleSize)
-            {
-                int targetKeys = options.SingleSideKeyCount;
-                // 变换时间
-
-                var (oldMTX, insertMTX) = Conv.convertMTX(targetKeys - CS, timeAxis, convertTime, CS, random);
-                int[,] newMatrix = Conv.convert(matrix, oldMTX, insertMTX, timeAxis, targetKeys, beatLength, random);
-                orgMTX = newMatrix;
-            }
-            else if (options.ModifySingleSideKeyCount &&
-                     options.SingleSideKeyCount < beatmap.DifficultySection.CircleSize)
-            {
-                int targetKeys = options.SingleSideKeyCount;
-                var newMatrix = Conv.SmartReduceColumns(matrix, timeAxis, CS - targetKeys, convertTime, beatLength);
-                orgMTX = newMatrix;
-            }
-            else
-            {
-                // We already built (matrix, timeAxis) above; reuse it when no conversion is needed
-                orgMTX = matrix;
-            }
-
-            // 应用DP转换选项
-            int[,] result = ProcessMatrix(orgMTX, options);
-            // 合成新HitObjects
-            newHitObjects(beatmap, result);
-            return BeatmapSave();
-
-
-            string BeatmapSave()
-            {
-                // 添加作者前缀并更新 CircleSize 与版本说明
-                beatmap.MetadataSection.Creator = BaseOptionsManager.DPCreatorPrefix + beatmap.MetadataSection.Creator;
-                beatmap.DifficultySection.CircleSize = result.GetLength(1);
-                beatmap.MetadataSection.Version = "[" + CS + "to" + result.GetLength(1) + "DP] " + beatmap.MetadataSection.Version;
-
-                // 处理 tags：确保不是 null，然后添加默认 DP tag（避免重复）
-                var currentTags = beatmap.MetadataSection.Tags ?? [];
-                var tagToAdd = BaseOptionsManager.DPDefaultTag;
-                if (!currentTags.Contains(tagToAdd))
-                {
-                    var newTags = currentTags.Concat([tagToAdd]).ToArray();
-                    beatmap.MetadataSection.Tags = newTags;
-                }
-
-                string directory = Path.GetDirectoryName(filePath) ?? string.Empty;
-                string baseFilename = beatmap.GetOsuFileName();
-                string filename = baseFilename + ".osu";
-                string fullPath = Path.Combine(directory, filename);
-                if (fullPath.Length > 255)
-                {
-                    int excessLength = fullPath.Length - 255;
-                    int charsToTrim = excessLength + 3; // 多截掉3个字符用于添加"..."
-
-                    if (charsToTrim < baseFilename.Length)
-                    {
-                        baseFilename = baseFilename.Substring(0, baseFilename.Length - charsToTrim) + "...";
-                        filename = baseFilename + ".osu";
-                        fullPath = Path.Combine(directory, filename);
-                    }
-                }
-
-                beatmap.Save(fullPath);
-                return fullPath;
-            }
-        }
-
         public Beatmap DPBeatmapToData(Beatmap beatmap, DPToolOptions options)
         {
-            options.Left.Validate();
-            options.Right.Validate();
-
             var Conv = new N2NC.N2NC();
-            var random = new Random(114514);
+            var random = new Random(RANDOM_SEED);
             int[,] orgMTX;
             int CS = (int)beatmap.DifficultySection.CircleSize;
             var convOptions = new N2NCOptions
             {
                 TargetKeys = options.SingleSideKeyCount,
-                TransformSpeed = 4
+                TransformSpeed = TRANSFORM_SPEED
             };
             double BPM = beatmap.GetBPM();
-            double beatLength = 60000 / BPM * 4;
+            double beatLength = 60000 / BPM * BEAT_LENGTH_MULTIPLIER;
             double convertTime = Math.Max(1, convOptions.TransformSpeed * beatLength - 10);
             var (matrix, timeAxis) = beatmap.BuildMatrix();
 
@@ -206,69 +110,89 @@ namespace krrTools.Tools.DPtool
             return beatmap;
         }
 
+        /// <summary>
+        /// 根据处理后的矩阵重建谱面的HitObjects
+        /// </summary>
+        /// <param name="beatmap">原始谱面对象</param>
+        /// <param name="newMatrix">处理后的矩阵</param>
         private void newHitObjects(Beatmap beatmap, int[,] newMatrix)
         {
-            // 创建临时列表存储对象
-            List<HitObject> newObjects = new List<HitObject>();
-            var Conv = new N2NC.N2NC();
-            //遍历newMatrix
-            for (int i = 0; i < newMatrix.GetLength(0); i++)
+            int rows = newMatrix.GetLength(0);
+            int cols = newMatrix.GetLength(1);
+
+            // 预估容量以减少List的重新分配
+            var newObjects = new List<HitObject>(rows * cols / 4); // 假设平均密度为25%
+            var conv = new N2NC.N2NC();
+
+            // 遍历矩阵重建HitObjects
+            for (int i = 0; i < rows; i++)
             {
-                for (int j = 0; j < newMatrix.GetLength(1); j++)
+                for (int j = 0; j < cols; j++)
                 {
                     int oldIndex = newMatrix[i, j];
-                    if (oldIndex >= 0)
+                    if (oldIndex >= 0 && oldIndex < beatmap.HitObjects.Count)
                     {
-                        newObjects.Add(Conv.CopyHitObjectByPX(beatmap.HitObjects[oldIndex],
-                            ColumnPositionMapper.ColumnToPositionX(newMatrix.GetLength(1), j)
+                        newObjects.Add(conv.CopyHitObjectByPX(
+                            beatmap.HitObjects[oldIndex],
+                            ColumnPositionMapper.ColumnToPositionX(cols, j)
                         ));
                     }
                 }
             }
 
+            // 批量更新HitObjects
             beatmap.HitObjects.Clear();
-            // 在遍历完成后添加所有新对象
             beatmap.HitObjects.AddRange(newObjects);
-            Conv.HitObjectSort(beatmap);
+            conv.HitObjectSort(beatmap);
         }
 
+        /// <summary>
+        /// 将矩阵进行左右镜像翻转
+        /// </summary>
+        /// <param name="matrix">要翻转的矩阵</param>
+        /// <returns>翻转后的新矩阵</returns>
         private static int[,] Mirror(int[,] matrix)
         {
             int rows = matrix.GetLength(0);
             int cols = matrix.GetLength(1);
             int[,] result = new int[rows, cols];
 
-            Parallel.For(0, rows, i =>
+            for (int i = 0; i < rows; i++)
             {
                 for (int j = 0; j < cols; j++)
                 {
                     result[i, j] = matrix[i, cols - 1 - j];
                 }
-            });
+            }
 
             return result;
         }
 
+        /// <summary>
+        /// 移除矩阵的一半（左半或右半），就地修改
+        /// </summary>
+        /// <param name="matrix">要修改的矩阵</param>
+        /// <param name="isLeft">true表示移除左半部分，false表示移除右半部分</param>
         private static void RemoveHalf(int[,] matrix, bool isLeft)
         {
             int rows = matrix.GetLength(0);
             int cols = matrix.GetLength(1);
             int half = cols / 2;
 
-            Parallel.For(0, rows, i =>
+            for (int i = 0; i < rows; i++)
             {
                 for (int j = 0; j < cols; j++)
                 {
                     if (isLeft && j < half)
                     {
-                        matrix[i, j] = 0;
+                        matrix[i, j] = -1; // 标记为删除
                     }
                     else if (!isLeft && j >= half)
                     {
-                        matrix[i, j] = 0;
+                        matrix[i, j] = -1; // 标记为删除
                     }
                 }
-            });
+            }
         }
 
         private static void LimitDensity(int[,] matrix, int maxKeys, Random random)
@@ -278,7 +202,10 @@ namespace krrTools.Tools.DPtool
 
             for (int i = 0; i < rows; i++)
             {
-                var activeNotes = new List<int>();
+                var rowRandom = new Random(random.Next() + i); // 每个线程使用不同的种子
+                var activeNotes = new List<int>(cols); // 预分配容量
+
+                // 收集活跃音符
                 for (int j = 0; j < cols; j++)
                 {
                     if (matrix[i, j] >= 0)
@@ -287,20 +214,34 @@ namespace krrTools.Tools.DPtool
                     }
                 }
 
+                // 如果超过限制，随机移除多余的音符
                 if (activeNotes.Count > maxKeys)
                 {
                     int toRemove = activeNotes.Count - maxKeys;
+
+                    // 使用更高效的随机选择算法
                     for (int r = 0; r < toRemove; r++)
                     {
-                        int index = random.Next(activeNotes.Count);
-                        int col = activeNotes[index];
-                        matrix[i, col] = -1;
-                        activeNotes.RemoveAt(index);
+                        int randomIndex = rowRandom.Next(activeNotes.Count - r);
+                        int colToRemove = activeNotes[randomIndex];
+
+                        // 标记为删除
+                        matrix[i, colToRemove] = -1;
+
+                        // 将选中的元素与列表末尾元素交换，然后移除末尾
+                        activeNotes[randomIndex] = activeNotes[activeNotes.Count - 1 - r];
                     }
                 }
             }
         }
 
+        /// <summary>
+        /// 将两个矩阵水平拼接成一个双人矩阵
+        /// </summary>
+        /// <param name="matrixA">左侧矩阵</param>
+        /// <param name="matrixB">右侧矩阵</param>
+        /// <returns>拼接后的矩阵</returns>
+        /// <exception cref="ArgumentException">当矩阵行数不匹配时抛出</exception>
         private static int[,] ConcatenateMatrices(int[,] matrixA, int[,] matrixB)
         {
             // 获取矩阵维度
@@ -320,18 +261,15 @@ namespace krrTools.Tools.DPtool
             int cols = colsA + colsB;
             int[,] result = new int[rows, cols];
 
-            // 复制矩阵A到结果矩阵的左侧
+            // 处理每一行
             for (int i = 0; i < rows; i++)
             {
+                // 复制左侧矩阵A
                 for (int j = 0; j < colsA; j++)
                 {
                     result[i, j] = matrixA[i, j];
                 }
-            }
-
-            // 复制矩阵B到结果矩阵的右侧
-            for (int i = 0; i < rows; i++)
-            {
+                // 复制右侧矩阵B
                 for (int j = 0; j < colsB; j++)
                 {
                     result[i, j + colsA] = matrixB[i, j];

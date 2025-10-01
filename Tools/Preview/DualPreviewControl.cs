@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using krrTools.Localization;
+using krrTools.Utilities;
 using static krrTools.UI.SharedUIComponents;
 using Button = Wpf.Ui.Controls.Button;
 using Image = System.Windows.Controls.Image;
@@ -77,7 +78,7 @@ public class DualPreviewControl : UserControl
 
     private void ApplyColumnOverrideToProcessor()
     {
-        if (Processor is PreviewProcessor baseProc && ColumnOverride != null)
+        if (Processor is ConverterProcessor baseProc && ColumnOverride != null)
             baseProc.ColumnOverride = (int)ColumnOverride;
     }
 
@@ -152,7 +153,7 @@ public class DualPreviewControl : UserControl
     {
         OriginalHint.Text = OriginalHintBase;
         ConvertedHint.Text = ConvertedHintBase;
-        string startMsText = (Processor is PreviewProcessor bp && bp.LastStartMs != 0) ? $"start {bp.LastStartMs} ms" : string.Empty;
+        string startMsText = (Processor is ConverterProcessor bp && bp.LastStartMs != 0) ? $"start {bp.LastStartMs} ms" : string.Empty;
         StartTimeDisplay.Text = startMsText;
     }
 

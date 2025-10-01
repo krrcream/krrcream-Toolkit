@@ -39,7 +39,7 @@ public partial class App
 
         // 注册模块
         services.AddSingleton<IToolModule, N2NCModule>();
-        services.AddSingleton<IToolModule, DPModule>();
+        services.AddSingleton<IToolModule, DPTool>();
         services.AddSingleton<IToolModule, KRRLNModule>();
 
         // 注册工具调度器

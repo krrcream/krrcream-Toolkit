@@ -797,7 +797,7 @@ public class MainWindow : FluentWindow
             if (isConverter && selectedTag != null)
             {
                 // 直接创建统一的处理器
-                var processor = new PreviewProcessor
+                var processor = new ConverterProcessor
                 {
                     ToolScheduler = ToolScheduler,
                     // ConverterOptionsProvider = () => _converterVM?.Options ?? new N2NCOptions(),

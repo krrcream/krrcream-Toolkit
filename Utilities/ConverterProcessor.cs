@@ -8,14 +8,15 @@ using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Core;
 using krrTools.Data;
+using krrTools.Tools.Preview;
 using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 
-namespace krrTools.Tools.Preview
+namespace krrTools.Utilities
 {
-    public class PreviewProcessor : IPreviewProcessor
+    public class ConverterProcessor : IPreviewProcessor
     {
-        private static readonly ILogger<PreviewProcessor> _logger = LoggerFactoryHolder.CreateLogger<PreviewProcessor>();
+        private static readonly ILogger<ConverterProcessor> _logger = LoggerFactoryHolder.CreateLogger<ConverterProcessor>();
 
         public string ToolKey => "Preview";
         public string? CurrentTool { get; set; }
@@ -30,14 +31,16 @@ namespace krrTools.Tools.Preview
 
         private Func<string, string, int, int, object?>? ConversionProvider { get; set; }
 
-        public PreviewProcessor()
+        public ConverterProcessor()
         {
-            ConversionProvider = (toolName, path, start, end) =>
+            // 分配活动工具、输入路径开始转换
+            ConversionProvider = (toolName, path, _, _) =>
             {
                 var maniaBeatmap = FilesHelper.GetManiaBeatmap(path);
 
                 if (ToolScheduler != null)
                 {
+                    // 事件触发开始转换
                     if (ConverterOptionsProvider != null)
                     {
                         var options = ConverterOptionsProvider();
