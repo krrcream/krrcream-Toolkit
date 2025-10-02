@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using krrTools.Beatmaps;
+using krrTools.Core;
 using krrTools.Data;
 using krrTools.Tools.N2NC;
 using OsuParsers.Beatmaps;
@@ -8,15 +8,75 @@ using OsuParsers.Beatmaps.Objects;
 
 namespace krrTools.Tools.DPtool
 {
-    public class DP
+    public class DP : AbstractBeatmapTransformer<DPToolOptions>
     {
         // 常量定义
         private const int RANDOM_SEED = 114514;
         private const double TRANSFORM_SPEED = 4.0;
         private const double BEAT_LENGTH_MULTIPLIER = 4.0;
 
+        private int _newKeyCount;
+
+        protected override int[,] ProcessMatrix(int[,] matrix, List<int> timeAxis, Beatmap beatmap, DPToolOptions options)
+        {
+            var Conv = new N2NC.N2NC();
+            var random = new Random(RANDOM_SEED);
+            int[,] orgMTX;
+            int CS = (int)beatmap.DifficultySection.CircleSize;
+            var convOptions = new N2NCOptions
+            {
+                TargetKeys = options.SingleSideKeyCount,
+                TransformSpeed = TRANSFORM_SPEED
+            };
+            double BPM = beatmap.MainBPM;
+            double beatLength = 60000 / BPM * BEAT_LENGTH_MULTIPLIER;
+            double convertTime = Math.Max(1, convOptions.TransformSpeed * beatLength - 10);
+
+            if (options.ModifySingleSideKeyCount && options.SingleSideKeyCount > beatmap.DifficultySection.CircleSize)
+            {
+                int targetKeys = options.SingleSideKeyCount;
+                var (oldMTX, insertMTX) = Conv.convertMTX(targetKeys - CS, timeAxis, convertTime, CS, random);
+                int[,] newMatrix = Conv.convert(matrix, oldMTX, insertMTX, timeAxis, targetKeys, beatLength, random);
+                orgMTX = newMatrix;
+            }
+            else if (options.ModifySingleSideKeyCount &&
+                     options.SingleSideKeyCount < beatmap.DifficultySection.CircleSize)
+            {
+                int targetKeys = options.SingleSideKeyCount;
+                var newMatrix = Conv.SmartReduceColumns(matrix, timeAxis, CS - targetKeys, convertTime, beatLength);
+                orgMTX = newMatrix;
+            }
+            else
+            {
+                orgMTX = matrix;
+            }
+
+            // Apply DP processing
+            var processedMatrix = ProcessMatrixStatic(orgMTX, options);
+            _newKeyCount = processedMatrix.GetLength(1);
+            return processedMatrix;
+        }
+
+        protected override void ApplyChangesToHitObjects(Beatmap beatmap, int[,] processedMatrix, DPToolOptions options)
+        {
+            newHitObjects(beatmap, processedMatrix);
+        }
+
+        protected override void ModifyMetadata(Beatmap beatmap, DPToolOptions options)
+        {
+            // Update CS based on new matrix columns
+            beatmap.DifficultySection.CircleSize = _newKeyCount;
+            beatmap.MetadataSection.Creator = "DP Tool & " + beatmap.MetadataSection.Creator;
+            beatmap.MetadataSection.Version = "[DP] " + beatmap.MetadataSection.Version;
+        }
+
+        protected override string SaveBeatmap(Beatmap beatmap, string originalPath)
+        {
+            throw new NotImplementedException();
+        }
+
         // 静态方法：处理矩阵，应用DP转换选项
-        private static int[,] ProcessMatrix(int[,] matrix, DPToolOptions options)
+        private static int[,] ProcessMatrixStatic(int[,] matrix, DPToolOptions options)
         {
             int[,] orgMTX = matrix;
 
@@ -63,52 +123,7 @@ namespace krrTools.Tools.DPtool
 
         public Beatmap DPBeatmapToData(Beatmap beatmap, DPToolOptions options)
         {
-            var Conv = new N2NC.N2NC();
-            var random = new Random(RANDOM_SEED);
-            int[,] orgMTX;
-            int CS = (int)beatmap.DifficultySection.CircleSize;
-            var convOptions = new N2NCOptions
-            {
-                TargetKeys = options.SingleSideKeyCount,
-                TransformSpeed = TRANSFORM_SPEED
-            };
-            double BPM = beatmap.MainBPM;
-            double beatLength = 60000 / BPM * BEAT_LENGTH_MULTIPLIER;
-            double convertTime = Math.Max(1, convOptions.TransformSpeed * beatLength - 10);
-            var (matrix, timeAxis) = beatmap.BuildMatrix();
-
-            if (options.ModifySingleSideKeyCount && options.SingleSideKeyCount > beatmap.DifficultySection.CircleSize)
-            {
-                int targetKeys = options.SingleSideKeyCount;
-                // 变换时间
-
-                var (oldMTX, insertMTX) = Conv.convertMTX(targetKeys - CS, timeAxis, convertTime, CS, random);
-                int[,] newMatrix = Conv.convert(matrix, oldMTX, insertMTX, timeAxis, targetKeys, beatLength, random);
-                orgMTX = newMatrix;
-            }
-            else if (options.ModifySingleSideKeyCount &&
-                     options.SingleSideKeyCount < beatmap.DifficultySection.CircleSize)
-            {
-                int targetKeys = options.SingleSideKeyCount;
-                var newMatrix = Conv.SmartReduceColumns(matrix, timeAxis, CS - targetKeys, convertTime, beatLength);
-                orgMTX = newMatrix;
-            }
-            else
-            {
-                orgMTX = matrix;
-            }
-
-            // Apply DP processing
-            var processedMatrix = ProcessMatrix(orgMTX, options);
-
-            // Reconstruct hit objects
-            newHitObjects(beatmap, processedMatrix);
-
-            // Update metadata
-            beatmap.MetadataSection.Creator = "DP Tool & " + beatmap.MetadataSection.Creator;
-            beatmap.MetadataSection.Version = "[DP] " + beatmap.MetadataSection.Version;
-
-            return beatmap;
+            return ProcessBeatmapToData(beatmap, options);
         }
 
         /// <summary>

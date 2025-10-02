@@ -18,7 +18,8 @@ namespace krrTools.Tools.DPtool
         protected override Beatmap ProcessBeatmap(Beatmap input, DPToolOptions options)
         {
             var dp = new DP();
-            return dp.DPBeatmapToData(input, options);
+            var resultBeatmap = dp.DPBeatmapToData(input, options);
+            return resultBeatmap;
         }
 
         protected override Beatmap ProcessSingleFile(string filePath, DPToolOptions options)

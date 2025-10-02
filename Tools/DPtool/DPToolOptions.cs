@@ -44,7 +44,7 @@ namespace krrTools.Tools.DPtool
         [Option(LabelKey = nameof(KeysSliderLabel), Min = 1, Max = 9, UIType = UIType.Slider, DataType = typeof(int))]
         public int SingleSideKeyCount { get; set; } = 5;
 
-        // 设置约束
+        // 设置约束, 以后走接口实现
         public new void Validate()
         {
             if (LMinKeys > LMaxKeys) LMinKeys = LMaxKeys;

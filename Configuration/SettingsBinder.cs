@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Windows;
@@ -163,16 +164,24 @@ namespace krrTools.Configuration
         }
 
         /// <summary>
-        /// 创建模板化的单个控件
+        /// 创建模板化的单个控件（使用表达式）
         /// </summary>
         public static FrameworkElement CreateTemplatedControl<T>(T options, Expression<Func<T, object>> propertySelector) where T : class
         {
-            var propertyName = GetPropertyName(propertySelector);
-            var prop = options.GetType().GetProperty(propertyName);
-            if (prop == null) return new TextBlock { Text = $"Property {propertyName} not found" };
+            string propertyPath = GetPropertyPathFromExpression(propertySelector);
+            return CreateTemplatedControl(options, propertyPath);
+        }
+
+        /// <summary>
+        /// 创建模板化的单个控件（使用字符串路径）
+        /// </summary>
+        public static FrameworkElement CreateTemplatedControl<T>(T options, string propertyPath) where T : class
+        {
+            var prop = GetPropertyFromPath(options, propertyPath);
+            if (prop == null) return new TextBlock { Text = $"Property {propertyPath} not found" };
 
             var attr = prop.GetCustomAttribute<OptionAttribute>();
-            if (attr == null) return new TextBlock { Text = $"No OptionAttribute for {propertyName}" };
+            if (attr == null) return new TextBlock { Text = $"No OptionAttribute for {propertyPath}" };
 
             string label = GetLocalizedString(attr.LabelKey);
             string? tooltip = string.IsNullOrEmpty(attr.TooltipKey) ? null : GetLocalizedString(attr.TooltipKey);
@@ -180,24 +189,32 @@ namespace krrTools.Configuration
             if (prop.PropertyType == typeof(bool))
             {
                 var checkBox = SharedUIComponents.CreateStandardCheckBox(label, tooltip);
-                BindToggle(checkBox, options, propertyName);
+                BindToggle(checkBox, options, propertyPath);
                 return checkBox;
             }
 
-            return new TextBlock { Text = $"Unsupported control type for {propertyName}" };
+            return new TextBlock { Text = $"Unsupported control type for {propertyPath}" };
         }
 
         /// <summary>
-        /// 创建模板化的滑块控件
+        /// 创建模板化的滑块控件（使用表达式）
         /// </summary>
         public static UIElement CreateTemplatedSlider<T>(T options, Expression<Func<T, object>> propertySelector) where T : class
         {
-            var propertyName = GetPropertyName(propertySelector);
-            var prop = options.GetType().GetProperty(propertyName);
-            if (prop == null) return new TextBlock { Text = $"Property {propertyName} not found" };
+            string propertyPath = GetPropertyPathFromExpression(propertySelector);
+            return CreateTemplatedSlider(options, propertyPath);
+        }
+
+        /// <summary>
+        /// 创建模板化的滑块控件（使用字符串路径）
+        /// </summary>
+        public static UIElement CreateTemplatedSlider<T>(T options, string propertyPath) where T : class
+        {
+            var prop = GetPropertyFromPath(options, propertyPath);
+            if (prop == null) return new TextBlock { Text = $"Property {propertyPath} not found" };
 
             var attr = prop.GetCustomAttribute<OptionAttribute>();
-            if (attr == null) return new TextBlock { Text = $"No OptionAttribute for {propertyName}" };
+            if (attr == null) return new TextBlock { Text = $"No OptionAttribute for {propertyPath}" };
 
             string label = GetLocalizedString(attr.LabelKey);
             string? tooltip = string.IsNullOrEmpty(attr.TooltipKey) ? null : GetLocalizedString(attr.TooltipKey);
@@ -213,25 +230,55 @@ namespace krrTools.Configuration
                     TickFrequency = attr.TickFrequency ?? 1,
                     KeyboardStep = attr.KeyboardStep ?? 1,
                     Source = options,
-                    Path = propertyName
+                    Path = propertyPath
                 };
                 return sliderSettings;
             }
 
-            return new TextBlock { Text = $"Unsupported slider type for {propertyName}" };
+            return new TextBlock { Text = $"Unsupported slider type for {propertyPath}" };
         }
 
-        private static string GetPropertyName<T>(Expression<Func<T, object>> propertySelector)
+        private static PropertyInfo? GetPropertyFromPath(object obj, string path)
         {
-            if (propertySelector.Body is MemberExpression memberExpression)
+            var parts = path.Split('.');
+            PropertyInfo? prop = null;
+            object? current = obj;
+            foreach (var part in parts)
             {
-                return memberExpression.Member.Name;
+                if (current == null) return null;
+                prop = current.GetType().GetProperty(part);
+                if (prop == null) return null;
+                current = prop.GetValue(current);
             }
-            else if (propertySelector.Body is UnaryExpression { Operand: MemberExpression unaryMember })
+            return prop;
+        }
+
+
+
+        private static string GetPropertyPathFromExpression<T>(Expression<Func<T, object>> propertySelector)
+        {
+            var path = new List<string>();
+            System.Linq.Expressions.Expression? current = propertySelector.Body;
+
+            while (current != null)
             {
-                return unaryMember.Member.Name;
+                if (current is MemberExpression member)
+                {
+                    path.Insert(0, member.Member.Name);
+                    current = member.Expression;
+                }
+                else if (current is UnaryExpression unary && unary.Operand is MemberExpression unaryMember)
+                {
+                    path.Insert(0, unaryMember.Member.Name);
+                    current = unaryMember.Expression;
+                }
+                else
+                {
+                    break;
+                }
             }
-            throw new ArgumentException("Invalid property selector expression");
+
+            return string.Join(".", path);
         }
     }
 }

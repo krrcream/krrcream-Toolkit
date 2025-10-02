@@ -70,10 +70,10 @@ namespace krrTools.Tools.KRRLNTransformer
                 }
             }
 
-            ProcessMatrix(shortMTX, (int)parameters.ShortPercentageValue, (int)parameters.ShortLimitValue);
-            ProcessMatrix(longMTX, (int)parameters.LongPercentageValue, (int)parameters.LongLimitValue);
-            GenerateTailLength(shortMTX, (int)parameters.ShortLevelValue);
-            GenerateTailLength(longMTX, (int)parameters.LongLevelValue);
+            ProcessMatrix(shortMTX, (int)parameters.Short.PercentageValue, (int)parameters.Short.LimitValue);
+            ProcessMatrix(longMTX, (int)parameters.Long.PercentageValue, (int)parameters.Long.LimitValue);
+            GenerateTailLength(shortMTX, (int)parameters.Short.LevelValue);
+            GenerateTailLength(longMTX, (int)parameters.Long.LevelValue);
 
             int[,] mergeAlbMtx = new int[matrix.GetLength(0), matrix.GetLength(1)];
 
@@ -114,7 +114,7 @@ namespace krrTools.Tools.KRRLNTransformer
                     if (mergeMTX[i, j] > 0)
                     {
                         if (beatmap.HitObjects[matrix[i, j]].EndTime - beatmap.HitObjects[matrix[i, j]].StartTime > 9
-                            && !parameters.ProcessOriginalIsChecked)
+                            && !parameters.General.ProcessOriginalIsChecked)
                         {
                             continue;
                         }

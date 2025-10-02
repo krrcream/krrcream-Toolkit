@@ -23,6 +23,8 @@ namespace krrTools.Tools.KRRLNTransformer
         public KRRLNTransformerViewModel(KRRLNTransformerOptions options) : base(ConverterEnum.KRRLN, true, options)
         {
             Options.PropertyChanged += (_, _) => OnPropertyChanged(nameof(AlignDisplayText));
+            Options.Alignment.PropertyChanged += (_, _) => OnPropertyChanged(nameof(AlignDisplayText));
+            Options.LNAlignment.PropertyChanged += (_, _) => OnPropertyChanged(nameof(LNAlignDisplayText));
         }
 
         /// <summary>
@@ -39,9 +41,27 @@ namespace krrTools.Tools.KRRLNTransformer
         }
 
         /// <summary>
+        /// 获取LN对齐值的显示文本
+        /// </summary>
+        public string GetLNAlignDisplayText(double value)
+        {
+            int key = (int)value;
+            if (AlignValuesDict.TryGetValue(key, out var displayText))
+            {
+                return Strings.FormatLocalized(Strings.KRRLNAlignLabel, displayText);
+            }
+            return Strings.FormatLocalized(Strings.KRRLNAlignLabel, value.ToString());
+        }
+
+        /// <summary>
         /// 获取对齐值的显示文本（用于绑定）
         /// </summary>
-        public string AlignDisplayText => GetAlignDisplayText(Options.AlignValue);
+        public string AlignDisplayText => GetAlignDisplayText(Options.Alignment.Value);
+
+        /// <summary>
+        /// 获取LN对齐值的显示文本（用于绑定）
+        /// </summary>
+        public string LNAlignDisplayText => GetLNAlignDisplayText(Options.LNAlignment.Value);
 
         public IToolOptions GetPreviewOptions() => Options;
     }
