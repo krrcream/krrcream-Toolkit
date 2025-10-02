@@ -26,7 +26,7 @@ public class DualPreviewControl : Border
     private INotifyPropertyChanged? _observedDc;
     private DateTime _lastRefresh = DateTime.MinValue;
     private ManiaBeatmap? _lastBeatmap;
-    public ToolScheduler? Scheduler { get; set; }
+    public IModuleManager? Scheduler { get; set; }
 
     // 列数覆盖：用于转换后的预览（可能改变列数）
     public static readonly DependencyProperty ColumnOverrideProperty = DependencyProperty.Register(
@@ -126,109 +126,12 @@ public class DualPreviewControl : Border
 
     private void InitializeUI()
     {
-        var previewTitle = new TextBlock { FontSize = 15, FontWeight = FontWeights.Bold, Text = Strings.PreviewTitle.Localize() };
-        var sharedBgImage = new Image
-        {
-            Stretch = Stretch.UniformToFill,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Stretch,
-            Opacity = PreviewBackgroundOpacity,
-            Effect = new BlurEffect { Radius = PreviewBackgroundBlurRadius },
-            Visibility = Visibility.Collapsed
-        };
-        var originalHint = new TextBlock
-        {
-            FontWeight = FontWeights.SemiBold,
-            Foreground = new SolidColorBrush(Color.FromArgb(255, 51, 51, 51)),
-            Margin = new Thickness(2, 0, 2, 4),
-            Text = Strings.OriginalHint.Localize()
-        };
-        var originalContent = new ContentControl
-        {
-            HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            VerticalContentAlignment = VerticalAlignment.Stretch,
-            Visibility = Visibility.Collapsed
-        };
-        var originalGrid = new Grid
-        {
-            RowDefinitions =
-            {
-                new RowDefinition { Height = GridLength.Auto },
-                new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }
-            },
-            Children = { originalHint, originalContent }
-        };
-        Grid.SetRow(originalHint, 0);
-        Grid.SetRow(originalContent, 1);
-        var originalBorder = new Border
-        {
-            Background = Brushes.Transparent,
-            BorderBrush = PanelBorderBrush,
-            BorderThickness = new Thickness(1),
-            CornerRadius = PanelCornerRadius,
-            Margin = new Thickness(0, 4, 0, 4),
-            Padding = new Thickness(6),
-            ClipToBounds = true,
-            Child = originalGrid
-        };
-        var startTimeDisplay = new TextBlock
-        {
-            FontSize = 14,
-            Foreground = new SolidColorBrush(Color.FromArgb(255, 90, 99, 112)),
-            HorizontalAlignment = HorizontalAlignment.Left,
-            Margin = new Thickness(0, 0, 10, 0),
-            Text = ""
-        };
-        var centerStack = new StackPanel
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Orientation = Orientation.Horizontal,
-            Children =
-            {
-                startTimeDisplay,
-                new TextBlock
-                {
-                    FontSize = 18,
-                    Foreground = new SolidColorBrush(Color.FromArgb(255, 90, 99, 112)),
-                    Text = "↓ ↓"
-                }
-            }
-        };
-        var convertedHint = new TextBlock
-        {
-            FontWeight = FontWeights.SemiBold,
-            Foreground = new SolidColorBrush(Color.FromArgb(255, 51, 51, 51)),
-            Margin = new Thickness(2, 0, 2, 4),
-            Text = Strings.ConvertedHint.Localize()
-        };
-        var convertedContent = new ContentControl
-        {
-            HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            VerticalContentAlignment = VerticalAlignment.Stretch,
-            Visibility = Visibility.Collapsed
-        };
-        var convertedGrid = new Grid
-        {
-            RowDefinitions =
-            {
-                new RowDefinition { Height = GridLength.Auto },
-                new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }
-            },
-            Children = { convertedHint, convertedContent }
-        };
-        Grid.SetRow(convertedHint, 0);
-        Grid.SetRow(convertedContent, 1);
-        var convertedBorder = new Border
-        {
-            Background = Brushes.Transparent,
-            BorderBrush = PanelBorderBrush,
-            BorderThickness = new Thickness(1),
-            CornerRadius = PanelCornerRadius,
-            Margin = new Thickness(0, 4, 0, 4),
-            Padding = new Thickness(6),
-            ClipToBounds = true,
-            Child = convertedGrid
-        };
+        var previewTitle = CreatePreviewTitle();
+        var sharedBgImage = CreateSharedBgImage();
+        var originalBorder = CreateOriginalBorder();
+        var centerStack = CreateCenterStack();
+        var convertedBorder = CreateConvertedBorder();
+
         var grid = new Grid
         {
             RowDefinitions =
@@ -250,9 +153,110 @@ public class DualPreviewControl : Border
         Grid.SetRow(convertedBorder, 3);
 
         // 赋值到元组
-        _textBlocks = (previewTitle, originalHint, convertedHint, startTimeDisplay);
-        _contentControls = (originalContent, convertedContent);
+        _textBlocks = (previewTitle, _textBlocks.OriginalHint, _textBlocks.ConvertedHint, _textBlocks.StartTimeDisplay);
+        _contentControls = (_contentControls.OriginalContent, _contentControls.ConvertedContent);
         _sharedBgImage = sharedBgImage;
+    }
+
+    private TextBlock CreatePreviewTitle()
+    {
+        return new TextBlock { FontSize = 15, FontWeight = FontWeights.Bold, Text = Strings.PreviewTitle.Localize() };
+    }
+
+    private Image CreateSharedBgImage()
+    {
+        return new Image
+        {
+            Stretch = Stretch.UniformToFill,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+            Opacity = 0.25,
+            Effect = new BlurEffect { Radius = 2 },
+            Visibility = Visibility.Collapsed
+        };
+    }
+
+    private Border CreateBorder(string hintText, out TextBlock hint, out ContentControl content)
+    {
+        hint = new TextBlock
+        {
+            FontWeight = FontWeights.SemiBold,
+            Foreground = PreviewConstants.UiHintTextBrush,
+            Margin = new Thickness(2, 0, 2, 4),
+            Text = hintText
+        };
+        content = new ContentControl
+        {
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            VerticalContentAlignment = VerticalAlignment.Stretch,
+            Visibility = Visibility.Collapsed
+        };
+        var grid = new Grid
+        {
+            RowDefinitions =
+            {
+                new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }
+            },
+            Children = { hint, content }
+        };
+        Grid.SetRow(hint, 0);
+        Grid.SetRow(content, 1);
+        return new Border
+        {
+            Background = Brushes.Transparent,
+            BorderBrush = PanelBorderBrush,
+            BorderThickness = new Thickness(1),
+            CornerRadius = PanelCornerRadius,
+            Margin = new Thickness(0, 4, 0, 4),
+            Padding = new Thickness(6),
+            ClipToBounds = true,
+            Child = grid
+        };
+    }
+
+    private Border CreateOriginalBorder()
+    {
+        var border = CreateBorder(Strings.OriginalHint.Localize(), out var hint, out var content);
+        _textBlocks.OriginalHint = hint;
+        _contentControls.OriginalContent = content;
+        return border;
+    }
+
+    private Border CreateConvertedBorder()
+    {
+        var border = CreateBorder(Strings.ConvertedHint.Localize(), out var hint, out var content);
+        _textBlocks.ConvertedHint = hint;
+        _contentControls.ConvertedContent = content;
+        return border;
+    }
+
+    private StackPanel CreateCenterStack()
+    {
+        var startTimeDisplay = new TextBlock
+        {
+            FontSize = 14,
+            Foreground = PreviewConstants.UiSecondaryTextBrush,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(0, 0, 10, 0),
+            Text = ""
+        };
+        _textBlocks.StartTimeDisplay = startTimeDisplay;
+        return new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Orientation = Orientation.Horizontal,
+            Children =
+            {
+                startTimeDisplay,
+                new TextBlock
+                {
+                    FontSize = 18,
+                    Foreground = PreviewConstants.UiSecondaryTextBrush,
+                    Text = "↓ ↓"
+                }
+            }
+        };
     }
 
     private void InitializeEvents()
@@ -293,9 +297,24 @@ public class DualPreviewControl : Border
 
     private void TryAutoLoadSample()
     {
-        if (_autoLoadedSample || Processor == null || _contentControls.OriginalContent.Content != null) return;
+        if (_autoLoadedSample || _contentControls.OriginalContent.Content != null) return;
+        
+        // 如果没有处理器，设置为默认的ManiaPreviewOsu
+        if (Processor == null)
+        {
+            Processor = new ManiaPreviewOsu();
+        }
+        
         string samplePath = FindSampleFile();
-        LoadPreview(samplePath);
+        if (!string.IsNullOrEmpty(samplePath) && File.Exists(samplePath))
+        {
+            LoadPreview(samplePath);
+        }
+        else
+        {
+            // 使用内置预览，避免IO操作
+            LoadBuiltInPreview();
+        }
         _autoLoadedSample = true;
     }
 
@@ -313,7 +332,15 @@ public class DualPreviewControl : Border
         return string.Empty;
     }
 
-    private void LoadPreview(string? path)
+    private void LoadBuiltInPreview()
+    {
+        // 使用ManiaPreviewOsu创建内置预览，避免IO操作
+        var beatmap = ManiaPreviewOsu.GetBeatmapStream();
+        var maniaBeatmap = new ManiaBeatmap(beatmap);
+        LoadPreview(maniaBeatmap);
+    }
+
+    private void LoadPreview(string path)
     {
         if (string.IsNullOrEmpty(path) || !File.Exists(path) || !Path.GetExtension(path).Equals(".osu", StringComparison.OrdinalIgnoreCase)) return;
         _lastBeatmap = Scheduler?.LoadBeatmap(path);
@@ -323,9 +350,8 @@ public class DualPreviewControl : Border
         }
     }
 
-    public void LoadPreview(ManiaBeatmap? beatmap)
+    public void LoadPreview(ManiaBeatmap beatmap)
     {
-        if (beatmap == null) return;
         _lastBeatmap = beatmap;
         UpdatePreviewTitleFromPaths(_lastBeatmap);
         ApplyColumnOverrideToProcessor();
@@ -376,14 +402,14 @@ public class DualPreviewControl : Border
             _observedDc.PropertyChanged += ObservedDcOnPropertyChanged;
     }
 
-    private void ObservedDcOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    private void ObservedDcOnPropertyChanged(object sender, PropertyChangedEventArgs e)
     {
         if ((DateTime.UtcNow - _lastRefresh).TotalMilliseconds < 120) return;
         _lastRefresh = DateTime.UtcNow;
         RefreshWithCatch();
     }
 
-    private void UpdatePreviewTitleFromPaths(ManiaBeatmap? beatmap)
+    private void UpdatePreviewTitleFromPaths(ManiaBeatmap beatmap)
     {
         if (beatmap == null)
         {
@@ -396,10 +422,10 @@ public class DualPreviewControl : Border
         _textBlocks.PreviewTitle.ToolTip = beatmap.FilePath;
     }
 
-    private void SetBackgroundImage(string? path)
+    private void SetBackgroundImage(string path)
     {
         if (path == null || !File.Exists(path)) return;
-        string? bgPath = PreviewTransformation.GetBackgroundImagePath(path);
+        string bgPath = PreviewTransformation.GetBackgroundImagePath(path);
         if (bgPath != null && File.Exists(bgPath) && _sharedBgImage != null)
         {
             var bgBitmap = new BitmapImage();

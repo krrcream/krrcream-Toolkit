@@ -181,6 +181,21 @@ namespace krrTools.Tools.Preview
                     }
                     else
                     {
+                        if (endAfterStart)
+                        {
+                            // 绘制body到窗口底部
+                            double bodyTop = yStart;
+                            double bodyHeight = Math.Max(0, _canvas.Height - yStart);
+                            if (bodyHeight > 0)
+                            {
+                                var bodyRect = MakeRect(rectWidth, bodyHeight, PreviewConstants.HoldBodyBrush);
+                                Canvas.SetLeft(bodyRect, rectLeft);
+                                Canvas.SetTop(bodyRect, bodyTop);
+                                SetZIndex(bodyRect, 5);
+                                _canvas.Children.Add(bodyRect);
+                            }
+                        }
+
                         var headRectOnly = MakeRect(rectWidth, rectHeight, PreviewConstants.HoldHeadBrush, 3);
                         headRectOnly.ToolTip = hasEnd ? (object)$"Hold {n.StartTime} → {n.EndTime.GetValueOrDefault()}" : (object)$"Hold {n.StartTime}";
                         Canvas.SetLeft(headRectOnly, rectLeft);

@@ -1,16 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <OutputType>WinExe</OutputType>
+        <OutputType Condition="'$(Configuration)' == 'Debug'">Exe</OutputType>
+        <OutputType Condition="'$(Configuration)' == 'Release'">WinExe</OutputType>
         <TargetFramework>net9.0-windows</TargetFramework>
-        <Nullable>enable</Nullable>
         <UseWPF>true</UseWPF>
         <ApplicationIcon>fq.ico</ApplicationIcon>
-        <LangVersion>latest</LangVersion>
-        <PublishSingleFile>true</PublishSingleFile>
-        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-        <SelfContained>false</SelfContained>
-        <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+        <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <ItemGroup>
@@ -39,7 +35,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <EmbeddedResource Include="Tools\Preview\mania-PreView.osu" />
       <EmbeddedResource Remove="tools\YLsLNTransformer\**" />
       <EmbeddedResource Remove="publish\**" />
     </ItemGroup>

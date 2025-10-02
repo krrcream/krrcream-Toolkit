@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -34,32 +34,40 @@ namespace krrTools.Tools.KrrLV
             root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            var info = new TextBlock
+            // DataGrid for results
+            var dataGrid = new DataGrid
             {
-                Text = "Drag and drop .osu files or folders here.",
-                FontSize = 18,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 33, 33, 33))
+                AutoGenerateColumns = false,
+                CanUserAddRows = false,
+                SelectionMode = DataGridSelectionMode.Single,
+                SelectionUnit = DataGridSelectionUnit.FullRow
             };
-            Grid.SetRow(info, 0);
-            root.Children.Add(info);
+            dataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("OsuFiles"));
+            dataGrid.Columns.Add(new DataGridTextColumn { Header = "FileName", Binding = new Binding("FileName"), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
+            dataGrid.Columns.Add(new DataGridTextColumn { Header = "Title", Binding = new Binding("Title"), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
+            dataGrid.Columns.Add(new DataGridTextColumn { Header = "Artist", Binding = new Binding("Artist"), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
+            dataGrid.Columns.Add(new DataGridTextColumn { Header = "Diff", Binding = new Binding("Diff"), Width = 120 });
+            dataGrid.Columns.Add(new DataGridTextColumn { Header = "Keys", Binding = new Binding("Keys"), Width = 60 });
+            dataGrid.Columns.Add(new DataGridTextColumn { Header = "BPM", Binding = new Binding("BPM"), Width = 80 });
+            dataGrid.Columns.Add(new DataGridTextColumn { Header = "OD", Binding = new Binding("OD"), Width = 60 });
+            dataGrid.Columns.Add(new DataGridTextColumn { Header = "HP", Binding = new Binding("HP"), Width = 60 });
+            dataGrid.Columns.Add(new DataGridTextColumn { Header = "LN%", Binding = new Binding("LNPercent"), Width = 80 });
+            dataGrid.Columns.Add(new DataGridTextColumn { Header = "XXY SR", Binding = new Binding("XxySR"), Width = 80 });
+            dataGrid.Columns.Add(new DataGridTextColumn { Header = "KRR LV", Binding = new Binding("KrrLV"), Width = 80 });
+            dataGrid.Columns.Add(new DataGridTextColumn { Header = "YLS LV", Binding = new Binding("YlsLV"), Width = 80 });
+            dataGrid.Columns.Add(new DataGridTextColumn { Header = "Status", Binding = new Binding("Status"), Width = 100 });
+
+            Grid.SetRow(dataGrid, 0);
+            root.Children.Add(dataGrid);
 
             var buttonGrid = new Grid { Margin = new Thickness(10) };
             buttonGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            buttonGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            var browseBtn = SharedUIComponents.CreateStandardButton("Browse|浏览");
-            browseBtn.Width = 100; browseBtn.Height = 40;
-            browseBtn.Click += BrowseBtn_Click;
-            Grid.SetColumn(browseBtn, 0);
-            buttonGrid.Children.Add(browseBtn);
-
-            var openPathBtn = SharedUIComponents.CreateStandardButton("Open Path|打开路径");
-            openPathBtn.Width = 120; openPathBtn.Height = 40;
-            openPathBtn.SetBinding(ButtonBase.CommandProperty, new Binding("OpenPathCommand"));
-            Grid.SetColumn(openPathBtn, 1);
-            buttonGrid.Children.Add(openPathBtn);
+            var loadBtn = SharedUIComponents.CreateStandardButton("Load Folder|加载文件夹");
+            loadBtn.Width = 150; loadBtn.Height = 40;
+            loadBtn.Click += LoadBtn_Click;
+            Grid.SetColumn(loadBtn, 0);
+            buttonGrid.Children.Add(loadBtn);
 
             Grid.SetRow(buttonGrid, 1);
             root.Children.Add(buttonGrid);
@@ -88,7 +96,7 @@ namespace krrTools.Tools.KrrLV
                 DragDropEffects.Copy : DragDropEffects.None;
         }
 
-        private void BrowseBtn_Click(object sender, RoutedEventArgs e)
+        private void LoadBtn_Click(object sender, RoutedEventArgs e)
         {
             var owner = Window.GetWindow(this);
             var selected = FilesHelper.ShowFolderBrowserDialog("选择文件夹", owner);
@@ -101,17 +109,7 @@ namespace krrTools.Tools.KrrLV
 
         private void OnLanguageChanged()
         {
-
-                Dispatcher.BeginInvoke(new Action(() =>
-                {
-
-                        var dc = DataContext;
-                        Content = null;
-                        BuildUI();
-                        DataContext = dc;
-
-                }));
-
+            // Update UI strings if needed
         }
     }
 }

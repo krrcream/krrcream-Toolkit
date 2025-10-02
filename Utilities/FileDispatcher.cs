@@ -8,7 +8,6 @@ using System.Windows;
 using krrTools.Configuration;
 using krrTools.Data;
 using krrTools.Localization;
-using Microsoft.Extensions.Logging;
 using Wpf.Ui.Controls;
 using MessageBox = System.Windows.MessageBox;
 using MessageBoxButton = System.Windows.MessageBoxButton;
@@ -26,7 +25,7 @@ namespace krrTools.Utilities
         private void ConvertWithResults(string[] paths, string activeTabTag)
         {
             var startTime = DateTime.Now;
-            Logger.Log(LogLevel.Information, "开始转换 - 调用模块: {ModuleName}, 使用活动设置, 文件数量: {FileCount}", activeTabTag, paths.Length);
+            Console.WriteLine($"[INFO] 开始转换 - 调用模块: {activeTabTag}, 使用活动设置, 文件数量: {paths.Length}");
             // Try to find existing Control instance from MainWindow
             var mainWindow = Application.Current?.Windows.OfType<MainWindow>().FirstOrDefault();
             object? conv = null;
@@ -36,8 +35,8 @@ namespace krrTools.Utilities
                 conv = activeTabTag switch
                 {
                     nameof(ConverterEnum.N2NC) => mainWindow.ConvWindowInstance,
-                    nameof(ConverterEnum.DP) => mainWindow.DPWindowInstance,
-                    nameof(ConverterEnum.KRRLN) => mainWindow.KRRLNTransformerInstance,
+                    nameof(ConverterEnum.DP) => mainWindow.DpToolWindowInstance,
+                    nameof(ConverterEnum.KRRLN) => mainWindow.KrrlnTransformerInstance,
                     _ => null
                 };
             }
@@ -51,16 +50,16 @@ namespace krrTools.Utilities
                     try
                     {
                         conv = Activator.CreateInstance(controlType);
-                        Logger.Log(LogLevel.Error,"使用反射创建{Converter}实例 - 选项可能未正确加载", activeTabTag);
+                        Console.WriteLine($"[ERROR] 使用反射创建{activeTabTag}实例 - 选项可能未正确加载");
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(LogLevel.Error, "创建控件实例失败: {ToolName}", activeTabTag);
+                        Console.WriteLine($"[ERROR] 创建控件实例失败: {activeTabTag}");
                     }
                 }
                 else
                 {
-                    Logger.Log(LogLevel.Error,"未找到工具{Converter}对应的控件类型", activeTabTag);
+                    Console.WriteLine($"[ERROR] 未找到工具{activeTabTag}对应的控件类型");
                 }
             }
 
@@ -94,7 +93,7 @@ namespace krrTools.Utilities
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Error, "并行转换文件失败: {FilePath}", p);
+                    Console.WriteLine($"[ERROR] 并行转换文件失败: {p}");
                     failed.Add(p);
                 }
             });
@@ -107,13 +106,13 @@ namespace krrTools.Utilities
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Error, "广播已转换文件失败: {Error}", ex.Message);
+                    Console.WriteLine($"[ERROR] 广播已转换文件失败: {ex.Message}");
                 }
             }
 
-            Logger.Log(LogLevel.Information, "转换器: {Converter}, 生成文件数量: {CreatedCount}", activeTabTag, created.Count);
+            Console.WriteLine($"[INFO] 转换器: {activeTabTag}, 生成文件数量: {created.Count}");
             var duration = DateTime.Now - startTime;
-            Logger.Log(LogLevel.Information, "结束转换 - 成功数量: {SuccessCount}, 失败数量: {FailCount}, 用时: {Duration}s", created.Count, failed.Count, duration.TotalSeconds.ToString("F2"));
+            Console.WriteLine($"[INFO] 结束转换 - 成功数量: {created.Count}, 失败数量: {failed.Count}, 用时: {duration.TotalSeconds.ToString("F2")}s");
 
             ShowConversionResult(created.ToList(), failed.ToList());
         }
@@ -186,7 +185,7 @@ namespace krrTools.Utilities
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Error, "Failed to load beatmap {FilePath}: {Error}", path, ex.Message);
+                    Console.WriteLine($"[ERROR] Failed to load beatmap {path}: {ex.Message}");
                 }
             }
             return beatmaps.ToArray();

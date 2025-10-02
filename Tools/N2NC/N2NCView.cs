@@ -5,12 +5,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
-using krrTools.Beatmaps;
 using krrTools.Configuration;
-using krrTools.Data;
 using krrTools.Localization;
 using krrTools.UI;
-using OsuParsers.Beatmaps;
 
 namespace krrTools.Tools.N2NC
 {
@@ -55,7 +52,7 @@ namespace krrTools.Tools.N2NC
         }
     }
 
-    public class N2NCControl : ToolControlBase<N2NCOptions>
+    public class N2NCView : ToolViewBase<N2NCOptions>
     {
         public event EventHandler? SettingsChanged;
         private Slider? TargetKeysSlider;
@@ -67,20 +64,11 @@ namespace krrTools.Tools.N2NC
         private readonly N2NCViewModel _viewModel;
 
 
-        public N2NCControl() : base(ConverterEnum.N2NC)
+        public N2NCView() : base(ConverterEnum.N2NC)
         {
             _viewModel = new N2NCViewModel(Options);
             DataContext = _viewModel;
             BuildConverterUI();
-            // Options are now loaded automatically via DI
-        }
-
-        public N2NCControl(N2NCOptions options) : base(ConverterEnum.N2NC, options)
-        {
-            _viewModel = new N2NCViewModel(options);
-            DataContext = _viewModel;
-            BuildConverterUI();
-            // Options are now loaded automatically via DI
         }
 
         private void BuildConverterUI()
@@ -424,54 +412,6 @@ namespace krrTools.Tools.N2NC
             return SharedUIComponents.CreateLabeledRow(Strings.PresetsLabel, panel, rowMargin);
         }
 
-        private void TargetKeysSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            // 保持数值状态同步并确保最大/最小滑块有效
-            int newTarget = Math.Max(1, (int)Math.Round(e.NewValue));
-            if (Math.Abs(_viewModel.TargetKeys - newTarget) > 0)
-                _viewModel.TargetKeys = newTarget;
-
-            // 确保MaxKeys至少等于TargetKeys
-            if (MaxKeysSlider != null)
-            {
-                if (MaxKeysSlider.Value < newTarget)
-                    MaxKeysSlider.Value = newTarget;
-            }
-
-            // 确保MinKeys最大值最多为当前MaxKeys值
-            if (MinKeysSlider != null && MaxKeysSlider != null)
-            {
-                MinKeysSlider.Maximum = MaxKeysSlider.Value;
-                // 限制MinKeys到允许范围
-                if (_viewModel.MinKeys > MinKeysSlider.Maximum)
-                    _viewModel.MinKeys = (int)MinKeysSlider.Maximum;
-            }
-        }
-
-        private void MaxKeysSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            try
-            {
-                // 当Max更改时，确保Min的最大值反映它并限制
-                if (MinKeysSlider != null)
-                {
-                    MinKeysSlider.Maximum = e.NewValue;
-                    if (_viewModel.MinKeys > MinKeysSlider.Maximum)
-                        _viewModel.MinKeys = (int)MinKeysSlider.Maximum;
-                }
-
-                // 如果Max降到Target以下，则减少Target以适应
-                if (TargetKeysSlider != null && TargetKeysSlider.Value > e.NewValue)
-                {
-                    TargetKeysSlider.Value = e.NewValue;
-                }
-            }
-            catch (Exception ex)
-            {
-
-            }
-        }
-
         private void GenerateSeedButton_Click(object sender, RoutedEventArgs e)
         {
             Random random = new Random();
@@ -479,17 +419,6 @@ namespace krrTools.Tools.N2NC
             // 更新ViewModel和绑定的TextBox（双向绑定将保持它们同步）
             _viewModel.Seed = newSeed;
             if (SeedTextBox != null) SeedTextBox.Text = newSeed.ToString();
-        }
-
-        // 添加处理单个文件的方法：返回生成的 .osz 路径（成功）或 null（失败）
-        public Beatmap? ProcessSingleFile(string filePath)
-        {
-            return N2NCService.ProcessSingleFile(filePath, _viewModel.GetConversionOptions());
-        }
-
-        public string GetOutputFileName(string inputPath, ManiaBeatmap beatmap)
-        {
-            return beatmap.GetOsuFileName() + ".osu";
         }
     }
 }

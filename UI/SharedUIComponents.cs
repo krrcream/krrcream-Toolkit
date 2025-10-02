@@ -61,22 +61,6 @@ public static class SharedUIComponents
         }
     }
 
-    // Preview background settings
-    private static double _previewBackgroundOpacity = 1.0;
-    private static double _previewBackgroundBlurRadius = 2.0;
-
-    public static double PreviewBackgroundOpacity
-    {
-        get => _previewBackgroundOpacity;
-        set => _previewBackgroundOpacity = Math.Clamp(value, 0.0, 1.0);
-    }
-
-    public static double PreviewBackgroundBlurRadius
-    {
-        get => _previewBackgroundBlurRadius;
-        set => _previewBackgroundBlurRadius = Math.Max(0.0, value);
-    }
-
     public static readonly Brush PanelBorderBrush = UIConstants.PanelBorderBrush;
     public static readonly CornerRadius PanelCornerRadius = UIConstants.PanelCornerRadius;
     private static readonly Thickness PanelPadding = UIConstants.PanelPadding;
@@ -248,29 +232,24 @@ public static class SharedUIComponents
         var grid = new Grid
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Center
+            VerticalAlignment = VerticalAlignment.Center,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Auto }
+            }
         };
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         return grid;
     }
 
     private static StackPanel CreateLeftPanel()
     {
-        var leftPanel = new StackPanel
+        var hyperlinkButton = new HyperlinkButton
         {
-            Orientation = Orientation.Horizontal,
-            VerticalAlignment = VerticalAlignment.Center
+            NavigateUri = Strings.KrrcreamUrl,
         };
-
-        var copyrightButton = new HyperlinkButton
-        {
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 10, 0),
-            NavigateUri = Strings.KrrcreamUrl
-        };
-        copyrightButton.SetBinding(ContentControl.ContentProperty,
+        hyperlinkButton.SetBinding(ContentControl.ContentProperty,
             new Binding("Value") { Source = Strings.FooterCopyright.GetLocalizedString() });
 
         var githubLink = new HyperlinkButton
@@ -278,22 +257,17 @@ public static class SharedUIComponents
             Content = Strings.GitHubLinkText,
             NavigateUri = Strings.GitHubLinkUrl
         };
-        githubLink.Click += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+
+        return new StackPanel
         {
-            FileName = Strings.GitHubLinkUrl,
-            UseShellExecute = true
-        });
-        var githubTextBlock = new TextBlock
-        {
-            Margin = new Thickness(0, 10, 0, 0),
-            VerticalAlignment = VerticalAlignment.Center
+            Orientation = Orientation.Horizontal,
+            VerticalAlignment = VerticalAlignment.Center,
+            Children =
+            {
+                hyperlinkButton,
+                githubLink
+            }
         };
-        githubTextBlock.Inlines.Add(githubLink);
-
-        leftPanel.Children.Add(copyrightButton);
-        leftPanel.Children.Add(githubTextBlock);
-
-        return leftPanel;
     }
 
     private static StackPanel CreateSettingsPanel(ToggleSwitch? realTimeToggle, ToggleButton? listenerBtn)

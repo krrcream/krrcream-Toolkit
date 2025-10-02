@@ -55,9 +55,9 @@ namespace krrTools.Configuration
         {
             return toolName switch
             {
-                "N2NC" => typeof(Tools.N2NC.N2NCControl),
-                "DP" => typeof(Tools.DPtool.DPToolControl),
-                "KRRLN" => typeof(Tools.KRRLNTransformer.KRRLNTransformerControl),
+                "N2NC" => typeof(Tools.N2NC.N2NCView),
+                "DP" => typeof(Tools.DPtool.DPToolView),
+                "KRRLN" => typeof(Tools.KRRLNTransformer.KRRLNTransformerView),
                 _ => null
             };
         }

@@ -6,7 +6,6 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
 using krrTools.Localization;
-using Microsoft.Extensions.Logging;
 using Border = Wpf.Ui.Controls.Border;
 using Button = System.Windows.Controls.Button;
 using Grid = Wpf.Ui.Controls.Grid;
@@ -124,7 +123,7 @@ namespace krrTools.UI
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(LogLevel.Error, "Error accessing directory {Directory}: {Error}", item, ex.Message);
+                        Console.WriteLine($"[ERROR] Error accessing directory {item}: {ex.Message}");
                     }
                 }
             }

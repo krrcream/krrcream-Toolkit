@@ -80,6 +80,7 @@ namespace krrTools.Localization
         public const string KRRLongLimitLabel = "Long Limit {0}|长面限制 {0}";
         public const string KRRLongRandomLabel = "Long Random {0}|长面随机 {0}";
         public const string KRRAlignLabel = "Align 1/{0}|对齐 1/{0}";
+        public const string KRRAlignCheckboxLabel = "Enable Align|启用对齐";
         public const string KRRProcessOriginalLabel = "Process Original LNs|处理原始长条";
         
         // 通用控件名称
@@ -168,24 +169,19 @@ namespace krrTools.Localization
         public const string FailedToDeleteTemporaryBeatmapFile = "Failed to delete the temporary beatmap file|删除临时谱面文件失败";
         public const string Warning = "Warning|警告";
         
-        // File Dispatcher
-        public const string FileAlreadyExists = "File already exists|文件已存在";
-        public const string OverwriteQuestion = "Overwrite?|是否覆盖？";
-        public const string FileConflict = "File Conflict|文件冲突";
-        
         // Conversion messages
         public const string ConversionFailedAllFiles = "Conversion failed, all files could not be converted successfully.|转换失败，所有文件都未能成功转换。";
         public const string ConversionNoOutput = "Conversion did not produce any output.|转换未产生任何输出。";
         
         // DualPreviewControl
         public const string PreviewTitle = "预览 / Preview";
-        public const string OriginalHint = "原始预览 (Original)|原始预览";
-        public const string ConvertedHint = "结果预览 (Converted)|结果预览";
+        public const string OriginalHint = "Original|原始预览";
+        public const string ConvertedHint = "Converted|结果预览";
         public const string DropHint = "Drag & Drop .osu files in here|将 .osu 文件拖到此区域";
         public const string StartButtonText = "Start|开始转换";
         public const string DropFilesHint = "{0} file(s) staged. Click Start to convert.|已暂存 {0} 个文件，点击开始转换。";
-        public const string NoDataAvailable = "No data available";
-        public const string NoProcessorSet = "No processor set";
+        public const string NoDataAvailable = "No data available|无可用数据";
+        public const string NoProcessorSet = "No processor set|Processor为空";
         public const string PreviewError = "Preview error: {0}";
         public const string PreviewBuildFailed = "Preview build failed: {0}";
         public const string DirectoryEnumerateFailed = "Directory enumerate failed for '{0}': {1}";

@@ -63,7 +63,7 @@ public class MainWindow : FluentWindow
     public readonly FileDispatcher _fileDispatcher;
     
     // 工具调度器
-    private ToolScheduler ToolScheduler { get; }
+    private IModuleManager ModuleManager { get; }
 
     private bool RealTimePreview
     {
@@ -90,13 +90,13 @@ public class MainWindow : FluentWindow
         control.Refresh();
     }
     
-    private N2NCControl _convWindowInstance = null!;
-    private DPToolControl _dpWindowInstance = null!;
-    private KRRLNTransformerControl _krrLnTransformerInstance = null!;
+    private N2NCView _convWindowInstance = null!;
+    private DPToolView _dpToolWindowInstance = null!;
+    private KRRLNTransformerView _krrLnTransformerInstance = null!;
     
-    public N2NCControl ConvWindowInstance => _convWindowInstance;
-    public DPToolControl DPWindowInstance => _dpWindowInstance;
-    public KRRLNTransformerControl KRRLNTransformerInstance => _krrLnTransformerInstance;
+    public N2NCView ConvWindowInstance => _convWindowInstance;
+    public DPToolView DpToolWindowInstance => _dpToolWindowInstance;
+    public KRRLNTransformerView KrrlnTransformerInstance => _krrLnTransformerInstance;
     
     private ContentControl? N2NCSettingsHost => _settingsHosts.GetValueOrDefault(ConverterEnum.N2NC);
     private ContentControl? DPSettingsHost => _settingsHosts.GetValueOrDefault(ConverterEnum.DP);
@@ -108,6 +108,8 @@ public class MainWindow : FluentWindow
 
     public MainWindow()
     {
+        Console.WriteLine("[INFO] MainWindow构造函数开始 - 测试日志输出");
+
         Title = Strings.WindowTitle; // 初始化
         Width = 1000;
         Height = 750;
@@ -115,7 +117,7 @@ public class MainWindow : FluentWindow
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
 
 
-        ToolScheduler = App.Services.GetRequiredService<ToolScheduler>();
+        ModuleManager = App.Services.GetRequiredService<IModuleManager>();
 
         LoadRealTimePreview();
         BuildUI();
@@ -126,7 +128,7 @@ public class MainWindow : FluentWindow
         SetupPreviewProcessors();
         _fileDispatcher = new FileDispatcher(MainTabControl);
 
-        Loaded += MainWindow_Loaded;
+        Loaded += ApplyToThemeLoaded;
     }
 
     private void BuildUI()
@@ -254,9 +256,17 @@ public class MainWindow : FluentWindow
 
         // 设置初始选项卡内容
         MainTabControl_SelectionChanged(null, null);
+        
+        
+
+        Background = new ImageBrush
+        {
+            Stretch = Stretch.UniformToFill,
+            Opacity = 0.25,
+        };
     }
 
-    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    private void ApplyToThemeLoaded(object sender, RoutedEventArgs e)
     {
         // 使用Dispatcher延迟应用主题，确保窗口完全初始化
         Dispatcher.BeginInvoke(new Action(() =>
@@ -273,13 +283,6 @@ public class MainWindow : FluentWindow
             ApplicationThemeManager.Apply(savedTheme, savedBackdrop, savedAccent);
             InvalidateVisual(); // 强制重新绘制以应用主题
         }), System.Windows.Threading.DispatcherPriority.Loaded);
-
-
-        Background = new ImageBrush
-        {
-            Stretch = Stretch.UniformToFill,
-            Opacity = 0.25,
-        };
     }
 
     #region 创建带预览器选项卡
@@ -351,7 +354,25 @@ public class MainWindow : FluentWindow
     
     private void SetupPreviewProcessors()
     {
-        _internalOsuPath = ResolveInternalSample();
+        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+
+        var direct = Path.Combine(baseDir, "mania-PreView.osu");
+        
+        if (!File.Exists(direct))
+        {
+            var dir = new DirectoryInfo(baseDir);
+            for (var i = 0; i < 6; i++)
+            {
+                if (dir == null) break;
+
+                direct = Path.Combine(dir.FullName, "tools", "Preview",
+                    "mania-PreView.osu");
+                if (!File.Exists(direct))
+                    dir = dir.Parent;
+            }
+        }
+
+        _internalOsuPath = direct;
     }
 
     // 清除固定尺寸属性，以便嵌入时自适应布局
@@ -436,21 +457,21 @@ public class MainWindow : FluentWindow
         {
             new ToolEmbeddingConfig
             {
-                ControlFactory = () => new N2NCControl(),
+                ControlFactory = () => new N2NCView(),
                 HostGetter = () => N2NCSettingsHost,
-                InstanceSetter = control => _convWindowInstance = (N2NCControl)control
+                InstanceSetter = control => _convWindowInstance = (N2NCView)control
             },
             new ToolEmbeddingConfig
             {
-                ControlFactory = () => new KRRLNTransformerControl(),
+                ControlFactory = () => new KRRLNTransformerView(),
                 HostGetter = () => KRRLNSettingsHost,
-                InstanceSetter = control => _krrLnTransformerInstance = (KRRLNTransformerControl)control
+                InstanceSetter = control => _krrLnTransformerInstance = (KRRLNTransformerView)control
             },
             new ToolEmbeddingConfig
             {
-                ControlFactory = () => new DPToolControl(),
+                ControlFactory = () => new DPToolView(),
                 HostGetter = () => DPSettingsHost,
-                InstanceSetter = control => _dpWindowInstance = (DPToolControl)control
+                InstanceSetter = control => _dpToolWindowInstance = (DPToolView)control
             },
             new ToolEmbeddingConfig
             {
@@ -476,15 +497,15 @@ public class MainWindow : FluentWindow
             }
 
             // 特殊处理：设置变化监听，用于实时预览更新
-            if (control is KRRLNTransformerControl krrControl)
+            if (control is KRRLNTransformerView krrControl)
             {
                 krrControl.SettingsChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(ConverterEnum.KRRLN);
             }
-            else if (control is N2NCControl n2ncControl)
+            else if (control is N2NCView n2ncControl)
             {
                 n2ncControl.SettingsChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(nameof(ConverterEnum.N2NC));
             }
-            else if (control is DPToolControl dpControl)
+            else if (control is DPToolView dpControl)
             {
                 dpControl.SettingsChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(nameof(ConverterEnum.DP));
             }
@@ -608,33 +629,6 @@ public class MainWindow : FluentWindow
     }
 #endregion
 
-    private string? ResolveInternalSample()
-    {
-        try
-        {
-            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-
-            var direct = Path.Combine(baseDir, "mania-PreView.osu");
-            if (File.Exists(direct)) return direct;
-            var dir = new DirectoryInfo(baseDir);
-            for (var i = 0; i < 6; i++)
-            {
-                if (dir == null) break;
-                var candidate = Path.Combine(dir.FullName, "tools", "Preview",
-                    "mania-PreView.osu");
-                if (File.Exists(candidate)) return candidate;
-                dir = dir.Parent;
-            }
-        }
-        catch (Exception)
-        {
-            LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("MainWindow")
-                .LogWarning("无法定位内置示例谱面");
-        }
-
-        return null;
-    }
-
     private void GlobalPreview_StartConversionRequested(object? sender, string[]? paths)
     {
         if (paths == null || paths.Length == 0) return;
@@ -677,7 +671,7 @@ public class MainWindow : FluentWindow
                 source = _convWindowInstance;
                 break;
             case ConverterEnum.DP:
-                source = _dpWindowInstance;
+                source = _dpToolWindowInstance;
                 break;
             case ConverterEnum.KRRLN:
                 source = _krrLnTransformerInstance;
@@ -798,11 +792,11 @@ public class MainWindow : FluentWindow
                 // 直接创建统一的处理器
                 var processor = new ConverterProcessor
                 {
-                    ToolScheduler = ToolScheduler,
+                    ToolScheduler = ModuleManager,
                     ConverterOptionsProvider = selectedTag switch
                     {
                         ConverterEnum.N2NC => () => (_convWindowInstance.DataContext as N2NCViewModel)?.Options ?? new N2NCOptions(),
-                        ConverterEnum.DP => () => (_dpWindowInstance.DataContext as DPToolViewModel)?.Options ?? new DPToolOptions(),
+                        ConverterEnum.DP => () => (_dpToolWindowInstance.DataContext as DPToolViewModel)?.Options ?? new DPToolOptions(),
                         ConverterEnum.KRRLN => () => (_krrLnTransformerInstance.DataContext as KRRLNTransformerViewModel)?.Options ?? new KRRLNTransformerOptions(),
                         _ => null
                     },
@@ -815,7 +809,7 @@ public class MainWindow : FluentWindow
                 object? viewModel = selectedTag switch
                 {
                     ConverterEnum.N2NC => _convWindowInstance.DataContext,
-                    ConverterEnum.DP => _dpWindowInstance.DataContext,
+                    ConverterEnum.DP => _dpToolWindowInstance.DataContext,
                     ConverterEnum.KRRLN => _krrLnTransformerInstance.DataContext,
                     _ => null
                 };

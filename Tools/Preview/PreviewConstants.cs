@@ -31,6 +31,10 @@ namespace krrTools.Tools.Preview
         public static readonly SolidColorBrush LaneOddBrush = new SolidColorBrush(Color.FromArgb(255, 229, 236, 244));
         public static readonly SolidColorBrush QuarterLineBrush = new SolidColorBrush(Color.FromArgb(255, 220, 225, 230));
 
+        // UI文本颜色
+        public static readonly SolidColorBrush UiHintTextBrush = new SolidColorBrush(Color.FromArgb(255, 51, 51, 51));
+        public static readonly SolidColorBrush UiSecondaryTextBrush = new SolidColorBrush(Color.FromArgb(255, 90, 99, 112));
+
         // 预览窗口相关（集中管理），读取开始时间后，向后读取 N 个单位长度的时长
         public const int PreviewWindowUnitCount = 16; // N，单位个数（默认 8）
         // 单位的节拍分母，4 表示 1/4 拍（四分之一拍），8 表示 1/8 拍

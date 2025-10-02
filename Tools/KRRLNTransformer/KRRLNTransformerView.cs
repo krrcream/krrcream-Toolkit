@@ -1,18 +1,15 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Localization;
 using krrTools.UI;
-using OsuParsers.Beatmaps;
 
 namespace krrTools.Tools.KRRLNTransformer;
-public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
+public class KRRLNTransformerView : ToolViewBase<KRRLNTransformerOptions>
 {
     public event EventHandler? SettingsChanged;
 
@@ -36,7 +33,7 @@ public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
         { 9, "1/1" }
     };
 
-    public KRRLNTransformerControl() : base(ConverterEnum.KRRLN)
+    public KRRLNTransformerView() : base(ConverterEnum.KRRLN)
     {
         _viewModel = new KRRLNTransformerViewModel(Options);
         DataContext = _viewModel;
@@ -48,7 +45,7 @@ public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
         };
     }
 
-    public KRRLNTransformerControl(KRRLNTransformerOptions options) : base(ConverterEnum.KRRLN, options)
+    public KRRLNTransformerView(KRRLNTransformerOptions options) : base(ConverterEnum.KRRLN, options)
     {
         _viewModel = new KRRLNTransformerViewModel(options);
         DataContext = _viewModel;
@@ -137,7 +134,7 @@ public class KRRLNTransformerControl : ToolControlBase<KRRLNTransformerOptions>
         var stack = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
 
         var panel = new DockPanel();
-        AlignCheckBox = SharedUIComponents.CreateStandardCheckBox("");
+        AlignCheckBox = SharedUIComponents.CreateStandardCheckBox(Strings.KRRAlignCheckboxLabel);
         AlignCheckBox.SetBinding(CheckBox.IsCheckedProperty, new Binding("AlignIsChecked") { Source = _viewModel.Options, Mode = BindingMode.TwoWay });
         DockPanel.SetDock(AlignCheckBox, Dock.Left);
 

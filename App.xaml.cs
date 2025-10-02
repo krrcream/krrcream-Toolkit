@@ -17,49 +17,51 @@ public partial class App
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        // 设置控制台编码为UTF-8以支持中文输出
-        Console.OutputEncoding = new UTF8Encoding(false);
-        Console.InputEncoding = Encoding.UTF8;
-
-        var services = new ServiceCollection();
-
-        // 注册日志服务
-        services.AddLogging(builder =>
+        try
         {
-            builder.AddConsole();
-            builder.SetMinimumLevel(LogLevel.Information);
-        });
+            // 设置控制台编码为UTF-8以支持中文输出
+            Console.OutputEncoding = new UTF8Encoding(false);
+            Console.InputEncoding = Encoding.UTF8;
 
-        // 注册选项服务
-        services.AddSingleton(BaseOptionsManager.LoadOptions<N2NCOptions>(ConverterEnum.N2NC) ?? new N2NCOptions());
-        services.AddSingleton(BaseOptionsManager.LoadOptions<DPToolOptions>(ConverterEnum.DP) ?? new DPToolOptions());
-        services.AddSingleton(BaseOptionsManager.LoadOptions<KRRLNTransformerOptions>(ConverterEnum.KRRLN) ?? new KRRLNTransformerOptions());
+            Console.WriteLine("应用启动开始");
 
-        // 注册模块管理器
-        services.AddSingleton<IModuleManager, ModuleManager>();
+            var services = new ServiceCollection();
 
-        // 注册模块
-        services.AddSingleton<IToolModule, N2NCModule>();
-        services.AddSingleton<IToolModule, DPTool>();
-        services.AddSingleton<IToolModule, KRRLNModule>();
+            // 注册日志服务
+            services.AddLogging(builder =>
+            {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Information);
+            });
 
-        // 注册工具调度器
-        services.AddSingleton<ToolScheduler>();
+            // 注册选项服务
+            services.AddSingleton(BaseOptionsManager.LoadOptions<N2NCOptions>(ConverterEnum.N2NC) ?? new N2NCOptions());
+            services.AddSingleton(BaseOptionsManager.LoadOptions<DPToolOptions>(ConverterEnum.DP) ?? new DPToolOptions());
+            services.AddSingleton(BaseOptionsManager.LoadOptions<KRRLNTransformerOptions>(ConverterEnum.KRRLN) ?? new KRRLNTransformerOptions());
 
-        Services = services.BuildServiceProvider();
+            // 注册模块管理器
+            services.AddSingleton<IModuleManager, ModuleManager>();
 
-        // 初始化全局Logger
-        var loggerFactory = Services.GetRequiredService<ILoggerFactory>();
-        var logger = loggerFactory.CreateLogger("Global");
-        Logger.Initialize(logger);
+            // 注册模块
+            services.AddSingleton<IToolModule, N2NCModule>();
+            services.AddSingleton<IToolModule, DPToolModule>();
+            services.AddSingleton<IToolModule, KRRLNTransformerModule>();
 
-        // 初始化兼容性层
-        var moduleManager = Services.GetRequiredService<IModuleManager>();
-        ToolModuleRegistry.Initialize(moduleManager);
+            Services = services.BuildServiceProvider();
 
-        base.OnStartup(e);
+            Console.WriteLine("[INFO] 应用启动完成");
 
-        var main = new MainWindow();
-        main.Show();
+            base.OnStartup(e);
+
+            var main = new MainWindow();
+            main.Show();
+            Console.WriteLine("[INFO] 主窗口显示完成");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"应用启动失败: {ex.Message}");
+            Console.WriteLine(ex.StackTrace);
+            MessageBox.Show($"应用启动失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 }

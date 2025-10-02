@@ -12,7 +12,6 @@ using System.Windows.Media;
 using krrTools.Data;
 using krrTools.Localization;
 using krrTools.UI;
-using Microsoft.Extensions.Logging;
 
 namespace krrTools.Tools.FilesManager
 {
@@ -144,7 +143,7 @@ namespace krrTools.Tools.FilesManager
             Grid.SetColumn(progressPanel, 0);
             bottomGrid.Children.Add(progressPanel);
 
-            var setSongsBtn = SharedUIComponents.CreateStandardButton("Set Songs Path|设置 Songs 目录");
+            var setSongsBtn = SharedUIComponents.CreateStandardButton("Load Folder|加载文件夹");
             setSongsBtn.Width = 160; setSongsBtn.Height = 40;
             setSongsBtn.Click += SetSongsBtn_Click;
             // disable when processing (inverse)
@@ -266,22 +265,23 @@ namespace krrTools.Tools.FilesManager
 
         private async void SetSongsBtn_Click(object sender, RoutedEventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine("SetSongsBtn_Click called");
             try
             {
                 var owner = Window.GetWindow(this);
-                if (owner != null)
+                var selectedPath = FilesHelper.ShowFolderBrowserDialog("Please select the osu! Songs folder", owner);
+                System.Diagnostics.Debug.WriteLine($"Selected path: '{selectedPath}'");
+                if (!string.IsNullOrEmpty(selectedPath))
                 {
-                    var selectedPath = FilesHelper.ShowFolderBrowserDialog("Please select the osu! Songs folder", owner);
-                    if (!string.IsNullOrEmpty(selectedPath))
-                    {
-                        var vm = (FilesManagerViewModel)DataContext;
-                        await vm.ProcessAsync(selectedPath);
-                    }
+                    var vm = (FilesManagerViewModel)DataContext;
+                    System.Diagnostics.Debug.WriteLine("Calling ProcessAsync");
+                    await vm.ProcessAsync(selectedPath);
+                    System.Diagnostics.Debug.WriteLine("ProcessAsync completed");
                 }
             }
             catch (Exception ex)
             {
-                Logger.Log(LogLevel.Error,"Error setting Songs path: " + ex.Message);
+                Console.WriteLine($"[ERROR] Error setting Songs path: {ex.Message}");
             }
         }
     }

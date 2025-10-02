@@ -9,7 +9,7 @@ namespace krrTools.Tools.KRRLNTransformer
     /// <summary>
     /// KRRLN转换模块
     /// </summary>
-    public class KRRLNModule : ToolModuleBase<KRRLNTransformerOptions, KRRLNTransformerViewModel, KRRLNTransformerControl>
+    public class KRRLNTransformerModule : ToolModuleBase<KRRLNTransformerOptions, KRRLNTransformerViewModel, KRRLNTransformerView>
     {
         public override ToolModuleType ModuleType => ToolModuleType.KRRLN;
 

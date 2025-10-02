@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using krrTools.Data;
 using OsuFileIO.HitObject.Mania;
@@ -54,7 +55,9 @@ public class ManiaBeatmap : Beatmap
         MinBPM = enumerable.Min();
         MaxBPM = enumerable.Max();
         BPM = beatmap.GetBPM();
-
+        BPMDisplay = !(Math.Abs(MinBPM - MaxBPM) < 0) ? 
+            $"{BPM}({MinBPM} - {MaxBPM})" :
+            BPM.ToString(CultureInfo.CurrentCulture);
         
         LNPercent = beatmap.GetLNPercent();
     }
@@ -63,9 +66,9 @@ public class ManiaBeatmap : Beatmap
     
     public string FilePath { get; set; } = string.Empty;
     public string InputFilePath { get; set; } = string.Empty;
-    public double MinBPM { get; set; }
-    public double MaxBPM { get; set; }
+
     public double BPM { get; set; }
+    public String BPMDisplay { get; set; } = string.Empty;
     public double xxyStarRating { get; set; }
     public double KRR_LV { get; set; }
     public double YLS_LV { get; set; }

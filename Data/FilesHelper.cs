@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -24,6 +23,7 @@ namespace krrTools.Data
         {
             public IntPtr Handle { get; } = handle;
         }
+
         public static void ValidateAndRunWithPackaging(string filePath, Func<string, string?> processor, bool openOsz = false, Action? onCompleted = null, bool showSuccessMessage = true)
         {
             ValidateAndRun(filePath, path =>
@@ -43,8 +43,8 @@ namespace krrTools.Data
                         // Packaging failure: inform user and log
                         Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                         {
-                                MessageBox.Show(Strings.PackagingAddingBeatmapFailed.Localize() + ": " + ex.Message,
-                                    Strings.Error.Localize(),
+                            MessageBox.Show(Strings.PackagingAddingBeatmapFailed.Localize() + ": " + ex.Message,
+                                Strings.Error.Localize(),
                                 MessageBoxButton.OK, MessageBoxImage.Error);
                         }));
                         Debug.WriteLine($"Packaging/adding beatmap failed: {ex.Message}");
@@ -112,12 +112,24 @@ namespace krrTools.Data
             dialog.RootFolder = Environment.SpecialFolder.MyComputer;
             dialog.ShowNewFolderButton = true;
 
-            var hwnd = new WindowInteropHelper(owner).Handle;
-            dialog.ShowDialog(new Win32Window(hwnd));
+            if (owner != null)
+            {
+                var hwnd = new WindowInteropHelper(owner).Handle;
+                dialog.ShowDialog(new Win32Window(hwnd));
+            }
+            else if (Application.Current?.MainWindow != null)
+            {
+                var hwnd = new WindowInteropHelper(Application.Current.MainWindow).Handle;
+                dialog.ShowDialog(new Win32Window(hwnd));
+            }
+            else
+            {
+                dialog.ShowDialog();
+            }
 
             return dialog.SelectedPath;
         }
-        
+
         /// <summary>
         /// 判断文件路径是否为有效的 .osu 文件
         /// </summary>
@@ -143,7 +155,7 @@ namespace krrTools.Data
                     {
                         try
                         {
-                            using var archive = ZipFile.OpenRead(path);
+                            using var archive = System.IO.Compression.ZipFile.OpenRead(path);
                             count += archive.Entries.Count(e => e.Name.EndsWith(".osu", StringComparison.OrdinalIgnoreCase));
                         }
                         catch
@@ -178,15 +190,15 @@ namespace krrTools.Data
                 }
             }
         }
-        
+
         public static ManiaBeatmap GetManiaBeatmap(string? filePath)
         {
             if (!EnsureIsOsuFile(filePath))
                 throw new FileNotFoundException($"Invalid or missing .osu file: {filePath}");
-            
+
             return new ManiaBeatmap(filePath);
         }
-        
+
         /// <summary>
         /// 验证并异步处理 .osu 文件
         /// </summary>
@@ -207,8 +219,8 @@ namespace krrTools.Data
                 {
                     Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                     {
-                            MessageBox.Show(Strings.ErrorProcessingFile.Localize() + ": " + ex.Message,
-                                Strings.ProcessingError.Localize(),
+                        MessageBox.Show(Strings.ErrorProcessingFile.Localize() + ": " + ex.Message,
+                            Strings.ProcessingError.Localize(),
                             MessageBoxButton.OK, MessageBoxImage.Error);
                         onCompleted?.Invoke();
                     }));

@@ -28,9 +28,7 @@ public class SettingsSlider : StackPanel
             _labelText = value;
             if (_isInitialized)
             {
-                Children.Remove(Label);
-                Label = SharedUIComponents.CreateHeaderLabel(_labelText);
-                Children.Insert(0, Label);
+                UpdateLabelWithValue(InnerSlider.Value);
             }
         }
     }
@@ -66,6 +64,9 @@ public class SettingsSlider : StackPanel
         _debounceTimer.Tick += OnDebounceTimerTick;
         Loaded += SettingsSlider_Loaded;
         IsEnabledChanged += SettingsSlider_IsEnabledChanged;
+        
+        // Listen to language changes to update labels
+        LocalizationService.LanguageChanged += OnLanguageChanged;
     }
 
     private void SettingsSlider_Loaded(object? sender, RoutedEventArgs e)
@@ -77,8 +78,9 @@ public class SettingsSlider : StackPanel
         {
             // Remove the initial TextBlock and create proper bilingual label
             Children.Remove(Label);
-            Label = SharedUIComponents.CreateHeaderLabel(LabelText);
+            Label = new TextBlock { FontSize = SharedUIComponents.HeaderFontSize, FontWeight = FontWeights.Bold };
             Children.Insert(0, Label);
+            UpdateLabelWithValue(InnerSlider.Value); // Set initial label text
         }
 
         if (!string.IsNullOrEmpty(TooltipText))
@@ -287,5 +289,14 @@ public class SettingsSlider : StackPanel
     private void SettingsSlider_IsEnabledChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         InnerSlider.IsEnabled = IsEnabled;
+    }
+
+    private void OnLanguageChanged()
+    {
+        // Update label when language changes
+        if (_isInitialized)
+        {
+            UpdateLabelWithValue(InnerSlider.Value);
+        }
     }
 }

@@ -1,19 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Core;
-using krrTools.Data;
 using OsuParsers.Beatmaps;
-using OsuParsers.Decoders;
 
 namespace krrTools.Tools.KRRLNTransformer
 {
     public class KRRLN : AbstractBeatmapTransformer<KRRLNTransformerOptions>
     {
-
         protected override int[,] ProcessMatrix(int[,] matrix, List<int> timeAxis, Beatmap beatmap, KRRLNTransformerOptions options)
         {
             return BuildAndProcessMatrix(matrix, timeAxis, (ManiaBeatmap)beatmap, options);
@@ -32,23 +28,6 @@ namespace krrTools.Tools.KRRLNTransformer
         protected override string SaveBeatmap(Beatmap beatmap, string originalPath)
         {
             throw new NotImplementedException();
-        }
-
-        protected override ManiaBeatmap LoadBeatmap(string filepath)
-        {
-            if (!File.Exists(filepath))
-            {
-                throw new FileNotFoundException($"文件未找到: {filepath}");
-            }
-
-            if (Path.GetExtension(filepath).ToLower() != ".osu")
-            {
-                throw new ArgumentException("文件扩展名必须为.osu");
-            }
-
-            ManiaBeatmap beatmap = BeatmapDecoder.Decode(filepath).GetManiaBeatmap();
-            beatmap.InputFilePath = filepath;
-            return beatmap;
         }
 
         private int[,] BuildAndProcessMatrix(int[,] matrix, List<int> timeAxis, ManiaBeatmap beatmap, KRRLNTransformerOptions parameters)
@@ -145,9 +124,7 @@ namespace krrTools.Tools.KRRLNTransformer
                 }
             }
         }
-
-
-
+        
         private int[,] CalculateAvailableTime(int[,] matrix, List<int> timeAxis)
         {
             int rows = matrix.GetLength(0);

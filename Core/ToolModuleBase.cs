@@ -1,9 +1,7 @@
 using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using krrTools.Configuration;
 using krrTools.Data;
-using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 
 namespace krrTools.Core
@@ -25,7 +23,7 @@ namespace krrTools.Core
     public abstract class ToolModuleBase<TOptions, TViewModel, TControl> : IToolModule
         where TOptions : ToolOptionsBase, new()
         where TViewModel : ToolViewModelBase<TOptions>
-        where TControl : ToolControlBase<TOptions>
+        where TControl : ToolViewBase<TOptions>
     {
         /// <summary>
         /// 模块类型
@@ -164,7 +162,7 @@ namespace krrTools.Core
             }
             catch (Exception ex)
             {
-                Logger.Log(LogLevel.Error, "处理谱面时出错，使用模块 {ModuleName}: {ErrorMessage}", Name, ex.Message);
+                Console.WriteLine($"[ERROR] 处理谱面时出错，使用模块 {Name}: {ex.Message}");
             }
             
             return null;
@@ -191,7 +189,7 @@ namespace krrTools.Core
             }
             catch (Exception ex)
             {
-                Logger.Log(LogLevel.Error, "处理文件时出错，使用模块 {ModuleName}: {ErrorMessage}", Name, ex.Message);
+                Console.WriteLine($"[ERROR] 处理文件时出错，使用模块 {Name}: {ex.Message}");
             }
 
             return null;

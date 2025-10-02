@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using krrTools.Beatmaps;
 using krrTools.Data;
 using krrTools.Tools.N2NC;
 using OsuParsers.Beatmaps;
@@ -71,7 +72,7 @@ namespace krrTools.Tools.DPtool
                 TargetKeys = options.SingleSideKeyCount,
                 TransformSpeed = TRANSFORM_SPEED
             };
-            double BPM = beatmap.GetBPM();
+            double BPM = beatmap.MainBPM;
             double beatLength = 60000 / BPM * BEAT_LENGTH_MULTIPLIER;
             double convertTime = Math.Max(1, convOptions.TransformSpeed * beatLength - 10);
             var (matrix, timeAxis) = beatmap.BuildMatrix();

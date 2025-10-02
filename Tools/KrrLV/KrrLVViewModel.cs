@@ -14,7 +14,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using krrTools.Beatmaps;
 using krrTools.Data;
-using Microsoft.Extensions.Logging;
 
 namespace krrTools.Tools.KrrLV
 {
@@ -103,7 +102,7 @@ namespace krrTools.Tools.KrrLV
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Error, $"无法打开路径: {ex.Message}");
+                    Console.WriteLine($"[ERROR] 无法打开路径: {ex.Message}");
                 }
             }
         }
@@ -138,7 +137,7 @@ namespace krrTools.Tools.KrrLV
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Error, $"保存CSV文件失败: {ex.Message}");
+                    Console.WriteLine($"[ERROR] 保存CSV文件失败: {ex.Message}");
                 }
             }
         }
@@ -238,7 +237,7 @@ namespace krrTools.Tools.KrrLV
                             }
                             catch (Exception ex)
                             {
-                                Logger.Log(LogLevel.Error, $"处理.osz文件失败: {ex.Message}");
+                                Console.WriteLine($"[ERROR] 处理.osz文件失败: {ex.Message}");
                             }
                         }
                     }
@@ -259,7 +258,7 @@ namespace krrTools.Tools.KrrLV
             }
             catch (Exception ex)
             {
-                Logger.Log(LogLevel.Error, $"处理文件时发生异常: {ex.Message}");
+                Console.WriteLine($"[ERROR] 处理文件时发生异常: {ex.Message}");
             }
         }
 
@@ -292,7 +291,7 @@ namespace krrTools.Tools.KrrLV
             }
             catch (Exception ex)
             {
-                Logger.Log(LogLevel.Error, $"处理.osz条目时发生异常: {ex.Message}");
+                Console.WriteLine($"[ERROR] 处理.osz条目时发生异常: {ex.Message}");
             }
         }
     
@@ -360,7 +359,7 @@ namespace krrTools.Tools.KrrLV
     }
     catch (Exception ex)
     {
-        Logger.Log(LogLevel.Error, $"分析.osz条目时发生异常: {ex.Message}");
+        Console.WriteLine($"[ERROR] 分析.osz条目时发生异常: {ex.Message}");
         Application.Current.Dispatcher.Invoke(() =>
         {
             item.Status = $"错误: {ex.Message}";
@@ -435,14 +434,11 @@ namespace krrTools.Tools.KrrLV
         }
         catch (ArgumentException ex) when (ex.Message == "不是mania模式")
         {
-            // 使用Dispatcher将删除操作调度到UI线程
-            Application.Current.Dispatcher.Invoke((Action)(() =>
+            // 设置状态为不是mania模式，不移除项目
+            Application.Current.Dispatcher.Invoke(() =>
             {
-                // 从UI列表中查找并移除该项
-                var itemToRemove = OsuFiles.FirstOrDefault(f => f.FilePath == item.FilePath);
-                if (itemToRemove != null)
-                    OsuFiles.Remove(itemToRemove);
-            }));
+                item.Status = "不是mania模式";
+            });
         }
         catch (Exception ex)
         {

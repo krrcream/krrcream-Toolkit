@@ -185,13 +185,17 @@ namespace krrTools.Tools.FilesManager
 
         public async Task ProcessAsync(string doPath)
         {
+            System.Diagnostics.Debug.WriteLine($"Starting ProcessAsync for {doPath}");
             ProgressValue = 0;
             ProgressText = "Loading...";
+            int parsedCount = 0;
 
             try
             {
                 // 在后台线程获取文件列表（包括.osz包内osu）
                 var files = await Task.Run(() => FilesHelper.EnumerateOsuFiles([doPath]).ToArray());
+
+                System.Diagnostics.Debug.WriteLine($"Enumerated {files.Length} files from {doPath}");
 
                 ProgressMaximum = files.Length;
                 ProgressText = $"Found {files.Length} files, processing...";
@@ -214,6 +218,12 @@ namespace krrTools.Tools.FilesManager
                         if (fileInfo != null)
                         {
                             batch.Add(fileInfo);
+                            parsedCount++;
+                            System.Diagnostics.Debug.WriteLine($"Parsed {files[i]} successfully");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Failed to parse {files[i]}");
                         }
                     }
                     catch (Exception ex)
@@ -251,11 +261,19 @@ namespace krrTools.Tools.FilesManager
             {
                 System.Diagnostics.Debug.WriteLine($"读取文件夹时出错: {ex.Message}");
                 ProgressText = $"处理出错: {ex.Message}";
+                System.Diagnostics.Debug.WriteLine($"Error in ProcessAsync: {ex.Message}");
             }
             finally
             {
                 await Task.Delay(1000); // 显示完成信息1秒
                 IsProcessing = false;
+                System.Diagnostics.Debug.WriteLine($"ProcessAsync completed, parsed {parsedCount} files");
+                Dispatcher?.Invoke(() =>
+                {
+                    FilteredOsuFiles = CollectionViewSource.GetDefaultView(OsuFiles);
+                    FilteredOsuFiles.Filter = FilterPredicate;
+                    OnPropertyChanged(nameof(FilteredOsuFiles));
+                });
             }
         }
 

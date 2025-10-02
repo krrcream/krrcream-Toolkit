@@ -1,6 +1,5 @@
 ﻿using krrTools.Configuration;
 using static krrTools.Localization.Strings;
-using System.Collections.Generic;
 
 namespace krrTools.Tools.KRRLNTransformer
 {

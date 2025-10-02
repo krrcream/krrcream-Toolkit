@@ -9,7 +9,7 @@ using krrTools.UI;
 
 namespace krrTools.Tools.DPtool
 {
-    public class DPToolControl : ToolControlBase<DPToolOptions>
+    public class DPToolView : ToolViewBase<DPToolOptions>
     {
         public event EventHandler? SettingsChanged;
         private readonly DPToolViewModel _viewModel;
@@ -21,7 +21,7 @@ namespace krrTools.Tools.DPtool
         private UIElement? _rMaxKeysSlider;
         private UIElement? _rMinKeysSlider;
 
-        public DPToolControl() : base(ConverterEnum.DP)
+        public DPToolView() : base(ConverterEnum.DP)
         {
             _viewModel = new DPToolViewModel(Options);
             DataContext = _viewModel;

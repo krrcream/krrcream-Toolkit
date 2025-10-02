@@ -1,4 +1,5 @@
 using System;
+using krrTools.Configuration;
 
 namespace krrTools.Core
 {
@@ -16,5 +17,18 @@ namespace krrTools.Core
         /// 选项类型
         /// </summary>
         Type OptionsType { get; }
+
+        ToolModuleType ModuleType { get; }
+        string ModuleName { get; }
+        string DisplayName { get; }
+        IToolOptions CreateDefaultOptions();
+        ITool CreateTool();
+        object CreateControl();
+        object CreateViewModel();
+
+        /// <summary>
+        /// 非泛型版本：处理Beatmap（用于GenericTool）
+        /// </summary>
+        OsuParsers.Beatmaps.Beatmap? ProcessBeatmapWithOptions(Object input, IToolOptions options);
     }
 }

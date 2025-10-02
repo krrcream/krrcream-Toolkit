@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Concurrent;
 using System.ComponentModel;
@@ -56,7 +57,7 @@ public static class LocalizationService
     /// <param name="forceChinese">
     /// true=中文, false=英文
     /// </param>
-    public static void SetForceChinese(bool forceChinese)
+    private static void SetForceChinese(bool forceChinese)
     {
         _forceChinese = forceChinese;
         BaseOptionsManager.SetForceChinese(forceChinese);
@@ -75,7 +76,7 @@ public static class LocalizationService
     /// 检查当前是否为中文语言
     /// </summary>
     /// <returns>true=中文模式, false=英文模式</returns>
-    public static bool IsChineseLanguage()
+    private static bool IsChineseLanguage()
     {
         return _forceChinese;
     }
@@ -234,7 +235,7 @@ public class DynamicLocalizedString : INotifyPropertyChanged
     /// <summary>
     /// 本地化字符串的键（原始文本）
     /// </summary>
-    public string Key { get; }
+    private string Key { get; }
     
     /// <summary>
     /// 当前语言对应的本地化值

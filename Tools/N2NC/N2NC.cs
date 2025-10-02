@@ -8,7 +8,6 @@ using System.Runtime.InteropServices;
 using krrTools.Beatmaps;
 using krrTools.Core;
 using krrTools.Data;
-using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 using OsuParsers.Beatmaps.Objects;
 using OsuParsers.Decoders;
@@ -52,7 +51,7 @@ namespace krrTools.Tools.N2NC
 
             if (P is { Count: > 0 } && !P.Contains(CS))
             {
-                Logger.Log(LogLevel.Warning, "谱面键数 {CS} 不在筛选的键位模式里 {SelectedKeys}，跳过转换", CS, string.Join(",", P));
+                Console.WriteLine($"[WARN] 谱面键数 {CS} 不在筛选的键位模式里 {string.Join(",", P)}，跳过转换");
                 return matrix;
             }
 

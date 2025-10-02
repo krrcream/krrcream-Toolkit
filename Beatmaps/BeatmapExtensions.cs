@@ -1,13 +1,11 @@
-
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using krrTools.Beatmaps;
 using OsuParsers.Beatmaps;
 
-namespace krrTools.Data;
+namespace krrTools.Beatmaps;
 public static class BeatmapExtensions
 {
     public static double GetBPM(this Beatmap? beatmap, bool asMs = false)

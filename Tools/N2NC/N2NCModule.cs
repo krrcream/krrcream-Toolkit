@@ -1,13 +1,15 @@
 using krrTools.Core;
 using krrTools.Localization;
 using OsuParsers.Beatmaps;
+using OsuParsers.Decoders;
+using System;
 
 namespace krrTools.Tools.N2NC
 {
     /// <summary>
     /// N2NC转换模块
     /// </summary>
-    public class N2NCModule : ToolModuleBase<N2NCOptions, N2NCViewModel, N2NCControl>
+    public class N2NCModule : ToolModuleBase<N2NCOptions, N2NCViewModel, N2NCView>
     {
         public override ToolModuleType ModuleType => ToolModuleType.N2NC;
 
@@ -22,7 +24,9 @@ namespace krrTools.Tools.N2NC
 
         protected override Beatmap ProcessSingleFile(string filePath, N2NCOptions options)
         {
-            throw new System.NotImplementedException();
+            var beatmap = BeatmapDecoder.Decode(filePath);
+            if (beatmap == null) throw new Exception("Failed to load beatmap");
+            return ProcessBeatmap(beatmap, options);
         }
     }
 }
