@@ -26,7 +26,7 @@ namespace krrTools.Tools.N2NC
         {
             InitializeLocalized();
         }
-        // TODO: 参数是历史遗留问题，改成自动属性访问器
+        // TODO: 参数是历史遗留问题，所有ViewModel要统一，改成自动属性访问器
         private double _targetKeys = 10;
         private double _maxKeys = 10;
         private double _minKeys = 2;

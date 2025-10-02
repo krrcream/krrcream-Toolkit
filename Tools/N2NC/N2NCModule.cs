@@ -17,8 +17,8 @@ namespace krrTools.Tools.N2NC
 
         protected override Beatmap ProcessBeatmap(Beatmap input, N2NCOptions options)
         {
-            var converter = new N2NC();
-            var resultBeatmap = converter.ProcessBeatmapToData(input, options);
+            var N2NC = new N2NC();
+            var resultBeatmap = N2NC.ProcessBeatmapToData(input, options);
             return resultBeatmap;
         }
 

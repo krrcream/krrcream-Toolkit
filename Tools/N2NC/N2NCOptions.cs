@@ -31,7 +31,6 @@ namespace krrTools.Tools.N2NC
 
         public new void Validate()
         {
-            if (TransformSpeed <= 0) TransformSpeed = 1.0;
         }
     }
 }
