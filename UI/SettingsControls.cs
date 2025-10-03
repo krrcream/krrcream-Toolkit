@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Threading;
+using Microsoft.Extensions.Logging;
 using krrTools.Configuration;
 using krrTools.Localization;
 
@@ -64,7 +65,7 @@ public class SettingsSlider : StackPanel
         _debounceTimer.Tick += OnDebounceTimerTick;
         Loaded += SettingsSlider_Loaded;
         IsEnabledChanged += SettingsSlider_IsEnabledChanged;
-        
+
         // Listen to language changes to update labels
         LocalizationService.LanguageChanged += OnLanguageChanged;
     }
@@ -108,7 +109,7 @@ public class SettingsSlider : StackPanel
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"SettingsSlider enum init error: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[SettingsControls] SettingsSlider enum init error: {0}", ex.Message);
             }
 
             // Writeback
@@ -139,7 +140,7 @@ public class SettingsSlider : StackPanel
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"SettingsSlider enum notify error: {ex.Message}");
+                        Logger.WriteLine(LogLevel.Error, "[SettingsControls] SettingsSlider enum notify error: {0}", ex.Message);
                     }
             };
         }
@@ -162,7 +163,7 @@ public class SettingsSlider : StackPanel
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"SettingsSlider init error: {ex.Message}");
+                    Logger.WriteLine(LogLevel.Error, "[SettingsControls] SettingsSlider init error: {0}", ex.Message);
                 }
 
                 // Listen to slider changes to write back to source
@@ -193,7 +194,7 @@ public class SettingsSlider : StackPanel
                             }
                             catch (Exception ex)
                             {
-                                Debug.WriteLine($"SettingsSlider notify error: {ex.Message}");
+                                Logger.WriteLine(LogLevel.Error, "[SettingsControls] SettingsSlider notify error: {0}", ex.Message);
                             }
                     };
             }
@@ -203,7 +204,8 @@ public class SettingsSlider : StackPanel
                 {
                     var binding = new Binding(Path!)
                     {
-                        Source = Source, Mode = BindingMode.TwoWay,
+                        Source = Source,
+                        Mode = BindingMode.TwoWay,
                         UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
                     };
                     InnerSlider.SetBinding(RangeBase.ValueProperty, binding);
@@ -214,7 +216,7 @@ public class SettingsSlider : StackPanel
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"SettingsSlider binding fallback error: {ex.Message}");
+                    Logger.WriteLine(LogLevel.Error, "[SettingsControls] SettingsSlider binding fallback error: {0}", ex.Message);
                 }
             }
         }
@@ -250,8 +252,7 @@ public class SettingsSlider : StackPanel
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(
-                    $"SettingsSlider enum debounce writeback error: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[SettingsControls] SettingsSlider enum debounce writeback error: {0}", ex.Message);
             }
         }
         else if (Source != null && !string.IsNullOrEmpty(Path))
@@ -278,10 +279,7 @@ public class SettingsSlider : StackPanel
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine(
-                        $"SettingsSlider debounce failed to write back value: {ex.Message}");
-                    Debug.WriteLine(
-                        $"SettingsSlider debounce failed to write back value: {ex.Message}");
+                    Logger.WriteLine(LogLevel.Error, "[SettingsControls] SettingsSlider debounce failed to write back value: {0}", ex.Message);
                 }
         }
     }

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 
 namespace krrTools.Data;
+
 public static class ColumnPositionMapper
 {
     private static readonly Dictionary<int, int[]> KeyValueMap = new Dictionary<int, int[]>
@@ -48,7 +49,7 @@ public static class ColumnPositionMapper
         }
         return row[column];
     }
-    
+
     public static int GetPositionX(int base_cs, int set_x)
     {
         set_x = ((set_x - 1) * 512 / base_cs) + (256 / base_cs);

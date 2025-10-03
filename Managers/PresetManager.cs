@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 using krrTools.Configuration;
 using krrTools.Core;
 using krrTools.Tools.DPtool;
@@ -60,11 +61,11 @@ namespace krrTools.Managers
                 });
 
                 File.WriteAllText(presetFile, json);
-                Debug.WriteLine($"Saved preset: {toolName}/{presetName}");
+                Logger.WriteLine(LogLevel.Information, "[PresetManager] Saved preset: {0}/{1}", toolName, presetName);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to save preset {toolName}/{presetName}: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[PresetManager] Failed to save preset {0}/{1}: {2}", toolName, presetName, ex.Message);
             }
         }
 
@@ -115,7 +116,7 @@ namespace krrTools.Managers
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to load preset {toolName}/{presetName}: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[PresetManager] Failed to load preset {0}/{1}: {2}", toolName, presetName, ex.Message);
                 return null;
             }
         }
@@ -140,11 +141,11 @@ namespace krrTools.Managers
                     File.Delete(presetFile);
                 }
 
-                Debug.WriteLine($"Deleted preset: {toolName}/{presetName}");
+                Logger.WriteLine(LogLevel.Information, "[PresetManager] Deleted preset: {0}/{1}", toolName, presetName);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to delete preset {toolName}/{presetName}: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[PresetManager] Failed to delete preset {0}/{1}: {2}", toolName, presetName, ex.Message);
             }
         }
 
@@ -207,7 +208,7 @@ namespace krrTools.Managers
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to load presets: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[PresetManager] Failed to load presets: {0}", ex.Message);
             }
         }
 

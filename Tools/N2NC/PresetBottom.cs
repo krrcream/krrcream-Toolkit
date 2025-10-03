@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Extensions.Logging;
 using krrTools.Configuration;
 using krrTools.UI;
 
@@ -15,12 +16,12 @@ namespace krrTools.Tools.N2NC
 
         private static readonly IReadOnlyDictionary<PresetKind, (string Name, N2NCOptions Options)> PresetTemplates
             = new Dictionary<PresetKind, (string, N2NCOptions)>
-        {
-            [PresetKind.Default] = ("Default", new N2NCOptions { TargetKeys = 10, TransformSpeed = 1.0, Seed = 114514 }),
-            [PresetKind.TenK] = ("10K Preset", new N2NCOptions { TargetKeys = 10, TransformSpeed = 2.0, Seed = 0 }),
-            [PresetKind.EightK] = ("8K Preset", new N2NCOptions { TargetKeys = 8, TransformSpeed = 1.0, Seed = 0 }),
-            [PresetKind.SevenK] = ("7K Preset", new N2NCOptions { TargetKeys = 7, TransformSpeed = 1.0, Seed = 0 })
-        };
+            {
+                [PresetKind.Default] = ("Default", new N2NCOptions { TargetKeys = 10, TransformSpeed = 1.0, Seed = 114514 }),
+                [PresetKind.TenK] = ("10K Preset", new N2NCOptions { TargetKeys = 10, TransformSpeed = 2.0, Seed = 0 }),
+                [PresetKind.EightK] = ("8K Preset", new N2NCOptions { TargetKeys = 8, TransformSpeed = 1.0, Seed = 0 }),
+                [PresetKind.SevenK] = ("7K Preset", new N2NCOptions { TargetKeys = 7, TransformSpeed = 1.0, Seed = 0 })
+            };
 
         protected PresetBottom(N2NCViewModel viewModel)
         {
@@ -49,10 +50,10 @@ namespace krrTools.Tools.N2NC
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"PresetBottom OnLanguageChanged failed: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[PresetBottom] PresetBottom OnLanguageChanged failed: {0}", ex.Message);
             }
         }
-        
+
         private void BuildUI()
         {
             Title = "Preset";
@@ -70,8 +71,8 @@ namespace krrTools.Tools.N2NC
                 var localized = SharedUIComponents.GetLocalizedEnumDisplayName(kv.Key);
                 var btn = new Button
                 {
-                    Content = localized, 
-                    Margin = new Thickness(0, 0, 0, 8), 
+                    Content = localized,
+                    Margin = new Thickness(0, 0, 0, 8),
                     Height = 36
                 };
                 btn.Click += (_, _) => { ApplyPresetToViewModel(_viewModel, opts); Close(); };

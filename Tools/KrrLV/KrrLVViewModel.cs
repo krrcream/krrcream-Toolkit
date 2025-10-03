@@ -23,7 +23,7 @@ namespace krrTools.Tools.KrrLV
     ///         2.优化UI更新逻辑，减少频繁更新;
     ///         3.完善异常处理和日志记录;
     /// </summary>
-    
+
     public partial class KrrLVViewModel : ObservableObject
     {
         [ObservableProperty]
@@ -39,7 +39,7 @@ namespace krrTools.Tools.KrrLV
         private readonly Lock _pendingItemsLock = new Lock();
 
         private int _totalCount;
-        
+
         private int _currentProcessedCount;
 
         private int TotalCount
@@ -69,7 +69,7 @@ namespace krrTools.Tools.KrrLV
                 itemsToAdd = new List<KRRLVAnalysisItem>(_pendingItems);
                 _pendingItems.Clear();
             }
-            
+
             foreach (var item in itemsToAdd)
             {
                 OsuFiles.Add(item);
@@ -116,17 +116,17 @@ namespace krrTools.Tools.KrrLV
                 try
                 {
                     var csv = new StringBuilder();
-                    
+
                     // 添加CSV头部
                     csv.AppendLine("KRR_LV,YLS_LV,XXY_SR,Title,Diff,Artist,Creator,Keys,BPM,OD,HP,LN%,beatmapID,beatmapSetId,filePath");
-                    
+
                     // 添加数据行
                     foreach (var file in OsuFiles)
                     {
                         var line = $"\"{file.KrrLV:F2}\",\"{file.YlsLV:F2}\",\"{file.XxySR:F2}\",\"{file.Title}\",\"{file.Diff}\",\"{file.Artist}\",\"{file.Creator}\",{file.Keys},\"{file.BPM}\",{file.OD},{file.HP},\"{file.LNPercent:F2}\",{file.BeatmapID},{file.BeatmapSetID},\"{file.FilePath}\"";
                         csv.AppendLine(line);
                     }
-            
+
                     File.WriteAllText(savePath, csv.ToString(), Encoding.UTF8);
                     var processStartInfo = new ProcessStartInfo(savePath)
                     {
@@ -149,20 +149,20 @@ namespace krrTools.Tools.KrrLV
                 // 计算总文件数（包括.osz中的.osu文件）
                 TotalCount = FilesHelper.GetOsuFilesCount(files);
                 _currentProcessedCount = 0;
-    
+
                 // 显示进度窗口
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     _processingWindow = new ProcessingWindow();
                     _processingWindow.Show();
                 });
-    
+
                 _updateTimer.Start();
-    
+
                 await Task.Run(async () =>
                 {
                     var tasks = new List<Task>();
-        
+
                     foreach (var file in files)
                     {
                         if (Directory.Exists(file))
@@ -170,36 +170,36 @@ namespace krrTools.Tools.KrrLV
                             // 处理文件夹
                             var osuFiles = Directory.GetFiles(file, "*.osu", SearchOption.AllDirectories)
                                 .Where(f => Path.GetExtension(f).Equals(".osu", StringComparison.OrdinalIgnoreCase));
-                
+
                             foreach (var osuFile in osuFiles)
                             {
                                 await _semaphore.WaitAsync();
                                 var task = Task.Run(() => ProcessOsuFile(osuFile))
-                                    .ContinueWith(_ => 
+                                    .ContinueWith(_ =>
                                     {
                                         _semaphore.Release();
                                         // 使用原子操作更新计数器
                                         Interlocked.Increment(ref _currentProcessedCount);
-                            
+
                                         // 更新UI进度
                                         Application.Current.Dispatcher.Invoke(() =>
                                         {
                                             UpdateProgress(_currentProcessedCount, TotalCount);
                                         });
                                     });
-                            tasks.Add(task);
+                                tasks.Add(task);
                             }
                         }
                         else if (File.Exists(file) && Path.GetExtension(file).Equals(".osu", StringComparison.OrdinalIgnoreCase))
                         {
                             await _semaphore.WaitAsync();
                             var task = Task.Run(() => ProcessOsuFile(file))
-                                .ContinueWith(_ => 
+                                .ContinueWith(_ =>
                                 {
                                     _semaphore.Release();
                                     // 使用原子操作更新计数器
                                     Interlocked.Increment(ref _currentProcessedCount);
-                        
+
                                     // 更新UI进度
                                     Application.Current.Dispatcher.Invoke(() =>
                                     {
@@ -215,17 +215,17 @@ namespace krrTools.Tools.KrrLV
                             {
                                 using var archive = ZipFile.OpenRead(file);
                                 var osuEntries = archive.Entries.Where(e => e.Name.EndsWith(".osu", StringComparison.OrdinalIgnoreCase));
-                        
+
                                 foreach (var entry in osuEntries)
                                 {
                                     await _semaphore.WaitAsync();
                                     var task = Task.Run(() => ProcessOszEntry(entry, file))
-                                        .ContinueWith(_ => 
+                                        .ContinueWith(_ =>
                                         {
                                             _semaphore.Release();
                                             // 使用原子操作更新计数器
                                             Interlocked.Increment(ref _currentProcessedCount);
-                                    
+
                                             // 更新UI进度
                                             Application.Current.Dispatcher.Invoke(() =>
                                             {
@@ -241,14 +241,14 @@ namespace krrTools.Tools.KrrLV
                             }
                         }
                     }
-        
+
                     await Task.WhenAll(tasks);
                 });
-    
+
                 // 等待所有任务完成后，确保剩余的项目也被添加
                 await Task.Delay(200); // 给最后一次更新留出时间
                 _updateTimer.Stop();
-    
+
                 // 关闭进度窗口
                 Application.Current.Dispatcher.Invoke(() =>
                 {
@@ -268,7 +268,7 @@ namespace krrTools.Tools.KrrLV
             {
                 // 创建一个唯一的标识符，包含.osz文件路径和条目名称
                 string uniqueId = $"{oszFilePath}|{entry.FullName}";
-        
+
                 // 检查是否已存在于列表中
                 if (OsuFiles.Any(f => f.FilePath != null && f.FilePath.Equals(uniqueId, StringComparison.OrdinalIgnoreCase)))
                     return;
@@ -294,195 +294,195 @@ namespace krrTools.Tools.KrrLV
                 Console.WriteLine($"[ERROR] 处理.osz条目时发生异常: {ex.Message}");
             }
         }
-    
-    private void AnalyzeOszEntry(KRRLVAnalysisItem item, ZipArchiveEntry entry)
-{
-    try
-    {
-        // 从.osz条目中读取内容
-        using var stream = entry.Open();
-        using var memoryStream = new MemoryStream();
-        stream.CopyTo(memoryStream);
-        memoryStream.Position = 0;
 
-        // 创建临时文件路径
-        var tempFilePath = Path.GetTempFileName();
-        try
+        private void AnalyzeOszEntry(KRRLVAnalysisItem item, ZipArchiveEntry entry)
         {
-            // 将内存流写入临时文件
-            using (var fileStream = File.Create(tempFilePath))
+            try
             {
-                memoryStream.WriteTo(fileStream);
+                // 从.osz条目中读取内容
+                using var stream = entry.Open();
+                using var memoryStream = new MemoryStream();
+                stream.CopyTo(memoryStream);
+                memoryStream.Position = 0;
+
+                // 创建临时文件路径
+                var tempFilePath = Path.GetTempFileName();
+                try
+                {
+                    // 将内存流写入临时文件
+                    using (var fileStream = File.Create(tempFilePath))
+                    {
+                        memoryStream.WriteTo(fileStream);
+                    }
+
+                    // 使用 Analyzer 分析临时文件
+                    var analyzer = new OsuAnalyzer();
+                    var result = analyzer.Analyze(tempFilePath); // 调用已存在的方法
+
+                    // 更新 UI
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        item.Diff = result.Diff;
+                        item.Title = result.Title;
+                        item.Artist = result.Artist;
+                        item.Creator = result.Creator;
+                        item.Keys = result.Keys;
+                        item.BPM = result.BPMDisplay;
+                        item.OD = result.OD;
+                        item.HP = result.HP;
+                        item.LNPercent = result.LNPercent;
+                        item.BeatmapID = result.BeatmapID;
+                        item.BeatmapSetID = result.BeatmapSetID;
+                        item.XxySR = result.XXY_SR;
+                        item.KrrLV = result.KRR_LV;
+                        item.YlsLV = CalculateLevel(result.XXY_SR);
+                        item.Status = "已分析";
+                    });
+                }
+                finally
+                {
+                    // 确保删除临时文件
+                    if (File.Exists(tempFilePath))
+                    {
+                        File.Delete(tempFilePath);
+                    }
+                }
+            }
+            catch (ArgumentException ex) when (ex.Message == "不是mania模式")
+            {
+                Application.Current.Dispatcher.Invoke((Action)(() =>
+                {
+                    var itemToRemove = OsuFiles.FirstOrDefault(f => f.FilePath == item.FilePath);
+                    if (itemToRemove != null)
+                        OsuFiles.Remove(itemToRemove);
+                }));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] 分析.osz条目时发生异常: {ex.Message}");
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    item.Status = $"错误: {ex.Message}";
+                });
+            }
+        }
+
+
+
+        private void UpdateProgress(int current, int total)
+        {
+            if (_processingWindow != null)
+            {
+                _processingWindow.UpdateProgress(current, total);
+            }
+        }
+
+
+
+
+        private void ProcessOsuFile(string filePath)
+        {
+            // 检查文件是否已存在于列表中
+            if (OsuFiles.Any(f => f.FilePath != null && f.FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase)))
+                return;
+
+            var item = new KRRLVAnalysisItem
+            {
+                FileName = Path.GetFileName(filePath),
+                FilePath = filePath,
+                Status = "待处理"
+            };
+
+            // 添加到待处理列表
+            lock (_pendingItemsLock)
+            {
+                _pendingItems.Add(item);
             }
 
-            // 使用 Analyzer 分析临时文件
-            var analyzer = new OsuAnalyzer();
-            var result = analyzer.Analyze(tempFilePath); // 调用已存在的方法
-
-            // 更新 UI
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                item.Diff = result.Diff;
-                item.Title = result.Title;
-                item.Artist = result.Artist;
-                item.Creator = result.Creator;
-                item.Keys = result.Keys;
-                item.BPM = result.BPMDisplay;
-                item.OD = result.OD;
-                item.HP = result.HP;
-                item.LNPercent = result.LNPercent;
-                item.BeatmapID = result.BeatmapID;
-                item.BeatmapSetID = result.BeatmapSetID;
-                item.XxySR = result.XXY_SR;
-                item.KrrLV = result.KRR_LV;
-                item.YlsLV = CalculateLevel(result.XXY_SR);
-                item.Status = "已分析";
-            });
+            // 执行分析方法
+            Analyze(item);
         }
-        finally
+
+
+        private void Analyze(KRRLVAnalysisItem item)
         {
-            // 确保删除临时文件
-            if (File.Exists(tempFilePath))
+            try
             {
-                File.Delete(tempFilePath);
+                var analyzer = new OsuAnalyzer();
+                var result = analyzer.Analyze(item.FilePath);
+
+                // 使用Dispatcher将更新操作调度到UI线程
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    // 更新 KRRLVAnalysisItem 的属性
+                    item.Diff = result.Diff;
+                    item.Title = result.Title;
+                    item.Artist = result.Artist;
+                    item.Creator = result.Creator;
+                    item.Keys = result.Keys;
+                    item.BPM = result.BPMDisplay;
+                    item.OD = result.OD;
+                    item.HP = result.HP;
+                    item.LNPercent = result.LNPercent;
+                    item.BeatmapID = result.BeatmapID;
+                    item.BeatmapSetID = result.BeatmapSetID;
+                    item.XxySR = result.XXY_SR;
+                    item.KrrLV = result.KRR_LV;
+                    item.YlsLV = CalculateLevel(result.XXY_SR);
+                    item.Status = "已分析";
+                });
+            }
+            catch (ArgumentException ex) when (ex.Message == "不是mania模式")
+            {
+                // 设置状态为不是mania模式，不移除项目
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    item.Status = "不是mania模式";
+                });
+            }
+            catch (Exception ex)
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    item.Status = $"错误: {ex.Message}";
+                });
             }
         }
-    }
-    catch (ArgumentException ex) when (ex.Message == "不是mania模式")
-    {
-        Application.Current.Dispatcher.Invoke((Action)(() =>
+
+        private static double CalculateLevel(double xxyStarRating)
         {
-            var itemToRemove = OsuFiles.FirstOrDefault(f => f.FilePath == item.FilePath);
-            if (itemToRemove != null)
-                OsuFiles.Remove(itemToRemove);
-        }));
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"[ERROR] 分析.osz条目时发生异常: {ex.Message}");
-        Application.Current.Dispatcher.Invoke(() =>
-        {
-            item.Status = $"错误: {ex.Message}";
-        });
-    }
-}
+            const double LOWER_BOUND = 2.76257856739498;
+            const double UPPER_BOUND = 10.5541834716376;
 
-
-    
-    private void UpdateProgress(int current, int total)
-    {
-        if (_processingWindow != null)
-        {
-            _processingWindow.UpdateProgress(current, total);
-        }
-    }
-
-    
-    
-    
-    private void ProcessOsuFile(string filePath)
-    {
-        // 检查文件是否已存在于列表中
-        if (OsuFiles.Any(f => f.FilePath != null && f.FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase)))
-            return;
-
-        var item = new KRRLVAnalysisItem
-        {
-            FileName = Path.GetFileName(filePath),
-            FilePath = filePath,
-            Status = "待处理"
-        };
-
-        // 添加到待处理列表
-        lock (_pendingItemsLock)
-        {
-            _pendingItems.Add(item);
-        }
-
-        // 执行分析方法
-        Analyze(item);
-    }
-
-
-    private void Analyze(KRRLVAnalysisItem item)
-    {
-        try
-        {
-            var analyzer = new OsuAnalyzer();
-            var result = analyzer.Analyze(item.FilePath);
-
-            // 使用Dispatcher将更新操作调度到UI线程
-            Application.Current.Dispatcher.Invoke(() =>
+            if (xxyStarRating is >= LOWER_BOUND and <= UPPER_BOUND)
             {
-                // 更新 KRRLVAnalysisItem 的属性
-                item.Diff = result.Diff;
-                item.Title = result.Title;
-                item.Artist = result.Artist;
-                item.Creator = result.Creator;
-                item.Keys = result.Keys;
-                item.BPM = result.BPMDisplay;
-                item.OD = result.OD;
-                item.HP = result.HP;
-                item.LNPercent = result.LNPercent;
-                item.BeatmapID = result.BeatmapID;
-                item.BeatmapSetID = result.BeatmapSetID;
-                item.XxySR = result.XXY_SR;
-                item.KrrLV = result.KRR_LV;
-                item.YlsLV = CalculateLevel(result.XXY_SR);
-                item.Status = "已分析";
-            });
-        }
-        catch (ArgumentException ex) when (ex.Message == "不是mania模式")
-        {
-            // 设置状态为不是mania模式，不移除项目
-            Application.Current.Dispatcher.Invoke(() =>
+                return FittingFormula(xxyStarRating);
+            }
+
+            if (xxyStarRating is < LOWER_BOUND and > 0)
             {
-                item.Status = "不是mania模式";
-            });
-        }
-        catch (Exception ex)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
+                return 3.6198 * xxyStarRating;
+            }
+
+            if (xxyStarRating is > UPPER_BOUND and < 12.3456789)
             {
-                item.Status = $"错误: {ex.Message}";
-            });
-        }
-    }
-    
-    private static double CalculateLevel(double xxyStarRating)
-    {
-        const double LOWER_BOUND = 2.76257856739498;
-        const double UPPER_BOUND = 10.5541834716376;
-        
-        if (xxyStarRating is >= LOWER_BOUND and <= UPPER_BOUND)
-        {
-            return FittingFormula(xxyStarRating);
+                return (2.791 * xxyStarRating) + 0.5436;
+            }
+
+            return double.NaN;
         }
 
-        if (xxyStarRating is < LOWER_BOUND and > 0)
+        private static double FittingFormula(double x)
         {
-            return 3.6198 * xxyStarRating;
+            // TODO: 样式
+            // For now, returning a placeholder value
+            return x * 1.5; // Replace with actual formula
         }
 
-        if (xxyStarRating is > UPPER_BOUND and < 12.3456789)
+        public void Dispose()
         {
-            return (2.791 * xxyStarRating) + 0.5436;
+            _semaphore.Dispose();
+            _updateTimer.Stop();
         }
-
-        return double.NaN;
     }
-    
-    private static double FittingFormula(double x)
-    {
-        // TODO: 样式
-        // For now, returning a placeholder value
-        return x * 1.5; // Replace with actual formula
-    }
-    
-    public void Dispose()
-    {
-        _semaphore.Dispose();
-        _updateTimer.Stop();
-    }
-}
 }

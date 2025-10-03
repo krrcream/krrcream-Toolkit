@@ -1,7 +1,6 @@
-﻿// 在 Listener 文件夹中创建 GlobalHotkey.cs
-using System;
-using System.Diagnostics;
+﻿using System;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 using System.Windows.Input;
 using System.Windows.Interop;
 
@@ -13,7 +12,7 @@ namespace krrTools.Tools.Listener
         private const int MOD_ALT = 0x0001;
         private const int MOD_CONTROL = 0x0002;
         private const int MOD_SHIFT = 0x0004;
-        
+
         private int _fsModifiers;
         private int _id;
         private int _vk;
@@ -23,7 +22,7 @@ namespace krrTools.Tools.Listener
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vk);
-        
+
         [DllImport("user32.dll")]
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
@@ -79,7 +78,7 @@ namespace krrTools.Tools.Listener
                         }
                         else
                         {
-                            Debug.WriteLine($"GlobalHotkey: unrecognized key part '{trimmed}' in '{hotkey}'");
+                            Logger.WriteLine(LogLevel.Warning, "[GlobalHotkey] GlobalHotkey: unrecognized key part '{0}' in '{1}'", trimmed, hotkey);
                         }
                         break;
                 }
@@ -91,7 +90,7 @@ namespace krrTools.Tools.Listener
             const int WM_HOTKEY = 0x0312;
             if (msg == WM_HOTKEY && wParam.ToInt32() == _id)
             {
-                try { _action.Invoke(); } catch (Exception ex) { Debug.WriteLine($"GlobalHotkey action failed: {ex.Message}"); }
+                try { _action.Invoke(); } catch (Exception ex) { Logger.WriteLine(LogLevel.Error, "[GlobalHotkey] GlobalHotkey action failed: {0}", ex.Message); }
                 handled = true;
             }
             return IntPtr.Zero;
@@ -109,7 +108,7 @@ namespace krrTools.Tools.Listener
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"GlobalHotkey failed removing hook: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[GlobalHotkey] GlobalHotkey failed removing hook: {0}", ex.Message);
             }
 
             try
@@ -121,7 +120,7 @@ namespace krrTools.Tools.Listener
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"GlobalHotkey UnregisterHotKey failed: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[GlobalHotkey] GlobalHotkey UnregisterHotKey failed: {0}", ex.Message);
             }
         }
     }

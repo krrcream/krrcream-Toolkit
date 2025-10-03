@@ -47,7 +47,7 @@ namespace krrTools.Configuration
         public static StackPanel CreateSettingsPanel(object options)
         {
             var panel = new StackPanel
-                { Margin = new Thickness(15), HorizontalAlignment = HorizontalAlignment.Stretch };
+            { Margin = new Thickness(15), HorizontalAlignment = HorizontalAlignment.Stretch };
 
             var properties = options.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
             foreach (var prop in properties)
@@ -120,7 +120,7 @@ namespace krrTools.Configuration
                         {
                             var textBox = new NumberBox()
                             {
-                                Value = (prop.GetValue(options) as double? ?? 
+                                Value = (prop.GetValue(options) as double? ??
                                     (double)(prop.GetValue(options) ?? 114514)),
                                 Minimum = attr.Min as double? ?? 0,
                             };

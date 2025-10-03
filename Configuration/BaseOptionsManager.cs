@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using krrTools.Utilities;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.Configuration
 {
@@ -113,8 +113,8 @@ namespace krrTools.Configuration
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine(
-                        $"Failed to load config file '{path}': {ex.Message}. Creating default config and overwriting file.");
+                    Logger.WriteLine(LogLevel.Debug,
+                        $"[BaseOptionsManager]Failed to load config file '{path}': {ex.Message}. Creating default config and overwriting file.");
                     _cachedConfig = new AppConfig();
                     SaveConfig(); // 覆盖损坏的文件
                     return _cachedConfig;
@@ -135,13 +135,13 @@ namespace krrTools.Configuration
                 try
                 {
                     var opts = new JsonSerializerOptions
-                        { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
+                    { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
                     string json = JsonSerializer.Serialize(_cachedConfig, opts);
                     File.WriteAllText(path, json);
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Failed to save config file '{path}': {ex.Message}");
+                    Logger.WriteLine(LogLevel.Error,$"[BaseOptionsManager]Failed to save config file '{path}': {ex.Message}");
                     throw new IOException($"Unable to save configuration to '{path}': {ex.Message}", ex);
                 }
             }
@@ -290,7 +290,7 @@ namespace krrTools.Configuration
                 catch (Exception ex)
                 {
                     // Swallow malformed preset but log for diagnostics
-                    Debug.WriteLine($"Failed to load preset '{file}': {ex.Message}");
+                    Logger.WriteLine(LogLevel.Error,$"[BaseOptionsManager]Failed to load preset '{file}': {ex.Message}");
                 }
 
                 yield return (name, opt);
@@ -310,7 +310,7 @@ namespace krrTools.Configuration
             string safe = MakeSafeFilename(presetName) + ".json";
             string path = Path.Combine(folder, safe);
             var opts = new JsonSerializerOptions
-                { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
+            { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
             string json = JsonSerializer.Serialize(pipelineOptions, opts);
             File.WriteAllText(path, json);
         }
@@ -332,7 +332,7 @@ namespace krrTools.Configuration
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Failed to load pipeline preset '{file}': {ex.Message}");
+                    Logger.WriteLine(LogLevel.Error,$"[BaseOptionsManager]Failed to load pipeline preset '{file}': {ex.Message}");
                 }
 
                 yield return (name, opt);

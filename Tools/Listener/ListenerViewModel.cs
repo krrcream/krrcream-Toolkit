@@ -5,8 +5,8 @@ using System.Text.Json;
 using System.Windows.Forms;
 using CommunityToolkit.Mvvm.ComponentModel;
 using krrTools.Beatmaps;
-using krrTools.Data;
 using krrTools.Localization;
+using Microsoft.Extensions.Logging;
 using OsuMemoryDataProvider;
 using OsuParsers.Decoders;
 using Application = System.Windows.Application;
@@ -23,6 +23,7 @@ namespace krrTools.Tools.Listener
 #pragma warning restore CS0618
         private string _lastBeatmapId = string.Empty;
         private readonly string _configPath;
+        private bool _songsPathAttempted;
 
         // 记忆路径、热键等配置
         internal ListenerConfig Config { get; }
@@ -125,18 +126,18 @@ namespace krrTools.Tools.Listener
             }
             catch (IOException ex)
             {
-                Debug.WriteLine($"Failed to load config (IO): {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[ListenerViewModel] Failed to load config (IO): {0}", ex.Message);
             }
             catch (JsonException ex)
             {
-                Debug.WriteLine($"Failed to load config (JSON): {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[ListenerViewModel] Failed to load config (JSON): {0}", ex.Message);
             }
             catch (UnauthorizedAccessException ex)
             {
-                Debug.WriteLine($"Failed to load config (unauthorized): {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[ListenerViewModel] Failed to load config (unauthorized): {0}", ex.Message);
             }
         }
-    
+
         internal void SaveConfig()
         {
             try
@@ -147,27 +148,27 @@ namespace krrTools.Tools.Listener
             }
             catch (IOException ex)
             {
-                Debug.WriteLine($"Failed to save config (IO): {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[ListenerViewModel] Failed to save config (IO): {0}", ex.Message);
             }
             catch (UnauthorizedAccessException ex)
             {
-                Debug.WriteLine($"Failed to save config (unauthorized): {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[ListenerViewModel] Failed to save config (unauthorized): {0}", ex.Message);
             }
             catch (JsonException ex)
             {
-                Debug.WriteLine($"Failed to save config (JSON): {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[ListenerViewModel] Failed to save config (JSON): {0}", ex.Message);
             }
         }
-    
+
         // 配置类：现在是一个可观察对象，便于集中订阅变化并保存
         internal class ListenerConfig : ObservableObject
-          {
+        {
 
-              public string? SongsPath { get; set; }
-              public string? Hotkey { get; set; } = "Ctrl+Shift+Alt+X";
-              public bool RealTimePreview { get; set; }
-          }
-        
+            public string? SongsPath { get; set; }
+            public string? Hotkey { get; set; } = "Ctrl+Shift+Alt+X";
+            public bool RealTimePreview { get; set; }
+        }
+
         private void InitializeOsuMonitoring()
         {
             try
@@ -177,7 +178,7 @@ namespace krrTools.Tools.Listener
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"InitializeOsuMonitoring failed: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[ListenerViewModel] InitializeOsuMonitoring failed: {0}", ex.Message);
                 Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                 {
                 }));
@@ -205,6 +206,65 @@ namespace krrTools.Tools.Listener
                     return;
                 }
 
+                // 自动设置Songs路径
+                if (string.IsNullOrEmpty(Config.SongsPath) && !_songsPathAttempted)
+                {
+                    _songsPathAttempted = true;
+                    Process? selectedProcess = null;
+                    if (osuProcesses.Length == 1)
+                    {
+                        selectedProcess = osuProcesses[0];
+                    }
+                    else
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            var selectionWindow = new ProcessSelectionWindow(osuProcesses);
+                            if (selectionWindow.ShowDialog() == true)
+                            {
+                                selectedProcess = selectionWindow.SelectedProcess;
+                            }
+                        });
+                    }
+                    if (selectedProcess != null)
+                    {
+                        try
+                        {
+                            if (selectedProcess.MainModule?.FileName is { } exePath)
+                            {
+                                string? osuDir = Path.GetDirectoryName(exePath);
+                                if (osuDir != null)
+                                {
+                                    string songsPath = Path.Combine(osuDir, "Songs");
+                                    if (Directory.Exists(songsPath))
+                                    {
+                                        Config.SongsPath = songsPath;
+                                        Logger.WriteLine(LogLevel.Information, "[ListenerViewModel] 客户端: osu!, 进程ID: {0}, 加载Songs路径: {1}", selectedProcess.Id, songsPath);
+                                    }
+                                    else
+                                    {
+                                        Logger.WriteLine(LogLevel.Warning, "[ListenerViewModel] Songs path not found: {0}", songsPath);
+                                        Application.Current.Dispatcher.Invoke(SetSongsPath);
+                                    }
+                                }
+                                else
+                                {
+                                    Application.Current.Dispatcher.Invoke(SetSongsPath);
+                                }
+                            }
+                            else
+                            {
+                                Application.Current.Dispatcher.Invoke(SetSongsPath);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.WriteLine(LogLevel.Error, "[ListenerViewModel] Failed to get songs path: {0}", ex.Message);
+                            Application.Current.Dispatcher.Invoke(SetSongsPath);
+                        }
+                    }
+                }
+
                 // 尝试读取当前谱面信息
                 var beatmapFile = _memoryReader.GetOsuFileName();
                 var mapFolderName = _memoryReader.GetMapFolderName();
@@ -222,11 +282,6 @@ namespace krrTools.Tools.Listener
                                 CurrentOsuFilePath = Path.Combine(Config.SongsPath, mapFolderName, beatmapFile);
 
                                 // TODO: 监听信息未来统一整理
-                                string Mes = $"Detected selected beatmap:\n{beatmapFile}\n" +
-                                             "\n" + $"OD:{_memoryReader.GetMapOd()}" + 
-                                             "\n" + $"HP:{_memoryReader.GetMapHp()}" + 
-                                              "\n" + $"CS:{_memoryReader.GetMapCs()}";
-
                                 ManiaBeatmap beatmap = BeatmapDecoder.Decode(CurrentOsuFilePath).GetManiaBeatmap();
                                 String BG = beatmap.EventsSection.BackgroundImage;
                                 if (!string.IsNullOrWhiteSpace(BG))
@@ -248,7 +303,7 @@ namespace krrTools.Tools.Listener
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"CheckOsuBeatmap failed: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[ListenerViewModel] CheckOsuBeatmap failed: {0}", ex.Message);
                 Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                 {
                 }));
@@ -269,10 +324,10 @@ namespace krrTools.Tools.Listener
             }
         }
 
-          internal void Cleanup()
-          {
-              _checkTimer?.Stop();
-              _checkTimer?.Dispose();
-          }
-      }
-  }
+        internal void Cleanup()
+        {
+            _checkTimer?.Stop();
+            _checkTimer?.Dispose();
+        }
+    }
+}

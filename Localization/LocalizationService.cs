@@ -236,7 +236,7 @@ public class DynamicLocalizedString : INotifyPropertyChanged
     /// 本地化字符串的键（原始文本）
     /// </summary>
     private string Key { get; }
-    
+
     /// <summary>
     /// 当前语言对应的本地化值
     /// 当语言切换时，此属性会自动更新并触发PropertyChanged事件

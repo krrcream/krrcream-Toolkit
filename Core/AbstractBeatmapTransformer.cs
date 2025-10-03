@@ -30,38 +30,38 @@ namespace krrTools.Core
         {
             if (!File.Exists(filePath))
             {
-                Logger.Log(LogLevel.Error, "读取文件失败: 文件未找到 - {FilePath}", filePath);
+                Logger.WriteLine(LogLevel.Error, "读取文件失败: 文件未找到 - {FilePath}", filePath);
                 throw new FileNotFoundException($"文件未找到: {filePath}");
             }
 
             if (Path.GetExtension(filePath).ToLower() != ".osu")
             {
-                Logger.Log(LogLevel.Error, "读取文件失败: 文件扩展名不是.osu - {FilePath}", filePath);
+                Logger.WriteLine(LogLevel.Error, "读取文件失败: 文件扩展名不是.osu - {FilePath}", filePath);
                 throw new ArgumentException("文件扩展名必须为.osu");
             }
 
             var beatmap = BeatmapDecoder.Decode(filePath);
             if (beatmap == null)
             {
-                Logger.Log(LogLevel.Error, "读取文件失败: 无法解析谱面文件 - {FilePath}", filePath);
+                Logger.WriteLine(LogLevel.Error, "读取文件失败: 无法解析谱面文件 - {FilePath}", filePath);
                 throw new InvalidDataException("无法解析谱面文件");
             }
 
             var maniaBeatmap = beatmap.GetManiaBeatmap();
             if (maniaBeatmap.HitObjects.Count == 0)
             {
-                Logger.Log(LogLevel.Warning, "读取文件警告: 谱面为空 - {FilePath}", filePath);
+                Logger.WriteLine(LogLevel.Warning, "读取文件警告: 谱面为空 - {FilePath}", filePath);
             }
 
             if ((int)beatmap.GeneralSection.Mode != 3) // 3是Mania模式
             {
-                Logger.Log(LogLevel.Warning, "读取文件警告: 非Mania谱面 - {FilePath}, 模式: {Mode}", filePath, beatmap.GeneralSection.Mode);
+                Logger.WriteLine(LogLevel.Warning, "读取文件警告: 非Mania谱面 - {FilePath}, 模式: {Mode}", filePath, beatmap.GeneralSection.Mode);
             }
 
-            maniaBeatmap.InputFilePath = filePath;
+            maniaBeatmap.FilePath = filePath;
             return maniaBeatmap;
         }
-
+        protected abstract string SaveBeatmap(Beatmap beatmap, string originalPath);
         private void ProcessBeatmap(Beatmap beatmap, TOptions options)
         {
             var (matrix, timeAxis) = beatmap.BuildMatrix();
@@ -74,7 +74,5 @@ namespace krrTools.Core
         protected abstract void ApplyChangesToHitObjects(Beatmap beatmap, int[,] processedMatrix, TOptions options);
 
         protected abstract void ModifyMetadata(Beatmap beatmap, TOptions options);
-
-        protected abstract string SaveBeatmap(Beatmap beatmap, string originalPath);
     }
 }

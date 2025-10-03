@@ -10,7 +10,8 @@ namespace krrTools.Tools.Preview
     {
         string? CurrentTool { get; set; }
 
-        FrameworkElement BuildVisual(ManiaBeatmap input, bool converted);
+        FrameworkElement BuildConvertedVisual(ManiaBeatmap input);
+        FrameworkElement BuildOriginalVisual(ManiaBeatmap input);
     }
 }
 

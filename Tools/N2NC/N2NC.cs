@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 using krrTools.Beatmaps;
 using krrTools.Core;
 using krrTools.Data;
@@ -62,12 +63,12 @@ namespace krrTools.Tools.N2NC
             double BPM = beatmap.GetBPM();
             // _logger.LogDebug($"BPM：{BPM}");
             double beatLength = 60000 / BPM * 4;
-            // Debug.WriteLine("BPM：" + BPM);
+            // Logger.WriteLine("BPM：" + BPM);
             double convertTime = Math.Max(1, options.TransformSpeed * beatLength - 10);
 
-            int[,] newMatrix = turn >= 0 ? 
-                DoAddKeys(matrix, timeAxis, turn, convertTime, CS, targetKeys, beatLength, RG, options) 
-                : 
+            int[,] newMatrix = turn >= 0 ?
+                DoAddKeys(matrix, timeAxis, turn, convertTime, CS, targetKeys, beatLength, RG, options)
+                :
                 DoRemoveKeys(matrix, timeAxis, turn, convertTime, beatLength, RG, CS, options);
 
             return newMatrix;
@@ -85,11 +86,11 @@ namespace krrTools.Tools.N2NC
 
         private int[,] DoRemoveKeys(int[,] matrix, List<int> timeAxis, int turn, double convertTime,
             double beatLength, Random random, int originalCS, N2NCOptions options)
-         {
-             var newMatrix = SmartReduceColumns(matrix, timeAxis, -turn, convertTime, beatLength);
-             DensityReducer(newMatrix, (int)options.TargetKeys - 18, 1, (int)options.TargetKeys, random);
-             return newMatrix;
-         }
+        {
+            var newMatrix = SmartReduceColumns(matrix, timeAxis, -turn, convertTime, beatLength);
+            DensityReducer(newMatrix, (int)options.TargetKeys - 18, 1, (int)options.TargetKeys, random);
+            return newMatrix;
+        }
 
         // TODO：统一生成基础矩阵，再由模块处理更好。
         // 未来库完善，矩阵可弃用，仅供测试模式下输出运行模型
@@ -388,8 +389,8 @@ namespace krrTools.Tools.N2NC
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"convert方法发生异常: {ex.Message}");
-                Debug.WriteLine($"异常堆栈: {ex.StackTrace}");
+                Logger.WriteLine(LogLevel.Error, "[N2NC] convert方法发生异常: {0}", ex.Message);
+                Logger.WriteLine(LogLevel.Error, "[N2NC] 异常堆栈: {0}", ex.StackTrace ?? "null");
                 throw;
             }
         }
@@ -855,25 +856,25 @@ namespace krrTools.Tools.N2NC
         }
 
         private int[] CreateColumnMapping(int originalCols, List<int> columnsToRemove)
-         {
-             var mapping = new int[originalCols];
-             int newColIndex = 0;
+        {
+            var mapping = new int[originalCols];
+            int newColIndex = 0;
 
-             for (int oldCol = 0; oldCol < originalCols; oldCol++)
-             {
-                 if (!columnsToRemove.Contains(oldCol))
-                 {
-                     mapping[oldCol] = newColIndex++;
-                 }
-                 else
-                 {
-                     // 被移除的列映射为-1
-                     mapping[oldCol] = -1;
-                 }
-             }
+            for (int oldCol = 0; oldCol < originalCols; oldCol++)
+            {
+                if (!columnsToRemove.Contains(oldCol))
+                {
+                    mapping[oldCol] = newColIndex++;
+                }
+                else
+                {
+                    // 被移除的列映射为-1
+                    mapping[oldCol] = -1;
+                }
+            }
 
-             return mapping;
-         }
+            return mapping;
+        }
 
         private bool IsPositionAvailable(int[,] matrix, int row, int col, List<int> timeAxis, double beatLength)
         {
@@ -1186,33 +1187,33 @@ namespace krrTools.Tools.N2NC
 
         private bool IsPositionAvailableForEmptyRow(int[,] matrix, List<int> timeAxis,
                                                    int row, int col, double beatLength)
-         {
-             if (matrix[row, col] != -1)
-                 return false;
+        {
+            if (matrix[row, col] != -1)
+                return false;
 
-             // 检查前面几行
+            // 检查前面几行
             int rows = matrix.GetLength(0);
-             for (int r = Math.Max(0, row - 3); r < row; r++)
-             {
-                 if (timeAxis[row] - timeAxis[r] <= beatLength / 16 + 10)
-                 {
-                     if (matrix[r, col] >= 0 || matrix[r, col] == -7)
-                         return false;
-                 }
-             }
+            for (int r = Math.Max(0, row - 3); r < row; r++)
+            {
+                if (timeAxis[row] - timeAxis[r] <= beatLength / 16 + 10)
+                {
+                    if (matrix[r, col] >= 0 || matrix[r, col] == -7)
+                        return false;
+                }
+            }
 
-             // 检查后面几行
-             for (int r = row + 1; r <= Math.Min(rows - 1, row + 3); r++)
-             {
-                 if (timeAxis[r] - timeAxis[row] <= beatLength / 16 + 10)
-                 {
-                     if (matrix[r, col] >= 0 || matrix[r, col] == -7)
-                         return false;
-                 }
-             }
+            // 检查后面几行
+            for (int r = row + 1; r <= Math.Min(rows - 1, row + 3); r++)
+            {
+                if (timeAxis[r] - timeAxis[row] <= beatLength / 16 + 10)
+                {
+                    if (matrix[r, col] >= 0 || matrix[r, col] == -7)
+                        return false;
+                }
+            }
 
-             return true;
-         }
+            return true;
+        }
 
         // 辅助方法：随机打乱列表
         private void ShuffleList<T>(List<T> list, Random random)
@@ -1241,7 +1242,7 @@ namespace krrTools.Tools.N2NC
                 _currentValue = rnd.Next(1, maxValue);
                 _direction = rnd.Next(0, 2) == 0 ? -1 : 1;
             }
-        
+
 
             public int GetCurrent()
             {

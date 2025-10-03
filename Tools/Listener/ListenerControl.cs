@@ -1,14 +1,15 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
+using krrTools.Beatmaps;
+using Microsoft.Extensions.Logging;
 using krrTools.Configuration;
+using krrTools.Data;
 using krrTools.Localization;
-using krrTools.Tools.Preview;
 using krrTools.UI;
+using OsuParsers.Decoders;
 using Wpf.Ui.Controls;
 using Border = Wpf.Ui.Controls.Border;
 using Grid = Wpf.Ui.Controls.Grid;
@@ -22,8 +23,8 @@ namespace krrTools.Tools.Listener
     internal class ListenerControl : Window
     {
         private readonly ListenerViewModel _viewModel;
-        private readonly object? _sourceWindow;
-        private readonly int _sourceId;
+        // private readonly object? _sourceWindow;
+        // private readonly int _sourceId;
         private GlobalHotkey? _globalHotkey;
 
         internal static bool IsOpen { get; private set; }
@@ -45,16 +46,15 @@ namespace krrTools.Tools.Listener
             BuildUI();
             _viewModel = new ListenerViewModel();
             DataContext = _viewModel;
-            _sourceWindow = sourceWindow;
-            _sourceId = sourceId;
+            // _sourceWindow = sourceWindow;
+            // _sourceId = sourceId;
 
-            // Subscribe to language changes
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
-            // Unsubscribe when unloaded
-            Unloaded += (_,_) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
+            Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
 
             // 监听热键变化
-            _viewModel.HotkeyChanged += (_, _) => {
+            _viewModel.HotkeyChanged += (_, _) =>
+            {
                 UnregisterHotkey();
                 Dispatcher.BeginInvoke(new Action(InitializeHotkey));
             };
@@ -63,8 +63,6 @@ namespace krrTools.Tools.Listener
             _viewModel.BeatmapSelected += ViewModel_BeatmapSelected;
             // 订阅 Config 属性变化以响应 RealTimePreview 开关
             _viewModel.Config.PropertyChanged += ViewModel_ConfigPropertyChanged;
-            
-            //TODO: 监听 Tab页活动，切换对应处理器，不切换标签，需要检查功能
             _viewModel.WindowTitle = Strings.OSUListener.Localize();
         }
 
@@ -87,7 +85,7 @@ namespace krrTools.Tools.Listener
             // Top border with buttons
             var topBorder = new Border
             {
-                Background = Brushes.LightGray, 
+                Background = Brushes.LightGray,
                 Padding = new Thickness(10)
             };
             var topGrid = new Grid();
@@ -98,9 +96,9 @@ namespace krrTools.Tools.Listener
 
             var titleText = new TextBlock
             {
-                FontSize = 16, 
-                FontWeight = FontWeights.Bold, 
-                VerticalAlignment = VerticalAlignment.Center, 
+                FontSize = 16,
+                FontWeight = FontWeights.Bold,
+                VerticalAlignment = VerticalAlignment.Center,
                 Width = 200
             };
             titleText.SetBinding(TextBlock.TextProperty, new Binding("WindowTitle"));
@@ -115,7 +113,7 @@ namespace krrTools.Tools.Listener
             System.Windows.Controls.Grid.SetColumn(createBtn, 1);
             topGrid.Children.Add(createBtn);
 
-            var hotkeyText = new TextBlock { Margin = new Thickness(10,0,0,0), VerticalAlignment = VerticalAlignment.Center };
+            var hotkeyText = new TextBlock { Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
             // bind to centralized Config.Hotkey
             hotkeyText.SetBinding(TextBlock.TextProperty, new Binding("Config.Hotkey"));
             System.Windows.Controls.Grid.SetColumn(hotkeyText, 2);
@@ -139,7 +137,7 @@ namespace krrTools.Tools.Listener
             contentGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
             // Songs path area
-            var songsPanel = new StackPanel { Margin = new Thickness(5,0,5,10), Orientation = Orientation.Vertical };
+            var songsPanel = new StackPanel { Margin = new Thickness(5, 0, 5, 10), Orientation = Orientation.Vertical };
             var songsLabel = SharedUIComponents.CreateHeaderLabel(Strings.SongsFolderPathHeader);
             songsLabel.Foreground = Brushes.White;
             songsPanel.Children.Add(songsLabel);
@@ -147,27 +145,28 @@ namespace krrTools.Tools.Listener
             var songsGrid = new Grid();
             songsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             songsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            
-            // TODO: 歌曲路径应该从配置绑定，根据监进程
-            // 注意文件名过长时的显示问题；多客户端时的路径问题
-            // 路径不存在时的弹窗手动选择
             var songsPathText = new TextBlock { Background = Brushes.Transparent, FontSize = 18, Foreground = Brushes.White };
             songsPathText.SetBinding(TextBlock.TextProperty, new Binding("Config.SongsPath") { Mode = BindingMode.OneWay });
             System.Windows.Controls.Grid.SetColumn(songsPathText, 0);
             songsGrid.Children.Add(songsPathText);
             var browseBtn = SharedUIComponents.CreateStandardButton(Strings.BrowseLabel);
             browseBtn.Width = 80;
-            browseBtn.Padding = new Thickness(10,2,10,2);
+            browseBtn.Padding = new Thickness(10, 2, 10, 2);
             browseBtn.Click += BrowseButton_Click;
             System.Windows.Controls.Grid.SetColumn(browseBtn, 1);
             songsGrid.Children.Add(browseBtn);
             songsPanel.Children.Add(songsGrid);
 
+            // Background image
+            var bgImage = new System.Windows.Controls.Image { Height = 100, Stretch = Stretch.Uniform, Margin = new Thickness(0, 10, 0, 0) };
+            bgImage.SetBinding(System.Windows.Controls.Image.SourceProperty, new Binding("BGPath"));
+            songsPanel.Children.Add(bgImage);
+
             System.Windows.Controls.Grid.SetRow(songsPanel, 0);
             contentGrid.Children.Add(songsPanel);
 
             // Monitoring group
-            var group = new GroupBox { FontSize = 18, Margin = new Thickness(0,10,0,0) };
+            var group = new GroupBox { FontSize = 18, Margin = new Thickness(0, 10, 0, 0) };
             var header = SharedUIComponents.CreateHeaderLabel(Strings.MonitoringInformationHeader);
             header.Foreground = Brushes.White;
             group.Header = header;
@@ -181,7 +180,7 @@ namespace krrTools.Tools.Listener
                 }
             };
 
-            var statusText = new TextBlock { FontSize = 18, Margin = new Thickness(0,5,0,0), Foreground = Brushes.White, TextWrapping = TextWrapping.Wrap };
+            var statusText = new TextBlock { FontSize = 18, Margin = new Thickness(0, 5, 0, 0), Foreground = Brushes.White, TextWrapping = TextWrapping.Wrap };
             statusText.SetBinding(TextBlock.TextProperty, new Binding("StatusMessage"));
             System.Windows.Controls.Grid.SetRow(statusText, 0);
             grpGrid.Children.Add(statusText);
@@ -195,7 +194,7 @@ namespace krrTools.Tools.Listener
 
             Content = root;
 
-            Loaded += (_,_) => InitializeHotkey();
+            Loaded += (_, _) => InitializeHotkey();
             Unloaded += Window_Closing;
         }
 
@@ -212,7 +211,7 @@ namespace krrTools.Tools.Listener
 
             IsOpen = false;
         }
-        
+
         private void ConvertButton_Click(object? sender, RoutedEventArgs? e)
         {
             // 检查是否设置了Songs目录且当前有选中的谱面
@@ -247,7 +246,7 @@ namespace krrTools.Tools.Listener
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Error while attempting to process current file: " + ex.Message);
+                Logger.WriteLine(LogLevel.Error, "[ListenerControl] Error while attempting to process current file: " + ex.Message);
                 // fall through to single-file behavior
             }
 
@@ -257,22 +256,23 @@ namespace krrTools.Tools.Listener
                 mainWindow?._fileDispatcher.ConvertFiles([_viewModel.CurrentOsuFilePath], activeTag);
             }
         }
-        
+
         private void InitializeHotkey()
         {
             try
             {
                 var hostWindow = GetWindow(this) ?? Application.Current?.MainWindow;
                 if (hostWindow == null) throw new InvalidOperationException("ListenerControl must be hosted in a Window to register hotkeys.");
-                _globalHotkey = new GlobalHotkey(_viewModel.Config.Hotkey ?? string.Empty, () => {
+                _globalHotkey = new GlobalHotkey(_viewModel.Config.Hotkey ?? string.Empty, () =>
+                {
                     // 在UI线程执行转换操作
                     Dispatcher.Invoke(() => ConvertButton_Click(null, null));
                 }, hostWindow);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to register hotkey: {ex.Message}");
-                MessageBox.Show(Strings.FailedToRegisterHotkey.Localize() + ": " + ex.Message + "\n\nPlease bind a new hotkey.", Strings.HotkeyError.Localize(), 
+                Logger.WriteLine(LogLevel.Error, "[ListenerControl] Failed to register hotkey: {0}", ex.Message);
+                MessageBox.Show(Strings.FailedToRegisterHotkey.Localize() + ": " + ex.Message + "\n\nPlease bind a new hotkey.", Strings.HotkeyError.Localize(),
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
@@ -292,7 +292,7 @@ namespace krrTools.Tools.Listener
                 _viewModel.SetHotkey(hotkeyWindow.Hotkey);
             }
         }
-        
+
         // ViewModel 属性变化处理（关注 RealTimePreview）
         private void ViewModel_ConfigPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
@@ -306,57 +306,48 @@ namespace krrTools.Tools.Listener
                         if (!_viewModel.Config.RealTimePreview)
                         {
                             // 清理之前通过实时预览暂存的文件（全局广播清除）
-                            // DualPreviewControl.BroadcastStagedPaths(null);
+                            // PreviewViewDual.BroadcastStagedPaths(null);
                         }
                     }
-                    catch (Exception ex) { Debug.WriteLine($"ListenerView.ViewModel_PropertyChanged: {ex.Message}"); }
+                    catch (Exception ex) { Logger.WriteLine(LogLevel.Error, "[ListenerControl] ListenerView.ViewModel_PropertyChanged: {0}", ex.Message); }
                 }));
             }
         }
 
         // Beatmap 被选中时的处理：当实时预览开启则把文件广播到预览並暂存以便转换
-        private void ViewModel_BeatmapSelected(object? sender, string osuPath)
+        private void ViewModel_BeatmapSelected(object? sender, string filePath)
         {
             if (!_viewModel.Config.RealTimePreview) return; // 只有在实时预览开启时才路由
-              if (string.IsNullOrEmpty(osuPath)) return;
+            if (string.IsNullOrEmpty(filePath)) return;
 
-             // 确保在 UI 线程访问控件
-             Dispatcher.BeginInvoke(new Action(() =>
-             {
-                 try
-                 {
-                     if (!System.IO.File.Exists(osuPath)) return;
+            // 确保在 UI 线程访问控件
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    if (!System.IO.File.Exists(filePath)) return;
 
-                     // var arr = new[] { osuPath };
-
-                     // 广播到所有预览并尝试把文件加载进主窗口的预览控件
-                     // DualPreviewControl.BroadcastStagedPaths(arr);
-
-                     if (Application.Current?.MainWindow is MainWindow main)
-                     {
-                         // Load to global preview if current tool is a converter
-                         var selectedTag = (main.TabControl.SelectedItem as TabViewItem)?.Tag;
-                         if (selectedTag is ConverterEnum)
-                         {
-                             var globalPreview = main.PreviewControl;
-                             if (globalPreview != null)
-                             {
-                                 var beatmaps = main._fileDispatcher.GetManiaBeatmaps([osuPath]);
-                                 if (beatmaps.Length > 0)
-                                 {
-                                     globalPreview.LoadPreview(beatmaps.FirstOrDefault());
-                                 }
-                                 // globalPreview.ApplyDropZoneStagedUI(arr);
-                             }
-                         }
-                     }
-                 }
-                 catch (Exception ex)
-                 {
-                     Debug.WriteLine($"Listener preview broadcast failed: {ex.Message}");
-                 }
-             }));
-         }
+                    if (Application.Current?.MainWindow is MainWindow main)
+                    {
+                        // Load to global preview if current tool is a converter
+                        var selectedTag = (main.TabControl.SelectedItem as TabViewItem)?.Tag;
+                        if (selectedTag is ConverterEnum)
+                        {
+                            var globalPreview = main.PreviewDualControl;
+                            if (globalPreview != null)
+                            {
+                                var beatmaps = BeatmapDecoder.Decode(filePath).GetManiaBeatmap();
+                                globalPreview.LoadPreview(beatmaps);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.WriteLine(LogLevel.Error, "[ListenerControl] Listener preview broadcast failed: {0}", ex.Message);
+                }
+            }));
+        }
 
         private void OnLanguageChanged()
         {

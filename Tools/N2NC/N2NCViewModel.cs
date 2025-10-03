@@ -22,7 +22,7 @@ namespace krrTools.Tools.N2NC
 
     public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProvider
     {
-        public N2NCViewModel(N2NCOptions options) : base(ConverterEnum.N2NC, true, options) 
+        public N2NCViewModel(N2NCOptions options) : base(ConverterEnum.N2NC, true, options)
         {
             InitializeLocalized();
         }
@@ -183,7 +183,7 @@ namespace krrTools.Tools.N2NC
         public double MaxKeys
         {
             get => _maxKeys;
-            set 
+            set
             {
                 if (SetProperty(ref _maxKeys, value))
                 {
@@ -219,8 +219,8 @@ namespace krrTools.Tools.N2NC
             }
         }
 
-       public double MinKeysMaximum => MaxKeys;
-       public double MaxKeysMaximum => TargetKeys;
+        public double MinKeysMaximum => MaxKeys;
+        public double MaxKeysMaximum => TargetKeys;
 
         // TransformSpeed is a double representing the actual configured speed (slider-controlled)
         public double TransformSpeed

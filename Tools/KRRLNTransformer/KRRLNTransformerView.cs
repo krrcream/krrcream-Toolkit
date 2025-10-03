@@ -9,6 +9,7 @@ using krrTools.Localization;
 using krrTools.UI;
 
 namespace krrTools.Tools.KRRLNTransformer;
+
 public class KRRLNTransformerView : ToolViewBase<KRRLNTransformerOptions>
 {
     public event EventHandler? SettingsChanged;
@@ -59,7 +60,7 @@ public class KRRLNTransformerView : ToolViewBase<KRRLNTransformerOptions>
         };
     }
 
-// 修改BuildUI方法
+    // 修改BuildUI方法
     private void BuildUI()
     {
         var root = CreateRootScrollViewer();

@@ -46,7 +46,7 @@ namespace krrTools.Configuration
                 if (attr != null)
                 {
                     var value = prop.GetValue(this);
-                    
+
                     if (value is IComparable comparable)
                     {
                         if (attr.Min != null && comparable.CompareTo(attr.Min) < 0)

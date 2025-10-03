@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
+using Microsoft.Extensions.Logging;
 using krrTools.Localization;
 using krrTools.UI;
 
@@ -64,7 +65,7 @@ namespace krrTools.Tools.KrrLV
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"ApplyBlur failed: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[ProcessingWindow] ApplyBlur failed: {0}", ex.Message);
             }
         }
 
@@ -104,7 +105,7 @@ namespace krrTools.Tools.KrrLV
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"TryEnableDwmBlur failed: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[ProcessingWindow] TryEnableDwmBlur failed: {0}", ex.Message);
                 return false;
             }
         }
@@ -180,7 +181,7 @@ namespace krrTools.Tools.KrrLV
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"TryEnableAcrylicBlur failed: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[ProcessingWindow] TryEnableAcrylicBlur failed: {0}", ex.Message);
                 return false;
             }
         }
@@ -195,10 +196,10 @@ namespace krrTools.Tools.KrrLV
                     {
                         Title = Strings.ProcessingTitle.Localize();
                     }
-                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"ProcessingWindow inner OnLanguageChanged failed: {ex.Message}"); }
+                    catch (Exception ex) { Logger.WriteLine(LogLevel.Error, "[ProcessingWindow] ProcessingWindow inner OnLanguageChanged failed: {0}", ex.Message); }
                 }));
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"ProcessingWindow OnLanguageChanged invoke failed: {ex.Message}"); }
+            catch (Exception ex) { Logger.WriteLine(LogLevel.Error, "[ProcessingWindow] ProcessingWindow OnLanguageChanged invoke failed: {0}", ex.Message); }
         }
     }
 }

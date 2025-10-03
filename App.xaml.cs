@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using krrTools.Configuration;
@@ -13,10 +14,15 @@ namespace krrTools;
 
 public partial class App
 {
+    [DllImport("kernel32.dll")]
+    private static extern bool AllocConsole();
+
     public static IServiceProvider Services { get; private set; } = null!;
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        AllocConsole();
+
         try
         {
             // 设置控制台编码为UTF-8以支持中文输出
@@ -48,6 +54,10 @@ public partial class App
             services.AddSingleton<IToolModule, KRRLNTransformerModule>();
 
             Services = services.BuildServiceProvider();
+
+            // 初始化全局Logger
+            var logger = Services.GetRequiredService<ILogger<App>>();
+            Logger.Initialize(logger);
 
             Console.WriteLine("[INFO] 应用启动完成");
 

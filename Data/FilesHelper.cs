@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Interop;
+using Microsoft.Extensions.Logging;
 using krrTools.Beatmaps;
 using krrTools.Localization;
 using krrTools.Tools.Listener;
@@ -47,10 +47,10 @@ namespace krrTools.Data
                                 Strings.Error.Localize(),
                                 MessageBoxButton.OK, MessageBoxImage.Error);
                         }));
-                        Debug.WriteLine($"Packaging/adding beatmap failed: {ex.Message}");
+                        Logger.WriteLine(LogLevel.Error, "[FilesHelper] Packaging/adding beatmap failed: {0}", ex.Message);
                     }
                 }
-            }, onCompleted, showSuccessMessage);
+            }, onCompleted);
         }
 
         /// <summary>
@@ -105,7 +105,7 @@ namespace krrTools.Data
         /// <summary>
         /// 弹出选择文件夹对话框，使用指定的窗口作为父窗口
         /// </summary>
-        public static string ShowFolderBrowserDialog(string description, Window owner)
+        public static string ShowFolderBrowserDialog(string description, Window? owner)
         {
             using var dialog = new FolderBrowserDialog();
             dialog.Description = description;
@@ -133,7 +133,7 @@ namespace krrTools.Data
         /// <summary>
         /// 判断文件路径是否为有效的 .osu 文件
         /// </summary>
-        public static bool EnsureIsOsuFile(string? filePath)
+        private static bool EnsureIsOsuFile(string? filePath)
         {
             return !string.IsNullOrEmpty(filePath) && File.Exists(filePath) && Path.GetExtension(filePath).Equals(".osu", StringComparison.OrdinalIgnoreCase);
         }
@@ -160,7 +160,7 @@ namespace krrTools.Data
                         }
                         catch
                         {
-                            Debug.WriteLine($"Error opening .osz file: {path}");
+                            Logger.WriteLine(LogLevel.Error, "[FilesHelper] Error opening .osz file: {0}", path);
                         }
                     }
                 }
@@ -191,18 +191,10 @@ namespace krrTools.Data
             }
         }
 
-        public static ManiaBeatmap GetManiaBeatmap(string? filePath)
-        {
-            if (!EnsureIsOsuFile(filePath))
-                throw new FileNotFoundException($"Invalid or missing .osu file: {filePath}");
-
-            return new ManiaBeatmap(filePath);
-        }
-
         /// <summary>
         /// 验证并异步处理 .osu 文件
         /// </summary>
-        public static void ValidateAndRun(string filePath, Action<string> action, Action? onCompleted = null, bool showSuccessMessage = true)
+        private static void ValidateAndRun(string filePath, Action<string> action, Action? onCompleted = null)
         {
             if (!EnsureIsOsuFile(filePath)) return;
             Task.Run(() =>
@@ -224,7 +216,7 @@ namespace krrTools.Data
                             MessageBoxButton.OK, MessageBoxImage.Error);
                         onCompleted?.Invoke();
                     }));
-                    Debug.WriteLine($"ValidateAndRun processing error: {ex.Message}");
+                    Logger.WriteLine(LogLevel.Error, "[FilesHelper] ValidateAndRun processing error: {0}", ex.Message);
                 }
             });
         }

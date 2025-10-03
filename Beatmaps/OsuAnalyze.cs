@@ -6,8 +6,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Windows;
-using krrTools.Data;
 using krrTools.Localization;
+using Microsoft.Extensions.Logging;
 using OsuFileIO.Analyzer;
 using OsuFileIO.OsuFile;
 using OsuFileIO.OsuFileReader;
@@ -42,7 +42,7 @@ namespace krrTools.Beatmaps
         private readonly SRCalculator calculator = new();
 
         public OsuAnalysisResult Analyze(string? filePath)
-        {    
+        {
             var beatmap = BeatmapDecoder.Decode(filePath).GetManiaBeatmap();
 
             // compute custom stats via SRCalculator
@@ -96,7 +96,7 @@ namespace krrTools.Beatmaps
             var reader = new OsuFileReaderBuilder(filePath).Build();
             var beatmap = reader.ReadFile();
             string BPMFormat = "";
-            
+
             if (beatmap is IReadOnlyBeatmap<ManiaHitObject> maniaHitObject)
             {
                 var result = maniaHitObject.Analyze();
@@ -119,7 +119,7 @@ namespace krrTools.Beatmaps
                 return null;
             }
 
-            Debug.WriteLine(songFolder);
+            Logger.WriteLine(LogLevel.Debug,$"OsuAnalyzer{songFolder}");
 
             // 创建.osz文件
             string outputOsz = Path.GetFileName(songFolder) + ".osz";
@@ -208,28 +208,28 @@ namespace krrTools.Beatmaps
             {
                 bLAxis.Add(defaultLength);
             }
-    
+
             // 将字典的键转换为有序列表，便于比较
             var sortedKeys = beatLengthDict.Keys.OrderBy(k => k).ToList();
-    
+
             for (int i = 0; i < timeAxis.Count; i++)
             {
                 double currentTime = timeAxis[i];
-        
+
                 // 处理边界情况：时间点在第一个时间点之前
                 if (currentTime < sortedKeys[0])
                 {
                     bLAxis[i] = beatLengthDict[sortedKeys[0]];
                     continue;
                 }
-        
+
                 // 处理边界情况：时间点在最后一个时间点之后
                 if (currentTime >= sortedKeys[^1])
                 {
                     bLAxis[i] = beatLengthDict[sortedKeys[^1]];
                     continue;
                 }
-        
+
                 // 查找当前时间点对应的时间段
                 for (int k = 0; k < sortedKeys.Count - 1; k++)
                 {
@@ -240,7 +240,7 @@ namespace krrTools.Beatmaps
                     }
                 }
             }
-    
+
             return bLAxis;
         }
     }

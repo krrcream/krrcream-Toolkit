@@ -161,7 +161,7 @@ namespace krrTools.Tools.DPtool
             beatmap.HitObjects.AddRange(newObjects);
             conv.HitObjectSort(beatmap);
         }
-        
+
         private static int[,] Mirror(int[,] matrix)
         {
             int rows = matrix.GetLength(0);
@@ -178,7 +178,7 @@ namespace krrTools.Tools.DPtool
 
             return result;
         }
-        
+
         private static void RemoveHalf(int[,] matrix, bool isLeft)
         {
             int rows = matrix.GetLength(0);

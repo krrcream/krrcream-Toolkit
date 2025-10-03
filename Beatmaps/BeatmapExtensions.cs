@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using OsuParsers.Beatmaps;
 
 namespace krrTools.Beatmaps;
+
 public static class BeatmapExtensions
 {
     public static double GetBPM(this Beatmap? beatmap, bool asMs = false)
@@ -35,7 +36,7 @@ public static class BeatmapExtensions
         double bpm = Math.Round(60000 / longestPoint.BeatLength, 2);
         return asMs ? 60000.0 / Math.Max(1.0, bpm) : bpm;
     }
-    
+
     public static (int[,], List<int>) BuildMatrix(this Beatmap beatmap)
     {
         int cs = (int)beatmap.DifficultySection.CircleSize;
@@ -62,11 +63,9 @@ public static class BeatmapExtensions
             }
         }
 
-        Dictionary<int, int> timeToRow = new Dictionary<int, int>();
-        for (int i = 0; i < timeAxis.Count; i++)
-        {
-            timeToRow[timeAxis[i]] = i;
-        }
+        Dictionary<int, int> timeToRow = timeAxis
+            .Select((time, index) => new { time, index })
+            .ToDictionary(x => x.time, x => x.index);
 
         for (int i = 0; i < beatmap.HitObjects.Count; i++)
         {
@@ -95,14 +94,14 @@ public static class BeatmapExtensions
         int column = (int)Math.Floor(X * (double)CS / 512);
         return column;
     }
-    
+
     private static int columnToPositionX(int CS, int column)
     {
         // int set_x = ((column - 1) * 512 / CS) + (256 / CS); // 不要删
         int x = (int)Math.Floor((column + 0.5) * (512.0 / CS));
         return x;
     }
-    
+
     public static double GetLNPercent(this Beatmap beatmap)
     {
         double noteCount = beatmap.HitObjects.Count;
@@ -125,8 +124,15 @@ public static class BeatmapExtensions
         title = Regex.Replace(title, invalidCharsPattern, "");
         creator = Regex.Replace(creator, invalidCharsPattern, "");
         version = Regex.Replace(version, invalidCharsPattern, "");
-
-        return $"{artist} - {title} ({creator}) [{version}]";
+        var FileName = $"{artist} - {title} ({creator}) [{version}]";
+        var remainder = 250 - beatmap.OriginalFilePath.Length;
+        
+        if (FileName.Length > remainder)
+        {
+            FileName = FileName.Substring(0, remainder) + "...";
+        }
+        
+        return FileName;
     }
 
     public static Dictionary<double, double> GetBeatLengthList(this Beatmap beatmap)
@@ -137,16 +143,16 @@ public static class BeatmapExtensions
             .ToList();
         if (tp.Count == 0)
             return new Dictionary<double, double>();
-    
+
         var beatLengthDict = new Dictionary<double, double>();
         foreach (var timingPoint in tp)
         {
             beatLengthDict[timingPoint.Offset] = timingPoint.BeatLength;
         }
-    
+
         return beatLengthDict;
     }
-    
+
     public static ManiaBeatmap GetManiaBeatmap(this Beatmap beatmap)
     {
         return new ManiaBeatmap(beatmap);

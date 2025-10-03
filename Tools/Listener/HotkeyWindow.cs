@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Microsoft.Extensions.Logging;
 using krrTools.Localization;
 using krrTools.UI;
 
@@ -35,10 +36,10 @@ namespace krrTools.Tools.Listener
                         BuildUI();
                         DataContext = dc;
                     }
-                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"HotkeyWindow inner rebuild failed: {ex.Message}"); }
+                    catch (Exception ex) { Logger.WriteLine(LogLevel.Error, "[HotkeyWindow] HotkeyWindow inner rebuild failed: {0}", ex.Message); }
                 }));
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"HotkeyWindow OnLanguageChanged invoke failed: {ex.Message}"); }
+            catch (Exception ex) { Logger.WriteLine(LogLevel.Error, "[HotkeyWindow] HotkeyWindow OnLanguageChanged invoke failed: {0}", ex.Message); }
         }
 
         private void BuildUI()

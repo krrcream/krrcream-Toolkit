@@ -37,12 +37,12 @@ namespace krrTools.Tools.N2NC
                     return Strings.Localize(labelStr) + ": " + valStr;
                 }
             }
-            
+
             if (values is [string lbl, ..])
             {
                 return Strings.Localize(lbl);
             }
-            
+
             return string.Empty;
         }
 
@@ -75,9 +75,9 @@ namespace krrTools.Tools.N2NC
         {
             // Build control UI (no window-specific initialization)
             var scrollViewer = CreateScrollViewer();
-            
+
             var grid = new StackPanel { Margin = new Thickness(15), HorizontalAlignment = HorizontalAlignment.Stretch };
-            
+
             var rowMargin = new Thickness(0, 6, 0, 6);
 
             // 创建UI控件
@@ -147,8 +147,8 @@ namespace krrTools.Tools.N2NC
             mainPanel.Children.Add(labelRow);
             mainPanel.Children.Add(sliderPanel);
             return mainPanel;
-        }        
-        
+        }
+
         private FrameworkElement CreateMaxKeysPanel(Thickness rowMargin)
         {
             var maxInner = new Grid();
@@ -185,7 +185,7 @@ namespace krrTools.Tools.N2NC
             MinKeysSlider.SetBinding(RangeBase.MaximumProperty, new Binding(nameof(N2NCViewModel.MinKeysMaximum)) { Mode = BindingMode.OneWay, Source = _viewModel });
             Grid.SetColumn(MinKeysSlider, 0);
             minInner.Children.Add(MinKeysSlider);
-            
+
             var labelRow = new Grid();
             labelRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             var minLabel = SharedUIComponents.CreateHeaderLabel("");
@@ -194,7 +194,7 @@ namespace krrTools.Tools.N2NC
             labelRow.Children.Add(minLabel);
 
             minLabel.SetBinding(TextBlock.TextProperty, new Binding(nameof(N2NCViewModel.MinKeysDisplay)) { Source = _viewModel });
-            
+
             var mainPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = rowMargin };
             mainPanel.Children.Add(labelRow);
             mainPanel.Children.Add(minInner);
@@ -244,22 +244,22 @@ namespace krrTools.Tools.N2NC
             GenerateSeedButton.Width = 100; // 设置固定宽度以保持按钮大小一致
             GenerateSeedButton.Click += GenerateSeedButton_Click;
             GenerateSeedButton.ToolTip = Strings.SeedGenerateTooltip.Localize();
-            
+
             // 创建一个Grid来实现右侧对齐的布局
             var seedGrid = new Grid();
             seedGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // 左侧弹性空间
             seedGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(160) }); // 固定宽度的文本框
             seedGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) }); // 10像素间隔
             seedGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // 按钮自适应宽度
-            
+
             // 设置控件位置
             SeedTextBox.HorizontalAlignment = HorizontalAlignment.Stretch;
             Grid.SetColumn(SeedTextBox, 1);
             Grid.SetColumn(GenerateSeedButton, 3);
-            
+
             seedGrid.Children.Add(SeedTextBox);
             seedGrid.Children.Add(GenerateSeedButton);
-            
+
             return SharedUIComponents.CreateLabeledRow("Seed|种子", seedGrid, rowMargin);
         }
 
@@ -346,7 +346,7 @@ namespace krrTools.Tools.N2NC
             void UpdateFilterLabel() => filterLabel = Strings.Localize(Strings.FilterLabel);
             SharedUIComponents.LanguageChanged += UpdateFilterLabel;
             Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= UpdateFilterLabel;
-            
+
             return SharedUIComponents.CreateLabeledRow(filterLabel, mainPanel, rowMargin);
         }
 

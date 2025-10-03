@@ -8,6 +8,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using Microsoft.Extensions.Logging;
+using krrTools;
 using System.Windows.Media;
 using krrTools.Data;
 using krrTools.Localization;
@@ -37,7 +39,7 @@ namespace krrTools.Tools.FilesManager
             // Subscribe to language change
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
             // Unsubscribe when unloaded
-            Unloaded += (_,_) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
+            Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
         }
 
         private void BuildUI()
@@ -103,7 +105,7 @@ namespace krrTools.Tools.FilesManager
             _fileDataGrid.Columns.Add(new DataGridTextColumn { Header = "FilePath", Binding = new Binding("FilePath"), Width = new DataGridLength(2, DataGridLengthUnitType.Star) });
 
             // Sync top grid column widths with DataGrid columns
-            _fileDataGrid.LayoutUpdated += (_,_) =>
+            _fileDataGrid.LayoutUpdated += (_, _) =>
             {
                 if (_topGrid != null && _fileDataGrid != null)
                 {
@@ -135,7 +137,7 @@ namespace krrTools.Tools.FilesManager
             _progressBarControl.SetBinding(RangeBase.ValueProperty, new Binding("ProgressValue"));
             _progressBarControl.SetBinding(RangeBase.MaximumProperty, new Binding("ProgressMaximum"));
             BindingOperations.SetBinding(_progressBarControl, VisibilityProperty, new Binding("IsProcessing") { Converter = new BooleanToVisibilityConverter() });
-            _progressTextBlockControl = new TextBlock { Foreground = new SolidColorBrush(Color.FromArgb(255, 33, 33, 33)), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10,0,0,0) };
+            _progressTextBlockControl = new TextBlock { Foreground = new SolidColorBrush(Color.FromArgb(255, 33, 33, 33)), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0) };
             _progressTextBlockControl.SetBinding(TextBlock.TextProperty, new Binding("ProgressText"));
             BindingOperations.SetBinding(_progressTextBlockControl, VisibilityProperty, new Binding("IsProcessing") { Converter = new BooleanToVisibilityConverter() });
             progressPanel.Children.Add(_progressBarControl);
@@ -188,7 +190,7 @@ namespace krrTools.Tools.FilesManager
 
         private TextBox CreateBoundTextBox(string path)
         {
-            var tb = new TextBox { Height = 20, Margin = new Thickness(0,0,0,5), Width = Double.NaN };
+            var tb = new TextBox { Height = 20, Margin = new Thickness(0, 0, 0, 5), Width = Double.NaN };
             tb.SetBinding(TextBox.TextProperty, new Binding(path) { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
             return tb;
         }
@@ -241,7 +243,7 @@ namespace krrTools.Tools.FilesManager
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Failed to delete {file.FilePath}: {ex.Message}");
+                    Logger.WriteLine(LogLevel.Error, "[FilesManagerControl] Failed to delete {0}: {1}", file.FilePath, ex.Message);
                 }
             }
 
@@ -265,18 +267,18 @@ namespace krrTools.Tools.FilesManager
 
         private async void SetSongsBtn_Click(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("SetSongsBtn_Click called");
+            Logger.WriteLine(LogLevel.Information, "[FilesManagerControl] SetSongsBtn_Click called");
             try
             {
                 var owner = Window.GetWindow(this);
                 var selectedPath = FilesHelper.ShowFolderBrowserDialog("Please select the osu! Songs folder", owner);
-                System.Diagnostics.Debug.WriteLine($"Selected path: '{selectedPath}'");
+                Logger.WriteLine(LogLevel.Information, "[FilesManagerControl] Selected path: '{0}'", selectedPath);
                 if (!string.IsNullOrEmpty(selectedPath))
                 {
                     var vm = (FilesManagerViewModel)DataContext;
-                    System.Diagnostics.Debug.WriteLine("Calling ProcessAsync");
+                    Logger.WriteLine(LogLevel.Information, "[FilesManagerControl] Calling ProcessAsync");
                     await vm.ProcessAsync(selectedPath);
-                    System.Diagnostics.Debug.WriteLine("ProcessAsync completed");
+                    Logger.WriteLine(LogLevel.Information, "[FilesManagerControl] ProcessAsync completed");
                 }
             }
             catch (Exception ex)

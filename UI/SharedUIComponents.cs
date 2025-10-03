@@ -178,7 +178,7 @@ public static class SharedUIComponents
     public static CheckBox CreateStandardCheckBox(string content, string? tooltip = null)
     {
         var cb = new CheckBox
-            { FontSize = ComFontSize, Margin = new Thickness(2, 0, 10, 0), Background = Brushes.Transparent };
+        { FontSize = ComFontSize, Margin = new Thickness(2, 0, 10, 0), Background = Brushes.Transparent };
         var tb = new TextBlock { FontSize = ComFontSize, TextWrapping = TextWrapping.Wrap };
         if (!string.IsNullOrEmpty(content) && content.Contains('|'))
             tb.SetBinding(System.Windows.Controls.TextBlock.TextProperty,
@@ -345,7 +345,7 @@ public static class SharedUIComponents
     private static System.Windows.Controls.MenuItem CreateThemeMenuItem()
     {
         var themeMenuItem = new System.Windows.Controls.MenuItem
-            { Header = Strings.Localize(Strings.SettingsMenuTheme) };
+        { Header = Strings.Localize(Strings.SettingsMenuTheme) };
         foreach (ApplicationTheme theme in Enum.GetValues(typeof(ApplicationTheme)))
         {
             var themeHeader = theme switch
@@ -357,7 +357,8 @@ public static class SharedUIComponents
             };
             var themeItem = new System.Windows.Controls.MenuItem
             {
-                Header = themeHeader, IsCheckable = true,
+                Header = themeHeader,
+                IsCheckable = true,
                 IsChecked = theme ==
                             (GetSavedApplicationTheme() != null &&
                              Enum.TryParse<ApplicationTheme>(GetSavedApplicationTheme(), out var savedTheme)
@@ -382,7 +383,7 @@ public static class SharedUIComponents
     private static System.Windows.Controls.MenuItem CreateBackdropMenuItem()
     {
         var backdropMenuItem = new System.Windows.Controls.MenuItem
-            { Header = Strings.Localize(Strings.SettingsMenuBackdrop) };
+        { Header = Strings.Localize(Strings.SettingsMenuBackdrop) };
         foreach (WindowBackdropType backdrop in Enum.GetValues(typeof(WindowBackdropType)))
         {
             var backdropHeader = backdrop switch
@@ -395,7 +396,8 @@ public static class SharedUIComponents
             };
             var backdropItem = new System.Windows.Controls.MenuItem
             {
-                Header = backdropHeader, IsCheckable = true,
+                Header = backdropHeader,
+                IsCheckable = true,
                 IsChecked = backdrop ==
                             (GetSavedWindowBackdropType() != null &&
                              Enum.TryParse<WindowBackdropType>(GetSavedWindowBackdropType(), out var savedBackdrop)
@@ -421,7 +423,8 @@ public static class SharedUIComponents
     {
         var accentMenuItem = new System.Windows.Controls.MenuItem
         {
-            Header = Strings.Localize(Strings.UpdateAccent), IsCheckable = true,
+            Header = Strings.Localize(Strings.UpdateAccent),
+            IsCheckable = true,
             IsChecked = GetSavedUpdateAccent() ?? false
         };
         accentMenuItem.Click += (_, _) =>
@@ -436,7 +439,7 @@ public static class SharedUIComponents
     private static System.Windows.Controls.MenuItem CreateLanguageMenuItem()
     {
         var langMenuItem = new System.Windows.Controls.MenuItem
-            { Header = Strings.Localize(Strings.SettingsMenuLanguage), IsCheckable = false };
+        { Header = Strings.Localize(Strings.SettingsMenuLanguage), IsCheckable = false };
         langMenuItem.Click += (_, _) =>
         {
             LocalizationService.ToggleLanguage();

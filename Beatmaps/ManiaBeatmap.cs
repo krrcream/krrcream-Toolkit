@@ -1,10 +1,7 @@
 
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using krrTools.Data;
-using OsuFileIO.HitObject.Mania;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 
@@ -19,11 +16,12 @@ public class ManiaBeatmap : Beatmap
     {
         if (string.IsNullOrEmpty(filePath))
             throw new ArgumentException("File path is null or empty.");
-        
+
         var beatmap = BeatmapDecoder.Decode(filePath);
         if (beatmap.GeneralSection.ModeId != 3)
             throw new ArgumentException("Beatmap is not in Mania mode.");
-        
+
+        // 复制所有属性
         GeneralSection = beatmap.GeneralSection;
         EditorSection = beatmap.EditorSection;
         MetadataSection = beatmap.MetadataSection;
@@ -32,13 +30,16 @@ public class ManiaBeatmap : Beatmap
         TimingPoints = beatmap.TimingPoints;
         HitObjects = beatmap.HitObjects;
         ColoursSection = beatmap.ColoursSection;
+        
+        // 设置文件路径
+        FilePath = filePath;
     }
 
     public ManiaBeatmap(Beatmap beatmap)
     {
         if (beatmap.GeneralSection.ModeId != 3)
             throw new ArgumentException("Not a mania beatmap.");
-        
+
         GeneralSection = beatmap.GeneralSection;
         EditorSection = beatmap.EditorSection;
         MetadataSection = beatmap.MetadataSection;
@@ -49,23 +50,22 @@ public class ManiaBeatmap : Beatmap
         ColoursSection = beatmap.ColoursSection;
 
         FilePath = beatmap.GetOsuFileName();
-        
+
         var bpms = beatmap.TimingPoints.Select(tp => 60000.0 / tp.BeatLength);
         var enumerable = bpms as double[] ?? bpms.ToArray();
         MinBPM = enumerable.Min();
         MaxBPM = enumerable.Max();
         BPM = beatmap.GetBPM();
-        BPMDisplay = !(Math.Abs(MinBPM - MaxBPM) < 0) ? 
+        BPMDisplay = !(Math.Abs(MinBPM - MaxBPM) < 0) ?
             $"{BPM}({MinBPM} - {MaxBPM})" :
             BPM.ToString(CultureInfo.CurrentCulture);
-        
+
         LNPercent = beatmap.GetLNPercent();
     }
 
     public int KeyCount => (int)DifficultySection.CircleSize;
-    
-    public string FilePath { get; set; } = string.Empty;
-    public string InputFilePath { get; set; } = string.Empty;
+
+    public string FilePath { get; set; }
 
     public double BPM { get; set; }
     public String BPMDisplay { get; set; } = string.Empty;
@@ -76,11 +76,11 @@ public class ManiaBeatmap : Beatmap
     public int NoteCount => GeneralSection.CirclesCount;
     public int LNCount => GeneralSection.SlidersCount;
     public double LNPercent { get; set; }
-    
-    public List<ManiaHitObject> ManiaHitObjects { get; set; } = new List<ManiaHitObject>();
-    public List<PreViewManiaNote> note = new List<PreViewManiaNote>();
-    //Note封装 以后在搞拓展归类
-    
+
+    // public List<ManiaHitObject> ManiaHitObjects { get; set; } = new List<ManiaHitObject>();
+    // public List<PreViewManiaNote> note = new List<PreViewManiaNote>();
+    //Note封装 以后在搞拓展归类，先隐藏以防滥用
+
     public abstract class PreViewManiaNote
     {
         public int Index;
@@ -88,7 +88,7 @@ public class ManiaBeatmap : Beatmap
         public int? EndTime;
         public bool IsHold;
     }
-    
+
     public class SimpleManiaNote : PreViewManiaNote
     {
         // 如果 ManiaNote 有抽象成员，必须实现它们

@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
+using krrTools;
 using krrTools.Data;
 using OsuParsers.Decoders;
 using Application = System.Windows.Application;
@@ -26,10 +28,10 @@ namespace krrTools.Tools.FilesManager
             FilteredOsuFiles = CollectionViewSource.GetDefaultView(OsuFiles);
             FilteredOsuFiles.Filter = FilterPredicate;
         }
-        
-        [ObservableProperty] 
+
+        [ObservableProperty]
         private ObservableCollection<FilesManagerInfo> _osuFiles = new();
-        
+
         [ObservableProperty]
         private ICollectionView _filteredOsuFiles;
 
@@ -63,7 +65,7 @@ namespace krrTools.Tools.FilesManager
 
         [ObservableProperty]
         private string _filePathFilter = "";
-        
+
         [ObservableProperty]
         private bool _isProcessing;
 
@@ -76,9 +78,9 @@ namespace krrTools.Tools.FilesManager
         [ObservableProperty]
         private string _progressText = string.Empty;
 
-   
-        
-        
+
+
+
         [RelayCommand]
         private async Task SetSongsFolderAsync()
         {
@@ -105,7 +107,7 @@ namespace krrTools.Tools.FilesManager
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"ProcessDroppedFiles error: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[FilesManagerViewModel] ProcessDroppedFiles error: {0}", ex.Message);
                 ProgressText = $"处理出错: {ex.Message}";
             }
         }
@@ -128,14 +130,14 @@ namespace krrTools.Tools.FilesManager
                 // 分批处理文件，避免UI冻结
                 const int batchSize = 50;
                 var batch = new ObservableCollection<FilesManagerInfo>();
-                
+
                 for (int i = 0; i < validFiles.Length; i++)
                 {
                     try
                     {
                         // 在后台线程解析文件
                         var fileInfo = await Task.Run(() => ParseOsuFile(validFiles[i]));
-                        
+
                         if (fileInfo != null)
                         {
                             batch.Add(fileInfo);
@@ -143,7 +145,7 @@ namespace krrTools.Tools.FilesManager
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"解析文件 {validFiles[i]} 时出错: {ex.Message}");
+                        Logger.WriteLine(LogLevel.Error, "[FilesManagerViewModel] 解析文件 {0} 时出错: {1}", validFiles[i], ex.Message);
                     }
 
                     // 更新进度
@@ -161,19 +163,19 @@ namespace krrTools.Tools.FilesManager
                                 OsuFiles.Add(item);
                             }
                         }));
-                        
+
                         batch.Clear();
-                        
+
                         // 短暂延迟，让UI有机会更新
                         await Task.Delay(1);
                     }
                 }
-                
+
                 ProgressText = $"完成处理 {validFiles.Length} 个文件";
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"读取文件时出错: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[FilesManagerViewModel] 读取文件时出错: {0}", ex.Message);
                 ProgressText = $"处理出错: {ex.Message}";
             }
             finally
@@ -185,7 +187,7 @@ namespace krrTools.Tools.FilesManager
 
         public async Task ProcessAsync(string doPath)
         {
-            System.Diagnostics.Debug.WriteLine($"Starting ProcessAsync for {doPath}");
+            Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] Starting ProcessAsync for {0}", doPath);
             ProgressValue = 0;
             ProgressText = "Loading...";
             int parsedCount = 0;
@@ -195,7 +197,7 @@ namespace krrTools.Tools.FilesManager
                 // 在后台线程获取文件列表（包括.osz包内osu）
                 var files = await Task.Run(() => FilesHelper.EnumerateOsuFiles([doPath]).ToArray());
 
-                System.Diagnostics.Debug.WriteLine($"Enumerated {files.Length} files from {doPath}");
+                Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] Enumerated {0} files from {1}", files.Length, doPath);
 
                 ProgressMaximum = files.Length;
                 ProgressText = $"Found {files.Length} files, processing...";
@@ -207,28 +209,28 @@ namespace krrTools.Tools.FilesManager
                 // 分批处理文件，避免UI冻结
                 const int batchSize = 50;
                 var batch = new ObservableCollection<FilesManagerInfo>();
-                
+
                 for (int i = 0; i < files.Length; i++)
                 {
                     try
                     {
                         // 在后台线程解析文件
                         var fileInfo = await Task.Run(() => ParseOsuFile(files[i]));
-                        
+
                         if (fileInfo != null)
                         {
                             batch.Add(fileInfo);
                             parsedCount++;
-                            System.Diagnostics.Debug.WriteLine($"Parsed {files[i]} successfully");
+                            Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] Parsed {0} successfully", files[i]);
                         }
                         else
                         {
-                            System.Diagnostics.Debug.WriteLine($"Failed to parse {files[i]}");
+                            Logger.WriteLine(LogLevel.Warning, "[FilesManagerViewModel] Failed to parse {0}", files[i]);
                         }
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"解析文件 {files[i]} 时出错: {ex.Message}");
+                        Logger.WriteLine(LogLevel.Error, "[FilesManagerViewModel] 解析文件 {0} 时出错: {1}", files[i], ex.Message);
                     }
 
                     // 更新进度
@@ -247,27 +249,27 @@ namespace krrTools.Tools.FilesManager
                             }
                             FilteredOsuFiles.Refresh();
                         }));
-                        
+
                         batch.Clear();
-                        
+
                         // 短暂延迟，让UI有机会更新
                         await Task.Delay(1);
                     }
                 }
-                
+
                 ProgressText = $"完成处理 {files.Length} 个文件";
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"读取文件夹时出错: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[FilesManagerViewModel] 读取文件夹时出错: {0}", ex.Message);
                 ProgressText = $"处理出错: {ex.Message}";
-                System.Diagnostics.Debug.WriteLine($"Error in ProcessAsync: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[FilesManagerViewModel] Error in ProcessAsync: {0}", ex.Message);
             }
             finally
             {
                 await Task.Delay(1000); // 显示完成信息1秒
                 IsProcessing = false;
-                System.Diagnostics.Debug.WriteLine($"ProcessAsync completed, parsed {parsedCount} files");
+                Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] ProcessAsync completed, parsed {0} files", parsedCount);
                 Dispatcher?.Invoke(() =>
                 {
                     FilteredOsuFiles = CollectionViewSource.GetDefaultView(OsuFiles);
@@ -282,7 +284,7 @@ namespace krrTools.Tools.FilesManager
             try
             {
                 var beatmap = BeatmapDecoder.Decode(filePath);
-                
+
                 var fileInfo = new FilesManagerInfo
                 {
                     FilePath = filePath,
@@ -301,13 +303,13 @@ namespace krrTools.Tools.FilesManager
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"解析文件 {filePath} 时出错: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[FilesManagerViewModel] 解析文件 {0} 时出错: {1}", filePath, ex.Message);
                 return null;
             }
         }
 
         // 定义OsuFileInfo类来存储解析后的数据
-        
+
         private bool FilterPredicate(object item)
         {
             if (item is not FilesManagerInfo fileInfo) return false;
@@ -369,7 +371,7 @@ namespace krrTools.Tools.FilesManager
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("RefreshFilter error: " + ex.Message);
+                Logger.WriteLine(LogLevel.Error, "[FilesManagerViewModel] RefreshFilter error: {0}", ex.Message);
             }
         }
     }

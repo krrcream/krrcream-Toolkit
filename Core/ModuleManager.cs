@@ -149,7 +149,7 @@ namespace krrTools.Core
         }
 
         /// <summary>
-        /// 从路径加载ManiaBeatmap
+        /// 从路径加载ManiaBeatmap, 预留方法，未来可扩展为其他模式，由模块定义加载对象
         /// </summary>
         /// <param name="filePath">文件路径</param>
         /// <returns>ManiaBeatmap实例，失败返回null</returns>
@@ -161,7 +161,7 @@ namespace krrTools.Core
             }
             catch (Exception)
             {
-                // Log error if needed
+                // WriteLine error if needed
                 return null;
             }
         }

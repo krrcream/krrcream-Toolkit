@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Extensions.Logging;
 using krrTools.Core;
 
 namespace krrTools.Managers
@@ -29,7 +30,7 @@ namespace krrTools.Managers
         {
             if (!Directory.Exists(pluginDirectory))
             {
-                Debug.WriteLine($"Plugin directory does not exist: {pluginDirectory}");
+                Logger.WriteLine(LogLevel.Warning, "[PluginManager] Plugin directory does not exist: {0}", pluginDirectory);
                 return;
             }
 
@@ -50,14 +51,14 @@ namespace krrTools.Managers
             {
                 if (!File.Exists(assemblyPath))
                 {
-                    Debug.WriteLine($"Plugin assembly does not exist: {assemblyPath}");
+                    Logger.WriteLine(LogLevel.Warning, "[PluginManager] Plugin assembly does not exist: {0}", assemblyPath);
                     return;
                 }
 
                 var assemblyName = Path.GetFileName(assemblyPath);
                 if (_loadedAssemblies.Contains(assemblyName))
                 {
-                    Debug.WriteLine($"Plugin assembly already loaded: {assemblyName}");
+                    Logger.WriteLine(LogLevel.Information, "[PluginManager] Plugin assembly already loaded: {0}", assemblyName);
                     return;
                 }
 
@@ -76,17 +77,17 @@ namespace krrTools.Managers
                         var module = (IToolModule)Activator.CreateInstance(moduleType)!;
                         _loadedPlugins.Add(module);
 
-                        Debug.WriteLine($"Loaded plugin module: {module.DisplayName} ({module.ModuleName})");
+                        Logger.WriteLine(LogLevel.Information, "[PluginManager] Loaded plugin module: {0} ({1})", module.DisplayName, module.ModuleName);
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"Failed to instantiate plugin module {moduleType.Name}: {ex.Message}");
+                        Logger.WriteLine(LogLevel.Error, "[PluginManager] Failed to instantiate plugin module {0}: {1}", moduleType.Name, ex.Message);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to load plugin assembly {assemblyPath}: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[PluginManager] Failed to load plugin assembly {0}: {1}", assemblyPath, ex.Message);
             }
         }
 

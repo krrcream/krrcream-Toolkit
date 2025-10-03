@@ -4,9 +4,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 
 namespace krrTools.Beatmaps;
+
 public struct Note(int k, int h, int t)
 {
     public readonly int K = k;
@@ -26,10 +28,10 @@ public class SRCalculator
     private readonly double p_1 = 1.5;
     private readonly double w_2 = 0.27;
     private readonly double p_0 = 1.0;
-    private double x = -1; 
+    private double x = -1;
 
     private readonly int granularity = 1;
-    
+
 
     private readonly double[][] crossMatrix =
     [
@@ -53,7 +55,7 @@ public class SRCalculator
     private Note[][] noteSeqByColumn = [];
     private Note[] LNSeq = [];
     private Note[] tailSeq = [];
-        
+
     public double Calculate(List<Note> noteSequence, int keyCount, double od)
     {
         // Initialize data structures
@@ -120,7 +122,7 @@ public class SRCalculator
             var Pbar = task25.Result;
 
             stopwatch.Stop();
-            Debug.WriteLine($"Section 23/24/25 Time: {stopwatch.ElapsedMilliseconds}ms");
+            Logger.WriteLine(LogLevel.Debug,$"[SRCalculator]Section 23/24/25 Time: {stopwatch.ElapsedMilliseconds}ms");
 
             stopwatch.Restart();
             var task26 = Task.Run(() => CalculateSection26(deltaKs));
@@ -134,13 +136,13 @@ public class SRCalculator
             var (Rbar, Is) = task27.Result;
 
             stopwatch.Stop();
-            Debug.WriteLine($"Section 26/27 Time: {stopwatch.ElapsedMilliseconds}ms");
+            Logger.WriteLine(LogLevel.Debug,$"[SRCalculator]Section 26/27 Time: {stopwatch.ElapsedMilliseconds}ms");
 
             // Final calculation
             stopwatch.Restart();
             var result = CalculateSection3(Jbar, Xbar, Pbar, Abar, Rbar, KS);
             stopwatch.Stop();
-            Debug.WriteLine($"Section 3 Time: {stopwatch.ElapsedMilliseconds}ms");
+            Logger.WriteLine(LogLevel.Debug,$"[SRCalculator]Section 3 Time: {stopwatch.ElapsedMilliseconds}ms");
 
             return result;
         }
@@ -154,11 +156,11 @@ public class SRCalculator
     {
         var lstbar = new double[T];
         var windowSum = 0.0;
-        
-        for (int i = 0; i < Math.Min(500, T); i+=granularity)
+
+        for (int i = 0; i < Math.Min(500, T); i += granularity)
             windowSum += lst[i];
 
-        for (int s = 0; s < T; s+=granularity)
+        for (int s = 0; s < T; s += granularity)
         {
             lstbar[s] = 0.001 * windowSum * granularity;
             if (s + 500 < T)
@@ -175,29 +177,29 @@ public class SRCalculator
         var windowSum = 0.0;
         var windowLen = Math.Min(500, T);
 
-        for (int i = 0; i < windowLen; i+=granularity)
+        for (int i = 0; i < windowLen; i += granularity)
             windowSum += lst[i];
 
-        for (int s = 0; s < T; s+=granularity)
+        for (int s = 0; s < T; s += granularity)
         {
             lstbar[s] = windowSum / windowLen * granularity;
 
             if (s + 500 < T)
             {
                 windowSum += lst[s + 500];
-                windowLen+=granularity;
+                windowLen += granularity;
             }
             if (s - 500 >= 0)
             {
                 windowSum -= lst[s - 500];
-                windowLen-=granularity;
+                windowLen -= granularity;
             }
         }
         return lstbar;
     }
 
     private double JackNerfer(double delta)
-    {   
+    {
         return 1 - 7 * Math.Pow(10, -5) * Math.Pow(0.15 + Math.Abs(delta - 0.08), -4);
     }
 
@@ -239,7 +241,7 @@ public class SRCalculator
 
         // Calculate Jbar
         var Jbar = new double[T];
-        for (int s = 0; s < T; s+=granularity)
+        for (int s = 0; s < T; s += granularity)
         {
             double weightedSum = 0;
             double weightSum = 0;
@@ -284,7 +286,7 @@ public class SRCalculator
         }
 
         var X = new double[T];
-        for (int s = 0; s < T; s+=granularity)
+        for (int s = 0; s < T; s += granularity)
         {
             X[s] = Enumerable.Range(0, K + 1)
                 .Sum(k => XKs[k][s] * crossMatrix[K][k]);
@@ -320,7 +322,7 @@ public class SRCalculator
             var delta = 0.001 * (noteSeq[i + 1].H - noteSeq[i].H);
             if (delta < Math.Pow(10, -9))
             {
-                P[noteSeq[i].H] += 1000 * Math.Pow(0.02 * (4/x - lambda_3), 1.0/4);
+                P[noteSeq[i].H] += 1000 * Math.Pow(0.02 * (4 / x - lambda_3), 1.0 / 4);
             }
             else
             {
@@ -330,19 +332,19 @@ public class SRCalculator
 
                 if (delta < 2 * x / 3)
                 {
-                    var baseVal = Math.Pow(0.08 * Math.Pow(x, -1) * 
-                        (1 - lambda_3 * Math.Pow(x, -1) * Math.Pow(delta - x/2, 2)), 1.0/4) * 
+                    var baseVal = Math.Pow(0.08 * Math.Pow(x, -1) *
+                        (1 - lambda_3 * Math.Pow(x, -1) * Math.Pow(delta - x / 2, 2)), 1.0 / 4) *
                         B(delta) * v / delta;
-                    
+
                     for (int s = h_l; s < h_r; s++)
                         P[s] += baseVal;
                 }
                 else
                 {
-                    var baseVal = Math.Pow(0.08 * Math.Pow(x, -1) * 
-                        (1 - lambda_3 * Math.Pow(x, -1) * Math.Pow(x/6, 2)), 1.0/4) * 
+                    var baseVal = Math.Pow(0.08 * Math.Pow(x, -1) *
+                        (1 - lambda_3 * Math.Pow(x, -1) * Math.Pow(x / 6, 2)), 1.0 / 4) *
                         B(delta) * v / delta;
-                    
+
                     for (int s = h_l; s < h_r; s++)
                         P[s] += baseVal;
                 }
@@ -381,7 +383,7 @@ public class SRCalculator
             dks[k] = new double[T];
         }
 
-        for (int s = 0; s < T; s+=granularity)
+        for (int s = 0; s < T; s += granularity)
         {
             var cols = new List<int>(K);
             for (int k = 0; k < K; k++)
@@ -410,7 +412,7 @@ public class SRCalculator
                 }
             }
         }
-        
+
         return (Smooth2(A), KS);
     }
 
@@ -422,8 +424,8 @@ public class SRCalculator
         // Convert it to the nearest index of an element >= note.H
         if (index < 0) index = ~index;
 
-        return index + 1 < columnNotes.Length ? 
-            columnNotes[index + 1] : 
+        return index + 1 < columnNotes.Length ?
+            columnNotes[index + 1] :
             new Note(0, (int)Math.Pow(10, 9), (int)Math.Pow(10, 9));
     }
 
@@ -450,7 +452,7 @@ public class SRCalculator
             for (int s = tailSeq[i].T; s < tailSeq[i + 1].T; s++)
             {
                 Is[s] = 1 + I[i];
-                R[s] = 0.08 * Math.Pow(delta_r, -1.0/2) * Math.Pow(x, -1) * (1 + lambda_4 * (I[i] + I[i + 1]));
+                R[s] = 0.08 * Math.Pow(delta_r, -1.0 / 2) * Math.Pow(x, -1) * (1 + lambda_4 * (I[i] + I[i + 1]));
             }
         }
 
@@ -474,7 +476,7 @@ public class SRCalculator
         }
     }
 
-    private double CalculateSection3(double[] Jbar, double[] Xbar, double[] Pbar, 
+    private double CalculateSection3(double[] Jbar, double[] Xbar, double[] Pbar,
         double[] Abar, double[] Rbar, int[] KS)
     {
         var C = new double[T];
@@ -501,13 +503,13 @@ public class SRCalculator
             Abar[t] = Math.Max(0, Abar[t]);
             Rbar[t] = Math.Max(0, Rbar[t]);
 
-            var term1 = Math.Pow(w_0 * Math.Pow(Math.Pow(Abar[t], 3.0/KS[t]) * Jbar[t], 1.5), 1);
-            var term2 = Math.Pow((1 - w_0) * Math.Pow(Math.Pow(Abar[t], 2.0/3) * 
+            var term1 = Math.Pow(w_0 * Math.Pow(Math.Pow(Abar[t], 3.0 / KS[t]) * Jbar[t], 1.5), 1);
+            var term2 = Math.Pow((1 - w_0) * Math.Pow(Math.Pow(Abar[t], 2.0 / 3) *
                 (0.8 * Pbar[t] + Rbar[t]), 1.5), 1);
-            S[t] = Math.Pow(term1 + term2, 2.0/3);
+            S[t] = Math.Pow(term1 + term2, 2.0 / 3);
 
-            var T_t = (Math.Pow(Abar[t], 3.0/KS[t]) * Xbar[t]) / (Xbar[t] + S[t] + 1);
-            D[t] = w_1 * Math.Pow(S[t], 1.0/2) * Math.Pow(T_t, p_1) + S[t] * w_2;
+            var T_t = (Math.Pow(Abar[t], 3.0 / KS[t]) * Xbar[t]) / (Xbar[t] + S[t] + 1);
+            D[t] = w_1 * Math.Pow(S[t], 1.0 / 2) * Math.Pow(T_t, p_1) + S[t] * w_2;
         }
 
         ForwardFill(D);
@@ -520,7 +522,7 @@ public class SRCalculator
             weightedSum += Math.Pow(D[t], lambda_n) * C[t];
         }
 
-        var SR = Math.Pow(weightedSum / weightSum, 1.0/lambda_n);
+        var SR = Math.Pow(weightedSum / weightSum, 1.0 / lambda_n);
 
         SR = Math.Pow(SR, p_0) / Math.Pow(8, p_0) * 8;
         SR *= (noteSeq.Length + 0.5 * LNSeq.Length) / (noteSeq.Length + 0.5 * LNSeq.Length + 60);
@@ -530,7 +532,7 @@ public class SRCalculator
         SR *= 0.96 + 0.01 * K;
         return SR;
     }
-    
+
     public List<Note> getNotes(Beatmap beatmap)
     {
         var notes = new List<Note>();
@@ -543,7 +545,7 @@ public class SRCalculator
             var tail = hitobject.EndTime > hitobject.StartTime ? hitobject.EndTime : -1;
             notes.Add(new Note(col, time, tail));
         }
-        
+
         return notes;
     }
 }

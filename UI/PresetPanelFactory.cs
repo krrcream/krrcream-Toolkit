@@ -18,7 +18,7 @@ namespace krrTools.UI
             where T : class
         {
             var outer = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 10, 0, 10) };
-            
+
             var list = new StackPanel { Orientation = Orientation.Vertical };
 
             // Load current presets

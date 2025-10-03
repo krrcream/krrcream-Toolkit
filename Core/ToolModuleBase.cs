@@ -1,8 +1,10 @@
 using System;
 using System.Threading.Tasks;
+using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Data;
 using OsuParsers.Beatmaps;
+using OsuParsers.Decoders;
 
 namespace krrTools.Core
 {
@@ -29,7 +31,7 @@ namespace krrTools.Core
         /// 模块类型
         /// </summary>
         public abstract ToolModuleType ModuleType { get; }
-        
+
         /// <summary>
         /// 枚举值（实现 Configuration.IToolModule）
         /// </summary>
@@ -146,6 +148,8 @@ namespace krrTools.Core
 
         public IToolOptions DefaultOptions => module.CreateDefaultOptions();
 
+        // 处理单个文件（options 为 null 时使用内部加载的默认设置）
+        // 预留给管线调用的接口，目前实际上并未使用
         public string? ProcessFile(string filePath, IToolOptions? options = null)
         {
             var opts = options ?? DefaultOptions;
@@ -155,16 +159,16 @@ namespace krrTools.Core
         public Beatmap? ProcessBeatmap(Beatmap inputBeatmap, IToolOptions? options = null)
         {
             var opts = options ?? DefaultOptions;
-            
+
             try
             {
                 return module.ProcessBeatmapWithOptions(inputBeatmap, opts);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] 处理谱面时出错，使用模块 {Name}: {ex.Message}");
+                Console.WriteLine($"[ERROR] 模块 {Name}处理谱面时出错: {ex.Message}");
             }
-            
+
             return null;
         }
 
@@ -174,7 +178,7 @@ namespace krrTools.Core
             {
                 // 处理Beatmap
                 var processedBeatmap = ProcessFileToDataWithOptions(filePath, options) as Beatmap;
-                
+
                 if (processedBeatmap == null)
                     return null;
 
@@ -197,10 +201,10 @@ namespace krrTools.Core
 
         private object? ProcessFileToDataWithOptions(string filePath, IToolOptions options)
         {
-            var beatmap = FilesHelper.GetManiaBeatmap(filePath);
+            var beatmap = BeatmapDecoder.Decode(filePath).GetManiaBeatmap();
             return ProcessBeatmap(beatmap, options);
         }
-        
+
         public async Task<string?> ProcessFileAsync(string filePath) => await Task.Run(() => ProcessFile(filePath));
         public object? TestFileToData(string filePath) => ProcessFileToDataWithOptions(filePath, DefaultOptions);
     }

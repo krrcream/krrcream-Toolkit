@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using Microsoft.Extensions.Logging;
 using krrTools.Beatmaps;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
@@ -21,9 +23,9 @@ public static class PreviewTransformation
         var rows = matrix.GetLength(0);
         var cols = matrix.GetLength(1);
         for (var r = 0; r < rows; r++)
-        for (var c = 0; c < cols; c++)
-            if (matrix[r, c] >= 0)
-                return timeAxis[r];
+            for (var c = 0; c < cols; c++)
+                if (matrix[r, c] >= 0)
+                    return timeAxis[r];
         return null;
     }
 
@@ -81,26 +83,19 @@ public static class PreviewTransformation
 
         return (outMat, outTime);
     }
-
-    // 通用构建方法
-    private static (int columns, List<ManiaBeatmap.PreViewManiaNote> notes, double quarterMs) BuildCommon(Beatmap beatmap, int maxRows)
+    
+    // 从 Beatmap 构建 mania 音符列表（用于预览转换后的数据）
+    public static (int columns, List<ManiaBeatmap.PreViewManiaNote> notes, double quarterMs) BuildFromManiaBeatmap(
+        ManiaBeatmap beatmap, int maxRows = int.MaxValue)
     {
-        if (beatmap.GeneralSection.ModeId != 3) return (0, new List<ManiaBeatmap.PreViewManiaNote>(), 0);
-        var cs = (int)beatmap.DifficultySection.CircleSize;
+        var cs = beatmap.KeyCount;
         var (matrix, timeAxis) = BuildMatrixFromBeatmap(beatmap);
         var bpm = beatmap.GetBPM();
         var quarterMs = 60000.0 / Math.Max(1.0, bpm);
         var res = MatrixToNotes(matrix, timeAxis, cs, maxRows);
         return (res.columns, res.notes, quarterMs);
     }
-
-    // 从 Beatmap 构建 mania 音符列表（用于预览转换后的数据）
-    public static (int columns, List<ManiaBeatmap.PreViewManiaNote> notes, double quarterMs) BuildFromBeatmap(
-        Beatmap beatmap, int maxRows)
-    {
-        return BuildCommon(beatmap, maxRows);
-    }
-
+    
     // 从 Beatmap 构建时间窗口内的音符
     public static (int columns, List<ManiaBeatmap.PreViewManiaNote> notes, double quarterMs) BuildFromBeatmapWindow(
         Beatmap beatmap, int startMs, int endMs)
@@ -128,8 +123,8 @@ public static class PreviewTransformation
         // 初始化二维矩阵，所有元素默认为-1（代表空）
         var matrix = new int[h, a];
         for (var i = 0; i < h; i++)
-        for (var j = 0; j < a; j++)
-            matrix[i, j] = -1;
+            for (var j = 0; j < a; j++)
+                matrix[i, j] = -1;
 
         var timeToRow = new Dictionary<int, int>();
         for (var i = 0; i < timeAxis.Count; i++) timeToRow[timeAxis[i]] = i;
@@ -160,7 +155,7 @@ public static class PreviewTransformation
 
     // 将矩阵和时间轴转换为预览音符列表（只取前 maxRows 个时间行）
     private static (int columns, List<ManiaBeatmap.PreViewManiaNote> notes) MatrixToNotes(int[,] matrix,
-        List<int> timeAxis, int columns, int maxRows)
+        List<int> timeAxis, int columns, int maxRows = int.MaxValue)
     {
         var notes = new List<ManiaBeatmap.PreViewManiaNote>();
         var rows = matrix.GetLength(0);
@@ -174,19 +169,28 @@ public static class PreviewTransformation
                 var val = matrix[r, c];
                 if (val >= 0) // 音符头
                 {
-                    // 判断是否为连音：扫描后续是否为 -7
-                    var endRow = r;
-                    for (var k = r + 1; k < rows; k++)
-                        if (matrix[k, c] == -7) endRow = k;
-                        else break;
-                    int? endTime = endRow > r ? timeAxis[endRow] : null;
-                    notes.Add(new ManiaBeatmap.SimpleManiaNote
+                    // 检查这是否是长按音符的开始（前一行不是同一个音符）
+                    bool isStartOfHold = (r == 0) || (matrix[r - 1, c] != val);
+
+                    if (isStartOfHold)
                     {
-                        Index = (int)((c + 0.5) * (512.0 / cols)),
-                        StartTime = t,
-                        EndTime = endTime,
-                        IsHold = endTime.HasValue
-                    });
+                        // 判断是否为长按音符：扫描后续行是否包含相同的音符ID
+                        var endRow = r;
+                        for (var k = r + 1; k < rows; k++)
+                        {
+                            if (matrix[k, c] == val) endRow = k; // 相同音符ID，说明是长按的一部分
+                            else break;
+                        }
+                        int? endTime = endRow > r ? timeAxis[endRow] : null;
+                        notes.Add(new ManiaBeatmap.SimpleManiaNote
+                        {
+                            Index = (int)((c + 0.5) * (512.0 / cols)),
+                            StartTime = t,
+                            EndTime = endTime,
+                            IsHold = endTime.HasValue
+                        });
+                    }
+                    // 如果不是长按开始，跳过（已经被前面的长按音符处理过了）
                 }
             }
 
@@ -227,7 +231,7 @@ public static class PreviewTransformation
         var quarterMs = 60000.0 / Math.Max(1.0, BPM);
         var (mSlice, tSlice) = SliceMatrixByTime(matrix, timeAxis, startMs, endMs);
         if (mSlice.GetLength(0) == 0) return (columns, new List<ManiaBeatmap.PreViewManiaNote>(), quarterMs);
-        var res = MatrixToNotes(mSlice, tSlice, columns, int.MaxValue);
+        var res = MatrixToNotes(mSlice, tSlice, columns);
         return (res.columns, res.notes, quarterMs);
     }
 
@@ -253,9 +257,38 @@ public static class PreviewTransformation
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Failed to get background image from {osuPath}: {ex.Message}");
+            Logger.WriteLine(LogLevel.Error, "[PreviewTransformation] Failed to get background image from {0}: {1}", osuPath, ex.Message);
         }
 
+        return null;
+    }
+
+    // 加载谱面背景图的方法，统一在项目中使用
+    public static ImageBrush? LoadBackgroundBrush(string? path)
+    {
+        if (path == null || !File.Exists(path)) return null;
+        try
+        {
+            var bgPath = GetBackgroundImagePath(path);
+            if (bgPath != null && File.Exists(bgPath))
+            {
+                var bgBitmap = new BitmapImage();
+                bgBitmap.BeginInit();
+                bgBitmap.UriSource = new Uri(bgPath);
+                bgBitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bgBitmap.EndInit();
+                return new ImageBrush
+                {
+                    ImageSource = bgBitmap,
+                    Stretch = Stretch.UniformToFill,
+                    Opacity = 0.25
+                };
+            }
+        }
+        catch
+        {
+            Logger.WriteLine(LogLevel.Debug, "[PreviewTransformation] Failed to load background image.");
+        }
         return null;
     }
 }

@@ -3,13 +3,14 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace krrTools.Tools.KrrLV;
+
 public class KRRLVAnalysisItem : ObservableObject
 {
-        
+
     private readonly ProcessingWindow _processingWindow = new ProcessingWindow();
     private int _processedCount;
     private int _totalCount;
-        
+
     public string? FileName { get; set; }
 
     public string? FilePath { get; init; }
@@ -17,7 +18,7 @@ public class KRRLVAnalysisItem : ObservableObject
     public string? Status { get; set; }
 
     public string? Diff { get; set; }
-        
+
     public string? Title { get; set; }
 
     public string? Artist { get; set; }
@@ -27,7 +28,7 @@ public class KRRLVAnalysisItem : ObservableObject
     public double Keys { get; set; }
 
     public string? BPM { get; set; }
-        
+
     public double OD { get; set; }
 
     public double HP { get; set; }
@@ -37,13 +38,13 @@ public class KRRLVAnalysisItem : ObservableObject
     public double BeatmapID { get; set; }
 
     public double BeatmapSetID { get; set; }
-        
+
     public double XxySR { get; set; }
-    
+
     public double KrrLV { get; set; }
-        
+
     public double YlsLV { get; set; }
-        
+
     public int ProcessedCount
     {
         get => _processedCount;

@@ -22,7 +22,7 @@ namespace krrTools.Tools.KrrLV
             // subscribe to language changes
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
             // unsubscribe when unloaded
-            Unloaded += (_,_) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
+            Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
         }
 
         private void BuildUI()

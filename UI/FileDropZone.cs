@@ -5,7 +5,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
+using krrTools.Beatmaps;
 using krrTools.Localization;
+using OsuParsers.Decoders;
 using Border = Wpf.Ui.Controls.Border;
 using Button = System.Windows.Controls.Button;
 using Grid = Wpf.Ui.Controls.Grid;
@@ -15,6 +17,8 @@ namespace krrTools.UI
 {
     public sealed class FileDropZone : Border
     {
+        public event EventHandler<string[]>? FilesDropped;
+
         private readonly TextBlock DropHint;
         private readonly Button StartConversionButton;
         private string[]? _stagedPaths;
@@ -36,7 +40,7 @@ namespace krrTools.UI
             Margin = new Thickness(8, 2, 8, 5);
             Padding = new Thickness(12);
             Height = 60;
-            
+
             DropHint = new TextBlock
             {
                 FontSize = 16,
@@ -63,14 +67,13 @@ namespace krrTools.UI
 
         private void InitializeUI()
         {
-            Child = new Grid()            
+            Child = new Grid()
             {
                 Children = { DropHint, StartConversionButton }
             };
 
             Drop += OnDrop;
             StartConversionButton.Click += StartConversionButton_Click;
-
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
         }
 
@@ -101,10 +104,30 @@ namespace krrTools.UI
 
             var osuFiles = CollectOsuFiles(files);
             if (osuFiles.Count == 0) return;
+            
+            _stagedPaths = osuFiles.ToArray();
+            FilesDropped?.Invoke(this, _stagedPaths);
 
-            StageFiles(osuFiles.ToArray());
+            // 如果有谱面文件，预览第一个
+            if (_stagedPaths.Length >= 1)
+            {
+                LoadPreviewForDroppedFile(_stagedPaths[0]);
+            }
+
+            UpdateTexts();
+            StartConversionButton.Visibility = _stagedPaths is { Length: > 0 } ? Visibility.Visible : Visibility.Collapsed;
         }
 
+        private void LoadPreviewForDroppedFile(string filePath)
+        {
+            var mainWindow = Application.Current?.Windows.OfType<MainWindow>().FirstOrDefault();
+            if (mainWindow is { PreviewDualControl: not null })
+            {
+                var beatmap = BeatmapDecoder.Decode(filePath).GetManiaBeatmap();
+                mainWindow.PreviewDualControl.LoadPreview(beatmap);
+            }
+        }
+        
         private List<string> CollectOsuFiles(string[] items)
         {
             var osuFiles = new List<string>();
@@ -128,14 +151,6 @@ namespace krrTools.UI
                 }
             }
             return osuFiles;
-        }
-
-        private void StageFiles(string[] osuFiles)
-        {
-            _stagedPaths = osuFiles.ToArray();
-            
-            UpdateTexts();
-            StartConversionButton.Visibility = _stagedPaths is { Length: > 0 } ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void StartConversionButton_Click(object sender, RoutedEventArgs e)

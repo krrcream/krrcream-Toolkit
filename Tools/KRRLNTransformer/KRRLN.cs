@@ -124,7 +124,7 @@ namespace krrTools.Tools.KRRLNTransformer
                 }
             }
         }
-        
+
         private int[,] CalculateAvailableTime(int[,] matrix, List<int> timeAxis)
         {
             int rows = matrix.GetLength(0);

@@ -6,7 +6,6 @@ using System.Windows.Controls;
 using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Core;
-using krrTools.Data;
 using krrTools.Tools.Preview;
 using OsuParsers.Beatmaps;
 
@@ -19,20 +18,18 @@ namespace krrTools.Utilities
 
         public int LastStartMs { get; private set; }
 
-        // 选项提供器
+        // 选项提供器，从主程序传入模块设置
         public IModuleManager? ToolScheduler { get; init; }
 
         public Func<object>? ConverterOptionsProvider { get; init; }
 
-        private Func<string, string, object?>? ConversionProvider { get; set; }
+        private Func<string, Beatmap, object?>? ConversionProvider { get; set; }
 
         public ConverterProcessor()
         {
             // 分配活动工具、输入路径开始转换
-            ConversionProvider = (toolName, path) =>
+            ConversionProvider = (toolName, beatmap) =>
             {
-                var maniaBeatmap = FilesHelper.GetManiaBeatmap(path);
-
                 if (ToolScheduler != null)
                 {
                     // 事件触发开始转换
@@ -41,48 +38,52 @@ namespace krrTools.Utilities
                         var options = ConverterOptionsProvider();
                         if (options is IToolOptions toolOptions)
                         {
-                            Console.WriteLine("[INFO] 通过 ConverterOptionsProvider 获取到工具选项，传递给工具调度器。");
-                            return ToolScheduler.ProcessBeatmap(toolName, maniaBeatmap, toolOptions);
+                            Console.WriteLine($"[INFO] ConverterOptionsProvider 获取到{toolName}，{beatmap}，传递给ToolScheduler。");
+                            return ToolScheduler.ProcessBeatmap(toolName, beatmap, toolOptions);
                         }
                     }
                     Console.WriteLine("[INFO] ConverterOptionsProvider为空或未实现 IToolOptions，无设置传入工具调度器。");
-                    return ToolScheduler.ProcessBeatmap(toolName, maniaBeatmap);
+                    return ToolScheduler.ProcessBeatmap(toolName, beatmap);
                 }
 
-                return maniaBeatmap;
+                return beatmap;
             };
         }
 
-        public FrameworkElement BuildVisual(ManiaBeatmap input, bool converted)
+        public FrameworkElement BuildOriginalVisual(ManiaBeatmap maniaBeatmap)
         {
-            const int maxRows = 10;
+            if (maniaBeatmap.HitObjects.Count > 0)
+                LastStartMs = maniaBeatmap.HitObjects.Min(n => n.StartTime);
             
-            if (converted)
-            {
-                if (ConversionProvider == null || CurrentTool == null)
-                    return new TextBlock { Text = "转换器传递失败，或工具获取为空" };
-
-                var rawData = ConversionProvider(CurrentTool, input.FilePath);
-                
-                if (rawData is Beatmap beatmap)
-                {
-                    var processed = rawData is ManiaBeatmap mb ? mb : beatmap.GetManiaBeatmap();
-                    var (columns, notes, quarterMs) = PreviewTransformation.BuildFromBeatmap(processed, maxRows);
-                    return BuildManiaTimeRowsFromNotes(notes, columns, maxRows, quarterMs);
-                }
-            
-                return new TextBlock { Text = "没有获取到Beatmap结果" };
-            }
-            
-            var (c, n, q) = PreviewTransformation.BuildFromBeatmap(input, maxRows);
-            return BuildManiaTimeRowsFromNotes(n, c, maxRows, q);
+            var (columns, notes, quarterMs) = PreviewTransformation.BuildFromManiaBeatmap(maniaBeatmap);
+            return BuildManiaTimeRowsFromNotes(notes, columns, quarterMs);
         }
         
-        // 根据时间行构建动态预览控件（按时间分组、限制行数）
-        private FrameworkElement BuildManiaTimeRowsFromNotes(List<ManiaBeatmap.PreViewManiaNote> allNotes, int columns, int maxRows, double quarterMs = 0, Func<int, ManiaBeatmap.PreViewManiaNote, ManiaBeatmap.PreViewManiaNote>? noteTransform = null)
+        public FrameworkElement BuildConvertedVisual(ManiaBeatmap input)
+        {
+            if (ConversionProvider == null || CurrentTool == null)
+                return new TextBlock { Text = "转换器传递失败，或工具获取为空" };
+
+            var rawData = ConversionProvider(CurrentTool, input);
+
+            if (rawData is Beatmap beatmap)
+            {
+                var maniaBeatmap = beatmap.GetManiaBeatmap();
+                if (maniaBeatmap.NoteCount > 0)
+                    LastStartMs = maniaBeatmap.HitObjects.Min(n => n.StartTime);
+
+                var (columns, notes, quarterMs) = PreviewTransformation.BuildFromManiaBeatmap(maniaBeatmap);
+                return BuildManiaTimeRowsFromNotes(notes, columns, quarterMs);
+            }
+
+            return new TextBlock { Text = "没有获取到Beatmap结果" };
+        }
+        
+        // 根据时间行构建动态预览控件
+        private FrameworkElement BuildManiaTimeRowsFromNotes(List<ManiaBeatmap.PreViewManiaNote> allNotes, int columns, double quarterMs = 0, Func<int, ManiaBeatmap.PreViewManiaNote, ManiaBeatmap.PreViewManiaNote>? noteTransform = null)
         {
             if (allNotes.Count == 0) return new TextBlock { Text = "allNotes.Count == 0" };
-            var timeGroups = allNotes.GroupBy(n => n.StartTime).OrderBy(g => g.Key).Take(maxRows).ToList();
+            var timeGroups = allNotes.GroupBy(n => n.StartTime).OrderBy(g => g.Key).ToList(); // 移除Take限制，显示所有时间组
             if (timeGroups.Count == 0) return new TextBlock { Text = "timeGroups.Count == 0" };
 
             List<(int time, List<ManiaBeatmap.PreViewManiaNote> notes)> grouped;
@@ -102,11 +103,11 @@ namespace krrTools.Utilities
             }
 
             // 使用动态控件显示；控件自适应父容器大小
-            int displayColumns = columns; 
-            
+            int displayColumns = columns;
+
             if (displayColumns <= 0) displayColumns = 1;
-            
-            var dyn = new DynamicPreviewControl(grouped, displayColumns, quarterMs)
+
+            var dyn = new PreviewDynamicControl(grouped, displayColumns, quarterMs)
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch
