@@ -691,6 +691,8 @@ public class MainWindow : FluentWindow
                 _listenerVM.Cleanup();
                 _listenerVM = null;
             }
+            // 当关闭实时预览时，重置预览到默认内置样本
+            _previewDual?.ResetToDefaultPreview();
         }
     }
 

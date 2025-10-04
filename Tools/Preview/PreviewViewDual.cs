@@ -9,6 +9,7 @@ using krrTools.Beatmaps;
 using krrTools.Localization;
 using krrTools.Utilities;
 using krrTools.Core;
+using OsuParsers.Beatmaps;
 using static krrTools.UI.SharedUIComponents;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 
@@ -23,7 +24,7 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
     private static readonly Thickness BorderPadding = new(6);
 
     // 常量
-    private const int MaxFileNameLength = 40;
+    private const int MaxFileNameLength = 80; // 显示在标题中的文件名最大长度
     private const int RefreshThrottleMs = 150;
 
     // 字段只声明
@@ -216,7 +217,7 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
 
     private void OnLanguageChanged()
     {
-        _previewTitle.Text = Strings.PreviewTitle.Localize() + UpdateTitleSuffix(_lastBeatmap);
+        _previewTitle.Text = UpdateTitleSuffix(_lastBeatmap);
         _originalHint.Text = Strings.OriginalHint.Localize();
         _convertedHint.Text = Strings.ConvertedHint.Localize();
     }
@@ -233,7 +234,7 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
     public void LoadPreview(ManiaBeatmap beatmap)
     {
         _lastBeatmap = beatmap;
-        UpdateTitleSuffix(_lastBeatmap);
+        _previewTitle.Text = Strings.PreviewTitle.Localize() + UpdateTitleSuffix(_lastBeatmap);
         ApplyColumnOverrideToProcessor();
         if (Processor == null)
         {
@@ -244,7 +245,7 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
         BuildAndSetVisuals(_lastBeatmap);
     }
 
-    private void BuildAndSetVisuals(ManiaBeatmap beatmap)
+    private void BuildAndSetVisuals(Beatmap beatmap)
     {
         var originalVisual = Processor!.BuildOriginalVisual(beatmap);
         var convertedVisual = Processor!.BuildConvertedVisual(beatmap);
@@ -292,7 +293,6 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
     {
         if (beatmap == null)
         {
-            _previewTitle.Text = Strings.PreviewTitle.Localize();
             return string.Empty;
         }
         
@@ -303,11 +303,11 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
         }
         else
         {
-            var name = beatmap.GetOutputOsuFileName();
+            var name = beatmap.GetOutputOsuFileName(true);
             titleSuffix = TruncateFileNameMiddle(name, MaxFileNameLength);
         }
 
-        return ": " + titleSuffix;
+        return "DIFF: " + titleSuffix;
     }
 
     private static string TruncateFileNameMiddle(string name, int maxLen)
@@ -356,5 +356,13 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
             Console.WriteLine("[PreviewViewDual] Failed to load background image from {0}: {1}",
                 path, ex.Message);
         }
+    }
+
+    public void ResetToDefaultPreview()
+    {
+        _autoLoadedSample = false;
+        _originalContent.Content = null;
+        _convertedContent.Content = null;
+        TryAutoLoadSample();
     }
 }

@@ -1,5 +1,6 @@
 using System.Windows;
 using krrTools.Beatmaps;
+using OsuParsers.Beatmaps;
 
 namespace krrTools.Tools.Preview
 {
@@ -10,9 +11,9 @@ namespace krrTools.Tools.Preview
     {
         string? CurrentTool { get; set; }
         
-        FrameworkElement BuildOriginalVisual(ManiaBeatmap input);
+        FrameworkElement BuildOriginalVisual(Beatmap input);
         
-        FrameworkElement BuildConvertedVisual(ManiaBeatmap input);
+        FrameworkElement BuildConvertedVisual(Beatmap input);
     }
 }
 

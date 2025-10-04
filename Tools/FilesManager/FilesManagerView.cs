@@ -93,17 +93,17 @@ public class FilesManagerView : UserControl
             Margin = new Thickness(0, 0, 0, 5),
             Height = 40,
         };
-        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) }); // Title
-        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) }); // Diff
-        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) }); // Artist
-        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) }); // Creator
+        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Title
+        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Diff
+        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Artist
+        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Creator
         _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Keys
         _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // OD
         _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // HP
         _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // beatmapID
         _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // setID
         _topGrid.ColumnDefinitions.Add(new ColumnDefinition
-            { Width = new GridLength(2, GridUnitType.Star) }); // FilePath
+            { Width = new GridLength(1, GridUnitType.Star) }); // FilePath
         _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Clear button
 
         _titleFilterBox = CreateBoundTextBox("TitleFilter");

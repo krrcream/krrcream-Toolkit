@@ -8,7 +8,6 @@ using krrTools.Configuration;
 using krrTools.Core;
 using krrTools.Tools.Preview;
 using OsuParsers.Beatmaps;
-using OsuParsers.Decoders;
 
 namespace krrTools.Utilities
 {
@@ -50,9 +49,9 @@ namespace krrTools.Utilities
             };
         }
 
-        public FrameworkElement BuildOriginalVisual(ManiaBeatmap maniaBeatmap)
+        public FrameworkElement BuildOriginalVisual(Beatmap input)
         {
-            // var maniaBeatmap = input.GetManiaBeatmap();
+            var maniaBeatmap = (ManiaBeatmap)input;
             if (maniaBeatmap.HitObjects.Count > 0)
                 LastStartMs = maniaBeatmap.HitObjects.Min(n => n.StartTime);
             
@@ -60,23 +59,23 @@ namespace krrTools.Utilities
             return BuildManiaTimeRowsFromNotes(notes, columns, quarterMs);
         }
         
-        public FrameworkElement BuildConvertedVisual(ManiaBeatmap input)
+        public FrameworkElement BuildConvertedVisual(Beatmap input)
         {
             if (ConversionProvider == null || CurrentTool == null)
                 return new TextBlock { Text = "转换器传递失败，或工具获取为空" };
 
+            var maniaBeatmap = (ManiaBeatmap)input;
             // 对于内置谱面，直接使用输入的 beatmap，不需要从路径解码
-            if (input.MetadataSection.Title == "Built-in Sample")
+            if (maniaBeatmap.MetadataSection.Title == "Built-in Sample")
             {
-                var maniaBeatmap = input;
                 if (maniaBeatmap.NoteCount > 0)
                     LastStartMs = maniaBeatmap.HitObjects.Min(n => n.StartTime);
 
-                var (columns, notes, quarterMs) = BuildNotesList(input);
+                var (columns, notes, quarterMs) = BuildNotesList(maniaBeatmap);
                 return BuildManiaTimeRowsFromNotes(notes, columns, quarterMs);
             }
 
-            var rawData = ConversionProvider(CurrentTool, input);
+            var rawData = ConversionProvider(CurrentTool, maniaBeatmap);
 
             if (rawData is ManiaBeatmap beatmap)
             {
@@ -103,8 +102,8 @@ namespace krrTools.Utilities
                 {
                     Index = (int)hit.Position.X,
                     StartTime = hit.StartTime,
-                    EndTime = hit.EndTime > 0 ? hit.EndTime : null,
-                    IsHold = hit.EndTime > 0
+                    EndTime = hit.EndTime > hit.StartTime ? hit.EndTime : null,
+                    IsHold = hit.StartTime != hit.EndTime
                 });
             }
             return (columns, notes, quarterMs);
