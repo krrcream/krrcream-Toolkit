@@ -15,7 +15,7 @@ using CommunityToolkit.Mvvm.Input;
 using krrTools.Beatmaps;
 using krrTools.Data;
 
-namespace krrTools.Tools.KrrLV
+namespace krrTools.Tools.KRRLVAnalysis
 {
     //TODO:   1.控件优化，优化UI更新逻辑，减少频繁更新;
     //        2.数据加载异常，显示数据为0;
@@ -31,7 +31,7 @@ namespace krrTools.Tools.KrrLV
 
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(4, 4); // 最多4个并发线程
         private readonly DispatcherTimer _updateTimer;
-        private ProcessingWindow? _processingWindow;
+        // private ProcessingWindow? _processingWindow;
         private readonly List<KRRLVAnalysisItem> _pendingItems = new List<KRRLVAnalysisItem>();
         private readonly Lock _pendingItemsLock = new Lock();
 
@@ -45,6 +45,34 @@ namespace krrTools.Tools.KrrLV
             set => SetProperty(ref _totalCount, value);
         }
 
+        private double _progressValue;
+        public double ProgressValue
+        {
+            get => _progressValue;
+            set
+            {
+                if (Math.Abs(_progressValue - value) > 0)
+                {
+                    _progressValue = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private bool _isProgressVisible;
+        public bool IsProgressVisible
+        {
+            get => _isProgressVisible;
+            set
+            {
+                if (_isProgressVisible != value)
+                {
+                    _isProgressVisible = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+        
         public int ProcessedCount { get; set; }
 
         public KRRLVAnalysisViewModel()
@@ -147,11 +175,13 @@ namespace krrTools.Tools.KrrLV
                 TotalCount = FilesHelper.GetOsuFilesCount(files);
                 _currentProcessedCount = 0;
 
-                // 显示进度窗口
+                // 显示进度窗口,处理前
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    _processingWindow = new ProcessingWindow();
-                    _processingWindow.Show();
+                    // _processingWindow = new ProcessingWindow();
+                    // _processingWindow.Show();
+                    IsProgressVisible = true;
+                    ProgressValue = 0;
                 });
 
                 _updateTimer.Start();
@@ -178,10 +208,11 @@ namespace krrTools.Tools.KrrLV
                                         // 使用原子操作更新计数器
                                         Interlocked.Increment(ref _currentProcessedCount);
 
-                                        // 更新UI进度
+                                        // 更新UI进度, 处理中
                                         Application.Current.Dispatcher.Invoke(() =>
                                         {
-                                            UpdateProgress(_currentProcessedCount, TotalCount);
+                                            // UpdateProgress(_currentProcessedCount, TotalCount);
+                                            ProgressValue = (double)_currentProcessedCount / TotalCount * 100;
                                         });
                                     });
                                 tasks.Add(task);
@@ -200,7 +231,8 @@ namespace krrTools.Tools.KrrLV
                                     // 更新UI进度
                                     Application.Current.Dispatcher.Invoke(() =>
                                     {
-                                        UpdateProgress(_currentProcessedCount, TotalCount);
+                                        // UpdateProgress(_currentProcessedCount, TotalCount);
+                                        ProgressValue = (double)_currentProcessedCount / TotalCount * 100;
                                     });
                                 });
                             tasks.Add(task);
@@ -226,7 +258,8 @@ namespace krrTools.Tools.KrrLV
                                             // 更新UI进度
                                             Application.Current.Dispatcher.Invoke(() =>
                                             {
-                                                UpdateProgress(_currentProcessedCount, TotalCount);
+                                                // UpdateProgress(_currentProcessedCount, TotalCount);
+                                                ProgressValue = (double)_currentProcessedCount / TotalCount * 100;
                                             });
                                         });
                                     tasks.Add(task);
@@ -249,8 +282,9 @@ namespace krrTools.Tools.KrrLV
                 // 关闭进度窗口
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    _processingWindow?.Close();
-                    _processingWindow = null;
+                    // _processingWindow?.Close();
+                    // _processingWindow = null;
+                    IsProgressVisible = false;
                 });
             }
             catch (Exception ex)
@@ -363,19 +397,11 @@ namespace krrTools.Tools.KrrLV
                 });
             }
         }
-
-
-
-        private void UpdateProgress(int current, int total)
-        {
-            if (_processingWindow != null)
-            {
-                _processingWindow.UpdateProgress(current, total);
-            }
-        }
-
-
-
+        
+        // private void UpdateProgress(int current, int total)
+        // {
+        //     _processingWindow?.UpdateProgress(current, total);
+        // }
 
         private void ProcessOsuFile(string filePath)
         {

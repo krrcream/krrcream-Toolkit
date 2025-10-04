@@ -16,7 +16,7 @@ using krrTools.Localization;
 using krrTools.Tools.DPtool;
 using krrTools.Tools.FilesManager;
 using krrTools.Tools.KRRLNTransformer;
-using krrTools.Tools.KrrLV;
+using krrTools.Tools.KRRLVAnalysis;
 using krrTools.Tools.Listener;
 using krrTools.Tools.N2NC;
 using krrTools.Tools.Preview;

@@ -5,7 +5,7 @@ using System.Windows.Data;
 using krrTools.Data;
 using krrTools.UI;
 
-namespace krrTools.Tools.KrrLV
+namespace krrTools.Tools.KRRLVAnalysis
 {
     public class KRRLVAnalysisView : UserControl
     {
@@ -56,18 +56,38 @@ namespace krrTools.Tools.KrrLV
             dataGrid.Columns.Add(new DataGridTextColumn { Header = "KRR LV", Binding = new Binding("KRRLVAnalysis") { StringFormat = "F2" }, Width = DataGridLength.Auto });
             dataGrid.Columns.Add(new DataGridTextColumn { Header = "YLS LV", Binding = new Binding("YlsLV") { StringFormat = "F2" }, Width = DataGridLength.Auto });
             dataGrid.Columns.Add(new DataGridTextColumn { Header = "Status", Binding = new Binding("Status"), Width = DataGridLength.Auto });
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "FileName", Binding = new Binding("FileName"), Width = 160 });
+            dataGrid.Columns.Add(new DataGridTextColumn { Header = "FileName", Binding = new Binding("FileName"), Width = DataGridLength.Auto });
             
             Grid.SetRow(dataGrid, 0);
             root.Children.Add(dataGrid);
 
-            var buttonGrid = new Grid { Margin = new Thickness(10) };
-            buttonGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
+            var buttonGrid = new Grid { Margin = new Thickness(5) };
+            buttonGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            buttonGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            
             var loadBtn = SharedUIComponents.CreateStandardButton("Load Folder|加载文件夹");
             loadBtn.Width = Double.NaN; loadBtn.Height = 40;
             loadBtn.Click += LoadBtn_Click;
-            Grid.SetColumn(loadBtn, 0);
+
+            var progressBar = new ProgressBar
+            {
+                Height = 20,
+                Width = Double.NaN,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 5, 0, 5),
+                Minimum = 0,
+                Maximum = 100
+            };
+            progressBar.SetBinding(ProgressBar.ValueProperty, new Binding("ProgressValue"));
+            progressBar.SetBinding(ProgressBar.VisibilityProperty, new Binding("IsProgressVisible")
+            {
+                Converter = new BooleanToVisibilityConverter()
+            });
+
+            Grid.SetRow(progressBar, 0);
+            Grid.SetRow(loadBtn, 1);
+            buttonGrid.Children.Add(progressBar);
             buttonGrid.Children.Add(loadBtn);
 
             Grid.SetRow(buttonGrid, 1);

@@ -1,9 +1,8 @@
-
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace krrTools.Tools.KrrLV;
+namespace krrTools.Tools.KRRLVAnalysis;
 
 public class KRRLVAnalysisItem : INotifyPropertyChanged
 {
