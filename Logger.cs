@@ -33,10 +33,10 @@ namespace krrTools
                 _ => ConsoleColor.Gray,
             };
 
-            string formatted = args.Length > 0 ? string.Format(message, args) : message;
+            // string formatted = args.Length > 0 ? string.Format(message, args) : message;
 
             Console.ForegroundColor = color;
-            Console.WriteLine($"[{level}] {formatted}");
+            // Console.WriteLine($"[{level}] {formatted}");
             Console.ResetColor();
         }
     }

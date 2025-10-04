@@ -9,7 +9,6 @@ using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
-using krrTools;
 using krrTools.Data;
 using OsuParsers.Decoders;
 using Application = System.Windows.Application;
@@ -25,8 +24,6 @@ public partial class FilesManagerViewModel : ObservableObject
         _progressValue = 0;
         FilteredOsuFiles = CollectionViewSource.GetDefaultView(OsuFiles);
         FilteredOsuFiles.Filter = FilterPredicate;
-        Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] FilteredOsuFiles initialized with {0} items",
-            OsuFiles.Count);
     }
 
     [ObservableProperty] private ObservableCollection<FilesManagerInfo> _osuFiles = new();
@@ -172,14 +169,10 @@ public partial class FilesManagerViewModel : ObservableObject
 
     public async Task ProcessAsync(string doPath)
     {
-        Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] Starting ProcessAsync for {0}", doPath);
         SelectedFolderPath = doPath;
-        Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] SelectedFolderPath set to: {0}",
-            SelectedFolderPath);
         ProgressValue = 0;
         ProgressText = "Loading...";
-        var parsedCount = 0;
-
+        
         try
         {
             // 在后台线程获取文件列表（包括.osz包内osu）
@@ -209,9 +202,7 @@ public partial class FilesManagerViewModel : ObservableObject
                     if (fileInfo != null)
                     {
                         batch.Add(fileInfo);
-                        parsedCount++;
-                        Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] Parsed {0} successfully",
-                            files[i]);
+
                     }
                     else
                     {
@@ -235,9 +226,6 @@ public partial class FilesManagerViewModel : ObservableObject
                     {
                         foreach (var item in batch) OsuFiles.Add(item);
                         FilteredOsuFiles.Refresh();
-                        Logger.WriteLine(LogLevel.Information,
-                            "[FilesManagerViewModel] Added {0} items to OsuFiles, total count: {1}", batch.Count,
-                            OsuFiles.Count);
                     }));
 
                     batch.Clear();
@@ -259,8 +247,7 @@ public partial class FilesManagerViewModel : ObservableObject
         {
             await Task.Delay(120); // 显示完成信息
             IsProcessing = false;
-            Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] ProcessAsync completed, parsed {0} files",
-                parsedCount);
+
             Application.Current?.Dispatcher?.Invoke(() =>
             {
                 FilteredOsuFiles = CollectionViewSource.GetDefaultView(OsuFiles);
