@@ -29,9 +29,9 @@ public class FilesManagerView : UserControl
     private TextBox? _titleFilterBox,
         _diffFilterBox,
         _artistFilterBox,
-        _creatorFilterBox,
-        _keysFilterBox,
-        _odFilterBox,
+        _creatorFilterBox;
+    private ComboBox? _keysFilterBox;
+    private TextBox? _odFilterBox,
         _hpFilterBox,
         _beatmapIdFilterBox,
         _beatmapSetIdFilterBox,
@@ -97,8 +97,7 @@ public class FilesManagerView : UserControl
         _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Title
         _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Diff
         _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Artist
-        _topGrid.ColumnDefinitions.Add(new ColumnDefinition
-            { Width = new GridLength(1, GridUnitType.Star) }); // Creator
+        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Creator
         _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) }); // Keys
         _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) }); // OD
         _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) }); // HP
@@ -106,6 +105,7 @@ public class FilesManagerView : UserControl
         _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) }); // setID
         _topGrid.ColumnDefinitions.Add(new ColumnDefinition
             { Width = new GridLength(2, GridUnitType.Star) }); // FilePath
+        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Clear button
 
         _titleFilterBox = CreateBoundTextBox("TitleFilter");
         _topGrid.Children.Add(PlaceInGrid(_titleFilterBox, 0));
@@ -115,7 +115,7 @@ public class FilesManagerView : UserControl
         _topGrid.Children.Add(PlaceInGrid(_artistFilterBox, 2));
         _creatorFilterBox = CreateBoundTextBox("CreatorFilter");
         _topGrid.Children.Add(PlaceInGrid(_creatorFilterBox, 3));
-        _keysFilterBox = CreateBoundTextBox("KeysFilter");
+        _keysFilterBox = CreateBoundComboBox("KeysFilter", new[] { "", "4", "5", "6", "7", "8", "9", "10" });
         _topGrid.Children.Add(PlaceInGrid(_keysFilterBox, 4));
         _odFilterBox = CreateBoundTextBox("OdFilter");
         _topGrid.Children.Add(PlaceInGrid(_odFilterBox, 5));
@@ -127,6 +127,17 @@ public class FilesManagerView : UserControl
         _topGrid.Children.Add(PlaceInGrid(_beatmapSetIdFilterBox, 8));
         _filePathFilterBox = CreateBoundTextBox("FilePathFilter");
         _topGrid.Children.Add(PlaceInGrid(_filePathFilterBox, 9));
+
+        // Add clear filters button
+        var clearButton = new Button
+        {
+            Content = "清除过滤",
+            Height = 20,
+            Margin = new Thickness(5, 0, 0, 5),
+            Padding = new Thickness(10, 0, 10, 0)
+        };
+        clearButton.Click += ClearFiltersButton_Click;
+        _topGrid.Children.Add(PlaceInGrid(clearButton, 10));
 
         Grid.SetRow(_topGrid, 0);
         rootGrid.Children.Add(_topGrid);
@@ -145,36 +156,36 @@ public class FilesManagerView : UserControl
 
         _fileDataGrid.Columns.Add(new DataGridTextColumn
         {
-            Header = "Title", Binding = new Binding("Title.Value"), Width = new DataGridLength(1, DataGridLengthUnitType.Star)
+            Header = "Title", Binding = new Binding("Title.Value"), Width = DataGridLength.Auto
         });
         _fileDataGrid.Columns.Add(new DataGridTextColumn
         {
-            Header = "Diff", Binding = new Binding("Diff.Value"), Width = new DataGridLength(1, DataGridLengthUnitType.Star)
+            Header = "Diff", Binding = new Binding("Diff.Value"), Width = DataGridLength.Auto
         });
         _fileDataGrid.Columns.Add(new DataGridTextColumn
         {
             Header = "Artist", Binding = new Binding("Artist.Value"),
-            Width = new DataGridLength(1, DataGridLengthUnitType.Star)
+            Width = DataGridLength.Auto
         });
         _fileDataGrid.Columns.Add(new DataGridTextColumn
         {
             Header = "Creator", Binding = new Binding("Creator.Value"),
-            Width = new DataGridLength(1, DataGridLengthUnitType.Star)
+            Width = DataGridLength.Auto
         });
         _fileDataGrid.Columns.Add(new DataGridTextColumn
-            { Header = "Keys", Binding = new Binding("Keys"), Width = new DataGridLength(60), IsReadOnly = true });
+            { Header = "Keys", Binding = new Binding("Keys"), Width = DataGridLength.Auto, IsReadOnly = true });
         _fileDataGrid.Columns.Add(new DataGridTextColumn
-            { Header = "OD", Binding = new Binding("OD.Value"), Width = new DataGridLength(60) });
+            { Header = "OD", Binding = new Binding("OD.Value"), Width = DataGridLength.Auto });
         _fileDataGrid.Columns.Add(new DataGridTextColumn
-            { Header = "HP", Binding = new Binding("HP.Value"), Width = new DataGridLength(60) });
+            { Header = "HP", Binding = new Binding("HP.Value"), Width = DataGridLength.Auto });
         _fileDataGrid.Columns.Add(new DataGridTextColumn
-            { Header = "beatmapID", Binding = new Binding("BeatmapID"), Width = new DataGridLength(80), IsReadOnly = true });
+            { Header = "beatmapID", Binding = new Binding("BeatmapID"), Width = DataGridLength.Auto, IsReadOnly = true });
         _fileDataGrid.Columns.Add(new DataGridTextColumn
-            { Header = "setID", Binding = new Binding("BeatmapSetID"), Width = new DataGridLength(80), IsReadOnly = true });
+            { Header = "setID", Binding = new Binding("BeatmapSetID"), Width = DataGridLength.Auto, IsReadOnly = true });
         _fileDataGrid.Columns.Add(new DataGridTextColumn
         {
             Header = "FilePath", Binding = new Binding("FilePath.Value"),
-            Width = new DataGridLength(2, DataGridLengthUnitType.Star)
+            Width = DataGridLength.Auto
         });
 
         // Sync top grid column widths with DataGrid columns
@@ -275,6 +286,23 @@ public class FilesManagerView : UserControl
         e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
     }
 
+    private void ClearFiltersButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is FilesManagerViewModel vm)
+        {
+            vm.TitleFilter = "";
+            vm.DiffFilter = "";
+            vm.ArtistFilter = "";
+            vm.CreatorFilter = "";
+            vm.KeysFilter = "";
+            vm.OdFilter = "";
+            vm.HpFilter = "";
+            vm.BeatmapIdFilter = "";
+            vm.BeatmapSetIdFilter = "";
+            vm.FilePathFilter = "";
+        }
+    }
+
     private FrameworkElement PlaceInGrid(UIElement element, int column)
     {
         Grid.SetColumn(element, column);
@@ -287,6 +315,14 @@ public class FilesManagerView : UserControl
         tb.SetBinding(TextBox.TextProperty,
             new Binding(path) { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
         return tb;
+    }
+
+    private ComboBox CreateBoundComboBox(string path, string[] items)
+    {
+        var cb = new ComboBox { Height = 20, Margin = new Thickness(0, 0, 0, 5), Width = double.NaN, ItemsSource = items };
+        cb.SetBinding(Selector.SelectedItemProperty,
+            new Binding(path) { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
+        return cb;
     }
 
     private async void DeleteMenuItem_Click(object sender, RoutedEventArgs e)
