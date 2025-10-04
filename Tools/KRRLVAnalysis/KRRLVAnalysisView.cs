@@ -53,7 +53,7 @@ namespace krrTools.Tools.KRRLVAnalysis
             dataGrid.Columns.Add(new DataGridTextColumn { Header = "Max KPS", Binding = new Binding("MaxKPS") { StringFormat = "F2" }, Width = DataGridLength.Auto });
             dataGrid.Columns.Add(new DataGridTextColumn { Header = "Avg KPS", Binding = new Binding("AvgKPS") { StringFormat = "F2" }, Width = DataGridLength.Auto });
             dataGrid.Columns.Add(new DataGridTextColumn { Header = "XXY SR", Binding = new Binding("XxySR") { StringFormat = "F2" }, Width = DataGridLength.Auto });
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "KRR LV", Binding = new Binding("KRRLVAnalysis") { StringFormat = "F2" }, Width = DataGridLength.Auto });
+            dataGrid.Columns.Add(new DataGridTextColumn { Header = "KRR LV", Binding = new Binding("KrrLV") { StringFormat = "F2" }, Width = DataGridLength.Auto });
             dataGrid.Columns.Add(new DataGridTextColumn { Header = "YLS LV", Binding = new Binding("YlsLV") { StringFormat = "F2" }, Width = DataGridLength.Auto });
             dataGrid.Columns.Add(new DataGridTextColumn { Header = "Status", Binding = new Binding("Status"), Width = DataGridLength.Auto });
             dataGrid.Columns.Add(new DataGridTextColumn { Header = "FileName", Binding = new Binding("FileName"), Width = DataGridLength.Auto });
