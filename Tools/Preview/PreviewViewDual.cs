@@ -38,20 +38,20 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
     private bool _autoLoadedSample;
     private INotifyPropertyChanged? _observedDc;
     private DateTime _lastRefresh = DateTime.MinValue;
-    private ManiaBeatmap? _lastBeatmap;
-    public IModuleManager? Scheduler { get; set; }
+    private Beatmap? _originalBeatmap;
+    public IModuleManager? ModuleScheduler { get; set; }
 
     #region 回调属性刷新预览
 
-    public static readonly DependencyProperty ColumnOverrideProperty = DependencyProperty.Register(
-        nameof(ColumnOverride), typeof(int?), typeof(PreviewViewDual),
-        new PropertyMetadata(null, OnAnyPropertyChanged));
+    // public static readonly DependencyProperty ColumnOverrideProperty = DependencyProperty.Register(
+    //     nameof(ColumnOverride), typeof(int?), typeof(PreviewViewDual),
+    //     new PropertyMetadata(null, OnAnyPropertyChanged));
 
-    public int? ColumnOverride
-    {
-        get => (int?)GetValue(ColumnOverrideProperty);
-        set => SetValue(ColumnOverrideProperty, value);
-    }
+    // public int? ColumnOverride
+    // {
+    //     get => (int?)GetValue(ColumnOverrideProperty);
+    //     set => SetValue(ColumnOverrideProperty, value);
+    // }
 
     public static readonly DependencyProperty AutoRefreshTokenProperty = DependencyProperty.Register(
         nameof(AutoRefreshToken), typeof(object), typeof(PreviewViewDual),
@@ -87,9 +87,18 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
                     ctrl._originalContent.Content = null;
                     ctrl._convertedContent.Content = null;
                 }
+                else
+                {
+                    if (ctrl.Processor is ConverterProcessor cp)
+                        cp.TPScheduler = ctrl.ModuleScheduler;
+                    ctrl.LoadConvertedPreview();
+                }
             }
-            ctrl.TryAutoLoadSample();
-            ctrl.Refresh();
+            else
+            {
+                ctrl.TryAutoLoadSample();
+                ctrl.LoadConvertedPreview();
+            }
         }
     }
 
@@ -97,7 +106,7 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
 
     public void Refresh()
     {
-        if (_lastBeatmap != null) LoadPreview(_lastBeatmap);
+        if (_originalBeatmap != null) LoadConvertedPreview();
     }
 
     public PreviewViewDual()
@@ -217,7 +226,6 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
 
     private void OnLanguageChanged()
     {
-        _previewTitle.Text = UpdateTitleSuffix(_lastBeatmap);
         _originalHint.Text = Strings.OriginalHint.Localize();
         _convertedHint.Text = Strings.ConvertedHint.Localize();
     }
@@ -226,33 +234,41 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
     {
         if (_autoLoadedSample || _originalContent.Content != null) return;
         Processor ??= new ConverterProcessor();
+        if (Processor is ConverterProcessor cp)
+            cp.TPScheduler = ModuleScheduler;
         var beatmap = PreviewManiaNote.BuiltInSampleStream();
         LoadPreview(beatmap);
         _autoLoadedSample = true;
     }
     
-    public void LoadPreview(ManiaBeatmap beatmap)
+    public void LoadPreview(Beatmap beatmap)
     {
-        _lastBeatmap = beatmap;
-        _previewTitle.Text = Strings.PreviewTitle.Localize() + UpdateTitleSuffix(_lastBeatmap);
-        ApplyColumnOverrideToProcessor();
+        _originalBeatmap = beatmap;
+        _previewTitle.Text = UpdateTitleSuffix(_originalBeatmap);
+        // ApplyColumnOverrideToProcessor();
         if (Processor == null)
         {
             SetNoProcessorState();
             return;
         }
 
-        BuildAndSetVisuals(_lastBeatmap);
+        LoadOriginalPreview();
+        LoadConvertedPreview();
     }
 
-    private void BuildAndSetVisuals(Beatmap beatmap)
+    private void LoadOriginalPreview()
     {
-        var originalVisual = Processor!.BuildOriginalVisual(beatmap);
-        var convertedVisual = Processor!.BuildConvertedVisual(beatmap);
-
+        if (_originalBeatmap == null || Processor == null) return;
+        var originalVisual = Processor.BuildOriginalVisual(_originalBeatmap);
         _originalContent.Content = originalVisual;
-        _convertedContent.Content = convertedVisual;
         _originalContent.Visibility = Visibility.Visible;
+    }
+
+    private void LoadConvertedPreview()
+    {
+        if (_originalBeatmap == null || Processor == null) return;
+        var convertedVisual = Processor.BuildConvertedVisual(_originalBeatmap);
+        _convertedContent.Content = convertedVisual;
         _convertedContent.Visibility = Visibility.Visible;
         
         var startMsText = Processor is ConverterProcessor bp && bp.LastStartMs != 0
@@ -289,7 +305,7 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
 
     #region 更新预览标题，预览文件名
 
-    private string UpdateTitleSuffix(ManiaBeatmap? beatmap)
+    private string UpdateTitleSuffix(Beatmap? beatmap)
     {
         if (beatmap == null)
         {
@@ -324,11 +340,11 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
 
     #endregion
 
-    private void ApplyColumnOverrideToProcessor()
-    {
-        if (Processor is ConverterProcessor baseProc && ColumnOverride != null)
-            baseProc.ColumnOverride = (int)ColumnOverride;
-    }
+    // private void ApplyColumnOverrideToProcessor()
+    // {
+    //     if (Processor is ConverterProcessor baseProc && ColumnOverride != null)
+    //         baseProc.ColumnOverride = (int)ColumnOverride;
+    // }
 
     // 加载谱面背景图的方法，统一在项目中使用
     public void LoadBackgroundBrush(string path)

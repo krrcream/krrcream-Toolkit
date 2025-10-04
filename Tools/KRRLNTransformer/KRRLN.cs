@@ -11,12 +11,29 @@ namespace krrTools.Tools.KRRLNTransformer
     {
         protected override int[,] ProcessMatrix(int[,] matrix, List<int> timeAxis, Beatmap beatmap, KRRLNTransformerOptions options)
         {
-            return BuildAndProcessMatrix(matrix, timeAxis, (ManiaBeatmap)beatmap, options);
+            return BuildAndProcessMatrix(matrix, timeAxis, beatmap, options);
         }
 
-        protected override void ApplyChangesToHitObjects(Beatmap beatmap, int[,] processedMatrix, KRRLNTransformerOptions options)
+        protected override void ApplyChangesToHitObjects(Beatmap beatmap, int[,] mergeMTX, KRRLNTransformerOptions options)
         {
-            ApplyChangesToHitObjects((ManiaBeatmap)beatmap, processedMatrix, options);
+            var (matrix, _) = beatmap.BuildMatrix(); // 重新构建以获取索引
+
+            for (int i = 0; i < matrix.GetLength(0); i++)
+            {
+                for (int j = 0; j < matrix.GetLength(1); j++)
+                {
+                    if (mergeMTX[i, j] > 0)
+                    {
+                        if (beatmap.HitObjects[matrix[i, j]].EndTime - beatmap.HitObjects[matrix[i, j]].StartTime > 9
+                            && !options.General.ProcessOriginalIsChecked)
+                        {
+                            continue;
+                        }
+
+                        beatmap.HitObjects[matrix[i, j]].EndTime = mergeMTX[i, j];
+                    }
+                }
+            }
         }
         
         protected override void ModifyMetadata(Beatmap beatmap, KRRLNTransformerOptions options)
@@ -39,7 +56,7 @@ namespace krrTools.Tools.KRRLNTransformer
             }
         }
 
-        private int[,] BuildAndProcessMatrix(int[,] matrix, List<int> timeAxis, ManiaBeatmap beatmap, KRRLNTransformerOptions parameters)
+        private int[,] BuildAndProcessMatrix(int[,] matrix, List<int> timeAxis, Beatmap beatmap, KRRLNTransformerOptions parameters)
         {
             var ANA = new OsuAnalyzer();
             double BPM = beatmap.GetBPM();
@@ -110,28 +127,6 @@ namespace krrTools.Tools.KRRLNTransformer
             }
 
             return mergeAlbMtx;
-        }
-
-        private void ApplyChangesToHitObjects(ManiaBeatmap beatmap, int[,] mergeMTX, KRRLNTransformerOptions parameters)
-        {
-            var (matrix, _) = beatmap.BuildMatrix(); // 重新构建以获取索引
-
-            for (int i = 0; i < matrix.GetLength(0); i++)
-            {
-                for (int j = 0; j < matrix.GetLength(1); j++)
-                {
-                    if (mergeMTX[i, j] > 0)
-                    {
-                        if (beatmap.HitObjects[matrix[i, j]].EndTime - beatmap.HitObjects[matrix[i, j]].StartTime > 9
-                            && !parameters.General.ProcessOriginalIsChecked)
-                        {
-                            continue;
-                        }
-
-                        beatmap.HitObjects[matrix[i, j]].EndTime = mergeMTX[i, j];
-                    }
-                }
-            }
         }
 
         private int[,] CalculateAvailableTime(int[,] matrix, List<int> timeAxis)

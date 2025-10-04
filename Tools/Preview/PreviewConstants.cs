@@ -26,7 +26,7 @@ internal static class PreviewConstants
     private static readonly SolidColorBrush OutlineBrush = new(Color.FromArgb(255, 40, 90, 180));
     private static readonly SolidColorBrush LaneEvenBrush = new(Color.FromArgb(255, 235, 240, 247));
     private static readonly SolidColorBrush LaneOddBrush = new(Color.FromArgb(255, 229, 236, 244));
-    public static readonly SolidColorBrush QuarterLineBrush = new(Color.FromArgb(255, 220, 225, 230));
+    public static readonly SolidColorBrush BarLineBrush = new(Color.FromArgb(250, 111, 111, 111));
 
     // UI文本颜色
     public static readonly SolidColorBrush UiHintTextBrush = new(Color.FromArgb(255, 51, 51, 51));
@@ -51,6 +51,6 @@ internal static class PreviewConstants
         OutlineBrush.Freeze();
         LaneEvenBrush.Freeze();
         LaneOddBrush.Freeze();
-        QuarterLineBrush.Freeze();
+        BarLineBrush.Freeze();
     }
 }

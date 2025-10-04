@@ -35,7 +35,7 @@ internal class DrawingVisualHost : FrameworkElement
 
 internal class PreviewDynamicControl : Grid
 {
-    private readonly List<ManiaBeatmap.PreViewManiaNote> _notes;
+    private readonly List<ManiaHitObject> _notes;
     private readonly int _columns;
     private readonly double _quarterMs;
     private readonly double _firstTime;
@@ -50,11 +50,11 @@ internal class PreviewDynamicControl : Grid
     private Task? _calculationTask;
     
     // 增量更新：跟踪变化
-    private List<ManiaBeatmap.PreViewManiaNote> _lastNotes;
+    private List<ManiaHitObject> _lastNotes;
 
     private const double LaneSpacing = 4.0;
 
-    public PreviewDynamicControl(List<(int time, List<ManiaBeatmap.PreViewManiaNote> notes)> grouped, int columns,
+    public PreviewDynamicControl(List<(int time, List<ManiaHitObject> notes)> grouped, int columns,
         double quarterMs)
     {
         // grouped 已排序；展开为单一 notes 列表并记录第一个时间点
@@ -64,7 +64,7 @@ internal class PreviewDynamicControl : Grid
         _quarterMs = quarterMs;
 
         // 初始化增量更新字段
-        _lastNotes = new List<ManiaBeatmap.PreViewManiaNote>(_notes);
+        _lastNotes = new List<ManiaHitObject>(_notes);
         _calculationTask = Task.CompletedTask;
 
         // 初始化 DrawingVisualHost
@@ -87,9 +87,8 @@ internal class PreviewDynamicControl : Grid
 
         // 启用硬件加速
         RenderOptions.SetEdgeMode(_canvas, EdgeMode.Aliased);
-        this.CacheMode = new BitmapCache();
+        CacheMode = new BitmapCache();
 
-        // SizeChanged += DynamicPreviewControl_SizeChanged;
         Loaded += (_, _) =>
             Dispatcher.BeginInvoke(new Action(Redraw), System.Windows.Threading.DispatcherPriority.Loaded);
     }
@@ -104,7 +103,7 @@ internal class PreviewDynamicControl : Grid
 
             if (!notesChanged && Math.Abs(_lastAvailableHeight - _canvas.Height) < 5 &&
                 Math.Abs(_lastAvailableWidth - _canvas.Width) < 5) return;
-            _lastNotes = new List<ManiaBeatmap.PreViewManiaNote>(_notes);
+            _lastNotes = new List<ManiaHitObject>(_notes);
 
             var availableWidth = Math.Max(100, ActualWidth - 20); // 保留内边距
 
@@ -116,7 +115,7 @@ internal class PreviewDynamicControl : Grid
             if (_notes.Count > 0)
             {
                 lastTime = _notes.Max(n => n.StartTime);
-                var maxHoldEndTime = _notes.Where(n => n.EndTime.HasValue).Select(n => n.EndTime.GetValueOrDefault())
+                var maxHoldEndTime = _notes.Where(n => n.IsHold).Select(n => n.EndTime)
                     .DefaultIfEmpty().Max();
                 if (maxHoldEndTime > 0) lastTime = Math.Max(lastTime, maxHoldEndTime);
             }
@@ -206,7 +205,7 @@ internal class PreviewDynamicControl : Grid
         }
     }
 
-    private List<ManiaBeatmap.PreViewManiaNote> GetVisibleNotes(double firstTime, double totalTimeRange)
+    private List<ManiaHitObject> GetVisibleNotes(double firstTime, double totalTimeRange)
     {
         var startTime = firstTime;
         var endTime = firstTime + totalTimeRange;
@@ -215,7 +214,7 @@ internal class PreviewDynamicControl : Grid
         return _notes.GetRange(startIndex, endIndex - startIndex);
     }
 
-    private int LowerBound(List<ManiaBeatmap.PreViewManiaNote> list, double time)
+    private int LowerBound(List<ManiaHitObject> list, double time)
     {
         int low = 0, high = list.Count;
         while (low < high)
@@ -227,13 +226,28 @@ internal class PreviewDynamicControl : Grid
         return low;
     }
 
-    private DrawingGroup CreateDrawing(List<ManiaBeatmap.PreViewManiaNote> notes, double laneWidth, double firstTime,
+    private DrawingGroup CreateDrawing(List<ManiaHitObject> notes, double laneWidth, double firstTime,
         double pixelsPerMs, double totalTimeRange, double canvasWidth)
     {
         var dg = new DrawingGroup();
         using (var dc = dg.Open())
         {
             const double noteHeight = PreviewConstants.NoteFixedHeight;
+
+            // 绘制节拍线
+            if (_quarterMs > 0)
+            {
+                var windowStart = firstTime;
+                var windowEnd = firstTime + totalTimeRange;
+                var startQ = Math.Ceiling(windowStart / _quarterMs) * _quarterMs;
+                for (var t = startQ; t <= windowEnd; t += _quarterMs)
+                {
+                    var relTime = t - firstTime;
+                    var y = (totalTimeRange - relTime) * pixelsPerMs;
+
+                    dc.DrawRectangle(PreviewConstants.BarLineBrush, null, new Rect(0, y, canvasWidth, 1));
+                }
+            }
 
             // 绘制音符
             foreach (var n in notes)
@@ -256,12 +270,12 @@ internal class PreviewDynamicControl : Grid
                 }
                 else
                 {
-                    var hasEnd = n.EndTime.HasValue;
-                    var endAfterStart = hasEnd && n.EndTime.GetValueOrDefault() > n.StartTime;
+                    var hasEnd = n.IsHold;
+                    var endAfterStart = hasEnd && n.EndTime > n.StartTime;
 
                     if (hasEnd && endAfterStart)
                     {
-                        var relEnd = n.EndTime.GetValueOrDefault() - firstTime;
+                        var relEnd = n.EndTime - firstTime;
                         var yEndIn = (totalTimeRange - relEnd) * pixelsPerMs;
 
                         // 计算整个长按音符的完整高度
@@ -275,21 +289,6 @@ internal class PreviewDynamicControl : Grid
                         // 长按音符的结束部分不在可见区域内，只绘制头部
                         dc.DrawRectangle(PreviewConstants.HoldHeadBrush, null, new Rect(rectLeft, yStart - rectHeight, rectWidth, rectHeight));
                     }
-                }
-            }
-
-            // 绘制节拍线
-            if (_quarterMs > 0)
-            {
-                var windowStart = firstTime;
-                var windowEnd = firstTime + totalTimeRange;
-                var startQ = Math.Ceiling(windowStart / _quarterMs) * _quarterMs;
-                for (var t = startQ; t <= windowEnd; t += _quarterMs)
-                {
-                    var relTime = t - firstTime;
-                    var y = (totalTimeRange - relTime) * pixelsPerMs;
-
-                    dc.DrawRectangle(PreviewConstants.QuarterLineBrush, null, new Rect(0, y, canvasWidth, 1));
                 }
             }
         }

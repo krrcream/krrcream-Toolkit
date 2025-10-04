@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using krrTools.Beatmaps;
 using krrTools.Configuration;
 using OsuParsers.Beatmaps;
+using OsuParsers.Decoders;
 
 namespace krrTools.Core
 {
@@ -168,17 +170,9 @@ namespace krrTools.Core
         /// </summary>
         /// <param name="filePath">文件路径</param>
         /// <returns>ManiaBeatmap实例，失败返回null</returns>
-        public Beatmaps.ManiaBeatmap? LoadBeatmap(string filePath)
+        public Beatmap? LoadBeatmap(string filePath)
         {
-            try
-            {
-                return new Beatmaps.ManiaBeatmap(filePath);
-            }
-            catch (Exception)
-            {
-                // WriteLine error if needed
-                return null;
-            }
+            return BeatmapDecoder.Decode(filePath).GetManiaBeatmap(filePath);
         }
 
         /// <summary>

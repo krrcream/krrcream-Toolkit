@@ -141,17 +141,29 @@ public static class BeatmapExtensions
         return beatLengthDict;
     }
 
-    public static ManiaBeatmap GetManiaBeatmap(this Beatmap beatmap, string? path = null)
+    public static Beatmap GetManiaBeatmap(this Beatmap beatmap, string? path = null)
     {
         if (beatmap == null)
-        {
-            Logger.WriteLine(LogLevel.Error, "GetManiaBeatmap为空");
             throw new InvalidDataException("GetManiaBeatmap为空");
-        }
 
         if (path != null)
+        {
             beatmap.OriginalFilePath = path;
 
-        return new ManiaBeatmap(beatmap);
+            if (!File.Exists(path))
+                throw new FileNotFoundException($"文件未找到: {path}");
+
+            if (Path.GetExtension(path).ToLower() != ".osu")
+                throw new ArgumentException("文件扩展名必须为.osu");
+        }
+
+        if (beatmap.GeneralSection.ModeId != 3)
+            throw new InvalidDataException("谱面模式不是Mania");
+
+        if (beatmap.HitObjects.Count == 0)
+            Logger.WriteLine(LogLevel.Warning, "GetManiaBeatmap读取文件警告: 谱面为空");
+
+        return beatmap;
     }
+
 }

@@ -1,6 +1,6 @@
 using System.IO;
 using System.Text;
-using krrTools.Beatmaps;
+using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 
 namespace krrTools.Tools.Preview;
@@ -18,10 +18,10 @@ public abstract class PreviewManiaNote
     //     throw new System.NotImplementedException();
     // }
 
-    public static ManiaBeatmap BuiltInSampleStream()
+    public static Beatmap BuiltInSampleStream()
     {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(ManiaData));
-        return BeatmapDecoder.Decode(stream).GetManiaBeatmap();
+        return BeatmapDecoder.Decode(stream);
     }
     
     private const string ManiaData = @"

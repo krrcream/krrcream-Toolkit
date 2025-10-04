@@ -44,7 +44,7 @@ namespace krrTools.Beatmaps
 
         public OsuAnalysisResult Analyze(string? filePath)
         {
-            var beatmap = BeatmapDecoder.Decode(filePath).GetManiaBeatmap(filePath);
+            var beatmap = BeatmapDecoder.Decode(filePath);
 
             // compute custom stats via SRCalculator
             var Keys1 = (int)beatmap.DifficultySection.CircleSize;
@@ -97,7 +97,7 @@ namespace krrTools.Beatmaps
             return result;
         }
 
-        private (int notesCount, double maxKPS, double avgKPS) CalculateKPSMetrics(ManiaBeatmap beatmap)
+        private (int notesCount, double maxKPS, double avgKPS) CalculateKPSMetrics(Beatmap beatmap)
         {
             int notesCount = beatmap.HitObjects.Count;
 

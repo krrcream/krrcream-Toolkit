@@ -80,18 +80,4 @@ public class ManiaBeatmap : Beatmap
     // public List<ManiaHitObject> ManiaHitObjects { get; set; } = new List<ManiaHitObject>();
     // public List<PreViewManiaNote> note = new List<PreViewManiaNote>();
     //Note封装 以后在搞拓展归类，先隐藏以防滥用
-
-    public abstract class PreViewManiaNote
-    {
-        public int Index;
-        public int StartTime;
-        public int? EndTime;
-        public bool IsHold;
-    }
-
-    public class SimpleManiaNote : PreViewManiaNote
-    {
-        // 如果 ManiaNote 有抽象成员，必须实现它们
-    }
-
 }

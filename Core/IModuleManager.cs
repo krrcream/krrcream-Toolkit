@@ -84,6 +84,6 @@ namespace krrTools.Core
         /// </summary>
         /// <param name="filePath">文件路径</param>
         /// <returns>ManiaBeatmap实例，失败返回null</returns>
-        Beatmaps.ManiaBeatmap? LoadBeatmap(string filePath);
+        Beatmap? LoadBeatmap(string filePath);
     }
 }

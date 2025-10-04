@@ -136,15 +136,16 @@ public class MainWindow : FluentWindow
                 new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) } // 预览器 - 动态适应剩余宽度
             }
         };
+        
+        _fileDispatcher = new FileDispatcher(MainTabControl);
+        ModuleManager = App.Services.GetRequiredService<IModuleManager>();
+        
         LoadRealTimePreview();
         OnRealTimePreviewChanged();
         BuildUI();
 
         LoadToolSettingsHosts();
         SetupPreviewProcessors();
-        
-        _fileDispatcher = new FileDispatcher(MainTabControl);
-        ModuleManager = App.Services.GetRequiredService<IModuleManager>();
         
         Loaded += ApplyToThemeLoaded;
         MainTabControl.PreviewMouseLeftButtonDown += TabControl_PreviewMouseLeftButtonDown;
@@ -167,7 +168,10 @@ public class MainWindow : FluentWindow
         BuildNoPreViewTabs();
 
         // 全局预览器
-        _previewDual = new PreviewViewDual();
+        _previewDual = new PreviewViewDual
+        {
+            ModuleScheduler = ModuleManager
+        };
 
         var fileDropZone = new FileDropZone();
         fileDropZone.StartConversionRequested += StartConversionRequested;
@@ -206,15 +210,15 @@ public class MainWindow : FluentWindow
         var footer = SharedUIComponents.CreateStatusBar(this, _realTimeToggle, GlobalOsuListenerButton);
 
         // 设置Grid行
-        Grid.SetRow(MainTabControl, 1);
-        Grid.SetColumnSpan(MainTabControl, 2); // 跨越两列
-        Grid.SetRow(_mainGrid, 2);
-        Grid.SetRow(footer, 3);
-        
-        Grid.SetColumn(settingsContainer, 0);
-        Grid.SetRow(previewPanel, 0);
-        Grid.SetRow(fileDropZone, 1);
-        Grid.SetColumn(previewGrid, 1);
+        System.Windows.Controls.Grid.SetRow(MainTabControl, 1);
+        System.Windows.Controls.Grid.SetColumnSpan(MainTabControl, 2); // 跨越两列
+        System.Windows.Controls.Grid.SetRow(_mainGrid, 2);
+        System.Windows.Controls.Grid.SetRow(footer, 3);
+
+        System.Windows.Controls.Grid.SetColumn(settingsContainer, 0);
+        System.Windows.Controls.Grid.SetRow(previewPanel, 0);
+        System.Windows.Controls.Grid.SetRow(fileDropZone, 1);
+        System.Windows.Controls.Grid.SetColumn(previewGrid, 1);
         
         _mainGrid.Children.Add(settingsContainer);
         _mainGrid.Children.Add(previewGrid);
@@ -521,7 +525,7 @@ public class MainWindow : FluentWindow
 
         ContentControl CreateFreshWindow() => (ContentControl)Activator.CreateInstance(controlType)!;
 
-        var control = CreateFreshWindow(); // 创建新的控件实例
+        var control = CreateFreshWindow(); // 创建新控件实例
         var win = new Window // 独立窗口
         {
             Title = header,
@@ -708,8 +712,8 @@ public class MainWindow : FluentWindow
                 // 加载预览
                 if (_currentTool is ConverterEnum && _previewDual != null)
                 {
-                    var beatmaps = BeatmapDecoder.Decode(filePath).GetManiaBeatmap();
-                    beatmaps.FilePath = filePath;
+                    var beatmaps = BeatmapDecoder.Decode(filePath);
+                    beatmaps.OriginalFilePath = filePath;
                     _previewDual.LoadPreview(beatmaps);
                 }
             }
@@ -734,7 +738,7 @@ public class MainWindow : FluentWindow
         var selectedTag = (MainTabControl.SelectedItem as TabViewItem)?.Tag;
         var isConverter = selectedTag is ConverterEnum;
         
-        if (_previewDual != null)
+        if (_previewDual != null && selectedTag != null)
         {
             _previewDual.Visibility = isConverter ? Visibility.Visible : Visibility.Collapsed;
             if (isConverter)
@@ -742,7 +746,7 @@ public class MainWindow : FluentWindow
                 // 直接创建统一的处理器
                 var processor = new ConverterProcessor
                 {
-                    ToolScheduler = ModuleManager,
+                    TPScheduler = ModuleManager,
                     ConverterOptionsProvider = selectedTag switch
                     {
                         ConverterEnum.N2NC => () => (_convWindowInstance.DataContext as N2NCViewModel)?.Options ?? new N2NCOptions(),
@@ -750,7 +754,7 @@ public class MainWindow : FluentWindow
                         ConverterEnum.KRRLN => () => (_krrLnTransformerInstance.DataContext as KRRLNTransformerViewModel)?.Options ?? new KRRLNTransformerOptions(),
                         _ => null
                     },
-                    // CurrentTool = selectedTag.ToString()
+                    CurrentTool = selectedTag.ToString()
                 };
                 _previewDual.Processor = processor;
 
