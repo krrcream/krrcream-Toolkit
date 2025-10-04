@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 
 namespace krrTools.Beatmaps;
@@ -110,7 +111,7 @@ public static class BeatmapExtensions
         return LNCountCount / noteCount * 100;
     }
 
-    public static string GetOsuFileName(this Beatmap beatmap)
+    public static string GetOutputOsuFileName(this Beatmap beatmap)
     {
         // 清理文件名中的非法字符
         string artist = beatmap.MetadataSection.Artist ?? "";
@@ -153,8 +154,16 @@ public static class BeatmapExtensions
         return beatLengthDict;
     }
 
-    public static ManiaBeatmap GetManiaBeatmap(this Beatmap beatmap)
+    public static ManiaBeatmap GetManiaBeatmap(this Beatmap beatmap, string? path = null)
     {
+        if (beatmap == null)
+        {
+            Logger.WriteLine(LogLevel.Error, "GetManiaBeatmap为空");
+            throw new InvalidDataException("GetManiaBeatmap为空");
+        }
+        if (path != null)
+            beatmap.OriginalFilePath = path;
+
         return new ManiaBeatmap(beatmap);
     }
 }

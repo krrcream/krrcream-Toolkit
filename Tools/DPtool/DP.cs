@@ -17,6 +17,23 @@ namespace krrTools.Tools.DPtool
 
         private int _newKeyCount;
 
+        public new Beatmap ProcessBeatmapToData(Beatmap beatmap, DPToolOptions parameters)
+        {
+            return base.ProcessBeatmapToData(beatmap, parameters);
+        }
+        
+        protected override void ModifyMetadata(Beatmap beatmap, DPToolOptions options)
+        {
+            beatmap.DifficultySection.CircleSize = options.SingleSideKeyCount * 2;
+            // 避免重复拼接 Creator
+            if (!beatmap.MetadataSection.Creator.Contains("DP Tool & "))
+                beatmap.MetadataSection.Creator = "DP Tool & " + beatmap.MetadataSection.Creator;
+
+            // 避免重复拼接 Version
+            if (!beatmap.MetadataSection.Version.Contains("[DP] "))
+                beatmap.MetadataSection.Version = "[DP] " + beatmap.MetadataSection.Version;
+        }
+        
         protected override int[,] ProcessMatrix(int[,] matrix, List<int> timeAxis, Beatmap beatmap, DPToolOptions options)
         {
             var Conv = new N2NC.N2NC();
@@ -60,19 +77,6 @@ namespace krrTools.Tools.DPtool
         protected override void ApplyChangesToHitObjects(Beatmap beatmap, int[,] processedMatrix, DPToolOptions options)
         {
             newHitObjects(beatmap, processedMatrix);
-        }
-
-        protected override void ModifyMetadata(Beatmap beatmap, DPToolOptions options)
-        {
-            // Update CS based on new matrix columns
-            beatmap.DifficultySection.CircleSize = _newKeyCount;
-            beatmap.MetadataSection.Creator = "DP Tool & " + beatmap.MetadataSection.Creator;
-            beatmap.MetadataSection.Version = "[DP] " + beatmap.MetadataSection.Version;
-        }
-
-        protected override string SaveBeatmap(Beatmap beatmap, string originalPath)
-        {
-            throw new NotImplementedException();
         }
 
         // 静态方法：处理矩阵，应用DP转换选项
@@ -119,11 +123,6 @@ namespace krrTools.Tools.DPtool
             // 合并两个矩阵
             int[,] result = ConcatenateMatrices(orgL, orgR);
             return result;
-        }
-
-        public Beatmap DPBeatmapToData(Beatmap beatmap, DPToolOptions options)
-        {
-            return ProcessBeatmapToData(beatmap, options);
         }
 
         /// <summary>
@@ -240,14 +239,7 @@ namespace krrTools.Tools.DPtool
                 }
             }
         }
-
-        /// <summary>
-        /// 将两个矩阵水平拼接成一个双人矩阵
-        /// </summary>
-        /// <param name="matrixA">左侧矩阵</param>
-        /// <param name="matrixB">右侧矩阵</param>
-        /// <returns>拼接后的矩阵</returns>
-        /// <exception cref="ArgumentException">当矩阵行数不匹配时抛出</exception>
+        
         private static int[,] ConcatenateMatrices(int[,] matrixA, int[,] matrixB)
         {
             // 获取矩阵维度

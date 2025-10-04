@@ -31,6 +31,13 @@ namespace krrTools.Core
         IEnumerable<ITool> GetRegisteredTools();
 
         /// <summary>
+        /// 根据名称获取工具
+        /// </summary>
+        /// <param name="toolName">工具名称</param>
+        /// <returns>工具实例，失败返回null</returns>
+        ITool? GetToolByName(string toolName);
+
+        /// <summary>
         /// 异步执行单个工具（使用指定的选项）
         /// </summary>
         /// <param name="toolName">工具名称</param>

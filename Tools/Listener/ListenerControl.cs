@@ -6,7 +6,6 @@ using System.Windows.Media;
 using krrTools.Beatmaps;
 using Microsoft.Extensions.Logging;
 using krrTools.Configuration;
-using krrTools.Data;
 using krrTools.Localization;
 using krrTools.UI;
 using OsuParsers.Decoders;
@@ -16,15 +15,15 @@ using Grid = Wpf.Ui.Controls.Grid;
 using MessageBox = System.Windows.MessageBox;
 using MessageBoxButton = System.Windows.MessageBoxButton;
 using StackPanel = Wpf.Ui.Controls.StackPanel;
-using TextBlock = System.Windows.Controls.TextBlock;
+using TextBlock = Wpf.Ui.Controls.TextBlock;
 
 namespace krrTools.Tools.Listener
 {
     internal class ListenerControl : Window
     {
         private readonly ListenerViewModel _viewModel;
-        // private readonly object? _sourceWindow;
-        // private readonly int _sourceId;
+        private readonly object? _sourceWindow;
+        private readonly int _sourceId;
         private GlobalHotkey? _globalHotkey;
 
         internal static bool IsOpen { get; private set; }
@@ -46,8 +45,8 @@ namespace krrTools.Tools.Listener
             BuildUI();
             _viewModel = new ListenerViewModel();
             DataContext = _viewModel;
-            // _sourceWindow = sourceWindow;
-            // _sourceId = sourceId;
+            _sourceWindow = sourceWindow;
+            _sourceId = sourceId;
 
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
             Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
@@ -321,8 +320,7 @@ namespace krrTools.Tools.Listener
             if (string.IsNullOrEmpty(filePath)) return;
 
             // 确保在 UI 线程访问控件
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
+
                 try
                 {
                     if (!System.IO.File.Exists(filePath)) return;
@@ -336,8 +334,9 @@ namespace krrTools.Tools.Listener
                             var globalPreview = main.PreviewDualControl;
                             if (globalPreview != null)
                             {
-                                var beatmaps = BeatmapDecoder.Decode(filePath).GetManiaBeatmap();
+                                var beatmaps = BeatmapDecoder.Decode(filePath).GetManiaBeatmap(filePath);
                                 globalPreview.LoadPreview(beatmaps);
+                                globalPreview.LoadBackgroundBrush(_viewModel.BGPath);
                             }
                         }
                     }
@@ -346,7 +345,6 @@ namespace krrTools.Tools.Listener
                 {
                     Logger.WriteLine(LogLevel.Error, "[ListenerControl] Listener preview broadcast failed: {0}", ex.Message);
                 }
-            }));
         }
 
         private void OnLanguageChanged()

@@ -6,54 +6,41 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using krrTools.Configuration;
+using krrTools.Core;
 using krrTools.Data;
 using krrTools.Localization;
+using Wpf.Ui.Controls;
 using MessageBox = System.Windows.MessageBox;
 using MessageBoxButton = System.Windows.MessageBoxButton;
 
 namespace krrTools.Utilities
 {
-    public class FileDispatcher
+    public class FileDispatcher(TabView mainTabControl)
     {
-        public void ConvertFiles(string[] paths, string activeTabTag) //上游进行了空路径过滤
+        public void ConvertFiles(string[] paths, string? activeTabTag = null)
+        {
+            activeTabTag ??= GetActiveTabTag();
+            ConvertWithResults(paths, activeTabTag);
+        }
+
+        private void ConvertWithResults(string[] paths, string activeTabTag)
         {
             var startTime = DateTime.Now;
             Console.WriteLine($"[INFO] 开始转换 - 调用模块: {activeTabTag}, 使用活动设置, 文件数量: {paths.Length}");
-            // 尝试获取主窗口中的转换器实例
-            var mainWindow = Application.Current?.Windows.OfType<MainWindow>().FirstOrDefault();
-            object? conv = null;
 
-            if (mainWindow != null)
+            // 使用ModuleManager获取工具实例
+            var moduleManager = App.Services.GetService(typeof(IModuleManager)) as IModuleManager;
+            if (moduleManager == null)
             {
-                conv = activeTabTag switch
-                {
-                    nameof(ConverterEnum.N2NC) => mainWindow.ConvWindowInstance,
-                    nameof(ConverterEnum.DP) => mainWindow.DpToolWindowInstance,
-                    nameof(ConverterEnum.KRRLN) => mainWindow.KrrlnTransformerInstance,
-                    _ => null
-                };
+                Console.WriteLine($"[ERROR] ModuleManager未找到");
+                return;
             }
 
-            if (conv == null)
+            var tool = moduleManager.GetToolByName(activeTabTag);
+            if (tool == null)
             {
-                // 如果主窗口不可用或未找到实例，则使用反射创建实例
-                var controlType = BaseOptionsManager.GetControlType(activeTabTag);
-                if (controlType != null)
-                {
-                    try
-                    {
-                        conv = Activator.CreateInstance(controlType);
-                        Console.WriteLine($"[ERROR] 使用反射创建{activeTabTag}实例 - 选项可能未正确加载");
-                    }
-                    catch (Exception)
-                    {
-                        Console.WriteLine($"[ERROR] 创建控件实例失败: {activeTabTag}");
-                    }
-                }
-                else
-                {
-                    Console.WriteLine($"[ERROR] 未找到工具{activeTabTag}对应的控件类型");
-                }
+                Console.WriteLine($"[ERROR] 未找到工具: {activeTabTag}");
+                return;
             }
 
             var created = new ConcurrentBag<string>();
@@ -64,33 +51,36 @@ namespace krrTools.Utilities
             {
                 try
                 {
-                    var beatmap = (conv as dynamic)?.ProcessSingleFile(p);
-                    if (beatmap != null)
+                    var outputPath = tool.ProcessFileSave(p);
+                    if (!string.IsNullOrEmpty(outputPath))
                     {
-                        var outputFileName = (conv as dynamic)?.GetOutputFileName(p, beatmap);
-                        var outputPath = Path.Combine(Path.GetDirectoryName(p) ?? "", outputFileName);
-
-                        if (BeatmapOutputHelper.SaveBeatmapToFile(beatmap, outputPath))
-                        {
-                            created.Add(outputPath);
-                        }
-                        else
-                        {
-                            failed.Add(p);
-                        }
+                        created.Add(outputPath);
                     }
                     else
                     {
                         failed.Add(p);
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    Console.WriteLine($"[ERROR] 并行转换文件失败: {p}");
+                    Console.WriteLine($"[ERROR] 并行转换文件失败: {p}\n{ex}");
                     failed.Add(p);
                 }
             });
 
+            if (created.Count > 0)
+            {
+                try
+                {
+                    // DualPreviewControl.BroadcastStagedPaths(null);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] 广播已转换文件失败: {ex.Message}");
+                }
+            }
+
+            Console.WriteLine($"[INFO] 转换器: {activeTabTag}, 生成文件数量: {created.Count}");
             var duration = DateTime.Now - startTime;
             Console.WriteLine($"[INFO] 转换器: {activeTabTag}, 成功: {created.Count}, 失败: {failed.Count}, 用时: {duration.TotalSeconds:F4}s");
 
@@ -141,6 +131,11 @@ namespace krrTools.Utilities
             }
 
             MessageBox.Show(message, title, MessageBoxButton.OK, icon);
+        }
+        
+        private string GetActiveTabTag()
+        {
+            return (mainTabControl.SelectedItem as TabViewItem)?.Tag?.ToString() ?? string.Empty;
         }
     }
 }

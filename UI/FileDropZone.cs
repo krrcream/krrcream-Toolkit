@@ -9,9 +9,9 @@ using krrTools.Beatmaps;
 using krrTools.Localization;
 using OsuParsers.Decoders;
 using Border = Wpf.Ui.Controls.Border;
-using Button = System.Windows.Controls.Button;
+using Button = Wpf.Ui.Controls.Button;
 using Grid = Wpf.Ui.Controls.Grid;
-using TextBlock = System.Windows.Controls.TextBlock;
+using TextBlock = Wpf.Ui.Controls.TextBlock;
 
 namespace krrTools.UI
 {
@@ -123,7 +123,7 @@ namespace krrTools.UI
             var mainWindow = Application.Current?.Windows.OfType<MainWindow>().FirstOrDefault();
             if (mainWindow is { PreviewDualControl: not null })
             {
-                var beatmap = BeatmapDecoder.Decode(filePath).GetManiaBeatmap();
+                var beatmap = BeatmapDecoder.Decode(filePath).GetManiaBeatmap(filePath);
                 mainWindow.PreviewDualControl.LoadPreview(beatmap);
             }
         }

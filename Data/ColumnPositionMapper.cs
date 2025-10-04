@@ -1,12 +1,11 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace krrTools.Data;
 
 public static class ColumnPositionMapper
 {
-    private static readonly Dictionary<int, int[]> KeyValueMap = new Dictionary<int, int[]>
+    private static readonly Dictionary<int, int[]> KeyValueMap = new()
     {
         [1] = [256],
         [2] = [128, 384],
@@ -29,9 +28,20 @@ public static class ColumnPositionMapper
         [19] = [13, 39, 66, 93, 120, 147, 174, 201, 228, 255, 282, 309, 336, 363, 390, 417, 444, 471, 498],
         [20] = [12, 37, 63, 88, 114, 140, 165, 191, 216, 242, 268, 293, 319, 344, 370, 396, 421, 447, 472, 498],
         [21] = [12, 36, 60, 85, 109, 133, 158, 182, 207, 231, 255, 280, 304, 328, 353, 377, 402, 426, 450, 475, 499],
-        [22] = [11, 34, 57, 80, 104, 127, 150, 173, 197, 220, 243, 267, 290, 313, 336, 360, 383, 406, 429, 453, 476, 499],
-        [23] = [11, 33, 55, 77, 100, 122, 144, 166, 189, 211, 233, 255, 278, 300, 322, 344, 367, 389, 411, 433, 456, 478, 500],
-        [24] = [10, 31, 52, 74, 95, 116, 138, 159, 180, 202, 223, 244, 266, 287, 308, 330, 351, 372, 394, 415, 436, 458, 479, 500]
+        [22] =
+        [
+            11, 34, 57, 80, 104, 127, 150, 173, 197, 220, 243, 267, 290, 313, 336, 360, 383, 406, 429, 453, 476, 499
+        ],
+        [23] =
+        [
+            11, 33, 55, 77, 100, 122, 144, 166, 189, 211, 233, 255, 278, 300, 322, 344, 367, 389, 411, 433, 456, 478,
+            500
+        ],
+        [24] =
+        [
+            10, 31, 52, 74, 95, 116, 138, 159, 180, 202, 223, 244, 266, 287, 308, 330, 351, 372, 394, 415, 436, 458,
+            479, 500
+        ]
     };
 
     // Expose a read-only view in case callers want the whole map
@@ -41,10 +51,12 @@ public static class ColumnPositionMapper
     {
         if (!KeyValueMap.TryGetValue(keyCount, out var row))
         {
+            Console.WriteLine($"[ERROR] Unsupported key count: {keyCount}");
             throw new ArgumentOutOfRangeException(nameof(keyCount), $"Unsupported key count: {keyCount}");
         }
         if (column < 0 || column >= row.Length)
         {
+            Console.WriteLine($"[ERROR] Column index out of range for keyCount {keyCount}: {column}");
             throw new ArgumentOutOfRangeException(nameof(column), $"Column index out of range for keyCount {keyCount}: {column}");
         }
         return row[column];

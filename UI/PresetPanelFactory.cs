@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -107,7 +106,6 @@ namespace krrTools.UI
             return name;
         }
 
-        // Minimal input dialog implemented in code-behind (no XAML)
         private class InputDialog : Window
         {
             private readonly TextBox _textBox = new TextBox();
@@ -134,8 +132,7 @@ namespace krrTools.UI
                 var stack = new StackPanel { Margin = new Thickness(10) };
 
                 // Prompt -- support localized form
-                var promptTb = SharedUIComponents.CreateStandardTextBlock();
-                promptTb.Text = prompt.Localize();
+                var promptTb = SharedUIComponents.CreateHeaderLabel(prompt.Localize());
                 void UpdatePrompt() => promptTb.Text = prompt.Localize();
                 SharedUIComponents.LanguageChanged += UpdatePrompt;
                 Closed += (_, _) => SharedUIComponents.LanguageChanged -= UpdatePrompt;

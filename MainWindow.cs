@@ -9,7 +9,6 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Core;
@@ -28,7 +27,7 @@ using Microsoft.Extensions.Logging;
 using OsuParsers.Decoders;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
-using Grid = System.Windows.Controls.Grid;
+using Grid = Wpf.Ui.Controls.Grid;
 using Point = System.Windows.Point;
 using Size = System.Windows.Size;
 using ToggleSwitch = Wpf.Ui.Controls.ToggleSwitch;
@@ -38,9 +37,9 @@ namespace krrTools;
 public class MainWindow : FluentWindow
 {
     private readonly Dictionary<object, ContentControl> _settingsHosts = new();
-
-    private Grid _mainGrid = null!;
-    private TabView MainTabControl = null!;
+    private readonly Grid root;
+    private readonly TabView MainTabControl;
+    private readonly Grid _mainGrid;
 
     private ToggleButton GlobalOsuListenerButton = null!;
     private ToggleSwitch _realTimeToggle = null!;
@@ -63,7 +62,7 @@ public class MainWindow : FluentWindow
     public TabView TabControl => MainTabControl;
     // 文件调度器
     public readonly FileDispatcher _fileDispatcher;
-
+    public FileDispatcher FileDispatcher => _fileDispatcher;
     // 工具调度器
     private IModuleManager ModuleManager { get; }
 
@@ -96,10 +95,6 @@ public class MainWindow : FluentWindow
     private DPToolView _dpToolWindowInstance = null!;
     private KRRLNTransformerView _krrLnTransformerInstance = null!;
 
-    public N2NCView ConvWindowInstance => _convWindowInstance;
-    public DPToolView DpToolWindowInstance => _dpToolWindowInstance;
-    public KRRLNTransformerView KrrlnTransformerInstance => _krrLnTransformerInstance;
-
     private ContentControl? N2NCSettingsHost => _settingsHosts.GetValueOrDefault(ConverterEnum.N2NC);
     private ContentControl? DPSettingsHost => _settingsHosts.GetValueOrDefault(ConverterEnum.DP);
     private ContentControl? KRRLNSettingsHost => _settingsHosts.GetValueOrDefault(ConverterEnum.KRRLN);
@@ -110,38 +105,21 @@ public class MainWindow : FluentWindow
 
     public MainWindow()
     {
-        Console.WriteLine("[INFO] MainWindow构造函数开始 - 测试日志输出");
-
         Title = Strings.WindowTitle; // 初始化
         Width = 1000;
         Height = 750;
         ResizeMode = ResizeMode.CanResize;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
-
-
-        ModuleManager = App.Services.GetRequiredService<IModuleManager>();
-
-        LoadRealTimePreview();
-        BuildUI();
-
-        // SharedUIComponents.SetPanelBackgroundAlpha(102);
-
-        LoadToolSettingsHosts();
-        SetupPreviewProcessors();
-        _fileDispatcher = new FileDispatcher();
-
-        Loaded += ApplyToThemeLoaded;
-    }
-
-    private void BuildUI()
-    {
-        // 初始化各个部件
-        var titleBar = new TitleBar()
+        Content = root = new Grid()
         {
-            Title = Strings.WindowTitle,
+            RowDefinitions =
+            {
+                new RowDefinition { Height = GridLength.Auto }, // 标题栏
+                new RowDefinition { Height = GridLength.Auto }, // 选项卡行
+                new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }, // 主内容区域（设置 + 预览）
+                new RowDefinition { Height = GridLength.Auto }, // Footer状态栏行
+            }        
         };
-
-        // 选项卡TabControl - 只显示选项卡头
         MainTabControl = new TabView
         {
             Background = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)),
@@ -150,11 +128,6 @@ public class MainWindow : FluentWindow
             ItemsPanel = new ItemsPanelTemplate(new FrameworkElementFactory(typeof(CustomTabPanel))),
             Height = 30 // 只显示选项卡头
         };
-        MainTabControl.PreviewMouseLeftButtonDown += TabControl_PreviewMouseLeftButtonDown;
-        MainTabControl.PreviewMouseMove += TabControl_PreviewMouseMove;
-        MainTabControl.SelectionChanged += MainTabControl_SelectionChanged;
-
-        // 主内容Grid - 设置和预览
         _mainGrid = new Grid
         {
             ColumnDefinitions =
@@ -163,7 +136,24 @@ public class MainWindow : FluentWindow
                 new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) } // 预览器 - 动态适应剩余宽度
             }
         };
+        LoadRealTimePreview();
+        OnRealTimePreviewChanged();
+        BuildUI();
 
+        LoadToolSettingsHosts();
+        SetupPreviewProcessors();
+        
+        _fileDispatcher = new FileDispatcher(MainTabControl);
+        ModuleManager = App.Services.GetRequiredService<IModuleManager>();
+        
+        Loaded += ApplyToThemeLoaded;
+        MainTabControl.PreviewMouseLeftButtonDown += TabControl_PreviewMouseLeftButtonDown;
+        MainTabControl.PreviewMouseMove += TabControl_PreviewMouseMove;
+        MainTabControl.SelectionChanged += MainTabControl_SelectionChanged;
+    }
+
+    private void BuildUI()
+    {
         // 设置内容容器
         var settingsContainer = new ContentControl
         {
@@ -177,18 +167,19 @@ public class MainWindow : FluentWindow
         BuildNoPreViewTabs();
 
         // 全局预览器
-        var globalPreview = new PreviewViewDual();
-        _previewDual = globalPreview;
+        _previewDual = new PreviewViewDual();
 
         var fileDropZone = new FileDropZone();
-        fileDropZone.StartConversionRequested += GlobalPreview_StartConversionRequested;
+        fileDropZone.StartConversionRequested += StartConversionRequested;
 
         var previewGrid = new Grid();
         previewGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         previewGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        var previewPanel = SharedUIComponents.CreateStandardPanel(globalPreview, new Thickness(8));
-
+        var previewPanel = SharedUIComponents.CreateStandardPanel(_previewDual, new Thickness(8));
+        previewGrid.Children.Add(previewPanel);
+        previewGrid.Children.Add(fileDropZone);
+        
         // Footer
         _realTimeToggle = new ToggleSwitch
         {
@@ -214,58 +205,27 @@ public class MainWindow : FluentWindow
 
         var footer = SharedUIComponents.CreateStatusBar(this, _realTimeToggle, GlobalOsuListenerButton);
 
-        // 构建整体嵌套结构
-        var root = new Grid()
-        {
-            RowDefinitions =
-            {
-                new RowDefinition { Height = GridLength.Auto }, // 标题栏
-                new RowDefinition { Height = GridLength.Auto }, // 选项卡行
-                new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }, // 主内容区域（设置 + 预览）
-                new RowDefinition { Height = GridLength.Auto }, // Footer状态栏行
-            },
-            Children =
-            {
-                titleBar,
-                MainTabControl,
-                _mainGrid,
-                footer
-            }
-        };
-
         // 设置Grid行
         Grid.SetRow(MainTabControl, 1);
         Grid.SetColumnSpan(MainTabControl, 2); // 跨越两列
         Grid.SetRow(_mainGrid, 2);
         Grid.SetRow(footer, 3);
-
-        // 构建_mainGrid的Children
-        _mainGrid.Children.Add(settingsContainer);
+        
         Grid.SetColumn(settingsContainer, 0);
-
-        // 构建previewGrid的Children
-        previewGrid.Children.Add(previewPanel);
         Grid.SetRow(previewPanel, 0);
-        previewGrid.Children.Add(fileDropZone);
         Grid.SetRow(fileDropZone, 1);
-
-        _mainGrid.Children.Add(previewGrid);
         Grid.SetColumn(previewGrid, 1);
-
-        Content = root;
-
+        
+        _mainGrid.Children.Add(settingsContainer);
+        _mainGrid.Children.Add(previewGrid);
+        root.Children.Add(new TitleBar() { Title = Strings.WindowTitle });
+        root.Children.Add(MainTabControl);
+        root.Children.Add(_mainGrid);
+        root.Children.Add(footer);
+        
         AllowDrop = true;
-
         // 设置初始选项卡内容
         MainTabControl_SelectionChanged(null, null);
-
-
-
-        Background = new ImageBrush
-        {
-            Stretch = Stretch.UniformToFill,
-            Opacity = 0.25,
-        };
     }
 
     private void ApplyToThemeLoaded(object sender, RoutedEventArgs e)
@@ -290,8 +250,8 @@ public class MainWindow : FluentWindow
     #region 创建带预览器选项卡
     private void BuildPreviewTabs()
     {
-        var previewConfigs = new[] { ConverterEnum.N2NC, ConverterEnum.KRRLN, ConverterEnum.DP };
-        foreach (var cfg in previewConfigs)
+        foreach (var cfg in Enum.GetValuesAsUnderlyingType(
+                     typeof(ConverterEnum)).Cast<ConverterEnum>())
         {
             var headerText = cfg switch
             {
@@ -324,8 +284,8 @@ public class MainWindow : FluentWindow
     #region 创建简单选项卡（无预览器）
     private void BuildNoPreViewTabs()
     {
-        var simpleConfigs = new[] { ModuleEnum.LVCalculator, ModuleEnum.FilesManager };
-        foreach (var cfg in simpleConfigs)
+        foreach (var cfg in Enum.GetValuesAsUnderlyingType(
+                     typeof(ModuleEnum)).Cast<ModuleEnum>())
         {
             var headerText = cfg switch
             {
@@ -344,11 +304,8 @@ public class MainWindow : FluentWindow
             };
             var settingsHost = new ContentControl();
             _settingsHosts[cfg] = settingsHost;
-            // 文件管理器和LV计算器不需要滚动条
-            settingsHost.Content = null;
-            var grid = new Grid { Margin = new Thickness(8) };
-            var settingsBorder = SharedUIComponents.CreateStandardPanel(settingsHost, padding: new Thickness(0));
-            grid.Children.Add(settingsBorder);
+
+            settingsHost.AllowDrop = true;
             MainTabControl.Items.Add(tab);
         }
     }
@@ -434,7 +391,6 @@ public class MainWindow : FluentWindow
             var keys = toolControl.Resources.Keys.Cast<object>().ToList();
             foreach (var k in keys)
             {
-                // Skip implicit Window styles (they would affect the host/main window)
                 var res = toolControl.Resources[k];
                 if (res is Style s && s.TargetType == typeof(Window))
                     continue;
@@ -448,6 +404,7 @@ public class MainWindow : FluentWindow
             // 将实际内容移入宿主，保留绑定和事件处理器
             host.DataContext = toolControl.DataContext;
             host.Content = content;
+            host.AllowDrop = true; // 允许拖拽事件传递到内容
             // 清空原窗口内容，使元素只有一个父级
             toolControl.Content = null;
         }
@@ -477,12 +434,12 @@ public class MainWindow : FluentWindow
             },
             new ToolEmbeddingConfig
             {
-                ControlFactory = () => new KrrLVControl(),
-                HostGetter = () => LVCalSettingsHost
+                ControlFactory = () => new KRRLVAnalysisView(),
+                HostGetter = () => LVCalSettingsHost,
             },
             new ToolEmbeddingConfig
             {
-                ControlFactory = () => new FilesManagerControl(),
+                ControlFactory = () => new FilesManagerView(),
                 HostGetter = () => FilesManagerHost
             }
         };
@@ -505,11 +462,11 @@ public class MainWindow : FluentWindow
             }
             else if (control is N2NCView n2ncControl)
             {
-                n2ncControl.SettingsChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(nameof(ConverterEnum.N2NC));
+                n2ncControl.SettingsChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(ConverterEnum.N2NC);
             }
             else if (control is DPToolView dpControl)
             {
-                dpControl.SettingsChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(nameof(ConverterEnum.DP));
+                dpControl.SettingsChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(ConverterEnum.DP);
             }
         }
     }
@@ -532,7 +489,7 @@ public class MainWindow : FluentWindow
         var pos = e.GetPosition(this);
         var dx = Math.Abs(pos.X - _dragStartPoint.X);
         var dy = Math.Abs(pos.Y - _dragStartPoint.Y);
-        const double dragThreshold = 20.0; // 最小拖动距离以触发分离
+        const double dragThreshold = 15.0; // 最小拖动距离以触发分离
         if (dx > dragThreshold || dy > dragThreshold)
         {
             DetachTab(_draggedTab);
@@ -546,20 +503,26 @@ public class MainWindow : FluentWindow
         if (!MainTabControl.Items.Contains(tab)) return;
 
         var toolKey = tab.Tag.ToString();
-        // Only allow LV and GetFiles tools to detach
-        if (toolKey != "LVCalculator" && toolKey != "FilesManager") return;
+        // 只用于ModuleEnum枚举模块
+        if (!Enum.TryParse(typeof(ModuleEnum), toolKey, out _)) return;
 
         var header = tab.Header?.ToString() ?? "Detached";
 
-        Func<ContentControl> createFreshWindow = toolKey switch
+        // 枚举到控件类型的映射
+        var moduleControlMap = new Dictionary<ModuleEnum, Type>
         {
-            "LVCalculator" => () => new KrrLVControl(),
-            "FilesManager" => () => new FilesManagerControl(),
-            _ => throw new ArgumentOutOfRangeException()
+            { ModuleEnum.LVCalculator, typeof(KRRLVAnalysisView) },
+            { ModuleEnum.FilesManager, typeof(FilesManagerView) },
+            // 如有其他 ModuleEnum 项，继续添加
         };
 
-        var control = createFreshWindow();
-        var win = new Window
+        if (!Enum.TryParse(toolKey, out ModuleEnum moduleEnum) || !moduleControlMap.TryGetValue(moduleEnum, out var controlType))
+            throw new ArgumentOutOfRangeException();
+
+        ContentControl CreateFreshWindow() => (ContentControl)Activator.CreateInstance(controlType)!;
+
+        var control = CreateFreshWindow(); // 创建新的控件实例
+        var win = new Window // 独立窗口
         {
             Title = header,
             Content = control,
@@ -631,7 +594,7 @@ public class MainWindow : FluentWindow
     }
     #endregion
 
-    private void GlobalPreview_StartConversionRequested(object? sender, string[]? paths)
+    private void StartConversionRequested(object? sender, string[]? paths)
     {
         if (paths == null || paths.Length == 0) return;
 
@@ -740,25 +703,11 @@ public class MainWindow : FluentWindow
             {
                 if (!File.Exists(filePath)) return;
 
-                // 更新窗口背景
-                string? bgPath = PreviewTransformation.GetBackgroundImagePath(filePath);
-                if (!string.IsNullOrEmpty(bgPath) && File.Exists(bgPath))
-                {
-                    var bgBitmap = new BitmapImage();
-                    bgBitmap.BeginInit();
-                    bgBitmap.UriSource = new Uri(bgPath);
-                    bgBitmap.CacheOption = BitmapCacheOption.OnLoad;
-                    bgBitmap.EndInit();
-                    if (Background is ImageBrush ib)
-                    {
-                        ib.ImageSource = bgBitmap;
-                    }
-                }
-
                 // 加载预览
                 if (_currentTool is ConverterEnum && _previewDual != null)
                 {
                     var beatmaps = BeatmapDecoder.Decode(filePath).GetManiaBeatmap();
+                    beatmaps.FilePath = filePath;
                     _previewDual.LoadPreview(beatmaps);
                 }
             }
@@ -770,23 +719,23 @@ public class MainWindow : FluentWindow
         }));
     }
 
-    private void RefreshGlobalPreviewIfCurrentTool(object toolEnum)
+    private void RefreshGlobalPreviewIfCurrentTool(ConverterEnum toolEnum)
     {
-        if (_currentTool?.Equals(toolEnum) == true && _previewDual != null)
+        if (_previewDual != null)
         {
-            _previewDual.Refresh();
+            _previewDual!.Refresh();
         }
     }
 
     private void MainTabControl_SelectionChanged(object? sender, SelectionChangedEventArgs? e)
     {
         var selectedTag = (MainTabControl.SelectedItem as TabViewItem)?.Tag;
-        // 判断是否为转换工具，配套增加预览器
         var isConverter = selectedTag is ConverterEnum;
+        
         if (_previewDual != null)
         {
             _previewDual.Visibility = isConverter ? Visibility.Visible : Visibility.Collapsed;
-            if (isConverter && selectedTag != null)
+            if (isConverter)
             {
                 // 直接创建统一的处理器
                 var processor = new ConverterProcessor
@@ -799,10 +748,9 @@ public class MainWindow : FluentWindow
                         ConverterEnum.KRRLN => () => (_krrLnTransformerInstance.DataContext as KRRLNTransformerViewModel)?.Options ?? new KRRLNTransformerOptions(),
                         _ => null
                     },
-                    CurrentTool = selectedTag.ToString()
+                    // CurrentTool = selectedTag.ToString()
                 };
                 _previewDual.Processor = processor;
-                // _previewDual.FileDispatcher = _fileDispatcher;
 
                 // 设置选项变化监听
                 object? viewModel = selectedTag switch
@@ -813,19 +761,23 @@ public class MainWindow : FluentWindow
                     _ => null
                 };
 
+                // 设置 DataContext 以便监听属性变化
+                _previewDual.DataContext = viewModel;
+
                 var optionsProperty = viewModel?.GetType().GetProperty("Options");
                 if (optionsProperty != null && optionsProperty.GetValue(viewModel) is INotifyPropertyChanged optionsNpc)
                 {
-                    _currentOptionsChangedHandler = (_, _) => DebouncedRefresh(_previewDual, 200);
+                    _currentOptionsChangedHandler = (_, _) => DebouncedRefresh(_previewDual);
                     optionsNpc.PropertyChanged += _currentOptionsChangedHandler;
                 }
+                _previewDual.Refresh();
             }
-            else if (!isConverter)
+            else
             {
-                _previewDual.Processor = null; // 非转换工具时清除处理器
-                // _previewDual.FileDispatcher = null;
-            }
+                _previewDual.Processor = null;
+            } // 非转换工具时清除处理器
         }
+        
         // 动态调整列宽度
         if (isConverter)
         {
@@ -837,10 +789,28 @@ public class MainWindow : FluentWindow
             _mainGrid.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
             _mainGrid.ColumnDefinitions[1].Width = new GridLength(0);
         }
-        if (_currentSettingsContainer != null && selectedTag != null && _settingsHosts.TryGetValue(selectedTag, out var settingsHost))
+        
+        // 切换前先清空内容，避免重复父级
+        if (_currentSettingsContainer != null)
         {
-            _currentSettingsContainer.Content = settingsHost.Content;
+            _currentSettingsContainer.Content = null;
+
+            if (selectedTag != null && _settingsHosts.TryGetValue(selectedTag, out var settingsHost))
+            {
+                // 只在未被当前容器持有时赋值
+                if (isConverter)
+                {
+                    if (_currentSettingsContainer != settingsHost.Content)
+                        _currentSettingsContainer.Content = settingsHost.Content;
+                }
+                else
+                {
+                    if (_currentSettingsContainer != settingsHost)
+                        _currentSettingsContainer.Content = settingsHost;
+                }
+            }
         }
+
         _currentTool = selectedTag;
     }
 }

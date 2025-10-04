@@ -1,12 +1,13 @@
 using System;
 using krrTools.Configuration;
+using OsuParsers.Beatmaps;
 
 namespace krrTools.Core
 {
     /// <summary>
     /// 工具模块接口，用于自动注册
     /// </summary>
-    public partial interface IToolModule
+    public interface IToolModule
     {
         /// <summary>
         /// 枚举值
@@ -29,6 +30,6 @@ namespace krrTools.Core
         /// <summary>
         /// 非泛型版本：处理Beatmap（用于GenericTool）
         /// </summary>
-        OsuParsers.Beatmaps.Beatmap? ProcessBeatmapWithOptions(Object input, IToolOptions options);
+        Beatmap? ProcessBeatmapWithOptions(Object input, IToolOptions options);
     }
 }

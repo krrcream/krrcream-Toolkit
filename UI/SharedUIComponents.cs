@@ -11,6 +11,7 @@ using Wpf.Ui.Controls;
 using Border = Wpf.Ui.Controls.Border;
 using Button = Wpf.Ui.Controls.Button;
 using Grid = Wpf.Ui.Controls.Grid;
+using MenuItem = Wpf.Ui.Controls.MenuItem;
 using StackPanel = Wpf.Ui.Controls.StackPanel;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 using TextBox = Wpf.Ui.Controls.TextBox;
@@ -92,23 +93,21 @@ public static class SharedUIComponents
         LocalizationService.SetLocalizedToolTip(element, tooltipText);
     }
 
-    public static TextBlock CreateStandardTextBlock()
-    {
-        return new TextBlock
-        {
-            FontSize = ComFontSize,
-            Foreground = UiTextBrush
-        };
-    }
-
     public static TextBlock CreateHeaderLabel(string text)
     {
-        var tb = new TextBlock { FontSize = HeaderFontSize, FontWeight = FontWeights.Bold };
+        var tb = new TextBlock
+        {
+            FontSize = HeaderFontSize,
+            FontWeight = FontWeights.Bold,
+            Foreground = UiTextBrush
+        };
+
         if (!string.IsNullOrEmpty(text) && text.Contains('|'))
             tb.SetBinding(System.Windows.Controls.TextBlock.TextProperty,
                 new Binding("Value") { Source = text.GetLocalizedString() });
         else
             tb.Text = text;
+
         return tb;
     }
 
@@ -148,7 +147,6 @@ public static class SharedUIComponents
 
     public static Button CreateStandardButton(string content, string? tooltip = null)
     {
-        // Use a TextBlock as content so we can measure and shrink the font when needed.
         var tb = new TextBlock { FontSize = ComFontSize, TextTrimming = TextTrimming.CharacterEllipsis };
         // Bilingual support: if content contains '|', use binding
         if (!string.IsNullOrEmpty(content) && content.Contains('|'))
@@ -178,7 +176,7 @@ public static class SharedUIComponents
     public static CheckBox CreateStandardCheckBox(string content, string? tooltip = null)
     {
         var cb = new CheckBox
-        { FontSize = ComFontSize, Margin = new Thickness(2, 0, 10, 0), Background = Brushes.Transparent };
+            { FontSize = ComFontSize, Margin = new Thickness(2, 0, 10, 0), Background = Brushes.Transparent };
         var tb = new TextBlock { FontSize = ComFontSize, TextWrapping = TextWrapping.Wrap };
         if (!string.IsNullOrEmpty(content) && content.Contains('|'))
             tb.SetBinding(System.Windows.Controls.TextBlock.TextProperty,
@@ -247,7 +245,7 @@ public static class SharedUIComponents
     {
         var hyperlinkButton = new HyperlinkButton
         {
-            NavigateUri = Strings.KrrcreamUrl,
+            NavigateUri = Strings.KrrcreamUrl
         };
         hyperlinkButton.SetBinding(ContentControl.ContentProperty,
             new Binding("Value") { Source = Strings.FooterCopyright.GetLocalizedString() });
@@ -342,10 +340,10 @@ public static class SharedUIComponents
         return settingsMenu;
     }
 
-    private static System.Windows.Controls.MenuItem CreateThemeMenuItem()
+    private static MenuItem CreateThemeMenuItem()
     {
-        var themeMenuItem = new System.Windows.Controls.MenuItem
-        { Header = Strings.Localize(Strings.SettingsMenuTheme) };
+        var themeMenuItem = new MenuItem
+            { Header = Strings.Localize(Strings.SettingsMenuTheme) };
         foreach (ApplicationTheme theme in Enum.GetValues(typeof(ApplicationTheme)))
         {
             var themeHeader = theme switch
@@ -355,7 +353,7 @@ public static class SharedUIComponents
                 ApplicationTheme.HighContrast => Strings.Localize(Strings.ThemeHighContrast),
                 _ => theme.ToString()
             };
-            var themeItem = new System.Windows.Controls.MenuItem
+            var themeItem = new MenuItem
             {
                 Header = themeHeader,
                 IsCheckable = true,
@@ -368,7 +366,7 @@ public static class SharedUIComponents
             themeItem.Click += (_, _) =>
             {
                 foreach (var item in themeMenuItem.Items)
-                    if (item is System.Windows.Controls.MenuItem mi)
+                    if (item is MenuItem mi)
                         mi.IsChecked = false;
                 themeItem.IsChecked = true;
                 BaseOptionsManager.SetApplicationTheme(theme.ToString());
@@ -380,10 +378,10 @@ public static class SharedUIComponents
         return themeMenuItem;
     }
 
-    private static System.Windows.Controls.MenuItem CreateBackdropMenuItem()
+    private static MenuItem CreateBackdropMenuItem()
     {
-        var backdropMenuItem = new System.Windows.Controls.MenuItem
-        { Header = Strings.Localize(Strings.SettingsMenuBackdrop) };
+        var backdropMenuItem = new MenuItem
+            { Header = Strings.Localize(Strings.SettingsMenuBackdrop) };
         foreach (WindowBackdropType backdrop in Enum.GetValues(typeof(WindowBackdropType)))
         {
             var backdropHeader = backdrop switch
@@ -394,7 +392,7 @@ public static class SharedUIComponents
                 WindowBackdropType.Tabbed => Strings.Localize(Strings.BackdropTabbed),
                 _ => backdrop.ToString()
             };
-            var backdropItem = new System.Windows.Controls.MenuItem
+            var backdropItem = new MenuItem
             {
                 Header = backdropHeader,
                 IsCheckable = true,
@@ -407,7 +405,7 @@ public static class SharedUIComponents
             backdropItem.Click += (_, _) =>
             {
                 foreach (var item in backdropMenuItem.Items)
-                    if (item is System.Windows.Controls.MenuItem mi)
+                    if (item is MenuItem mi)
                         mi.IsChecked = false;
                 backdropItem.IsChecked = true;
                 BaseOptionsManager.SetWindowBackdropType(backdrop.ToString());
@@ -419,12 +417,11 @@ public static class SharedUIComponents
         return backdropMenuItem;
     }
 
-    private static System.Windows.Controls.MenuItem CreateAccentMenuItem()
+    private static MenuItem CreateAccentMenuItem()
     {
-        var accentMenuItem = new System.Windows.Controls.MenuItem
+        var accentMenuItem = new MenuItem
         {
-            Header = Strings.Localize(Strings.UpdateAccent),
-            IsCheckable = true,
+            Header = Strings.Localize(Strings.UpdateAccent), IsCheckable = true,
             IsChecked = GetSavedUpdateAccent() ?? false
         };
         accentMenuItem.Click += (_, _) =>
@@ -436,10 +433,10 @@ public static class SharedUIComponents
         return accentMenuItem;
     }
 
-    private static System.Windows.Controls.MenuItem CreateLanguageMenuItem()
+    private static MenuItem CreateLanguageMenuItem()
     {
-        var langMenuItem = new System.Windows.Controls.MenuItem
-        { Header = Strings.Localize(Strings.SettingsMenuLanguage), IsCheckable = false };
+        var langMenuItem = new MenuItem
+            { Header = Strings.Localize(Strings.SettingsMenuLanguage), IsCheckable = false };
         langMenuItem.Click += (_, _) =>
         {
             LocalizationService.ToggleLanguage();
@@ -461,6 +458,5 @@ public static class SharedUIComponents
                 : WindowBackdropType.Mica;
         var updateAccent = GetSavedUpdateAccent() ?? false;
         ApplicationThemeManager.Apply(theme, backdrop, updateAccent);
-        // window.InvalidateVisual(); 需要window引用
     }
 }

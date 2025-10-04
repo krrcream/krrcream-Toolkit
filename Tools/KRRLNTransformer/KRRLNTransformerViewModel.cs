@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using krrTools.Configuration;
 using krrTools.Localization;
 
@@ -30,38 +31,25 @@ namespace krrTools.Tools.KRRLNTransformer
         /// <summary>
         /// 获取对齐值的显示文本
         /// </summary>
-        public string GetAlignDisplayText(double value)
+        private string GetAlignDisplayText(double value, string prefix)
         {
             int key = (int)value;
             if (AlignValuesDict.TryGetValue(key, out var displayText))
             {
-                return Strings.FormatLocalized(Strings.KRRAlignLabel, displayText);
+                return Strings.FormatLocalized(prefix, displayText);
             }
-            return Strings.FormatLocalized(Strings.KRRAlignLabel, value.ToString());
-        }
-
-        /// <summary>
-        /// 获取LN对齐值的显示文本
-        /// </summary>
-        public string GetLNAlignDisplayText(double value)
-        {
-            int key = (int)value;
-            if (AlignValuesDict.TryGetValue(key, out var displayText))
-            {
-                return Strings.FormatLocalized(Strings.KRRLNAlignLabel, displayText);
-            }
-            return Strings.FormatLocalized(Strings.KRRLNAlignLabel, value.ToString());
+            return Strings.FormatLocalized(prefix, value.ToString(CultureInfo.InvariantCulture));
         }
 
         /// <summary>
         /// 获取对齐值的显示文本（用于绑定）
         /// </summary>
-        public string AlignDisplayText => GetAlignDisplayText(Options.Alignment.Value);
+        public string AlignDisplayText => GetAlignDisplayText(Options.Alignment.Value, Strings.KRRAlignLabel);
 
         /// <summary>
         /// 获取LN对齐值的显示文本（用于绑定）
         /// </summary>
-        public string LNAlignDisplayText => GetLNAlignDisplayText(Options.LNAlignment.Value);
+        public string LNAlignDisplayText => GetAlignDisplayText(Options.LNAlignment.Value, Strings.KRRLNAlignLabel);
 
         public IToolOptions GetPreviewOptions() => Options;
     }

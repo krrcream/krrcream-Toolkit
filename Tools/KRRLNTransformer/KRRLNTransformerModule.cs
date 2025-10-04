@@ -6,9 +6,6 @@ using System;
 
 namespace krrTools.Tools.KRRLNTransformer
 {
-    /// <summary>
-    /// KRRLN转换模块
-    /// </summary>
     public class KRRLNTransformerModule : ToolModuleBase<KRRLNTransformerOptions, KRRLNTransformerViewModel, KRRLNTransformerView>
     {
         public override ToolModuleType ModuleType => ToolModuleType.KRRLN;
@@ -18,13 +15,15 @@ namespace krrTools.Tools.KRRLNTransformer
         protected override Beatmap ProcessBeatmap(Beatmap input, KRRLNTransformerOptions options)
         {
             var transformer = new KRRLN();
-            return transformer.ProcessBeatmapToData(input, options);
+            var resultBeatmap = transformer.ProcessBeatmapToData(input, options);
+            return resultBeatmap;
         }
 
         protected override Beatmap ProcessSingleFile(string filePath, KRRLNTransformerOptions options)
         {
             var beatmap = BeatmapDecoder.Decode(filePath);
-            if (beatmap == null) throw new Exception("Failed to load beatmap");
+            if (beatmap == null) throw new Exception("[KRRLN]Failed to load beatmap");
+            if (beatmap.GeneralSection.ModeId != 3) throw new Exception("Not mania");
             return ProcessBeatmap(beatmap, options);
         }
     }

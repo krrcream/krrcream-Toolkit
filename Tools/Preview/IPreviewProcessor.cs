@@ -9,9 +9,10 @@ namespace krrTools.Tools.Preview
     public interface IPreviewProcessor
     {
         string? CurrentTool { get; set; }
-
-        FrameworkElement BuildConvertedVisual(ManiaBeatmap input);
+        
         FrameworkElement BuildOriginalVisual(ManiaBeatmap input);
+        
+        FrameworkElement BuildConvertedVisual(ManiaBeatmap input);
     }
 }
 

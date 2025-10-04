@@ -27,11 +27,6 @@ namespace krrTools.Tools.N2NC
             InitializeLocalized();
         }
         // TODO: 参数是历史遗留问题，所有ViewModel要统一，改成自动属性访问器
-        private double _targetKeys = 10;
-        private double _maxKeys = 10;
-        private double _minKeys = 2;
-        // TransformSpeed is a numeric slider value (double) — slider granularity handled in UI
-        private double _transformSpeed = 1.0;
 
         // Backing field for flags-based selection
         private KeySelectionFlags _keySelection = KeySelectionFlags.None;
@@ -161,11 +156,13 @@ namespace krrTools.Tools.N2NC
 
         public double TargetKeys
         {
-            get => _targetKeys;
+            get => Options.TargetKeys;
             set
             {
-                if (SetProperty(ref _targetKeys, value))
+                if (Options.TargetKeys != value)
                 {
+                    Options.TargetKeys = value;
+                    OnPropertyChanged();
                     // 更新MaxKeys和MinKeys以不超过TargetKeys
                     if (MaxKeys > TargetKeys)
                         MaxKeys = TargetKeys;
@@ -182,18 +179,20 @@ namespace krrTools.Tools.N2NC
 
         public double MaxKeys
         {
-            get => _maxKeys;
+            get => Options.MaxKeys;
             set
             {
-                if (SetProperty(ref _maxKeys, value))
+                if (Options.MaxKeys != value)
                 {
+                    Options.MaxKeys = value;
+                    OnPropertyChanged();
                     // 确保MaxKeys不超过TargetKeys
                     if (MaxKeys > TargetKeys)
                         MaxKeys = TargetKeys;
 
                     // 当最大键数改变时，更新最小键数
                     // 如果最大键数等于1，最小键数等于1；否则最小键数等于2
-                    MinKeys = Math.Abs(_maxKeys - 1.0) < 0 ? 1 : 2;
+                    MinKeys = Math.Abs(Options.MaxKeys - 1.0) < 0 ? 1 : 2;
 
                     // 确保MinKeys不超过MaxKeys
                     if (MinKeys > MaxKeys)
@@ -205,11 +204,13 @@ namespace krrTools.Tools.N2NC
 
         public double MinKeys
         {
-            get => _minKeys;
+            get => Options.MinKeys;
             set
             {
-                if (SetProperty(ref _minKeys, value))
+                if (Options.MinKeys != value)
                 {
+                    Options.MinKeys = value;
+                    OnPropertyChanged();
                     // 确保MinKeys不超过TargetKeys和MaxKeys
                     if (MinKeys > TargetKeys)
                         MinKeys = TargetKeys;
@@ -225,11 +226,13 @@ namespace krrTools.Tools.N2NC
         // TransformSpeed is a double representing the actual configured speed (slider-controlled)
         public double TransformSpeed
         {
-            get => _transformSpeed;
+            get => Options.TransformSpeed;
             set
             {
-                if (SetProperty(ref _transformSpeed, value))
+                if (Options.TransformSpeed != value)
                 {
+                    Options.TransformSpeed = value;
+                    OnPropertyChanged();
                     // 当 TransformSpeed 更新时，通知 TransformSpeedDisplay 也已更新
                     OnPropertyChanged(nameof(TransformSpeedDisplay));
                 }
@@ -242,7 +245,7 @@ namespace krrTools.Tools.N2NC
             get
             {
                 // 将实际速度值转换为滑块档位
-                double v = _transformSpeed;
+                double v = Options.TransformSpeed;
                 if (Math.Abs(v - 0.0625) < 1e-8) return 1;
                 if (Math.Abs(v - 0.125) < 1e-8) return 2;
                 if (Math.Abs(v - 0.25) < 1e-8) return 3;
@@ -269,7 +272,7 @@ namespace krrTools.Tools.N2NC
             get
             {
                 // 根据当前速度值显示对应的节拍标签
-                double v = _transformSpeed;
+                double v = Options.TransformSpeed;
                 if (Math.Abs(v - 0.0625) < 1e-8) return "1/16";
                 if (Math.Abs(v - 0.125) < 1e-8) return "1/8";
                 if (Math.Abs(v - 0.25) < 1e-8) return "1/4";
@@ -289,14 +292,14 @@ namespace krrTools.Tools.N2NC
 
             return new N2NCOptions
             {
-                TargetKeys = TargetKeys,
-                MaxKeys = MaxKeys,
-                MinKeys = MinKeys,
-                TransformSpeed = TransformSpeed,
+                TargetKeys = Options.TargetKeys,
+                MaxKeys = Options.MaxKeys,
+                MinKeys = Options.MinKeys,
+                TransformSpeed = Options.TransformSpeed,
                 SelectedKeyTypes = selectedKeys,
-                Seed = Seed,
+                Seed = Options.Seed,
                 SelectedKeyFlags = KeySelection,
-                SelectedPreset = SelectedPreset
+                SelectedPreset = Options.SelectedPreset
             };
         }
 

@@ -26,6 +26,13 @@ namespace krrTools.Core
         }
 
         /// <summary>
+        /// 构造函数，通过反射自动发现模块
+        /// </summary>
+        public ModuleManager() : this(DiscoverModules())
+        {
+        }
+
+        /// <summary>
         /// 获取所有模块
         /// </summary>
         public IEnumerable<IToolModule> GetAllModules() => _modules.Values;
@@ -72,6 +79,14 @@ namespace krrTools.Core
         }
 
         /// <summary>
+        /// 根据名称获取工具
+        /// </summary>
+        public ITool? GetToolByName(string toolName)
+        {
+            return _tools.TryGetValue(toolName, out var tool) ? tool : null;
+        }
+
+        /// <summary>
         /// 异步执行单个工具（使用指定的选项）
         /// </summary>
         /// <param name="toolName">工具名称</param>
@@ -83,7 +98,7 @@ namespace krrTools.Core
             if (!_tools.TryGetValue(toolName, out var tool))
                 return null;
 
-            return await Task.Run(() => tool.ProcessFile(filePath, options));
+            return await Task.Run(() => tool.ProcessFileSave(filePath, options));
         }
 
         /// <summary>
@@ -97,7 +112,7 @@ namespace krrTools.Core
             if (!_tools.TryGetValue(toolName, out var tool))
                 return null;
 
-            return tool.ProcessFile(filePath);
+            return tool.ProcessFileSave(filePath);
         }
 
         /// <summary>
@@ -164,6 +179,37 @@ namespace krrTools.Core
                 // WriteLine error if needed
                 return null;
             }
+        }
+
+        /// <summary>
+        /// 通过反射发现所有IToolModule实现
+        /// </summary>
+        private static IEnumerable<IToolModule> DiscoverModules()
+        {
+            var modules = new List<IToolModule>();
+            var assembly = typeof(ModuleManager).Assembly;
+
+            foreach (var type in assembly.GetTypes())
+            {
+                if (typeof(IToolModule).IsAssignableFrom(type) && !type.IsAbstract && !type.IsInterface)
+                {
+                    try
+                    {
+                        var instance = Activator.CreateInstance(type);
+                        if (instance is IToolModule module)
+                        {
+                            modules.Add(module);
+                            Console.WriteLine($"[INFO] 自动发现模块: {module.DisplayName}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[ERROR] 创建模块实例失败: {type.FullName}, {ex.Message}");
+                    }
+                }
+            }
+
+            return modules;
         }
     }
 }

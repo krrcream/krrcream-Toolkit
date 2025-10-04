@@ -17,14 +17,11 @@ using krrTools.Data;
 
 namespace krrTools.Tools.KrrLV
 {
-    /// <summary>
-    /// KrrLV工具的ViewModel，负责处理文件分析和UI交互逻辑
-    /// TODO:   1.代码重构，提取公共方法, 统一为WPF控件;
-    ///         2.优化UI更新逻辑，减少频繁更新;
-    ///         3.完善异常处理和日志记录;
-    /// </summary>
+    //TODO:   1.控件优化，优化UI更新逻辑，减少频繁更新;
+    //        2.数据加载异常，显示数据为0;
+    //        3.xxySR计算太慢，严重需要优化速度;
 
-    public partial class KrrLVViewModel : ObservableObject
+    public partial class KRRLVAnalysisViewModel : ObservableObject
     {
         [ObservableProperty]
         private string _pathInput = null!;
@@ -50,7 +47,7 @@ namespace krrTools.Tools.KrrLV
 
         public int ProcessedCount { get; set; }
 
-        public KrrLVViewModel()
+        public KRRLVAnalysisViewModel()
         {
             // 初始化定时器，每100毫秒批量更新一次UI
             _updateTimer = new DispatcherTimer
@@ -118,12 +115,12 @@ namespace krrTools.Tools.KrrLV
                     var csv = new StringBuilder();
 
                     // 添加CSV头部
-                    csv.AppendLine("KRR_LV,YLS_LV,XXY_SR,Title,Diff,Artist,Creator,Keys,BPM,OD,HP,LN%,beatmapID,beatmapSetId,filePath");
+                    csv.AppendLine("KRR_LV,YLS_LV,XXY_SR,Title,Diff,Artist,Creator,Keys,Notes,MaxKPS,AvgKPS,BPM,OD,HP,LN%,beatmapID,beatmapSetId,filePath");
 
                     // 添加数据行
                     foreach (var file in OsuFiles)
                     {
-                        var line = $"\"{file.KrrLV:F2}\",\"{file.YlsLV:F2}\",\"{file.XxySR:F2}\",\"{file.Title}\",\"{file.Diff}\",\"{file.Artist}\",\"{file.Creator}\",{file.Keys},\"{file.BPM}\",{file.OD},{file.HP},\"{file.LNPercent:F2}\",{file.BeatmapID},{file.BeatmapSetID},\"{file.FilePath}\"";
+                        var line = $"\"{file.KrrLV:F2}\",\"{file.YlsLV:F2}\",\"{file.XxySR:F2}\",\"{file.Title}\",\"{file.Diff}\",\"{file.Artist}\",\"{file.Creator}\",{file.Keys},{file.NotesCount},\"{file.MaxKPS:F2}\",\"{file.AvgKPS:F2}\",\"{file.BPM}\",{file.OD},{file.HP},\"{file.LNPercent:F2}\",{file.BeatmapID},{file.BeatmapSetID},\"{file.FilePath}\"";
                         csv.AppendLine(line);
                     }
 
@@ -429,6 +426,9 @@ namespace krrTools.Tools.KrrLV
                     item.XxySR = result.XXY_SR;
                     item.KrrLV = result.KRR_LV;
                     item.YlsLV = CalculateLevel(result.XXY_SR);
+                    item.NotesCount = result.NotesCount;
+                    item.MaxKPS = result.MaxKPS;
+                    item.AvgKPS = result.AvgKPS;
                     item.Status = "已分析";
                 });
             }
@@ -474,7 +474,7 @@ namespace krrTools.Tools.KrrLV
 
         private static double FittingFormula(double x)
         {
-            // TODO: 样式
+            // TODO: 实现正确的拟合公式
             // For now, returning a placeholder value
             return x * 1.5; // Replace with actual formula
         }

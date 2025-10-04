@@ -21,7 +21,6 @@ public class ManiaBeatmap : Beatmap
         if (beatmap.GeneralSection.ModeId != 3)
             throw new ArgumentException("Beatmap is not in Mania mode.");
 
-        // 复制所有属性
         GeneralSection = beatmap.GeneralSection;
         EditorSection = beatmap.EditorSection;
         MetadataSection = beatmap.MetadataSection;
@@ -49,7 +48,7 @@ public class ManiaBeatmap : Beatmap
         HitObjects = beatmap.HitObjects;
         ColoursSection = beatmap.ColoursSection;
 
-        FilePath = beatmap.GetOsuFileName();
+        FilePath = beatmap.OriginalFilePath;
 
         var bpms = beatmap.TimingPoints.Select(tp => 60000.0 / tp.BeatLength);
         var enumerable = bpms as double[] ?? bpms.ToArray();
@@ -64,9 +63,10 @@ public class ManiaBeatmap : Beatmap
     }
 
     public int KeyCount => (int)DifficultySection.CircleSize;
-
-    public string FilePath { get; set; }
-
+    
+    public string FilePath { get; set; } = string.Empty;
+    public string OuputFilePath { get; set; } = string.Empty;
+    
     public double BPM { get; set; }
     public String BPMDisplay { get; set; } = string.Empty;
     public double xxyStarRating { get; set; }

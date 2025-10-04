@@ -11,7 +11,6 @@ namespace krrTools.Tools.DPtool
 {
     public class DPToolView : ToolViewBase<DPToolOptions>
     {
-        public event EventHandler? SettingsChanged;
         private readonly DPToolViewModel _viewModel;
 
         // UI控件引用，用于属性变更时的启用/禁用逻辑
@@ -21,21 +20,20 @@ namespace krrTools.Tools.DPtool
         private UIElement? _rMaxKeysSlider;
         private UIElement? _rMinKeysSlider;
 
+        public event EventHandler? SettingsChanged;
+        
         public DPToolView() : base(ConverterEnum.DP)
         {
             _viewModel = new DPToolViewModel(Options);
             DataContext = _viewModel;
-
-            BuildTemplatedUI();
-
-            // Options are now loaded automatically via DI
+            BuildUI();
         }
 
-        private void BuildTemplatedUI()
+        private void BuildUI()
         {
             // 创建模板化控件，但保持自定义布局
-            var modifyKeysCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.ModifySingleSideKeyCount);
-            _keysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.SingleSideKeyCount);
+            // var modifyKeysCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.ModifySingleSideKeyCount);
+            _keysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.SingleSideKeyCount, o => o.ModifySingleSideKeyCount);
 
             var lMirrorCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.LMirror);
             var lDensityCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.LDensity);
@@ -50,10 +48,10 @@ namespace krrTools.Tools.DPtool
             _rMinKeysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.RMinKeys);
 
             // Top: Modify keys + keys slider
-            modifyKeysCheckBox.Margin = new Thickness(0, 0, 0, 6);
+            // modifyKeysCheckBox.Margin = new Thickness(0, 0, 0, 6);
 
             var modifyKeysPanel = new StackPanel { Margin = new Thickness(0, 0, 0, 15), HorizontalAlignment = HorizontalAlignment.Stretch };
-            modifyKeysPanel.Children.Add(modifyKeysCheckBox);
+            // modifyKeysPanel.Children.Add(modifyKeysCheckBox);
             modifyKeysPanel.Children.Add(_keysSlider);
 
             // Placeholder keys panel

@@ -18,14 +18,15 @@ namespace krrTools.Tools.DPtool
         protected override Beatmap ProcessBeatmap(Beatmap input, DPToolOptions options)
         {
             var dp = new DP();
-            var resultBeatmap = dp.DPBeatmapToData(input, options);
+            var resultBeatmap = dp.ProcessBeatmapToData(input, options);
             return resultBeatmap;
         }
 
         protected override Beatmap ProcessSingleFile(string filePath, DPToolOptions options)
         {
             var beatmap = BeatmapDecoder.Decode(filePath);
-            if (beatmap == null) throw new Exception("Failed to load beatmap");
+            if (beatmap == null) throw new Exception("[DPTool]Failed to load beatmap");
+            if (beatmap.GeneralSection.ModeId != 3) throw new Exception("Not mania");
             return ProcessBeatmap(beatmap, options);
         }
     }

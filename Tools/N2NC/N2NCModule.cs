@@ -25,7 +25,8 @@ namespace krrTools.Tools.N2NC
         protected override Beatmap ProcessSingleFile(string filePath, N2NCOptions options)
         {
             var beatmap = BeatmapDecoder.Decode(filePath);
-            if (beatmap == null) throw new Exception("Failed to load beatmap");
+            if (beatmap == null) throw new Exception("[N2NC]Failed to load beatmap");
+            if (beatmap.GeneralSection.ModeId != 3) throw new Exception("Not mania");
             return ProcessBeatmap(beatmap, options);
         }
     }

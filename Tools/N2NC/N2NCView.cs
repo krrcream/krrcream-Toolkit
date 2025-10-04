@@ -1,270 +1,61 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using System.Windows.Data;
 using krrTools.Configuration;
 using krrTools.Localization;
 using krrTools.UI;
 
 namespace krrTools.Tools.N2NC
 {
-    public class LabelConverter : IMultiValueConverter
-    {
-        // TODO: 这个转换器可以放到一个公共位置供所有控件使用, 但是用法不好，
-        //另一种实现方法是DP工具中的OnLanguageChanged()，后续统一
-        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (values is [string labelStr, _, ..])
-            {
-                string valStr;
-                if (values[1] == DependencyProperty.UnsetValue)
-                {
-                    valStr = "0";
-                }
-                else
-                {
-                    valStr = values[1].ToString() ?? "0";
-                }
-                if (labelStr.Contains("{0}"))
-                {
-                    return Strings.FormatLocalized(labelStr, valStr);
-                }
-                else
-                {
-                    return Strings.Localize(labelStr) + ": " + valStr;
-                }
-            }
-
-            if (values is [string lbl, ..])
-            {
-                return Strings.Localize(lbl);
-            }
-
-            return string.Empty;
-        }
-
-        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
     public class N2NCView : ToolViewBase<N2NCOptions>
     {
-        public event EventHandler? SettingsChanged;
-        private Slider? TargetKeysSlider;
-        private Slider? MaxKeysSlider;
-        private Slider? MinKeysSlider;
-        private TextBox? SeedTextBox;
-        private Button? GenerateSeedButton;
-        private readonly Dictionary<KeySelectionFlags, CheckBox> checkboxMap = new();
         private readonly N2NCViewModel _viewModel;
+        private readonly Dictionary<KeySelectionFlags, CheckBox> checkboxMap = new();
+        private FrameworkElement seedPanel => SettingsBinder.CreateSeedPanel(_viewModel);
 
-
+        private UIElement? TargetKeysSlider;
+        private UIElement? MaxKeysSlider;
+        private UIElement? MinKeysSlider;
+        private UIElement? TransformSpeedSlider;
+        
+        public event EventHandler? SettingsChanged;
+        
         public N2NCView() : base(ConverterEnum.N2NC)
         {
             _viewModel = new N2NCViewModel(Options);
             DataContext = _viewModel;
-            BuildConverterUI();
+            BuildTemplatedUI();
         }
 
-        private void BuildConverterUI()
+        private void BuildTemplatedUI()
         {
-            // Build control UI (no window-specific initialization)
             var scrollViewer = CreateScrollViewer();
 
             var grid = new StackPanel { Margin = new Thickness(15), HorizontalAlignment = HorizontalAlignment.Stretch };
 
             var rowMargin = new Thickness(0, 6, 0, 6);
 
-            // 创建UI控件
-            var targetPanel = CreateTargetKeysPanel(rowMargin);
-            grid.Children.Add(targetPanel);
+            // 创建模板化控件
+            TargetKeysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.TargetKeys);
+            MaxKeysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.MaxKeys);
+            MinKeysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.MinKeys);
+            TransformSpeedSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.TransformSpeed);
+            
+            grid.Children.Add(TargetKeysSlider);
+            grid.Children.Add(MaxKeysSlider);
+            grid.Children.Add(MinKeysSlider);
+            grid.Children.Add(TransformSpeedSlider);
 
-            var maxPanel = CreateMaxKeysPanel(rowMargin);
-            grid.Children.Add(maxPanel);
-
-            var minPanel = CreateMinKeysPanel(rowMargin);
-            grid.Children.Add(minPanel);
-
-            var transformPanel = CreateTransformSpeedPanel(rowMargin);
-            grid.Children.Add(transformPanel);
-
-            var seedPanel = CreateSeedPanel(rowMargin);
+            var seedGrid = new Grid();
+            seedGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            seedGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(160) });
+            seedGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+            seedGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            
             grid.Children.Add(seedPanel);
 
-            var keysPanel = CreateKeySelectionPanel(rowMargin);
-            grid.Children.Add(keysPanel);
-
-            var presetsBorder = CreatePresetsPanel(rowMargin);
-            grid.Children.Add(presetsBorder);
-
-            // 组装界面 - use ScrollViewer directly as top-level Content (removed extra Grid layer)
-            scrollViewer.Content = grid;
-            Content = scrollViewer;
-        }
-
-        private ScrollViewer CreateScrollViewer()
-        {
-            return new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
-        }
-
-        private FrameworkElement CreateTargetKeysPanel(Thickness rowMargin)
-        {
-            // Target keys
-            var targetKeysSlider = SharedUIComponents.CreateStandardSlider(1, 18, double.NaN, true);
-            targetKeysSlider.SetBinding(RangeBase.ValueProperty, new Binding("TargetKeys") { Source = _viewModel });
-            TargetKeysSlider = targetKeysSlider;
-
-            var sliderPanel = new Grid();
-            sliderPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            Grid.SetColumn(targetKeysSlider, 0);
-            sliderPanel.Children.Add(targetKeysSlider);
-
-            var labelRow = new Grid();
-            labelRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            var targetLabel = SharedUIComponents.CreateHeaderLabel("");
-            targetLabel.Margin = new Thickness(0, 0, 8, 0);
-            Grid.SetColumn(targetLabel, 0);
-            labelRow.Children.Add(targetLabel);
-
-            // 绑定标签文本为 "本地化标签: 值"
-            // 实现不友好，后续参考DP或预设的本地化
-            var targetBinding = new MultiBinding
-            {
-                StringFormat = "{0}"
-            };
-            targetBinding.Bindings.Add(new Binding("Value") { Source = new DynamicLocalizedString(Strings.KeysSliderLabel) });
-            targetBinding.Bindings.Add(new Binding("TargetKeys") { Source = _viewModel });
-            targetBinding.Converter = new LabelConverter();
-            targetLabel.SetBinding(TextBlock.TextProperty, targetBinding);
-
-            // 主面板：标签行 + 滑条行
-            var mainPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = rowMargin };
-            mainPanel.Children.Add(labelRow);
-            mainPanel.Children.Add(sliderPanel);
-            return mainPanel;
-        }
-
-        private FrameworkElement CreateMaxKeysPanel(Thickness rowMargin)
-        {
-            var maxInner = new Grid();
-            maxInner.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            MaxKeysSlider = SharedUIComponents.CreateStandardSlider(1, 18, double.NaN, true);
-            MaxKeysSlider.SetBinding(RangeBase.ValueProperty, new Binding(nameof(N2NCViewModel.MaxKeys)) { Mode = BindingMode.TwoWay, Source = _viewModel });
-            MaxKeysSlider.SetBinding(RangeBase.MaximumProperty, new Binding(nameof(N2NCViewModel.MaxKeysMaximum)) { Mode = BindingMode.OneWay, Source = _viewModel });
-            Grid.SetColumn(MaxKeysSlider, 0);
-            maxInner.Children.Add(MaxKeysSlider);
-
-            // 创建标签行：标签 + 数值 合并为一个标签显示 "标签: 值"
-            var labelRow = new Grid();
-            labelRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            var maxLabel = SharedUIComponents.CreateHeaderLabel("");
-            maxLabel.Margin = new Thickness(0, 0, 8, 0);
-            Grid.SetColumn(maxLabel, 0);
-            labelRow.Children.Add(maxLabel);
-            // 绑定标签文本为 "本地化标签: 值"
-            maxLabel.SetBinding(TextBlock.TextProperty, new Binding(nameof(N2NCViewModel.MaxKeysDisplay)) { Source = _viewModel });
-
-            // 主面板：标签行 + 滑条行
-            var mainPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = rowMargin };
-            mainPanel.Children.Add(labelRow);
-            mainPanel.Children.Add(maxInner);
-            return mainPanel;
-        }
-
-        private FrameworkElement CreateMinKeysPanel(Thickness rowMargin)
-        {
-            var minInner = new Grid();
-            minInner.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            MinKeysSlider = SharedUIComponents.CreateStandardSlider(1, 18, double.NaN, true);
-            MinKeysSlider.SetBinding(RangeBase.ValueProperty, new Binding(nameof(N2NCViewModel.MinKeys)) { Mode = BindingMode.TwoWay, Source = _viewModel });
-            MinKeysSlider.SetBinding(RangeBase.MaximumProperty, new Binding(nameof(N2NCViewModel.MinKeysMaximum)) { Mode = BindingMode.OneWay, Source = _viewModel });
-            Grid.SetColumn(MinKeysSlider, 0);
-            minInner.Children.Add(MinKeysSlider);
-
-            var labelRow = new Grid();
-            labelRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            var minLabel = SharedUIComponents.CreateHeaderLabel("");
-            minLabel.Margin = new Thickness(0, 0, 8, 0);
-            Grid.SetColumn(minLabel, 0);
-            labelRow.Children.Add(minLabel);
-
-            minLabel.SetBinding(TextBlock.TextProperty, new Binding(nameof(N2NCViewModel.MinKeysDisplay)) { Source = _viewModel });
-
-            var mainPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = rowMargin };
-            mainPanel.Children.Add(labelRow);
-            mainPanel.Children.Add(minInner);
-            return mainPanel;
-        }
-
-        private FrameworkElement CreateTransformSpeedPanel(Thickness rowMargin)
-        {
-            var transformInner = new Grid();
-            transformInner.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-            var transformSlider = SharedUIComponents.CreateStandardSlider(1, 8, double.NaN, true); // 整数档位，启用刻度对齐
-            transformSlider.SetBinding(RangeBase.ValueProperty, new Binding(nameof(N2NCViewModel.TransformSpeedSlot)) { Mode = BindingMode.TwoWay, Source = _viewModel });
-            Grid.SetColumn(transformSlider, 0);
-            transformInner.Children.Add(transformSlider);
-
-            // 创建标签行：标签 + 数值
-            var labelRow = new Grid();
-            labelRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            var transformLabel = SharedUIComponents.CreateHeaderLabel("");
-            transformLabel.Margin = new Thickness(0, 0, 8, 0);
-            Grid.SetColumn(transformLabel, 0);
-            labelRow.Children.Add(transformLabel);
-            // 绑定标签文本为 "本地化标签: 值"
-            var transformBinding = new MultiBinding
-            {
-                StringFormat = "{0}"
-            };
-            transformBinding.Bindings.Add(new Binding("Value") { Source = new DynamicLocalizedString(Strings.N2NCTransformSpeedTemplate) });
-            transformBinding.Bindings.Add(new Binding(nameof(N2NCViewModel.TransformSpeedDisplay)) { Source = _viewModel });
-            transformBinding.Converter = new LabelConverter();
-            transformLabel.SetBinding(TextBlock.TextProperty, transformBinding);
-
-            // 主面板：标签行 + 滑条行
-            var mainPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = rowMargin };
-            mainPanel.Children.Add(labelRow);
-            mainPanel.Children.Add(transformInner);
-            return mainPanel;
-        }
-
-        private FrameworkElement CreateSeedPanel(Thickness rowMargin)
-        {
-            SeedTextBox = SharedUIComponents.CreateStandardTextBox();
-            SeedTextBox.Width = 160;
-            SeedTextBox.SetBinding(TextBox.TextProperty, new Binding(nameof(N2NCViewModel.Seed)) { Mode = BindingMode.TwoWay, Source = _viewModel });
-            GenerateSeedButton = SharedUIComponents.CreateStandardButton(Strings.SeedGenerateLabel.Localize());
-            GenerateSeedButton.Width = 100; // 设置固定宽度以保持按钮大小一致
-            GenerateSeedButton.Click += GenerateSeedButton_Click;
-            GenerateSeedButton.ToolTip = Strings.SeedGenerateTooltip.Localize();
-
-            // 创建一个Grid来实现右侧对齐的布局
-            var seedGrid = new Grid();
-            seedGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // 左侧弹性空间
-            seedGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(160) }); // 固定宽度的文本框
-            seedGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) }); // 10像素间隔
-            seedGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // 按钮自适应宽度
-
-            // 设置控件位置
-            SeedTextBox.HorizontalAlignment = HorizontalAlignment.Stretch;
-            Grid.SetColumn(SeedTextBox, 1);
-            Grid.SetColumn(GenerateSeedButton, 3);
-
-            seedGrid.Children.Add(SeedTextBox);
-            seedGrid.Children.Add(GenerateSeedButton);
-
-            return SharedUIComponents.CreateLabeledRow("Seed|种子", seedGrid, rowMargin);
-        }
-
-        private FrameworkElement CreateKeySelectionPanel(Thickness rowMargin)
-        {
+            // Key selection panel
             var keysWrap = new WrapPanel { Orientation = Orientation.Horizontal, ItemHeight = 33 };
             var flagOrder = new[] { KeySelectionFlags.K4, KeySelectionFlags.K5, KeySelectionFlags.K6, KeySelectionFlags.K7, KeySelectionFlags.K8, KeySelectionFlags.K9, KeySelectionFlags.K10, KeySelectionFlags.K10Plus };
             var flagLabels = new Dictionary<KeySelectionFlags, string>
@@ -288,9 +79,8 @@ namespace krrTools.Tools.N2NC
                 keysWrap.Children.Add(cb);
             }
 
-            // 添加全选/取消全选按钮
             var selectAllButton = SharedUIComponents.CreateStandardButton("Select All|全选");
-            selectAllButton.Width = 100; // 设置固定宽度以保持按钮大小一致
+            selectAllButton.Width = 100;
             selectAllButton.Click += (_, _) =>
             {
                 foreach (var kvp in checkboxMap)
@@ -301,7 +91,7 @@ namespace krrTools.Tools.N2NC
             };
 
             var clearAllButton = SharedUIComponents.CreateStandardButton("Clear All|清空");
-            clearAllButton.Width = 100; // 设置固定宽度以保持按钮大小一致
+            clearAllButton.Width = 100;
             clearAllButton.Click += (_, _) =>
             {
                 foreach (var kvp in checkboxMap)
@@ -315,11 +105,10 @@ namespace krrTools.Tools.N2NC
             buttonPanel.Children.Add(selectAllButton);
             buttonPanel.Children.Add(clearAllButton);
 
-            var mainPanel = new StackPanel();
-            mainPanel.Children.Add(keysWrap);
-            mainPanel.Children.Add(buttonPanel);
+            var keysMainPanel = new StackPanel();
+            keysMainPanel.Children.Add(keysWrap);
+            keysMainPanel.Children.Add(buttonPanel);
 
-            // 保存复选框引用以便全选/清空功能使用
             checkboxMap.Clear();
             foreach (var child in keysWrap.Children)
             {
@@ -330,7 +119,6 @@ namespace krrTools.Tools.N2NC
                 }
             }
 
-            // 添加监听KeySelection属性变化的处理程序
             _viewModel.PropertyChanged += (_, e) =>
             {
                 if (e.PropertyName == nameof(N2NCViewModel.KeySelection))
@@ -338,7 +126,6 @@ namespace krrTools.Tools.N2NC
                     foreach (var kvp in checkboxMap)
                         kvp.Value.IsChecked = GetKeySelectionFlag(kvp.Key);
                 }
-                // Trigger settings changed event for preview updates
                 SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
 
@@ -347,38 +134,16 @@ namespace krrTools.Tools.N2NC
             SharedUIComponents.LanguageChanged += UpdateFilterLabel;
             Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= UpdateFilterLabel;
 
-            return SharedUIComponents.CreateLabeledRow(filterLabel, mainPanel, rowMargin);
-        }
+            var keysPanel = SharedUIComponents.CreateLabeledRow(filterLabel, keysMainPanel, rowMargin);
+            grid.Children.Add(keysPanel);
 
-        // 添加获取键位选择标志的方法
-        private bool GetKeySelectionFlag(KeySelectionFlags flag)
-        {
-            return (_viewModel.KeySelection & flag) == flag;
-        }
-
-        // 添加设置键位选择标志的方法
-        private void SetKeySelectionFlag(KeySelectionFlags flag, bool value)
-        {
-            if (value)
-                _viewModel.KeySelection |= flag;
-            else
-                _viewModel.KeySelection &= ~flag;
-            // 直接设置属性，自动触发通知
-            var currentSelection = _viewModel.KeySelection;
-            _viewModel.KeySelection = currentSelection;
-        }
-
-
-        private FrameworkElement CreatePresetsPanel(Thickness rowMargin)
-        {
-            // Use shared PresetPanelFactory to manage presets for ConverterOptions
-            FrameworkElement panel = PresetPanelFactory.CreatePresetPanel(
+            // Presets panel
+            var presetsBorder = PresetPanelFactory.CreatePresetPanel(
                 "N2NC",
                 () => _viewModel.GetConversionOptions(),
                 (opt) =>
                 {
                     if (opt == null) return;
-                    // Apply options to viewmodel (copy fields)
                     _viewModel.TargetKeys = opt.TargetKeys;
                     _viewModel.TransformSpeed = opt.TransformSpeed;
                     _viewModel.Seed = opt.Seed;
@@ -388,7 +153,6 @@ namespace krrTools.Tools.N2NC
                     }
                     else if (opt.SelectedKeyTypes != null)
                     {
-                        // Convert list to flags
                         var flags = KeySelectionFlags.None;
                         foreach (var k in opt.SelectedKeyTypes)
                         {
@@ -409,16 +173,43 @@ namespace krrTools.Tools.N2NC
                 }
             );
 
-            return SharedUIComponents.CreateLabeledRow(Strings.PresetsLabel, panel, rowMargin);
+            var presetsPanel = SharedUIComponents.CreateLabeledRow(Strings.PresetsLabel, presetsBorder, rowMargin);
+            grid.Children.Add(presetsPanel);
+
+            scrollViewer.Content = grid;
+            Content = scrollViewer;
         }
 
-        private void GenerateSeedButton_Click(object sender, RoutedEventArgs e)
+        private ScrollViewer CreateScrollViewer()
         {
-            Random random = new Random();
-            int newSeed = random.Next();
-            // 更新ViewModel和绑定的TextBox（双向绑定将保持它们同步）
-            _viewModel.Seed = newSeed;
-            if (SeedTextBox != null) SeedTextBox.Text = newSeed.ToString();
+            return new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         }
+        
+        // 添加获取键位选择标志的方法
+        private bool GetKeySelectionFlag(KeySelectionFlags flag)
+        {
+            return (_viewModel.KeySelection & flag) == flag;
+        }
+
+        // 添加设置键位选择标志的方法
+        private void SetKeySelectionFlag(KeySelectionFlags flag, bool value)
+        {
+            if (value)
+                _viewModel.KeySelection |= flag;
+            else
+                _viewModel.KeySelection &= ~flag;
+            // 直接设置属性，自动触发通知
+            var currentSelection = _viewModel.KeySelection;
+            _viewModel.KeySelection = currentSelection;
+        }
+
+        // private void GenerateSeedButton_Click(object sender, RoutedEventArgs e)
+        // {
+        //     Random random = new Random();
+        //     int newSeed = random.Next();
+        //     // 更新ViewModel和绑定的TextBox（双向绑定将保持它们同步）
+        //     _viewModel.Seed = newSeed;
+        //     if (SeedTextBox != null) SeedTextBox.Text = newSeed.ToString();
+        // }
     }
 }

@@ -1,16 +1,38 @@
+using System.ComponentModel;
+
 namespace krrTools.Tools.FilesManager;
 
-public class FilesManagerInfo
+public class FilesManagerInfo : INotifyPropertyChanged
 {
-    // TODO: 优化属性访问
-    public string Title { get; set; } = string.Empty;
-    public string Diff { get; set; } = string.Empty;
-    public string Artist { get; set; } = string.Empty;
-    public string Creator { get; set; } = string.Empty;
-    public string FilePath { get; set; } = string.Empty;
-    public int Keys { get; set; }
-    public double OD { get; set; }
-    public double HP { get; set; }
-    public int BeatmapID { get; set; }
-    public int BeatmapSetID { get; set; }
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    // 可编辑属性
+    public EditableProperty<string> Artist { get; } = new() { Value = string.Empty };
+    public EditableProperty<string> Title { get; } = new() { Value = string.Empty };
+    public EditableProperty<string> Creator { get; } = new() { Value = string.Empty };
+    public EditableProperty<string> Diff { get; } = new() { Value = string.Empty };
+    public EditableProperty<string> FilePath { get; } = new() { Value = string.Empty };
+    public EditableProperty<double> OD { get; } = new();
+    public EditableProperty<double> HP { get; } = new();
+    
+    // 只读属性
+    public int Keys { get; init; }
+    public int BeatmapID { get; init; }
+    public int BeatmapSetID { get; init; } = -1;
+
+    public void UndoAll()
+    {
+        Artist.Undo();
+        Title.Undo();
+        Creator.Undo();
+        Diff.Undo();
+        FilePath.Undo();
+        OD.Undo();
+        HP.Undo();
+    }
+
+    // protected virtual void OnPropertyChanged(string propertyName)
+    // {
+    //     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    // }
 }

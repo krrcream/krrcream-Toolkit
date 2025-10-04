@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using krrTools.Beatmaps;
-using krrTools.Configuration;
 using krrTools.Core;
 using OsuParsers.Beatmaps;
 
@@ -19,15 +18,25 @@ namespace krrTools.Tools.KRRLNTransformer
         {
             ApplyChangesToHitObjects((ManiaBeatmap)beatmap, processedMatrix, options);
         }
-
+        
         protected override void ModifyMetadata(Beatmap beatmap, KRRLNTransformerOptions options)
         {
-            changeMeta(beatmap);
-        }
+            // 避免重复添加 Version 前缀
+            if (!beatmap.MetadataSection.Version.Contains("[KRR LN.]"))
+                beatmap.MetadataSection.Version = $"[KRR LN.]{beatmap.MetadataSection.Version}";
 
-        protected override string SaveBeatmap(Beatmap beatmap, string originalPath)
-        {
-            throw new NotImplementedException();
+            // 避免重复拼接 Creator
+            if (!beatmap.MetadataSection.Creator.Contains("Krr LN."))
+                beatmap.MetadataSection.Creator = "Krr LN. & " + beatmap.MetadataSection.Creator;
+
+            // 避免重复添加 Tag
+            var currentTags = beatmap.MetadataSection.Tags ?? [];
+            var tagToAdd = "krrcream's transformer LN";
+            if (!currentTags.Contains(tagToAdd))
+            {
+                var newTags = currentTags.Concat([tagToAdd]).ToArray();
+                beatmap.MetadataSection.Tags = newTags;
+            }
         }
 
         private int[,] BuildAndProcessMatrix(int[,] matrix, List<int> timeAxis, ManiaBeatmap beatmap, KRRLNTransformerOptions parameters)
@@ -318,19 +327,6 @@ namespace krrTools.Tools.KRRLNTransformer
         public new Beatmap ProcessBeatmapToData(Beatmap beatmap, KRRLNTransformerOptions parameters)
         {
             return base.ProcessBeatmapToData(beatmap, parameters);
-        }
-        //修改难度名，tag，和标签等
-        private void changeMeta(Beatmap beatmap)
-        {
-            beatmap.MetadataSection.Version = $"[KRR LN.]{beatmap.MetadataSection.Version}";
-            beatmap.MetadataSection.Creator = "Krr LN. & " + beatmap.MetadataSection.Creator;
-            var currentTags = beatmap.MetadataSection.Tags ?? [];
-            var tagToAdd = BaseOptionsManager.KRRLNDefaultTag;
-            if (!currentTags.Contains(tagToAdd))
-            {
-                var newTags = currentTags.Concat([tagToAdd]).ToArray();
-                beatmap.MetadataSection.Tags = newTags;
-            }
         }
     }
 }

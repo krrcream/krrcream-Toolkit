@@ -8,11 +8,8 @@ using System.Linq;
 using System.Windows;
 using krrTools.Localization;
 using Microsoft.Extensions.Logging;
-using OsuFileIO.Analyzer;
-using OsuFileIO.OsuFile;
-using OsuFileIO.OsuFileReader;
+using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
-using ManiaHitObject = OsuFileIO.HitObject.Mania.ManiaHitObject;
 
 namespace krrTools.Beatmaps
 {
@@ -33,6 +30,10 @@ namespace krrTools.Beatmaps
         public double KRR_LV { get; init; }
         public double LNPercent { get; init; }
 
+        public int NotesCount { get; init; }
+        public double MaxKPS { get; init; }
+        public double AvgKPS { get; init; }
+
         public double BeatmapID { get; init; }
         public double BeatmapSetID { get; init; }
     }
@@ -43,7 +44,7 @@ namespace krrTools.Beatmaps
 
         public OsuAnalysisResult Analyze(string? filePath)
         {
-            var beatmap = BeatmapDecoder.Decode(filePath).GetManiaBeatmap();
+            var beatmap = BeatmapDecoder.Decode(filePath).GetManiaBeatmap(filePath);
 
             // compute custom stats via SRCalculator
             var Keys1 = (int)beatmap.DifficultySection.CircleSize;
@@ -64,6 +65,10 @@ namespace krrTools.Beatmaps
             // gather standard metadata with OsuParsers
             var bpmDisplay = GetBPMDisplay(filePath);
             // var bpm = GetMainBpm(filePath);
+
+            // Calculate notes count, max KPS, and average KPS
+            var (notesCount, maxKPS, avgKPS) = CalculateKPSMetrics(beatmap);
+
             var result = new OsuAnalysisResult
             {
                 Diff = beatmap.MetadataSection.Version,
@@ -81,6 +86,10 @@ namespace krrTools.Beatmaps
                 KRR_LV = krrLV,
                 LNPercent = beatmap.GetLNPercent(),
 
+                NotesCount = notesCount,
+                MaxKPS = maxKPS,
+                AvgKPS = avgKPS,
+
                 BeatmapID = beatmap.MetadataSection.BeatmapID,
                 BeatmapSetID = beatmap.MetadataSection.BeatmapSetID
             };
@@ -88,24 +97,68 @@ namespace krrTools.Beatmaps
             return result;
         }
 
+        private (int notesCount, double maxKPS, double avgKPS) CalculateKPSMetrics(ManiaBeatmap beatmap)
+        {
+            int notesCount = beatmap.HitObjects.Count;
+
+            // Get main BPM from first timing point
+            var firstTimingPoint = beatmap.TimingPoints.FirstOrDefault(tp => tp.BeatLength > 0);
+            if (firstTimingPoint == null)
+            {
+                return (notesCount, 0, 0);
+            }
+
+            double mainBPM = 60000.0 / firstTimingPoint.BeatLength;
+            double beatLength = 60000.0 / mainBPM; // Duration of one beat in ms
+            double measureLength = beatLength * 4; // Duration of 4/4 measure in ms
+
+            // Sort hit objects by time
+            var sortedHitObjects = beatmap.HitObjects.OrderBy(ho => ho.StartTime).ToList();
+
+            if (sortedHitObjects.Count == 0)
+            {
+                return (notesCount, 0, 0);
+            }
+
+            // Start from first timing point
+            double startTime = firstTimingPoint.Offset;
+            double endTime = sortedHitObjects.Max(ho => Math.Max(ho.StartTime, ho.EndTime));
+
+            var kpsValues = new List<double>();
+
+            // Divide into 4/4 measure regions
+            for (double currentTime = startTime; currentTime < endTime; currentTime += measureLength)
+            {
+                double regionEnd = currentTime + measureLength;
+                int notesInRegion = sortedHitObjects.Count(ho =>
+                    ho.StartTime >= currentTime && ho.StartTime < regionEnd);
+
+                if (notesInRegion > 0)
+                {
+                    double regionDurationSeconds = measureLength / 1000.0;
+                    double kps = notesInRegion / regionDurationSeconds;
+                    kpsValues.Add(kps);
+                }
+            }
+
+            double maxKPS = kpsValues.Count > 0 ? kpsValues.Max() : 0;
+            double avgKPS = kpsValues.Count > 0 ? kpsValues.Average() : 0;
+
+            return (notesCount, maxKPS, avgKPS);
+        }
+
         private string GetBPMDisplay(string? filePath)
         {
             if (filePath == null || !File.Exists(filePath))
                 throw new ArgumentNullException(nameof(filePath));
 
-            var reader = new OsuFileReaderBuilder(filePath).Build();
-            var beatmap = reader.ReadFile();
-            string BPMFormat = "";
-
-            if (beatmap is IReadOnlyBeatmap<ManiaHitObject> maniaHitObject)
-            {
-                var result = maniaHitObject.Analyze();
-                var bpm = result.Bpm;
-                var bpmMax = result.BpmMax;
-                var bpmMin = result.BpmMin;
-                BPMFormat = string.Format(CultureInfo.InvariantCulture, "{0}({1} - {2})", bpm, bpmMin, bpmMax);
-
-            }
+            var beatmap = BeatmapDecoder.Decode(filePath);
+            var bpm = beatmap.MainBPM;
+            var bpmMax = beatmap.MaxBPM;
+            var bpmMin = beatmap.MinBPM;
+            
+            string BPMFormat = string.Format(CultureInfo.InvariantCulture, "{0}({1} - {2})", bpm, bpmMin, bpmMax);
+                
             return BPMFormat;
         }
 

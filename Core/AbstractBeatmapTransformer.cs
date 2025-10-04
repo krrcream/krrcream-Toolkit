@@ -15,17 +15,22 @@ namespace krrTools.Core
         {
             var beatmap = LoadBeatmap(filePath);
             ProcessBeatmap(beatmap, options);
-            ModifyMetadata(beatmap, options);
+            // ModifyMetadata(beatmap, options);
             return beatmap;
         }
 
-        public Beatmap ProcessBeatmapToData(Beatmap beatmap, TOptions options)
+        protected Beatmap ProcessBeatmapToData(Beatmap beatmap, TOptions options)
         {
             ProcessBeatmap(beatmap, options);
-            ModifyMetadata(beatmap, options);
+            // ModifyMetadata(beatmap, options);
             return beatmap;
         }
 
+        protected void SaveBeatmap(Beatmap beatmap, TOptions options, string originalPath)
+        {
+            ModifyMetadata(beatmap, options);
+        }
+        
         protected virtual ManiaBeatmap LoadBeatmap(string filePath)
         {
             if (!File.Exists(filePath))
@@ -47,7 +52,7 @@ namespace krrTools.Core
                 throw new InvalidDataException("无法解析谱面文件");
             }
 
-            var maniaBeatmap = beatmap.GetManiaBeatmap();
+            var maniaBeatmap = beatmap.GetManiaBeatmap(filePath);
             if (maniaBeatmap.HitObjects.Count == 0)
             {
                 Logger.WriteLine(LogLevel.Warning, "读取文件警告: 谱面为空 - {FilePath}", filePath);
@@ -61,7 +66,7 @@ namespace krrTools.Core
             maniaBeatmap.FilePath = filePath;
             return maniaBeatmap;
         }
-        protected abstract string SaveBeatmap(Beatmap beatmap, string originalPath);
+
         private void ProcessBeatmap(Beatmap beatmap, TOptions options)
         {
             var (matrix, timeAxis) = beatmap.BuildMatrix();

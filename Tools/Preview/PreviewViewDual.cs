@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using krrTools.Beatmaps;
 using krrTools.Localization;
 using krrTools.Utilities;
@@ -24,7 +25,6 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
     // 常量
     private const int MaxFileNameLength = 40;
     private const int RefreshThrottleMs = 150;
-    private const string ArrowDown = "↓ ↓";
 
     // 字段只声明
     private readonly TextBlock _previewTitle;
@@ -33,11 +33,11 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
     private readonly ContentControl _originalContent;
     private readonly ContentControl _convertedContent;
     private TextBlock _startTimeDisplay = null!;
-    
-    // private bool _autoLoadedSample;
+
+    private bool _autoLoadedSample;
     private INotifyPropertyChanged? _observedDc;
     private DateTime _lastRefresh = DateTime.MinValue;
-    private ManiaBeatmap _lastBeatmap = PreviewManiaNote.BuiltInSampleStream();
+    private ManiaBeatmap? _lastBeatmap;
     public IModuleManager? Scheduler { get; set; }
 
     #region 回调属性刷新预览
@@ -79,7 +79,7 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
         {
             if (e.Property == ProcessorProperty)
             {
-                // ctrl._autoLoadedSample = false;
+                ctrl._autoLoadedSample = false;
                 if (e.NewValue == null)
                 {
                     // 当 Processor 设置为 null 时，清空预览内容，以便显示内置预览
@@ -87,6 +87,7 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
                     ctrl._convertedContent.Content = null;
                 }
             }
+            ctrl.TryAutoLoadSample();
             ctrl.Refresh();
         }
     }
@@ -95,58 +96,35 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
 
     public void Refresh()
     {
-        if (Processor == null) LoadPreview(_lastBeatmap);
-
-        Background = PreviewTransformation.LoadBackgroundBrush(_lastBeatmap.FilePath);
-        ApplyColumnOverrideToProcessor();
-        BuildAndSetVisuals();
-    }
-
-    private void BuildAndSetVisuals()
-    {
-        if (Processor == null) LoadPreview(_lastBeatmap);
-        
-        var originalVisual = Processor!.BuildOriginalVisual(_lastBeatmap);
-        var convertedVisual = Processor!.BuildConvertedVisual(_lastBeatmap);
-
-        _originalContent.Content = originalVisual;
-        _convertedContent.Content = convertedVisual;
-        _originalContent.Visibility = Visibility.Visible;
-        _convertedContent.Visibility = Visibility.Visible;
-        var startMsText = Processor is ConverterProcessor bp && bp.LastStartMs != 0
-            ? $"start {bp.LastStartMs} ms"
-            : string.Empty;
-        _startTimeDisplay.Text = startMsText;
+        if (_lastBeatmap != null) LoadPreview(_lastBeatmap);
     }
 
     public PreviewViewDual()
     {
-        Visibility = Visibility.Collapsed;
-        
         _previewTitle = new TextBlock
             { FontSize = 15, FontWeight = FontWeights.Bold, Text = Strings.PreviewTitle.Localize() };
-        
+
         var originalBorder =
             CreatePreviewBorder(Strings.OriginalHint.Localize(), out _originalHint, out _originalContent);
-        
+
         var centerStack = CreateCenterStack();
-        
+
         var convertedBorder =
             CreatePreviewBorder(Strings.ConvertedHint.Localize(), out _convertedHint, out _convertedContent);
-        
-        this.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        this.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        this.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        this.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        this.Children.Add(_previewTitle);
-        this.Children.Add(originalBorder);
-        this.Children.Add(centerStack);
-        this.Children.Add(convertedBorder);
-        Grid.SetRow(_previewTitle, 0);
-        Grid.SetRow(originalBorder, 1);
-        Grid.SetRow(centerStack, 2);
-        Grid.SetRow(convertedBorder, 3);
-        
+
+        RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        Children.Add(_previewTitle);
+        Children.Add(originalBorder);
+        Children.Add(centerStack);
+        Children.Add(convertedBorder);
+        SetRow(_previewTitle, 0);
+        SetRow(originalBorder, 1);
+        SetRow(centerStack, 2);
+        SetRow(convertedBorder, 3);
+
         Loaded += DualPreviewControl_Loaded;
         Unloaded += DualPreviewControl_Unloaded;
         DataContextChanged += DualPreviewControl_DataContextChanged;
@@ -176,8 +154,8 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
             },
             Children = { hint, content }
         };
-        Grid.SetRow(hint, 0);
-        Grid.SetRow(content, 1);
+        SetRow(hint, 0);
+        SetRow(content, 1);
         return new Border
         {
             Background = Brushes.Transparent,
@@ -206,7 +184,7 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
             FontSize = 18,
             Foreground = PreviewConstants.UiSecondaryTextBrush,
             HorizontalAlignment = HorizontalAlignment.Center,
-            Text = ArrowDown
+            Text = "↓ ↓"
         };
         var grid = new Grid
         {
@@ -218,19 +196,22 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
             },
             Children = { _startTimeDisplay, arrowBlock }
         };
-        Grid.SetColumn(_startTimeDisplay, 0);
-        Grid.SetColumn(arrowBlock, 1);
+        SetColumn(_startTimeDisplay, 0);
+        SetColumn(arrowBlock, 1);
         return grid;
     }
 
     private void DualPreviewControl_Loaded(object sender, RoutedEventArgs e)
     {
         LocalizationService.LanguageChanged += OnLanguageChanged;
+        TryAutoLoadSample();
+        Visibility = Visibility.Visible;
     }
 
     private void DualPreviewControl_Unloaded(object? sender, RoutedEventArgs e)
     {
         LocalizationService.LanguageChanged -= OnLanguageChanged;
+        Visibility = Visibility.Collapsed;
     }
 
     private void OnLanguageChanged()
@@ -240,6 +221,15 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
         _convertedHint.Text = Strings.ConvertedHint.Localize();
     }
 
+    private void TryAutoLoadSample()
+    {
+        if (_autoLoadedSample || _originalContent.Content != null) return;
+        Processor ??= new ConverterProcessor();
+        var beatmap = PreviewManiaNote.BuiltInSampleStream();
+        LoadPreview(beatmap);
+        _autoLoadedSample = true;
+    }
+    
     public void LoadPreview(ManiaBeatmap beatmap)
     {
         _lastBeatmap = beatmap;
@@ -251,9 +241,25 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
             return;
         }
 
-        BuildAndSetVisuals();
+        BuildAndSetVisuals(_lastBeatmap);
     }
 
+    private void BuildAndSetVisuals(ManiaBeatmap beatmap)
+    {
+        var originalVisual = Processor!.BuildOriginalVisual(beatmap);
+        var convertedVisual = Processor!.BuildConvertedVisual(beatmap);
+
+        _originalContent.Content = originalVisual;
+        _convertedContent.Content = convertedVisual;
+        _originalContent.Visibility = Visibility.Visible;
+        _convertedContent.Visibility = Visibility.Visible;
+        
+        var startMsText = Processor is ConverterProcessor bp && bp.LastStartMs != 0
+            ? $"start {bp.LastStartMs} ms"
+            : string.Empty;
+        _startTimeDisplay.Text = startMsText;
+    }
+    
     private void SetNoProcessorState()
     {
         _originalContent.Content = new TextBlock
@@ -282,8 +288,14 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
 
     #region 更新预览标题，预览文件名
 
-    private string UpdateTitleSuffix(ManiaBeatmap beatmap)
+    private string UpdateTitleSuffix(ManiaBeatmap? beatmap)
     {
+        if (beatmap == null)
+        {
+            _previewTitle.Text = Strings.PreviewTitle.Localize();
+            return string.Empty;
+        }
+        
         string titleSuffix;
         if (beatmap.MetadataSection.Title == "Built-in Sample")
         {
@@ -291,10 +303,10 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
         }
         else
         {
-            string name = beatmap.GetOsuFileName();
+            var name = beatmap.GetOutputOsuFileName();
             titleSuffix = TruncateFileNameMiddle(name, MaxFileNameLength);
         }
-        
+
         return ": " + titleSuffix;
     }
 
@@ -316,5 +328,33 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
     {
         if (Processor is ConverterProcessor baseProc && ColumnOverride != null)
             baseProc.ColumnOverride = (int)ColumnOverride;
+    }
+
+    // 加载谱面背景图的方法，统一在项目中使用
+    public void LoadBackgroundBrush(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path) || path == string.Empty)
+            return;
+
+        try
+        {
+            var bgBitmap = new BitmapImage();
+            bgBitmap.BeginInit();
+            bgBitmap.UriSource = new Uri(path);
+            bgBitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bgBitmap.EndInit();
+            Background = new ImageBrush
+            {
+                ImageSource = bgBitmap,
+                Stretch = Stretch.UniformToFill,
+                Opacity = 0.25
+            };
+            Console.WriteLine("[PreviewViewDual] Loaded BG from " + path);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("[PreviewViewDual] Failed to load background image from {0}: {1}",
+                path, ex.Message);
+        }
     }
 }

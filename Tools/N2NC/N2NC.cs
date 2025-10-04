@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -11,39 +9,41 @@ using krrTools.Core;
 using krrTools.Data;
 using OsuParsers.Beatmaps;
 using OsuParsers.Beatmaps.Objects;
-using OsuParsers.Decoders;
 using OsuParsers.Enums.Beatmaps;
 
 namespace krrTools.Tools.N2NC
 {
     public class N2NC : AbstractBeatmapTransformer<N2NCOptions>
     {
+        public new Beatmap ProcessBeatmapToData(Beatmap beatmap, N2NCOptions parameters)
+        {
+            return base.ProcessBeatmapToData(beatmap, parameters);
+        }
+        
         protected override int[,] ProcessMatrix(int[,] matrix, List<int> timeAxis, Beatmap beatmap, N2NCOptions options)
         {
-            return ConvertMatrix(matrix, timeAxis, (ManiaBeatmap)beatmap, options);
+            return ConvertMatrix(matrix, timeAxis, beatmap, options);
         }
 
         protected override void ApplyChangesToHitObjects(Beatmap beatmap, int[,] processedMatrix, N2NCOptions options)
         {
-            NewHitObjects((ManiaBeatmap)beatmap, processedMatrix, options);
+            NewHitObjects(beatmap, processedMatrix, options);
         }
 
-        protected override void ModifyMetadata(Beatmap beatmap, N2NCOptions options)
+        protected override void ModifyMetadata(Beatmap b, N2NCOptions options)
         {
-            // N2NC 修改CS和Version
-            int originalCS = (int)beatmap.DifficultySection.CircleSize;
-            beatmap.DifficultySection.CircleSize = (float)options.TargetKeys;
-            beatmap.MetadataSection.Version = "[" + originalCS + "to" + options.TargetKeys + "C] " + beatmap.MetadataSection.Version;
+            int originalCS = (int)b.DifficultySection.CircleSize;
+            string tag = $"[{originalCS}to{options.TargetKeys}C]";
+            if (!b.MetadataSection.Version.Contains(tag))
+            {
+                b.DifficultySection.CircleSize = (float)options.TargetKeys;
+                b.MetadataSection.Version = tag + " " + b.MetadataSection.Version;
+            }
         }
 
-        protected override string SaveBeatmap(Beatmap beatmap, string originalPath)
+        private int[,] ConvertMatrix(int[,] matrix, List<int> timeAxis, Beatmap beatmap, N2NCOptions options)
         {
-            throw new NotImplementedException();
-        }
-
-        private int[,] ConvertMatrix(int[,] matrix, List<int> timeAxis, ManiaBeatmap beatmap, N2NCOptions options)
-        {
-            int CS = beatmap.KeyCount;
+            int CS = (int)beatmap.DifficultySection.CircleSize;
             int targetKeys = (int)options.TargetKeys;
             int turn = targetKeys - CS;
             var P = options.SelectedKeyTypes;
@@ -452,9 +452,7 @@ namespace krrTools.Tools.N2NC
             beatmap.HitObjects.AddRange(newObjects);
             HitObjectSort(beatmap);
         }
-
-
-
+        
         public void HitObjectSort(Beatmap beatmap)
         {
             beatmap.HitObjects.Sort((a, b) =>
@@ -550,10 +548,7 @@ namespace krrTools.Tools.N2NC
                 }
             }
         }
-
-
-
-
+        
         public HitObject CopyHitObjectByPX(HitObject hitObject, int position)
         {
             // 复制所有基本属性

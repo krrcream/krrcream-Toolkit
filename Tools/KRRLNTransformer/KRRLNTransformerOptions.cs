@@ -43,36 +43,42 @@ namespace krrTools.Tools.KRRLNTransformer
 
         public class AlignmentSettings : ToolOptionsBase
         {
-            private double _value = 4;
+            [Option(LabelKey = nameof(KRRAlignLabel), Min = 1, Max = 9, UIType = UIType.Slider, DataType = typeof(double))]
             public double Value
             {
                 get => _value;
                 set => SetProperty(ref _value, value);
             }
 
-            private bool _isChecked;
+            [Option(LabelKey = nameof(KRRAlignLabel), UIType = UIType.Toggle, DataType = typeof(bool))]
             public bool IsChecked
             {
                 get => _isChecked;
                 set => SetProperty(ref _isChecked, value);
             }
+
+            private double _value = 4;
+            private bool _isChecked;
         }
 
         public class LNAlignmentSettings : ToolOptionsBase
         {
-            private double _value = 4;
+            [Option(LabelKey = nameof(KRRLNAlignLabel), Min = 1, Max = 9, UIType = UIType.Slider, DataType = typeof(double))]
             public double Value
             {
                 get => _value;
                 set => SetProperty(ref _value, value);
             }
 
-            private bool _isChecked;
+            [Option(LabelKey = nameof(KRRLNAlignLabel), UIType = UIType.Toggle, DataType = typeof(bool))]
             public bool IsChecked
             {
                 get => _isChecked;
                 set => SetProperty(ref _isChecked, value);
             }
+
+            private double _value = 4;
+            private bool _isChecked;
         }
 
         public class GeneralSettings : ToolOptionsBase
@@ -85,9 +91,9 @@ namespace krrTools.Tools.KRRLNTransformer
 
             [Option(LabelKey = nameof(LengthThresholdLabel), Min = 0, Max = 100, UIType = UIType.Slider, DataType = typeof(double))]
             public double LengthThresholdValue { get; set; } = 100;
-
-            [Option(LabelKey = nameof(SeedButtonLabel), UIType = UIType.NumberBox, DataType = typeof(string))]
-            public string? SeedText { get; set; } = "114514";
         }
+
+        [Option(LabelKey = nameof(SeedButtonLabel), UIType = UIType.NumberBox, DataType = typeof(int?))]
+        public int? Seed { get; set; } = 114514;
     }
 }

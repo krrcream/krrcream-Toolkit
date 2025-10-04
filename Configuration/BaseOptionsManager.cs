@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -20,12 +21,7 @@ namespace krrTools.Configuration
         public const string PipelinesFolderName = "pipelines";
 
         // DP specific constants
-        public const string DPCreatorPrefix = "Krr DP. & ";
         public const string DPDefaultTag = "krrcream's converter DP";
-
-        // KRR LN specific constants
-        public const string KRRLNCreatorPrefix = "Krr LN. & ";
-        public const string KRRLNDefaultTag = "krrcream's transformer LN";
 
         // 统一的配置文件路径 (exe 所在文件夹)
         private static string ConfigFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ConfigFileName);
@@ -48,18 +44,26 @@ namespace krrTools.Configuration
         // 辅助方法：反序列化
         private static T? DeserializeFromJson<T>(string json) => JsonSerializer.Deserialize<T>(json, _jsonOpts);
 
+        // 控件类型映射缓存
+        private static readonly Dictionary<string, Type?> _controlTypeCache = new();
+
         /// <summary>
-        /// 获取控件类型 - 直接映射
+        /// 获取控件类型 - 使用反射自动发现
         /// </summary>
         public static Type? GetControlType(string toolName)
         {
-            return toolName switch
+            if (_controlTypeCache.TryGetValue(toolName, out var cachedType))
             {
-                "N2NC" => typeof(Tools.N2NC.N2NCView),
-                "DP" => typeof(Tools.DPtool.DPToolView),
-                "KRRLN" => typeof(Tools.KRRLNTransformer.KRRLNTransformerView),
-                _ => null
-            };
+                return cachedType;
+            }
+
+            // 通过反射查找控件类型
+            var assembly = typeof(BaseOptionsManager).Assembly;
+            var controlType = assembly.GetTypes()
+                .FirstOrDefault(t => t.Name == $"{toolName}View" && typeof(System.Windows.Controls.Control).IsAssignableFrom(t));
+
+            _controlTypeCache[toolName] = controlType;
+            return controlType;
         }
 
         /// <summary>

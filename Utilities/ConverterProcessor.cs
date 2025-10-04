@@ -8,12 +8,13 @@ using krrTools.Configuration;
 using krrTools.Core;
 using krrTools.Tools.Preview;
 using OsuParsers.Beatmaps;
+using OsuParsers.Decoders;
 
 namespace krrTools.Utilities
 {
     public class ConverterProcessor : IPreviewProcessor
     {
-        public string? CurrentTool { get; set; }
+        public string? CurrentTool { get; set; } // 当前使用的转换工具名称，在主程序中获取
         public int ColumnOverride { get; set; } // 0表示不覆盖，使用实际列数
 
         public int LastStartMs { get; private set; }
@@ -29,16 +30,15 @@ namespace krrTools.Utilities
         {
             // 分配活动工具、输入路径开始转换
             ConversionProvider = (toolName, beatmap) =>
-            {
+                {
                 if (ToolScheduler != null)
                 {
-                    // 事件触发开始转换
                     if (ConverterOptionsProvider != null)
                     {
                         var options = ConverterOptionsProvider();
                         if (options is IToolOptions toolOptions)
                         {
-                            Console.WriteLine($"[INFO] ConverterOptionsProvider 获取到{toolName}，{beatmap}，传递给ToolScheduler。");
+                            Console.WriteLine($"[INFO] ConverterOptionsProvider 获取到{toolName}，{beatmap.MetadataSection.Title} // {beatmap.MetadataSection.Creator} // {beatmap.MetadataSection.Version}，传递给ToolScheduler。");
                             return ToolScheduler.ProcessBeatmap(toolName, beatmap, toolOptions);
                         }
                     }
@@ -52,10 +52,11 @@ namespace krrTools.Utilities
 
         public FrameworkElement BuildOriginalVisual(ManiaBeatmap maniaBeatmap)
         {
+            // var maniaBeatmap = input.GetManiaBeatmap();
             if (maniaBeatmap.HitObjects.Count > 0)
                 LastStartMs = maniaBeatmap.HitObjects.Min(n => n.StartTime);
             
-            var (columns, notes, quarterMs) = PreviewTransformation.BuildFromManiaBeatmap(maniaBeatmap);
+            var (columns, notes, quarterMs) = BuildNotesList(maniaBeatmap);
             return BuildManiaTimeRowsFromNotes(notes, columns, quarterMs);
         }
         
@@ -64,19 +65,49 @@ namespace krrTools.Utilities
             if (ConversionProvider == null || CurrentTool == null)
                 return new TextBlock { Text = "转换器传递失败，或工具获取为空" };
 
-            var rawData = ConversionProvider(CurrentTool, input);
-
-            if (rawData is Beatmap beatmap)
+            // 对于内置谱面，直接使用输入的 beatmap，不需要从路径解码
+            if (input.MetadataSection.Title == "Built-in Sample")
             {
-                var maniaBeatmap = beatmap.GetManiaBeatmap();
+                var maniaBeatmap = input;
                 if (maniaBeatmap.NoteCount > 0)
                     LastStartMs = maniaBeatmap.HitObjects.Min(n => n.StartTime);
 
-                var (columns, notes, quarterMs) = PreviewTransformation.BuildFromManiaBeatmap(maniaBeatmap);
+                var (columns, notes, quarterMs) = BuildNotesList(input);
                 return BuildManiaTimeRowsFromNotes(notes, columns, quarterMs);
             }
 
+            var rawData = ConversionProvider(CurrentTool, input);
+
+            if (rawData is ManiaBeatmap beatmap)
+            {
+                if (beatmap.NoteCount > 0)
+                    LastStartMs = beatmap.HitObjects.Min(n => n.StartTime);
+
+                var (columns, notes, quarterMs) = BuildNotesList(beatmap);
+                return BuildManiaTimeRowsFromNotes(notes, columns, quarterMs);
+            
+            }
+
             return new TextBlock { Text = "没有获取到Beatmap结果" };
+        }
+        
+        private static (int columns, List<ManiaBeatmap.PreViewManiaNote> notes, double quarterMs) BuildNotesList(
+            ManiaBeatmap beatmap)
+        {
+            var columns = beatmap.GetManiaBeatmap().KeyCount;
+            var quarterMs = beatmap.GetBPM(true);
+            var notes = new List<ManiaBeatmap.PreViewManiaNote>();
+            foreach (var hit in beatmap.HitObjects.OrderBy(h => h.StartTime))
+            {
+                notes.Add(new ManiaBeatmap.SimpleManiaNote
+                {
+                    Index = (int)hit.Position.X,
+                    StartTime = hit.StartTime,
+                    EndTime = hit.EndTime > 0 ? hit.EndTime : null,
+                    IsHold = hit.EndTime > 0
+                });
+            }
+            return (columns, notes, quarterMs);
         }
         
         // 根据时间行构建动态预览控件

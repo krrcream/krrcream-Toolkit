@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Data;
 using OsuParsers.Beatmaps;
@@ -109,7 +108,6 @@ namespace krrTools.Core
         /// <summary>
         /// 非泛型版本：处理Beatmap（用于GenericTool）
         /// </summary>
-
         public Beatmap? ProcessBeatmapWithOptions(Object input, IToolOptions options)
         {
             if (options is TOptions concreteOptions)
@@ -150,39 +148,17 @@ namespace krrTools.Core
 
         // 处理单个文件（options 为 null 时使用内部加载的默认设置）
         // 预留给管线调用的接口，目前实际上并未使用
-        public string? ProcessFile(string filePath, IToolOptions? options = null)
+        public string? ProcessFileSave(string filePath, IToolOptions? opts = null)
         {
-            var opts = options ?? DefaultOptions;
-            return ProcessFileWithOptions(filePath, opts);
-        }
-
-        public Beatmap? ProcessBeatmap(Beatmap inputBeatmap, IToolOptions? options = null)
-        {
-            var opts = options ?? DefaultOptions;
-
+            var options = opts ?? DefaultOptions;
             try
             {
-                return module.ProcessBeatmapWithOptions(inputBeatmap, opts);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] 模块 {Name}处理谱面时出错: {ex.Message}");
-            }
-
-            return null;
-        }
-
-        private string? ProcessFileWithOptions(string filePath, IToolOptions options)
-        {
-            try
-            {
-                // 处理Beatmap
-                var processedBeatmap = ProcessFileToDataWithOptions(filePath, options) as Beatmap;
+                var beatmap = BeatmapDecoder.Decode(filePath);
+                var processedBeatmap = ProcessBeatmap(beatmap, options);
 
                 if (processedBeatmap == null)
                     return null;
 
-                // 生成输出路径
                 var outputPath = BeatmapOutputHelper.GenerateOutputPath(filePath, module.ModuleName);
 
                 // 写入文件
@@ -199,13 +175,22 @@ namespace krrTools.Core
             return null;
         }
 
-        private object? ProcessFileToDataWithOptions(string filePath, IToolOptions options)
+        public Beatmap? ProcessBeatmap(Beatmap input, IToolOptions? options = null)
         {
-            var beatmap = BeatmapDecoder.Decode(filePath).GetManiaBeatmap();
-            return ProcessBeatmap(beatmap, options);
+            var opts = options ?? DefaultOptions;
+
+            try
+            {
+                return module.ProcessBeatmapWithOptions(input, opts);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] 模块 {Name}处理谱面时出错: {ex.Message}");
+            }
+
+            return null;
         }
 
-        public async Task<string?> ProcessFileAsync(string filePath) => await Task.Run(() => ProcessFile(filePath));
-        public object? TestFileToData(string filePath) => ProcessFileToDataWithOptions(filePath, DefaultOptions);
+        public async Task<string?> ProcessFileAsync(string filePath) => await Task.Run(() => ProcessFileSave(filePath));
     }
 }
