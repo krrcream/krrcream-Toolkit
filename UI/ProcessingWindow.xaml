@@ -7,7 +7,7 @@
         WindowStyle="ToolWindow"
         Title="处理中...">
     <Grid Margin="20">
-        <ProgressBar x:Name="progressBar" Height="20" Width="300" Minimum="0" Maximum="100"/>
-        <TextBlock x:Name="progressText" Margin="0,30,0,0" HorizontalAlignment="Center"/>
+        <ProgressBar x:Name="progressBar" Height="20" Width="300" Minimum="0" Maximum="100" />
+        <TextBlock x:Name="progressText" Margin="0,30,0,0" HorizontalAlignment="Center" />
     </Grid>
 </Window>
