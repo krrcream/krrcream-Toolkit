@@ -60,7 +60,7 @@ namespace krrTools.Core
         /// <param name="toolName">工具名称</param>
         /// <param name="beatmap">输入Beatmap</param>
         /// <returns>处理后的Beatmap，失败返回null</returns>
-        Beatmap? ProcessBeatmap(string toolName, Beatmap beatmap);
+        Beatmap? ProcessBeatmap(ConverterEnum toolName, Beatmap beatmap);
 
         /// <summary>
         /// 处理Beatmap对象（使用指定的选项）
@@ -69,7 +69,7 @@ namespace krrTools.Core
         /// <param name="beatmap">输入Beatmap</param>
         /// <param name="options">工具选项</param>
         /// <returns>处理后的Beatmap，失败返回null</returns>
-        Beatmap? ProcessBeatmap(string toolName, Beatmap beatmap, IToolOptions options);
+        Beatmap? ProcessBeatmap(ConverterEnum toolName, Beatmap beatmap, IToolOptions options);
 
         /// <summary>
         /// 执行Beatmap管道
@@ -77,7 +77,7 @@ namespace krrTools.Core
         /// <param name="pipeline">管道步骤列表</param>
         /// <param name="beatmap">输入Beatmap</param>
         /// <returns>最终处理后的Beatmap，失败返回null</returns>
-        Beatmap? ExecuteBeatmapPipeline(IEnumerable<(string ToolName, IToolOptions Options)> pipeline, Beatmap beatmap);
+        Beatmap? ExecuteBeatmapPipeline(IEnumerable<(ConverterEnum ToolName, IToolOptions Options)> pipeline, Beatmap beatmap);
 
         /// <summary>
         /// 从路径加载ManiaBeatmap

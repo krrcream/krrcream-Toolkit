@@ -1,5 +1,5 @@
 using System.Windows;
-using krrTools.Beatmaps;
+using krrTools.Configuration;
 using OsuParsers.Beatmaps;
 
 namespace krrTools.Tools.Preview
@@ -9,7 +9,7 @@ namespace krrTools.Tools.Preview
     /// </summary>
     public interface IPreviewProcessor
     {
-        string? CurrentTool { get; set; }
+        ConverterEnum? ModuleTool { get; set; }
         
         FrameworkElement BuildOriginalVisual(Beatmap input);
         

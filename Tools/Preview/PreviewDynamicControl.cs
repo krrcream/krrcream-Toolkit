@@ -54,12 +54,12 @@ internal class PreviewDynamicControl : Grid
 
     private const double LaneSpacing = 4.0;
 
-    public PreviewDynamicControl(List<(int time, List<ManiaHitObject> notes)> grouped, int columns,
+    public PreviewDynamicControl(List<(int columnIndex, List<ManiaHitObject> notesInColumn)> grouped, int columns,
         double quarterMs)
     {
         // grouped 已排序；展开为单一 notes 列表并记录第一个时间点
-        _notes = grouped.SelectMany(g => g.notes).OrderBy(n => n.StartTime).ToList();
-        _firstTime = grouped.First().time;
+        _notes = grouped.SelectMany(g => g.Item2).OrderBy(n => n.StartTime).ToList();
+        _firstTime = _notes.Any() ? _notes.Min(n => n.StartTime) : 0;
         _columns = columns;
         _quarterMs = quarterMs;
 

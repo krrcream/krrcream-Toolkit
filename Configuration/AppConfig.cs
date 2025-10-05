@@ -1,8 +1,6 @@
 using System.Collections.Generic;
-using krrTools.Configuration;
-// using krrTools.Tools.LNTransformer;
 
-namespace krrTools.Utilities
+namespace krrTools.Configuration
 {
     /// <summary>
     /// 统一的应用程序配置类，包含所有工具的设置

@@ -83,16 +83,6 @@ public static class SharedUIComponents
         return border;
     }
 
-    public static string GetLocalizedEnumDisplayName<T>(T enumValue) where T : Enum
-    {
-        return LocalizationService.GetLocalizedEnumDisplayName(enumValue);
-    }
-
-    private static void SetLocalizedToolTip(FrameworkElement element, string? tooltipText)
-    {
-        LocalizationService.SetLocalizedToolTip(element, tooltipText);
-    }
-
     public static TextBlock CreateHeaderLabel(string text)
     {
         var tb = new TextBlock
@@ -121,18 +111,6 @@ public static class SharedUIComponents
         return panel;
     }
 
-    public static Slider CreateStandardSlider(double minimum, double maximum, double height, bool isSnapToTickEnabled)
-    {
-        return new Slider
-        {
-            Minimum = minimum,
-            Maximum = maximum,
-            Height = double.IsNaN(height) ? double.NaN : height,
-            IsSnapToTickEnabled = isSnapToTickEnabled,
-            HorizontalAlignment = HorizontalAlignment.Stretch
-        };
-    }
-
     public static TextBox CreateStandardTextBox()
     {
         return new TextBox
@@ -148,7 +126,7 @@ public static class SharedUIComponents
     public static Button CreateStandardButton(string content, string? tooltip = null)
     {
         var tb = new TextBlock { FontSize = ComFontSize, TextTrimming = TextTrimming.CharacterEllipsis };
-        // Bilingual support: if content contains '|', use binding
+
         if (!string.IsNullOrEmpty(content) && content.Contains('|'))
             tb.SetBinding(System.Windows.Controls.TextBlock.TextProperty,
                 new Binding("Value") { Source = content.GetLocalizedString() });
@@ -167,8 +145,8 @@ public static class SharedUIComponents
             BorderThickness = new Thickness(1),
             Foreground = UiTextBrush
         };
-
-        SetLocalizedToolTip(btn, tooltip);
+        
+        LocalizationService.SetLocalizedToolTip(btn, tooltip);
 
         return btn;
     }
@@ -184,12 +162,14 @@ public static class SharedUIComponents
         else
             tb.Text = content;
         cb.Content = tb;
-        SetLocalizedToolTip(cb, tooltip);
+        
+        LocalizationService.SetLocalizedToolTip(cb, tooltip);
+        
         return cb;
     }
 
 
-    public static Border CreateStatusBar(Window window, ToggleSwitch? realTimeToggle = null,
+    public static Border CreateStatusBar(ToggleSwitch? realTimeToggle = null,
         ToggleButton? listenerBtn = null)
     {
         var footer = CreateFooterBorder();

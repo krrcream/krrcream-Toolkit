@@ -9,7 +9,6 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
-using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Core;
 using krrTools.Localization;
@@ -207,7 +206,7 @@ public class MainWindow : FluentWindow
         GlobalOsuListenerButton.SetBinding(ContentProperty, new Binding("Value") { Source = localizedListenerText });
         GlobalOsuListenerButton.Click += GlobalOsuListenerButton_Click;
 
-        var footer = SharedUIComponents.CreateStatusBar(this, _realTimeToggle, GlobalOsuListenerButton);
+        var footer = SharedUIComponents.CreateStatusBar(_realTimeToggle, GlobalOsuListenerButton);
 
         // 设置Grid行
         System.Windows.Controls.Grid.SetRow(MainTabControl, 1);
@@ -736,7 +735,7 @@ public class MainWindow : FluentWindow
     private void MainTabControl_SelectionChanged(object? sender, SelectionChangedEventArgs? e)
     {
         var selectedTag = (MainTabControl.SelectedItem as TabViewItem)?.Tag;
-        var isConverter = selectedTag is ConverterEnum;
+        bool isConverter = selectedTag is ConverterEnum;
         
         if (_previewDual != null && selectedTag != null)
         {
@@ -746,15 +745,15 @@ public class MainWindow : FluentWindow
                 // 直接创建统一的处理器
                 var processor = new ConverterProcessor
                 {
-                    TPScheduler = ModuleManager,
-                    ConverterOptionsProvider = selectedTag switch
+                    ModuleScheduler = ModuleManager,
+                    OptionsProvider = selectedTag switch
                     {
                         ConverterEnum.N2NC => () => (_convWindowInstance.DataContext as N2NCViewModel)?.Options ?? new N2NCOptions(),
                         ConverterEnum.DP => () => (_dpToolWindowInstance.DataContext as DPToolViewModel)?.Options ?? new DPToolOptions(),
                         ConverterEnum.KRRLN => () => (_krrLnTransformerInstance.DataContext as KRRLNTransformerViewModel)?.Options ?? new KRRLNTransformerOptions(),
                         _ => null
                     },
-                    CurrentTool = selectedTag.ToString()
+                    ModuleTool = selectedTag as ConverterEnum?,
                 };
                 _previewDual.Processor = processor;
 
@@ -797,26 +796,40 @@ public class MainWindow : FluentWindow
         }
         
         // 切换前先清空内容，避免重复父级
-        if (_currentSettingsContainer != null)
-        {
-            _currentSettingsContainer.Content = null;
+        UpdateSettingsContainer(selectedTag, isConverter);
+        
+        _currentTool = selectedTag;
+    }
 
-            if (selectedTag != null && _settingsHosts.TryGetValue(selectedTag, out var settingsHost))
+    private object? GetViewModelForConverter(ConverterEnum converter)
+    {
+        return converter switch
+        {
+            ConverterEnum.N2NC => _convWindowInstance.DataContext,
+            ConverterEnum.DP => _dpToolWindowInstance.DataContext,
+            ConverterEnum.KRRLN => _krrLnTransformerInstance.DataContext,
+            _ => null
+        };
+    }
+    
+    private void UpdateSettingsContainer(object? selectedTag, bool isConverter)
+    {
+        if (_currentSettingsContainer == null) return;
+
+        _currentSettingsContainer.Content = null;
+
+        if (selectedTag != null && _settingsHosts.TryGetValue(selectedTag, out var settingsHost))
+        {
+            if (isConverter)
             {
-                // 只在未被当前容器持有时赋值
-                if (isConverter)
-                {
-                    if (_currentSettingsContainer != settingsHost.Content)
-                        _currentSettingsContainer.Content = settingsHost.Content;
-                }
-                else
-                {
-                    if (_currentSettingsContainer != settingsHost)
-                        _currentSettingsContainer.Content = settingsHost;
-                }
+                if (_currentSettingsContainer != settingsHost.Content)
+                    _currentSettingsContainer.Content = settingsHost.Content;
+            }
+            else
+            {
+                if (_currentSettingsContainer != settingsHost)
+                    _currentSettingsContainer.Content = settingsHost;
             }
         }
-
-        _currentTool = selectedTag;
     }
 }

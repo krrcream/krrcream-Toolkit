@@ -85,7 +85,7 @@ namespace krrTools.Core
         /// </summary>
         public ITool? GetToolByName(string toolName)
         {
-            return _tools.TryGetValue(toolName, out var tool) ? tool : null;
+            return _tools.GetValueOrDefault(toolName);
         }
 
         /// <summary>
@@ -123,9 +123,9 @@ namespace krrTools.Core
         /// <param name="toolName">工具名称</param>
         /// <param name="beatmap">输入Beatmap</param>
         /// <returns>处理后的Beatmap，失败返回null</returns>
-        public Beatmap? ProcessBeatmap(string toolName, Beatmap beatmap)
+        public Beatmap? ProcessBeatmap(ConverterEnum toolName, Beatmap beatmap)
         {
-            if (!_tools.TryGetValue(toolName, out var tool))
+            if (!_tools.TryGetValue(toolName.ToString(), out var tool))
                 return null;
 
             return tool.ProcessBeatmap(beatmap);
@@ -138,9 +138,9 @@ namespace krrTools.Core
         /// <param name="beatmap">输入Beatmap</param>
         /// <param name="options">工具选项</param>
         /// <returns>处理后的Beatmap，失败返回null</returns>
-        public Beatmap? ProcessBeatmap(string toolName, Beatmap beatmap, IToolOptions options)
+        public Beatmap? ProcessBeatmap(ConverterEnum toolName, Beatmap beatmap, IToolOptions options)
         {
-            if (!_tools.TryGetValue(toolName, out var tool))
+            if (!_tools.TryGetValue(toolName.ToString(), out var tool))
                 return null;
 
             return tool.ProcessBeatmap(beatmap, options);
@@ -152,7 +152,7 @@ namespace krrTools.Core
         /// <param name="pipeline">管道步骤列表</param>
         /// <param name="beatmap">输入Beatmap</param>
         /// <returns>最终处理后的Beatmap，失败返回null</returns>
-        public Beatmap? ExecuteBeatmapPipeline(IEnumerable<(string ToolName, IToolOptions Options)> pipeline, Beatmap beatmap)
+        public Beatmap? ExecuteBeatmapPipeline(IEnumerable<(ConverterEnum ToolName, IToolOptions Options)> pipeline, Beatmap beatmap)
         {
             Beatmap currentBeatmap = beatmap;
             foreach (var (toolName, options) in pipeline)
@@ -170,7 +170,7 @@ namespace krrTools.Core
         /// </summary>
         /// <param name="filePath">文件路径</param>
         /// <returns>ManiaBeatmap实例，失败返回null</returns>
-        public Beatmap? LoadBeatmap(string filePath)
+        public Beatmap LoadBeatmap(string filePath)
         {
             return BeatmapDecoder.Decode(filePath).GetManiaBeatmap(filePath);
         }
@@ -185,7 +185,7 @@ namespace krrTools.Core
 
             foreach (var type in assembly.GetTypes())
             {
-                if (typeof(IToolModule).IsAssignableFrom(type) && !type.IsAbstract && !type.IsInterface)
+                if (typeof(IToolModule).IsAssignableFrom(type) && type is { IsAbstract: false, IsInterface: false })
                 {
                     try
                     {

@@ -90,14 +90,16 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
                 else
                 {
                     if (ctrl.Processor is ConverterProcessor cp)
-                        cp.TPScheduler = ctrl.ModuleScheduler;
-                    ctrl.LoadConvertedPreview();
+                        cp.ModuleScheduler = ctrl.ModuleScheduler;
+                    if (ctrl._originalBeatmap != null)
+                        ctrl.LoadConvertedPreview(ctrl._originalBeatmap);
                 }
             }
             else
             {
                 ctrl.TryAutoLoadSample();
-                ctrl.LoadConvertedPreview();
+                if (ctrl._originalBeatmap != null)
+                    ctrl.LoadConvertedPreview(ctrl._originalBeatmap);
             }
         }
     }
@@ -106,7 +108,13 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
 
     public void Refresh()
     {
-        if (_originalBeatmap != null) LoadConvertedPreview();
+        if (_originalBeatmap != null) LoadConvertedPreview(_originalBeatmap);
+    }
+
+    public void LoadPreview(Beatmap beatmap)
+    {
+        LoadOriginalPreview(beatmap);
+        LoadConvertedPreview(beatmap);
     }
 
     public PreviewViewDual()
@@ -235,13 +243,30 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
         if (_autoLoadedSample || _originalContent.Content != null) return;
         Processor ??= new ConverterProcessor();
         if (Processor is ConverterProcessor cp)
-            cp.TPScheduler = ModuleScheduler;
+            cp.ModuleScheduler = ModuleScheduler;
         var beatmap = PreviewManiaNote.BuiltInSampleStream();
-        LoadPreview(beatmap);
+        LoadOriginalPreview(beatmap);
         _autoLoadedSample = true;
     }
-    
-    public void LoadPreview(Beatmap beatmap)
+
+    private void LoadOriginalPreview(Beatmap beatmap)
+    {
+        _originalBeatmap = beatmap;
+        _previewTitle.Text = UpdateTitleSuffix(_originalBeatmap);
+
+        if (Processor == null)
+        {
+            SetNoProcessorState();
+            return;
+        }
+
+        if (_originalBeatmap == null || Processor == null) return;
+        var originalVisual = Processor.BuildOriginalVisual(_originalBeatmap);
+        _originalContent.Content = originalVisual;
+        _originalContent.Visibility = Visibility.Visible;
+    }
+
+    private void LoadConvertedPreview(Beatmap beatmap)
     {
         _originalBeatmap = beatmap;
         _previewTitle.Text = UpdateTitleSuffix(_originalBeatmap);
@@ -252,27 +277,13 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
             return;
         }
 
-        LoadOriginalPreview();
-        LoadConvertedPreview();
-    }
-
-    private void LoadOriginalPreview()
-    {
-        if (_originalBeatmap == null || Processor == null) return;
-        var originalVisual = Processor.BuildOriginalVisual(_originalBeatmap);
-        _originalContent.Content = originalVisual;
-        _originalContent.Visibility = Visibility.Visible;
-    }
-
-    private void LoadConvertedPreview()
-    {
         if (_originalBeatmap == null || Processor == null) return;
         var convertedVisual = Processor.BuildConvertedVisual(_originalBeatmap);
         _convertedContent.Content = convertedVisual;
         _convertedContent.Visibility = Visibility.Visible;
         
-        var startMsText = Processor is ConverterProcessor bp && bp.LastStartMs != 0
-            ? $"start {bp.LastStartMs} ms"
+        var startMsText = Processor is ConverterProcessor bp && bp.StartMs != 0
+            ? $"start {bp.StartMs} ms"
             : string.Empty;
         _startTimeDisplay.Text = startMsText;
     }

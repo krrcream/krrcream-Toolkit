@@ -1,83 +1,72 @@
-
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using OsuParsers.Beatmaps;
-using OsuParsers.Decoders;
 
 namespace krrTools.Beatmaps;
 /// <summary>
 /// Mania模式的Beatmap封装类，未来的统一主体接口
 /// 包括路径实现和对象实现
 /// </summary>
-public class ManiaBeatmap : Beatmap
+public class ManiaBeatmap : Beatmap, IBeatmap
 {
-    public ManiaBeatmap(string? filePath)
-    {
-        if (string.IsNullOrEmpty(filePath))
-            throw new ArgumentException("File path is null or empty.");
+    private ManiaBeatmap() { }
 
-        var beatmap = BeatmapDecoder.Decode(filePath);
-        if (beatmap.GeneralSection.ModeId != 3)
-            throw new ArgumentException("Beatmap is not in Mania mode.");
-
-        GeneralSection = beatmap.GeneralSection;
-        EditorSection = beatmap.EditorSection;
-        MetadataSection = beatmap.MetadataSection;
-        DifficultySection = beatmap.DifficultySection;
-        EventsSection = beatmap.EventsSection;
-        TimingPoints = beatmap.TimingPoints;
-        HitObjects = beatmap.HitObjects;
-        ColoursSection = beatmap.ColoursSection;
-        
-        // 设置文件路径
-        FilePath = filePath;
-    }
-
-    public ManiaBeatmap(Beatmap beatmap)
+    public static ManiaBeatmap FromBeatmap(Beatmap beatmap)
     {
         if (beatmap.GeneralSection.ModeId != 3)
             throw new ArgumentException("Not a mania beatmap.");
 
-        GeneralSection = beatmap.GeneralSection;
-        EditorSection = beatmap.EditorSection;
-        MetadataSection = beatmap.MetadataSection;
-        DifficultySection = beatmap.DifficultySection;
-        EventsSection = beatmap.EventsSection;
-        TimingPoints = beatmap.TimingPoints;
-        HitObjects = beatmap.HitObjects;
-        ColoursSection = beatmap.ColoursSection;
+        var mania = new ManiaBeatmap
+        {
+            FilePath = beatmap.OriginalFilePath,
+            TotalTime = beatmap.GeneralSection.Length,
+            MetadataSection = beatmap.MetadataSection,
+            DifficultySection = beatmap.DifficultySection,
+            GeneralSection = beatmap.GeneralSection,
+            TimingPoints = beatmap.TimingPoints,
+            HitObjects = beatmap.HitObjects,
+            ManiaHitObjects = beatmap.HitObjects
+                .Select(ho => {
+                    var obj = new ManiaHitObject();
+                    obj.InitFrom(ho);
+                    return obj;
+                })
+                .ToList(),
+        };
 
-        FilePath = beatmap.OriginalFilePath;
-
-        var bpms = beatmap.TimingPoints.Select(tp => 60000.0 / tp.BeatLength);
-        var enumerable = bpms as double[] ?? bpms.ToArray();
-        MinBPM = enumerable.Min();
-        MaxBPM = enumerable.Max();
-        BPM = beatmap.GetBPM();
-        BPMDisplay = !(Math.Abs(MinBPM - MaxBPM) < 0) ?
-            $"{BPM}({MinBPM} - {MaxBPM})" :
-            BPM.ToString(CultureInfo.CurrentCulture);
-
-        LNPercent = beatmap.GetLNPercent();
+        var bpmArray = beatmap.TimingPoints.Select(tp => 60000.0 / tp.BeatLength).ToArray();
+        mania.MinBPM = bpmArray.Min();
+        mania.MaxBPM = bpmArray.Max();
+        mania.BPM = beatmap.GetBPM();
+        mania.BPMDisplay = !(Math.Abs(mania.MinBPM - mania.MaxBPM) < 0)
+            ? $"{mania.BPM}({mania.MinBPM} - {mania.MaxBPM})"
+            : mania.BPM.ToString(CultureInfo.CurrentCulture);
+        mania.LNPercent = beatmap.GetLNPercent();
+        
+        mania.KeyCount = (int)beatmap.DifficultySection.CircleSize;
+        mania.NoteCount = beatmap.GeneralSection.CirclesCount;
+        mania.HoldNoteCount = beatmap.GeneralSection.SlidersCount;
+        
+        return mania;
     }
-
-    public int KeyCount => (int)DifficultySection.CircleSize;
     
+    public string BPMDisplay { get; set; } = string.Empty;
     public string FilePath { get; set; } = string.Empty;
-    public string OuputFilePath { get; set; } = string.Empty;
-    
+    public string OutputFilePath { get; set; } = string.Empty;
     public double BPM { get; set; }
-    public String BPMDisplay { get; set; } = string.Empty;
+
     public double xxyStarRating { get; set; }
     public double KRR_LV { get; set; }
     public double YLS_LV { get; set; }
     public double TotalTime { get; set; }
-    public int NoteCount => GeneralSection.CirclesCount;
-    public int LNCount => GeneralSection.SlidersCount;
+    public int KeyCount { get; set; }
+    public int NoteCount { get; private set; }
+    public int HoldNoteCount { get; private set; }
     public double LNPercent { get; set; }
-
-    // public List<ManiaHitObject> ManiaHitObjects { get; set; } = new List<ManiaHitObject>();
-    // public List<PreViewManiaNote> note = new List<PreViewManiaNote>();
-    //Note封装 以后在搞拓展归类，先隐藏以防滥用
+    
+    //封装 以后在搞拓展归类，先隐藏以防滥用
+    public List<ManiaHitObject> ManiaHitObjects { get; set; } = new List<ManiaHitObject>();
+    public static Beatmap OriginalBeatmap { get; set; } = new Beatmap();
 }

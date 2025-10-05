@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Extensions.Logging;
 using krrTools.Configuration;
+using krrTools.Localization;
 using krrTools.UI;
 
 namespace krrTools.Tools.N2NC
@@ -68,7 +69,7 @@ namespace krrTools.Tools.N2NC
                 var opts = kv.Value.Options;
 
                 // Use localized enum name (Description attribute) if available
-                var localized = SharedUIComponents.GetLocalizedEnumDisplayName(kv.Key);
+                var localized = LocalizationService.GetLocalizedEnumDisplayName(kv.Key);
                 var btn = new Button
                 {
                     Content = localized,
@@ -100,7 +101,7 @@ namespace krrTools.Tools.N2NC
         public static string GetEnumDescription(PresetKind value)
         {
             // 使用共享库的多语言支持功能
-            return SharedUIComponents.GetLocalizedEnumDisplayName(value);
+            return LocalizationService.GetLocalizedEnumDisplayName(value);
         }
 
         private static void ApplyPresetToViewModel(N2NCViewModel viewModel, N2NCOptions preset)

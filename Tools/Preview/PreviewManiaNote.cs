@@ -7,17 +7,6 @@ namespace krrTools.Tools.Preview;
 
 public abstract class PreviewManiaNote
 {
-    public string? CurrentTool { get; set; }
-    // public FrameworkElement BuildOriginalVisual(ManiaBeatmap input)
-    // {
-    //     throw new System.NotImplementedException();
-    // }
-    //
-    // public FrameworkElement BuildConvertedVisual(ManiaBeatmap input)
-    // {
-    //     throw new System.NotImplementedException();
-    // }
-
     public static Beatmap BuiltInSampleStream()
     {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(ManiaData));
