@@ -26,15 +26,8 @@ namespace krrTools.Tools.N2NC
         {
             InitializeLocalized();
         }
-        // TODO: 参数是历史遗留问题，所有ViewModel要统一，改成自动属性访问器
 
-        // Backing field for flags-based selection
         private KeySelectionFlags _keySelection = KeySelectionFlags.None;
-
-        public N2NCViewModel() : base(ConverterEnum.N2NC, autoSave: true)
-        {
-            InitializeLocalized();
-        }
 
         private void InitializeLocalized()
         {
@@ -159,7 +152,7 @@ namespace krrTools.Tools.N2NC
             get => Options.TargetKeys;
             set
             {
-                if (Options.TargetKeys != value)
+                if (Math.Abs(Options.TargetKeys - value) > TOLERANCE)
                 {
                     Options.TargetKeys = value;
                     OnPropertyChanged();
@@ -177,12 +170,14 @@ namespace krrTools.Tools.N2NC
             }
         }
 
+        private const double TOLERANCE = 1e-8;
+
         public double MaxKeys
         {
             get => Options.MaxKeys;
             set
             {
-                if (Options.MaxKeys != value)
+                if (Math.Abs(Options.MaxKeys - value) > TOLERANCE)
                 {
                     Options.MaxKeys = value;
                     OnPropertyChanged();
@@ -207,7 +202,7 @@ namespace krrTools.Tools.N2NC
             get => Options.MinKeys;
             set
             {
-                if (Options.MinKeys != value)
+                if (Math.Abs(Options.MinKeys - value) > TOLERANCE)
                 {
                     Options.MinKeys = value;
                     OnPropertyChanged();
@@ -229,7 +224,7 @@ namespace krrTools.Tools.N2NC
             get => Options.TransformSpeed;
             set
             {
-                if (Options.TransformSpeed != value)
+                if (Math.Abs(Options.TransformSpeed - value) > TOLERANCE)
                 {
                     Options.TransformSpeed = value;
                     OnPropertyChanged();

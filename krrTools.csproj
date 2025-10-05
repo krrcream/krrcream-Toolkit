@@ -23,6 +23,7 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.9" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.9" />
         <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.9" />
+        <PackageReference Include="NHotkey.Wpf" Version="3.0.0" />
         <PackageReference Include="OsuFileIO" Version="0.1.1" />
         <PackageReference Include="OsuFileIO.Analyzer" Version="0.1.1" />
         <PackageReference Include="OsuMemoryDataProvider" Version="0.11.1" />

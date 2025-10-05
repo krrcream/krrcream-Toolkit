@@ -2,9 +2,10 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using CommunityToolkit.Mvvm.ComponentModel;
-using krrTools.Beatmaps;
+using CommunityToolkit.Mvvm.Input;
 using krrTools.Localization;
 using Microsoft.Extensions.Logging;
 using OsuMemoryDataProvider;
@@ -13,49 +14,48 @@ using Application = System.Windows.Application;
 
 namespace krrTools.Tools.Listener;
 
-internal sealed class ListenerViewModel : ObservableObject
+public class ListenerViewModel : ObservableObject
 {
     private string _currentOsuFilePath = string.Empty;
     private System.Timers.Timer? _checkTimer; // 明确指定命名空间
 #pragma warning disable CS0618 // IOsuMemoryReader is obsolete but kept for compatibility
-    // TODO: 过时？是否需要找一个新的内存读取方法替换？
+    // TODO: 过时？是否需要找一个新的内存读取方法替换？暂时不要处理
     private readonly IOsuMemoryReader _memoryReader;
 #pragma warning restore CS0618
     private string _lastBeatmapId = string.Empty;
     private readonly string _configPath;
-    private bool _songsPathAttempted;
-
-    // 记忆路径、热键等配置
-    internal ListenerConfig Config { get; }
 
     // 支持集中保存配置变化
     private bool _suppressConfigSave;
 
-    internal event EventHandler? HotkeyChanged;
+    // 智能检查相关
+    private bool _wasOsuRunning;
+    private int _consecutiveFailures;
 
-    internal event EventHandler<string>? BeatmapSelected;
+    // 记忆路径、热键等配置
+    public ListenerConfig Config { get; }
 
-    internal void SetHotkey(string hotkey)
+    public event EventHandler? HotkeyChanged;
+
+    public event EventHandler<BeatmapInfo>? BeatmapSelected;
+
+    public RelayCommand ConvertCommand { get; }
+    public RelayCommand BrowseCommand { get; }
+
+    public void SetHotkey(string hotkey)
     {
         Config.Hotkey = hotkey;
     }
 
     public string WindowTitle = Strings.OSUListener.Localize();
-    public string BGPath = string.Empty; // 用于背景图片绑定
 
     public string CurrentOsuFilePath
     {
         get => _currentOsuFilePath;
-        private set
-        {
-            if (SetProperty(ref _currentOsuFilePath, value))
-                // 当文件路径改变时触发事件
-                if (!string.IsNullOrEmpty(value))
-                    BeatmapSelected?.Invoke(this, value);
-        }
+        private set => SetProperty(ref _currentOsuFilePath, value);
     }
 
-    internal ListenerViewModel()
+    public ListenerViewModel()
     {
         // 初始化内存读取器
         // OsuMemoryReader is marked obsolete by the package; suppress the warning for the assignment
@@ -74,6 +74,9 @@ internal sealed class ListenerViewModel : ObservableObject
         // 尝试加载已保存的配置
         LoadConfig();
         InitializeOsuMonitoring();
+
+        ConvertCommand = new RelayCommand(() => { });
+        BrowseCommand = new RelayCommand(SetSongsPath);
     }
 
     private void Config_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -100,13 +103,9 @@ internal sealed class ListenerViewModel : ObservableObject
                 {
                     _suppressConfigSave = true;
 
-                    if (!string.IsNullOrEmpty(config.SongsPath) && Directory.Exists(config.SongsPath))
-                        Config.SongsPath = config.SongsPath;
+                    Config.SongsPath = config.SongsPath;
 
                     if (!string.IsNullOrEmpty(config.Hotkey)) Config.Hotkey = config.Hotkey;
-
-                    // Assign RealTimePreview directly; missing field will default to false
-                    Config.RealTimePreview = config.RealTimePreview;
 
                     _suppressConfigSave = false;
                 }
@@ -127,7 +126,7 @@ internal sealed class ListenerViewModel : ObservableObject
         }
     }
 
-    internal void SaveConfig()
+    public void SaveConfig()
     {
         try
         {
@@ -151,11 +150,17 @@ internal sealed class ListenerViewModel : ObservableObject
     }
 
     // 配置类：现在是一个可观察对象，便于集中订阅变化并保存
-    internal class ListenerConfig : ObservableObject
+    public class ListenerConfig : ObservableObject
     {
-        public string? SongsPath { get; set; }
+        public string SongsPath { get; set; } = string.Empty;
         public string? Hotkey { get; set; } = "Ctrl+Shift+Alt+X";
-        public bool RealTimePreview { get; set; }
+    }
+
+    // 简单数据类，用于传递谱面信息
+    public class BeatmapInfo
+    {
+        public string FilePath { get; set; } = string.Empty;
+        public string BackgroundImagePath { get; set; } = string.Empty;
     }
 
     private void InitializeOsuMonitoring()
@@ -175,23 +180,44 @@ internal sealed class ListenerViewModel : ObservableObject
     private void SetupTimer()
     {
         _checkTimer = new System.Timers.Timer(150);
-        _checkTimer.Elapsed += (_, _) => CheckOsuBeatmap();
+        _checkTimer.Elapsed += async (_, _) => await CheckOsuBeatmapAsync();
         _checkTimer.Start();
     }
 
-    private void CheckOsuBeatmap()
+    private async Task CheckOsuBeatmapAsync()
     {
         try
         {
             var osuProcesses = Process.GetProcessesByName("osu!");
-            if (osuProcesses.Length == 0)
+            bool isOsuRunning = osuProcesses.Length > 0;
+
+            // 智能调整检查间隔
+            if (!isOsuRunning)
             {
-                Application.Current?.Dispatcher?.BeginInvoke(new Action(() => { CurrentOsuFilePath = string.Empty; }));
+                if (_wasOsuRunning)
+                {
+                    // osu!刚退出，立即清理状态
+                    Application.Current?.Dispatcher?.BeginInvoke(new Action(() => { CurrentOsuFilePath = string.Empty; }));
+                }
+                
+                // 进程未运行时增加检查间隔
+                if (_checkTimer is { Interval: < 2000 })
+                {
+                    _checkTimer.Interval = Math.Min(_checkTimer.Interval * 1.5, 2000);
+                }
+                _wasOsuRunning = false;
                 return;
             }
 
+            // 进程运行时重置为快速检查
+            if (!_wasOsuRunning && _checkTimer != null)
+            {
+                _checkTimer.Interval = 150;
+            }
+            _wasOsuRunning = true;
+            _consecutiveFailures = 0; // 重置失败计数
+
             // 指定客户端
-            _songsPathAttempted = true;
             Process? selectedProcess = null;
             if (osuProcesses.Length == 1)
                 selectedProcess = osuProcesses[0];
@@ -203,99 +229,123 @@ internal sealed class ListenerViewModel : ObservableObject
                 });
 
             // 如果还没有设置 SongsPath，尝试自动获取
-            if (string.IsNullOrEmpty(Config.SongsPath) && selectedProcess != null)
+            if (selectedProcess != null)
                 try
                 {
                     if (selectedProcess.MainModule?.FileName is { } exePath)
                     {
                         var osuDir = Path.GetDirectoryName(exePath);
-                        if (osuDir != null)
+                        if (osuDir != null && !osuDir.ToUpper().Contains("SYSTEM32"))
                         {
                             var songsPath = Path.Combine(osuDir, "Songs");
                             if (Directory.Exists(songsPath))
                             {
-                                Config.SongsPath = songsPath;
-                                Console.WriteLine("[ListenerViewModel] 客户端: osu!, 进程ID: {0}, 加载Songs路径: {1}",
-                                    selectedProcess.Id, songsPath);
+                                if (songsPath != Config.SongsPath)
+                                {
+                                    Config.SongsPath = songsPath;
+                                    Console.WriteLine("[ListenerViewModel] 客户端: osu!, 进程ID: {0}, 加载Songs路径: {1}",
+                                        selectedProcess.Id, songsPath);
+                                }
                             }
                             else
                             {
                                 Logger.WriteLine(LogLevel.Warning,
                                     "[ListenerViewModel] Songs path not found: {0}", songsPath);
-                                Application.Current.Dispatcher.Invoke(SetSongsPath);
+                                if ((string.IsNullOrEmpty(Config.SongsPath) || !Directory.Exists(Config.SongsPath)) &&
+                                    !_hasPromptedForSongsPath)
+                                {
+                                    _hasPromptedForSongsPath = true;
+                                    Application.Current.Dispatcher.Invoke(SetSongsPath);
+                                }
                             }
                         }
-                        else
-                        {
-                            Application.Current.Dispatcher.Invoke(SetSongsPath);
-                        }
-                    }
-                    else
-                    {
-                        Application.Current.Dispatcher.Invoke(SetSongsPath);
                     }
                 }
                 catch (Exception ex)
                 {
                     Logger.WriteLine(LogLevel.Error, "[ListenerViewModel] Failed to get songs path: {0}",
                         ex.Message);
-                    Application.Current.Dispatcher.Invoke(SetSongsPath);
                 }
 
             // 尝试读取当前谱面信息
             var beatmapFile = _memoryReader.GetOsuFileName();
             var mapFolderName = _memoryReader.GetMapFolderName();
 
-            Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+            if (!string.IsNullOrEmpty(beatmapFile) && !string.IsNullOrEmpty(mapFolderName) && _lastBeatmapId != beatmapFile)
             {
-                if (!string.IsNullOrEmpty(beatmapFile) && !string.IsNullOrEmpty(mapFolderName))
-                {
-                    if (_lastBeatmapId != beatmapFile)
-                    {
-                        if (!string.IsNullOrEmpty(Config.SongsPath))
-                        {
-                            CurrentOsuFilePath = Path.Combine(Config.SongsPath, mapFolderName, beatmapFile);
-
-                            // TODO: 监听信息未来统一整理
-                            var Mes = $"Detected selected beatmap:\n{beatmapFile}\n" +
-                                      "\n" + $"OD:{_memoryReader.GetMapOd()}" +
-                                      "\n" + $"HP:{_memoryReader.GetMapHp()}" +
-                                      "\n" + $"CS:{_memoryReader.GetMapCs()}";
-
-                            var beatmap = BeatmapDecoder.Decode(CurrentOsuFilePath).GetManiaBeatmap(CurrentOsuFilePath);
-                            var BG = beatmap.EventsSection.BackgroundImage;
-                            if (!string.IsNullOrWhiteSpace(BG))
-                                BGPath = Path.Combine(Config.SongsPath, mapFolderName, BG);
-                        }
-                        else
-                        {
-                            CurrentOsuFilePath = Path.Combine(mapFolderName, beatmapFile);
-                        }
-
-                        _lastBeatmapId = beatmapFile;
-                    }
-                }
-            }));
+                await ProcessBeatmapAsync(beatmapFile, mapFolderName);
+                _lastBeatmapId = beatmapFile;
+            }
         }
         catch (Exception ex)
         {
-            Logger.WriteLine(LogLevel.Error, "[ListenerViewModel] CheckOsuBeatmap failed: {0}", ex.Message);
+            _consecutiveFailures++;
+            Logger.WriteLine(LogLevel.Error, "[ListenerViewModel] CheckOsuBeatmap failed ({0} consecutive): {1}", 
+                _consecutiveFailures, ex.Message);
+            
+            // 连续失败过多时增加检查间隔
+            if (_consecutiveFailures >= 5 && _checkTimer != null)
+            {
+                _checkTimer.Interval = Math.Min(_checkTimer.Interval * 2, 5000);
+                Logger.WriteLine(LogLevel.Warning, "[ListenerViewModel] Too many failures, slowing down checks to {0}ms", 
+                    _checkTimer.Interval);
+            }
+            
             Application.Current?.Dispatcher?.BeginInvoke(new Action(() => { }));
         }
     }
 
-    internal void SetSongsPath()
+    private bool _hasPromptedForSongsPath; // 添加标志变量，确保只弹出一次 Songs 路径选择窗口
+
+    public void SetSongsPath()
     {
+        if (_hasPromptedForSongsPath) return; // 如果已经弹出过窗口，直接返回
+
         var dialog = new FolderBrowserDialog
         {
+            SelectedPath = Config.SongsPath,
             Description = "Please select the osu! Songs directory",
             ShowNewFolderButton = false
         };
 
-        if (dialog.ShowDialog() == DialogResult.OK) Config.SongsPath = dialog.SelectedPath;
+        if (dialog.ShowDialog() == DialogResult.OK)
+        {
+            Config.SongsPath = dialog.SelectedPath;
+            _hasPromptedForSongsPath = true; // 设置标志为 true，表示已经弹出过窗口
+        }
     }
 
-    internal void Cleanup()
+    private async Task ProcessBeatmapAsync(string beatmapFile, string mapFolderName)
+    {
+        await Task.Run(() =>
+        {
+            var filePath = Path.Combine(Config.SongsPath, mapFolderName, beatmapFile);
+            var beatmap = BeatmapDecoder.Decode(filePath);
+            var bgPath = string.Empty;
+            var bg = beatmap.EventsSection.BackgroundImage;
+            if (!string.IsNullOrWhiteSpace(bg))
+            {
+                bgPath = Path.Combine(Path.GetDirectoryName(filePath)!, bg);
+            }
+
+            var info = new BeatmapInfo
+            {
+                FilePath = filePath,
+                BackgroundImagePath = bgPath
+            };
+
+            Application.Current?.Dispatcher?.Invoke(() =>
+            {
+                CurrentOsuFilePath = filePath;
+                BeatmapSelected?.Invoke(this, info);
+            });
+        });
+    }
+
+    public string? GetCurrentBeatmapFile() => _memoryReader.GetOsuFileName();
+    public string? GetCurrentMapFolderName() => _memoryReader.GetMapFolderName();
+
+    public void Cleanup()
     {
         _checkTimer?.Stop();
         _checkTimer?.Dispose();

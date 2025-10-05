@@ -24,45 +24,6 @@ public static class FilesHelper
         public IntPtr Handle { get; } = handle;
     }
 
-    public static void ValidateAndRunWithPackaging(string filePath, Func<string, string?> processor,
-        bool openOsz = false, Action? onCompleted = null, bool showSuccessMessage = true)
-    {
-        ValidateAndRun(filePath, path =>
-        {
-            var produced = processor(path);
-            if (!string.IsNullOrEmpty(produced))
-                try
-                {
-                    if (ListenerControl.IsOpen) OsuAnalyzer.AddNewBeatmapToSongFolder(produced, openOsz);
-                }
-                catch (Exception ex)
-                {
-                    // Packaging failure: inform user and log
-                    Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
-                    {
-                        MessageBox.Show(Strings.PackagingAddingBeatmapFailed.Localize() + ": " + ex.Message,
-                            Strings.Error.Localize(),
-                            MessageBoxButton.OK, MessageBoxImage.Error);
-                    }));
-                    Logger.WriteLine(LogLevel.Error, "[FilesHelper] Packaging/adding beatmap failed: {0}", ex.Message);
-                }
-        }, onCompleted);
-    }
-
-    /// <summary>
-    /// Shows a dialog to select a file or folder.
-    /// </summary>
-    public static string? ShowOpenFileOrFolderDialog(string title)
-    {
-        var dialog = new OpenFileDialog
-        {
-            Title = title,
-            CheckFileExists = false,
-            CheckPathExists = true
-        };
-        return dialog.ShowDialog() == true ? dialog.FileName : null;
-    }
-
     /// <summary>
     /// Shows a save file dialog.
     /// </summary>
@@ -179,32 +140,5 @@ public static class FilesHelper
             else if (Directory.Exists(path))
                 foreach (var file in Directory.EnumerateFiles(path, "*.osu", SearchOption.AllDirectories))
                     yield return file;
-    }
-
-    /// <summary>
-    /// 验证并异步处理 .osu 文件
-    /// </summary>
-    private static void ValidateAndRun(string filePath, Action<string> action, Action? onCompleted = null)
-    {
-        if (!EnsureIsOsuFile(filePath)) return;
-        Task.Run(() =>
-        {
-            try
-            {
-                action(filePath);
-                Application.Current?.Dispatcher?.BeginInvoke(new Action(() => { onCompleted?.Invoke(); }));
-            }
-            catch (Exception ex)
-            {
-                Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
-                {
-                    MessageBox.Show(Strings.ErrorProcessingFile.Localize() + ": " + ex.Message,
-                        Strings.ProcessingError.Localize(),
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                    onCompleted?.Invoke();
-                }));
-                Logger.WriteLine(LogLevel.Error, "[FilesHelper] ValidateAndRun processing error: {0}", ex.Message);
-            }
-        });
     }
 }

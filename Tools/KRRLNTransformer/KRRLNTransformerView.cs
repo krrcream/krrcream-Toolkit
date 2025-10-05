@@ -28,7 +28,7 @@ public class KRRLNTransformerView : ToolViewBase<KRRLNTransformerOptions>
         var stack = CreateMainStackPanel();
 
         // 长度阈值设置 - 使用模板化控件
-        var lengthThresholdPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.General.LengthThresholdValue);
+        var lengthThresholdPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LengthThreshold);
         stack.Children.Add(lengthThresholdPanel);
 
         // 短面条设置区域标题
@@ -111,9 +111,7 @@ public class KRRLNTransformerView : ToolViewBase<KRRLNTransformerOptions>
     {
         return new StackPanel { Margin = new Thickness(15), HorizontalAlignment = HorizontalAlignment.Stretch };
     }
-
-
-
+    
     public KRRLNTransformerOptions GetOptions()
     {
         // 从ViewModel的Options获取值（所有控件都已模板化并自动绑定）

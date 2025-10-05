@@ -65,6 +65,8 @@ public class MainWindow : FluentWindow
     // 工具调度器
     private IModuleManager ModuleManager { get; }
 
+    public bool RealTimePreviewEnabled => _realTimePreview;
+
     private bool RealTimePreview
     {
         get => _realTimePreview;
@@ -101,6 +103,8 @@ public class MainWindow : FluentWindow
     private ContentControl? FilesManagerHost => _settingsHosts.GetValueOrDefault(ModuleEnum.FilesManager);
 
     public PreviewViewDual? PreviewDualControl => _previewDual;
+
+    private FileDropZone? _fileDropZone;
 
     public MainWindow()
     {
@@ -173,6 +177,7 @@ public class MainWindow : FluentWindow
         };
 
         var fileDropZone = new FileDropZone();
+        _fileDropZone = fileDropZone;
         fileDropZone.StartConversionRequested += StartConversionRequested;
 
         var previewGrid = new Grid();
@@ -623,6 +628,7 @@ public class MainWindow : FluentWindow
         {
             _currentListenerWindow.Close();
             _currentListenerWindow = null;
+            GlobalOsuListenerButton.IsChecked = false;
             return;
         }
 
@@ -646,12 +652,19 @@ public class MainWindow : FluentWindow
                 break;
         }
 
-        var listenerControl = new ListenerControl(source, sourceId)
-        {
-            RealTimePreview = RealTimePreview
-        };
+        var listenerControl = new ListenerControl(source, sourceId);
         _currentListenerWindow = listenerControl;
-        _currentListenerWindow.Closed += (_, _) => _currentListenerWindow = null;
+        var listenerVM = (_currentListenerWindow as ListenerControl)?.ViewModel;
+        if (listenerVM != null)
+        {
+            listenerVM.PropertyChanged += ListenerViewModel_PropertyChanged;
+        }
+        _currentListenerWindow.Closed += (_, _) => 
+        {
+            _currentListenerWindow = null;
+            GlobalOsuListenerButton.IsChecked = false;
+        };
+        GlobalOsuListenerButton.IsChecked = true;
         _currentListenerWindow.Show();
     }
 
@@ -686,6 +699,7 @@ public class MainWindow : FluentWindow
             {
                 _listenerVM.SetSongsPath();
             }
+            // 移除直接设置拖拽区的逻辑，由事件处理
         }
         else
         {
@@ -696,24 +710,35 @@ public class MainWindow : FluentWindow
             }
             // 当关闭实时预览时，重置预览到默认内置样本
             _previewDual?.ResetToDefaultPreview();
+            // 清除拖入区的监听文件
+            _fileDropZone?.SetListenedFiles(null);
         }
     }
 
-    private void OnBeatmapSelected(object? sender, string filePath)
+    private void OnBeatmapSelected(object? sender, ListenerViewModel.BeatmapInfo e)
     {
-        if (string.IsNullOrEmpty(filePath)) return;
+        if (string.IsNullOrEmpty(e.FilePath)) return;
         Dispatcher.BeginInvoke(new Action(() =>
         {
             try
             {
-                if (!File.Exists(filePath)) return;
+                if (!File.Exists(e.FilePath)) return;
 
-                // 加载预览
+                // 首先更新拖拽区状态为监听文件
+                _fileDropZone?.SetListenedFiles([e.FilePath]);
+
+                // 然后加载预览
                 if (_currentTool is ConverterEnum && _previewDual != null)
                 {
-                    var beatmaps = BeatmapDecoder.Decode(filePath);
-                    beatmaps.OriginalFilePath = filePath;
+                    var beatmaps = BeatmapDecoder.Decode(e.FilePath);
+                    beatmaps.OriginalFilePath = e.FilePath;
                     _previewDual.LoadPreview(beatmaps);
+                }
+
+                // 加载背景图，如果实时预览开启
+                if (RealTimePreview && _previewDual != null && !string.IsNullOrEmpty(e.BackgroundImagePath))
+                {
+                    _previewDual.LoadBackgroundBrush(e.BackgroundImagePath);
                 }
             }
             catch (Exception ex)
@@ -829,6 +854,21 @@ public class MainWindow : FluentWindow
             {
                 if (_currentSettingsContainer != settingsHost)
                     _currentSettingsContainer.Content = settingsHost;
+            }
+        }
+    }
+
+    private void ListenerViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == "CurrentOsuFilePath")
+        {
+            if (sender is ListenerViewModel listenerVM && !string.IsNullOrEmpty(listenerVM.CurrentOsuFilePath))
+            {
+                _fileDropZone?.SetManualMode([listenerVM.CurrentOsuFilePath]);
+            }
+            else
+            {
+                _fileDropZone?.SetManualMode(null);
             }
         }
     }

@@ -12,6 +12,7 @@ using krrTools.Core;
 using OsuParsers.Beatmaps;
 using static krrTools.UI.SharedUIComponents;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
+using Button = Wpf.Ui.Controls.Button;
 
 namespace krrTools.Tools.Preview;
 
@@ -122,6 +123,31 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
         _previewTitle = new TextBlock
             { FontSize = 15, FontWeight = FontWeights.Bold, Text = Strings.PreviewTitle.Localize() };
 
+        // 创建重置按钮
+        var resetButton = new Button
+        {
+            Content = "重置预览",
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, 0, 10, 0),
+            Padding = new Thickness(8, 4, 8, 4),
+            FontSize = 12
+        };
+        resetButton.Click += ResetButton_Click;
+
+        // 创建标题网格
+        var titleGrid = new Grid
+        {
+            ColumnDefinitions = 
+            {
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            Children = { _previewTitle, resetButton }
+        };
+        SetColumn(_previewTitle, 0);
+        SetColumn(resetButton, 1);
+
         var originalBorder =
             CreatePreviewBorder(Strings.OriginalHint.Localize(), out _originalHint, out _originalContent);
 
@@ -134,11 +160,11 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
         RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        Children.Add(_previewTitle);
+        Children.Add(titleGrid);
         Children.Add(originalBorder);
         Children.Add(centerStack);
         Children.Add(convertedBorder);
-        SetRow(_previewTitle, 0);
+        SetRow(titleGrid, 0);
         SetRow(originalBorder, 1);
         SetRow(centerStack, 2);
         SetRow(convertedBorder, 3);
@@ -281,13 +307,13 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
         var convertedVisual = Processor.BuildConvertedVisual(_originalBeatmap);
         _convertedContent.Content = convertedVisual;
         _convertedContent.Visibility = Visibility.Visible;
-        
+
         var startMsText = Processor is ConverterProcessor bp && bp.StartMs != 0
             ? $"start {bp.StartMs} ms"
             : string.Empty;
         _startTimeDisplay.Text = startMsText;
     }
-    
+
     private void SetNoProcessorState()
     {
         _originalContent.Content = new TextBlock
@@ -318,11 +344,8 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
 
     private string UpdateTitleSuffix(Beatmap? beatmap)
     {
-        if (beatmap == null)
-        {
-            return string.Empty;
-        }
-        
+        if (beatmap == null) return string.Empty;
+
         string titleSuffix;
         if (beatmap.MetadataSection.Title == "Built-in Sample")
         {
@@ -360,14 +383,17 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
     // 加载谱面背景图的方法，统一在项目中使用
     public void LoadBackgroundBrush(string path)
     {
-        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path) || path == string.Empty)
+        if (!File.Exists(path))
+        {
+            Console.WriteLine("[LoadBackgroundBrush] No Find:" + path);
             return;
+        }
 
         try
         {
             var bgBitmap = new BitmapImage();
             bgBitmap.BeginInit();
-            bgBitmap.UriSource = new Uri(path);
+            bgBitmap.UriSource = new Uri(path, UriKind.Absolute);
             bgBitmap.CacheOption = BitmapCacheOption.OnLoad;
             bgBitmap.EndInit();
             Background = new ImageBrush
@@ -383,6 +409,11 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
             Console.WriteLine("[PreviewViewDual] Failed to load background image from {0}: {1}",
                 path, ex.Message);
         }
+    }
+
+    private void ResetButton_Click(object sender, RoutedEventArgs e)
+    {
+        ResetToDefaultPreview();
     }
 
     public void ResetToDefaultPreview()

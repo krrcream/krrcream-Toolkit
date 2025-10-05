@@ -17,6 +17,15 @@ namespace krrTools.UI
 {
     public sealed class FileDropZone : Border
     {
+        private enum FileSource
+        {
+            None,
+            Dropped,
+            Listened
+        }
+
+        private FileSource CurrentSource { get; set; } = FileSource.None;
+
         public event EventHandler<string[]>? FilesDropped;
 
         private readonly TextBlock DropHint;
@@ -48,7 +57,7 @@ namespace krrTools.UI
                 TextAlignment = TextAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            DropHint.SetBinding(TextBlock.TextProperty, new Binding("Value") { Source = _dropHintLocalized });
+            DropHint.SetBinding(System.Windows.Controls.TextBlock.TextProperty, new Binding("Value") { Source = _dropHintLocalized });
 
             StartConversionButton = new Button
             {
@@ -87,12 +96,19 @@ namespace krrTools.UI
             if (_stagedPaths == null || _stagedPaths.Length == 0)
             {
                 // 清除绑定并设置默认文本
-                DropHint.ClearValue(TextBlock.TextProperty);
+                DropHint.ClearValue(System.Windows.Controls.TextBlock.TextProperty);
                 DropHint.Text = _dropHintLocalized.Value;
+                CurrentSource = FileSource.None;
             }
             else
             {
-                DropHint.Text = string.Format(_dropFilesHintLocalized.Value, _stagedPaths.Length);
+                string prefix = CurrentSource switch
+                {
+                    FileSource.Dropped => "[拖入] ",
+                    FileSource.Listened => "[监听] ",
+                    _ => ""
+                };
+                DropHint.Text = prefix + string.Format(_dropFilesHintLocalized.Value, _stagedPaths.Length);
             }
         }
 
@@ -106,6 +122,7 @@ namespace krrTools.UI
             if (osuFiles.Count == 0) return;
             
             _stagedPaths = osuFiles.ToArray();
+            CurrentSource = FileSource.Dropped; // 设置来源为拖入
             FilesDropped?.Invoke(this, _stagedPaths);
 
             // 如果有谱面文件，预览第一个
@@ -161,6 +178,22 @@ namespace krrTools.UI
         private void FileDropZone_Unloaded(object sender, RoutedEventArgs e)
         {
             SharedUIComponents.LanguageChanged -= OnLanguageChanged;
+        }
+
+        public void SetManualMode(string[]? files)
+        {
+            _stagedPaths = files;
+            CurrentSource = files is { Length: > 0 } ? FileSource.Dropped : FileSource.None;
+            UpdateTexts();
+            StartConversionButton.Visibility = _stagedPaths is { Length: > 0 } ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        public void SetListenedFiles(string[]? files)
+        {
+            _stagedPaths = files;
+            CurrentSource = files is { Length: > 0 } ? FileSource.Listened : FileSource.None;
+            UpdateTexts();
+            StartConversionButton.Visibility = _stagedPaths is { Length: > 0 } ? Visibility.Visible : Visibility.Collapsed;
         }
     }
 }
