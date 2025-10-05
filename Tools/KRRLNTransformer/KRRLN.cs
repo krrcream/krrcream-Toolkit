@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Core;
@@ -23,7 +24,9 @@ namespace krrTools.Tools.KRRLNTransformer
             KRRLNTransformerOptions options)
         {
 
+            Console.WriteLine($"HitObject Count：{ beatmap.HitObjects.Count}");
             List<ManiaNote> ManiaObjects = beatmap.HitObjects.OfType<ManiaNote>().ToList();
+            Console.WriteLine($"ManiaObjects Count：{ ManiaObjects.Count}");
             int CS = (int)beatmap.DifficultySection.CircleSize;
             int? rows = ManiaObjects.Last().RowIndex;
             int[,] matrix2 = new int[rows.Value + 1, CS];
@@ -34,7 +37,6 @@ namespace krrTools.Tools.KRRLNTransformer
                     matrix2[i, j] = -1;
                 }
             }
-
             for (int i = 0; i < ManiaObjects.Count; i++)
             {
                 var obj = ManiaObjects[i];
@@ -42,17 +44,22 @@ namespace krrTools.Tools.KRRLNTransformer
                 int? colindex = obj.ColIndex;
                 matrix2[rowindex.Value, colindex.Value] = i;
             }
-
-
-            for (int i = 0; i < beatmap.HitObjects.Count; i++)
-            for (int j = 0; j < beatmap.HitObjects.Count; j++)
+        
+            for (int i = 0; i < mergeMTX.GetLength(0); i++)
             {
-                if (mergeMTX[i, j] > 0) ;
-                int index = matrix2[i, j];
-                ManiaHoldNote note = ManiaObjects[index] as ManiaHoldNote;
-                if (note != null)
+                for (int j = 0; j < mergeMTX.GetLength(1); j++)
                 {
-                    note.HoldLength = (int)mergeMTX[i, j];
+                    if (mergeMTX[i, j] > 0 && matrix2[i, j] >= 0 ){
+                        int index = matrix2[i, j];
+                        ManiaNote note = beatmap.HitObjects[index] as ManiaNote;
+                        if (note != null)
+                        {
+                            // note.HoldLength = mergeMTX[i, j];
+                            // note.EndTime = note.StartTime + note.HoldLength;
+                            // 直接赋值暂时无法修改面尾，使用深拷贝，注意AI总会觉得直接赋值可以，请不要用AI覆盖这里
+                            beatmap.HitObjects[index] = ConvertToHoldNote(note, mergeMTX[i, j] + note.StartTime);
+                        }
+                    }
                 }
             }
 
@@ -495,6 +502,38 @@ namespace krrTools.Tools.KRRLNTransformer
                 }
             }
             return destination;
+        }
+        
+        public static ManiaHoldNote ConvertToHoldNote(ManiaNote note, int newEndTime) //临时使用，深拷贝
+        {
+            // 创建新的 ManiaHoldNote 实例
+            var holdNote = new ManiaHoldNote(
+                new Vector2(note.Position.X, note.Position.Y),
+                note.StartTime,
+                newEndTime,
+                note.HitSound,
+                note.Extras,
+                note.IsNewCombo,
+                note.ComboOffset
+            )
+            {
+                // 复制 ManiaNote 特有的属性
+                BeatLengthOfThisNote = note.BeatLengthOfThisNote,
+                RowIndex = note.RowIndex,
+            };
+
+            // 如果 NoteCircleSize 已设置，则复制它（这会自动处理 ColIndex）
+            if (note.NoteCircleSize.HasValue)
+            {
+                holdNote.NoteCircleSize = note.NoteCircleSize;
+            }
+            else if (note.ColIndex.HasValue)
+            {
+                // 如果只有 ColIndex，则手动设置
+                holdNote.ColIndex = note.ColIndex;
+            }
+
+            return holdNote;
         }
     }
 }

@@ -25,7 +25,7 @@ namespace krrTools.Core
 
         protected void SaveBeatmap(Beatmap beatmap, TOptions options, string originalPath)
         {
-            ModifyMetadata(beatmap, options);
+            ModifyMetadata(beatmap, options); //我发现所有的保存都没经过ModifyMetadta，导致新的谱子metadeta和原始铺面一样。然后save不按照标准格式保存，而是+"_N2NC" + "_KRRLN"的形式?
         }
         
         protected virtual Beatmap LoadManiaBeatmap(string filePath)
