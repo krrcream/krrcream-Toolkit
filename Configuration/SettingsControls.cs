@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq.Expressions;
 using System.Windows;
@@ -38,6 +39,9 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
     public TDataContext? Source { get; init; }
     public Expression<Func<TDataContext, object>>? PropertySelector { get; init; }
     public bool CheckEnabled { get; init; }
+
+    // Dictionary mapping support
+    public Dictionary<double, string>? ValueDisplayMap { get; init; }
 
     // Enum-based provider support
     public IEnumSettingsProvider? EnumProvider { get; set; }
@@ -245,14 +249,24 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
     {
         if (!string.IsNullOrEmpty(_labelText))
         {
+            string displayValue;
+            if (ValueDisplayMap != null && ValueDisplayMap.TryGetValue(value, out var mappedValue))
+            {
+                displayValue = mappedValue;
+            }
+            else
+            {
+                displayValue = ((int)value).ToString();
+            }
+
             if (_labelText.Contains("{0}"))
             {
-                Label.Text = Strings.FormatLocalized(_labelText, (int)value);
+                Label.Text = Strings.FormatLocalized(_labelText, displayValue);
             }
             else
             {
                 var localizedLabel = Strings.Localize(_labelText);
-                Label.Text = localizedLabel + ": " + ((int)value).ToString();
+                Label.Text = localizedLabel + ": " + displayValue;
             }
         }
     }

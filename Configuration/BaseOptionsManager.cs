@@ -21,7 +21,7 @@ namespace krrTools.Configuration
 
         // DP specific constants
         public const string DPDefaultTag = "krrcream's converter DP";
-        
+
         // LN specific constants
         public const string KRRLNDefaultTag = "krrcream's converter LN";
 

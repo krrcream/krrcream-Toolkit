@@ -19,8 +19,8 @@ namespace krrTools.Tools.N2NC
         [Option(LabelKey = nameof(N2NCMinKeysTemplate), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double))]
         public double MinKeys { get; set; } = 2;
 
-        [Option(LabelKey = nameof(N2NCTransformSpeedTemplate), Min = 0.1, Max = 10, UIType = UIType.Slider, DataType = typeof(double))]
-        public double TransformSpeed { get; set; } = 1.0;
+        [Option(LabelKey = nameof(N2NCTransformSpeedTemplate), Min = 1, Max = 8, UIType = UIType.Slider, DataType = typeof(double))]
+        public double TransformSpeed { get; set; } = 4.0;
 
         [Option(LabelKey = nameof(SeedButtonLabel), UIType = UIType.NumberBox, DataType = typeof(int?))]
         public int? Seed { get; set; } = 114514;

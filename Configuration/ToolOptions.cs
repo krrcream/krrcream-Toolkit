@@ -2,7 +2,9 @@ using System;
 using System.ComponentModel;
 using System.Reflection;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.Configuration;
 
@@ -99,6 +101,7 @@ public abstract class ToolViewModelBase<TOptions> : ObservableObject where TOpti
     private TOptions _options;
     private readonly ConverterEnum _toolEnum;
     private readonly bool _autoSave;
+    private DispatcherTimer? _saveTimer;
 
     protected ToolViewModelBase(ConverterEnum toolEnum, bool autoSave = true, TOptions? injectedOptions = null)
     {
@@ -108,6 +111,17 @@ public abstract class ToolViewModelBase<TOptions> : ObservableObject where TOpti
 
         // Load options on initialization if not injected
         if (injectedOptions == null) DoLoadOptions();
+
+        // Initialize save timer for debouncing
+        if (_autoSave)
+        {
+            _saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+            _saveTimer.Tick += (_, _) =>
+            {
+                _saveTimer.Stop();
+                DoSaveOptions();
+            };
+        }
 
         // Subscribe to property changes for auto-save if enabled
         if (_autoSave)
@@ -159,8 +173,9 @@ public abstract class ToolViewModelBase<TOptions> : ObservableObject where TOpti
             optionsToSave.Validate();
             BaseOptionsManager.SaveOptions(_toolEnum, optionsToSave);
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.WriteLine(LogLevel.Error, $"[ToolOptions] Failed to save options for {_toolEnum}: {ex.Message}");
             Console.WriteLine("[DEBUG] Failed to save options; changes may be lost.");
         }
     }
@@ -168,13 +183,20 @@ public abstract class ToolViewModelBase<TOptions> : ObservableObject where TOpti
     private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         // Auto-save when ViewModel properties change (not just Options)
-        if (_autoSave && e.PropertyName != nameof(Options)) DoSaveOptions();
+        if (_autoSave && e.PropertyName != nameof(Options)) StartDelayedSave();
     }
 
     private void OnOptionsPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         // Auto-save when Options properties change
-        if (_autoSave) DoSaveOptions();
+        if (_autoSave) StartDelayedSave();
+    }
+
+    private void StartDelayedSave()
+    {
+        if (_saveTimer == null) return;
+        _saveTimer.Stop();
+        _saveTimer.Start();
     }
 }
 

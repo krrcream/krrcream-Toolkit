@@ -241,10 +241,10 @@ public static class SettingsBinder
     }
 
     /// <summary>
-    /// 创建模板化的滑块控件（使用表达式，可选勾选框）
+    /// 创建模板化的滑块控件（使用表达式，可选勾选框，可选字典映射）
     /// </summary>
     public static UIElement CreateTemplatedSlider<T>(T options, Expression<Func<T, object>> propertySelector,
-        Expression<Func<T, object>>? checkPropertySelector = null) where T : class
+        Expression<Func<T, object>>? checkPropertySelector = null, Dictionary<double, string>? valueDisplayMap = null) where T : class
     {
         var propertyInfo = GetPropertyInfoFromExpression(propertySelector);
         if (propertyInfo == null) return new TextBlock { Text = "Invalid property selector" };
@@ -271,7 +271,8 @@ public static class SettingsBinder
                 KeyboardStep = attr.KeyboardStep ?? 1,
                 Source = options,
                 PropertySelector = propertySelector,
-                CheckEnabled = checkEnabled
+                CheckEnabled = checkEnabled,
+                ValueDisplayMap = valueDisplayMap
             };
             return slider;
         }

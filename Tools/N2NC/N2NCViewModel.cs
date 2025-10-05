@@ -22,6 +22,31 @@ namespace krrTools.Tools.N2NC
 
     public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProvider
     {
+        // Transform speed display mapping dictionary
+        public static readonly Dictionary<double, string> TransformSpeedDict = new Dictionary<double, string>
+        {
+            { 0.0625, "1/16" },
+            { 0.125, "1/8" },
+            { 0.25, "1/4" },
+            { 0.5, "1/2" },
+            { 1.0, "1" },
+            { 2.0, "2" },
+            { 4.0, "4" },
+            { 8.0, "8" }
+        };
+
+        // Transform speed slot display mapping dictionary (for UI binding)
+        public static readonly Dictionary<double, string> TransformSpeedSlotDict = new Dictionary<double, string>
+        {
+            { 1, "1/16" },
+            { 2, "1/8" },
+            { 3, "1/4" },
+            { 4, "1/2" },
+            { 5, "1" },
+            { 6, "2" },
+            { 7, "4" },
+            { 8, "8" }
+        };
         public N2NCViewModel(N2NCOptions options) : base(ConverterEnum.N2NC, true, options)
         {
             InitializeLocalized();
@@ -235,6 +260,7 @@ namespace krrTools.Tools.N2NC
         }
 
         // TransformSpeedSlot是TransformSpeed的整数档位表示 (1-8)
+        [Option(LabelKey = nameof(Strings.N2NCTransformSpeedTemplate), Min = 1, Max = 8, UIType = UIType.Slider, DataType = typeof(int))]
         public int TransformSpeedSlot
         {
             get

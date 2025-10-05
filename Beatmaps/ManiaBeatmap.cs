@@ -7,7 +7,7 @@ using OsuParsers.Beatmaps;
 namespace krrTools.Beatmaps;
 /// <summary>
 /// Mania模式的Beatmap封装类，未来的统一主体接口
-/// 包括路径实现和对象实现
+/// 包括路径实现和对象实现，目前不要用
 /// </summary>
 public class ManiaBeatmap : Beatmap, IBeatmap
 {

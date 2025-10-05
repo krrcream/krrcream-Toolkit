@@ -28,7 +28,7 @@ public class KRRLNTransformerView : ToolViewBase<KRRLNTransformerOptions>
         var stack = CreateMainStackPanel();
 
         // 长度阈值设置 - 使用模板化控件
-        var lengthThresholdPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LengthThreshold);
+        var lengthThresholdPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LengthThreshold.Value, null, KRRLNTransformerViewModel.LengthThresholdDict);
         stack.Children.Add(lengthThresholdPanel);
 
         // 短面条设置区域标题
@@ -76,7 +76,7 @@ public class KRRLNTransformerView : ToolViewBase<KRRLNTransformerOptions>
         stack.Children.Add(separator2);
 
         // 对齐设置 - 使用模板化控件
-        var alignPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.Alignment.Value, o => o.Alignment.IsChecked);
+        var alignPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.Alignment.Value, o => o.Alignment.IsChecked, KRRLNTransformerViewModel.AlignValuesDict);
         stack.Children.Add(alignPanel);
 
         // 处理原始面条复选框 - 使用模板化控件
@@ -88,7 +88,7 @@ public class KRRLNTransformerView : ToolViewBase<KRRLNTransformerOptions>
         stack.Children.Add(odPanel);
 
         // LN对齐设置 - 使用模板化控件
-        var lnAlignPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LNAlignment.Value, o => o.LNAlignment.IsChecked);
+        var lnAlignPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LNAlignment.Value, o => o.LNAlignment.IsChecked, KRRLNTransformerViewModel.AlignValuesDict);
         stack.Children.Add(lnAlignPanel);
         
         stack.Children.Add(seedPanel);

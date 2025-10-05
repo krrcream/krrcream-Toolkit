@@ -40,7 +40,7 @@ namespace krrTools.Tools.N2NC
             TargetKeysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.TargetKeys);
             MaxKeysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.MaxKeys);
             MinKeysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.MinKeys);
-            TransformSpeedSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.TransformSpeed);
+                        TransformSpeedSlider = SettingsBinder.CreateTemplatedSlider(_viewModel, o => o.TransformSpeedSlot, null, N2NCViewModel.TransformSpeedSlotDict);
             
             grid.Children.Add(TargetKeysSlider);
             grid.Children.Add(MaxKeysSlider);

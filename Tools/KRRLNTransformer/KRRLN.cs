@@ -64,7 +64,7 @@ namespace krrTools.Tools.KRRLNTransformer
             var RG = parameters.Seed.HasValue
                 ? new Random(parameters.Seed.Value)
                 : new Random();
-            
+
             List<ManiaNote> ManiaObjects = beatmap.HitObjects.OfType<ManiaNote>().ToList();
             int CS = (int)beatmap.DifficultySection.CircleSize;
             int? rows = ManiaObjects.Last().RowIndex;
@@ -109,14 +109,14 @@ namespace krrTools.Tools.KRRLNTransformer
                     for (int j = 0; j < matrix1.GetLength(1); j++)
                     {
                         if (matrix1[i, j] >= 0 && orgIsLN[i, j])
-                        {
+                {
                             matrix1[i, j] = -1;
                         }
-                    }
                 }
             }
+            }
             //通过百分比标记处理位置
-            int border = parameters.LengthThreshold.Value;
+            int border = (int)parameters.LengthThreshold.Value;
             bool[,] shortLNFlag = new bool[rows.Value + 1, CS];
             bool[,] longLNFlag = new bool[rows.Value + 1, CS];
             for (int i = 0; i < matrix1.GetLength(0); i++)
@@ -133,16 +133,16 @@ namespace krrTools.Tools.KRRLNTransformer
                         {
                             shortLNFlag[i, j] = true;
                         }
+                        }
                     }
                 }
-            }
             longLNFlag = MarkByPercentage(longLNFlag, parameters.Long.PercentageValue, RG);
             shortLNFlag = MarkByPercentage(shortLNFlag, parameters.Short.PercentageValue, RG);
-            longLNFlag = LimitTruePerRow(longLNFlag, parameters.Long.LimitValue, RG);
-            shortLNFlag = LimitTruePerRow(shortLNFlag, parameters.Short.LimitValue, RG);
+            longLNFlag = LimitTruePerRow(longLNFlag, (int)parameters.Long.LimitValue, RG);
+            shortLNFlag = LimitTruePerRow(shortLNFlag, (int)parameters.Short.LimitValue, RG);
             return LNLength;
-        }
-        
+            }
+
         private bool[,] MarkByPercentage(bool[,] MTX, double P, Random random)
         {
             // 边界情况处理
@@ -163,13 +163,13 @@ namespace krrTools.Tools.KRRLNTransformer
             for (int i = 0; i < MTX.GetLength(0); i++)
             {
                 for (int j = 0; j < MTX.GetLength(1); j++)
-                {
+            {
                     if (MTX[i, j])
-                    {
+                {
                         truePositions.Add((i, j));
                     }
                 }
-            }
+                }
 
             // 如果没有true位置，直接返回全false矩阵
             if (truePositions.Count == 0)
@@ -202,22 +202,22 @@ namespace krrTools.Tools.KRRLNTransformer
             }
             // 如果还有剩余配额未满足，补充随机选择
             if (positionsToSetFalse.Count < countToSetFalse)
-            {
+                {
                 var remaining = truePositions.Where(pos => !positionsToSetFalse.Contains(pos))
                                             .OrderBy(pos => random.Next())
                                             .Take(countToSetFalse - positionsToSetFalse.Count);
                 
                 foreach (var pos in remaining)
-                {
+                    {
                     positionsToSetFalse.Add(pos);
                 }
-            }
+                    }
             // 构建结果矩阵
             bool[,] result = new bool[MTX.GetLength(0), MTX.GetLength(1)];
             for (int i = 0; i < MTX.GetLength(0); i++)
             {
                 for (int j = 0; j < MTX.GetLength(1); j++)
-                {
+                    {
                     if (MTX[i, j] && !positionsToSetFalse.Contains((i, j)))
                     {
                         result[i, j] = true;
@@ -234,7 +234,7 @@ namespace krrTools.Tools.KRRLNTransformer
             int cols = MTX.GetLength(1);
 
             bool[,] result = new bool[rows, cols];
-            
+
             for (int i = 0; i < rows; i++)
             {
                 List<int> truePositions = new List<int>();
@@ -243,21 +243,21 @@ namespace krrTools.Tools.KRRLNTransformer
                     if (MTX[i, j])
                     {
                         truePositions.Add(j);
-                    }
                 }
-                
+            }
+
                 if (truePositions.Count > limit)
                 {
                     var shuffledPositions = truePositions.OrderBy(x => random.Next()).ToList();
                     for (int k = 0; k < limit; k++)
-                    {
+                            {
                         result[i, shuffledPositions[k]] = true;
-                    }
-                }
-                else
+                            }
+                        }
+                        else
+                        {
+                for (int j = 0; j < cols; j++)
                 {
-                    for (int j = 0; j < cols; j++)
-                    {
                         result[i, j] = MTX[i, j];
                     }
                 }
@@ -267,27 +267,29 @@ namespace krrTools.Tools.KRRLNTransformer
         }
 
 
-        private void ApplyChangesToHitObjects(ManiaBeatmap beatmap, int[,] mergeMTX, KRRLNTransformerOptions parameters)
-        {
-            var (matrix, _) = beatmap.BuildMatrix(); // 重新构建以获取索引
-
-            for (int i = 0; i < matrix.GetLength(0); i++)
-            {
-                for (int j = 0; j < matrix.GetLength(1); j++)
-                {
-                    if (mergeMTX[i, j] > 0)
-                    {
-                        if (beatmap.HitObjects[matrix[i, j]].EndTime - beatmap.HitObjects[matrix[i, j]].StartTime > 9
-                            && !parameters.General.ProcessOriginalIsChecked)
-                        {
-                            continue;
-                        }
-
-                        beatmap.HitObjects[matrix[i, j]].EndTime = mergeMTX[i, j];
-                    }
-                }
-            }
-        }
+        // 统一用Beatmap，不要用ManiaBeatmap，ApplyChangesToHitObjects只有一个匹配接口方法
+        // ManiaBeatmap会导致一些问题
+        // private void ApplyChangesToHitObjects(ManiaBeatmap beatmap, int[,] mergeMTX, KRRLNTransformerOptions parameters)
+        //             {
+        //     var (matrix, _) = beatmap.BuildMatrix(); // 重新构建以获取索引
+        //
+        //     for (int i = 0; i < matrix.GetLength(0); i++)
+        //                 {
+        //         for (int j = 0; j < matrix.GetLength(1); j++)
+        //         {
+        //             if (mergeMTX[i, j] > 0)
+        //                 {
+        //                 if (beatmap.HitObjects[matrix[i, j]].EndTime - beatmap.HitObjects[matrix[i, j]].StartTime > 9
+        //                     && !parameters.General.ProcessOriginalIsChecked)
+        //                 {
+        //                     continue;
+        //                 }
+        //
+        //                 beatmap.HitObjects[matrix[i, j]].EndTime = mergeMTX[i, j];
+        //             }
+        //         }
+        //     }
+        // }
 
         public new Beatmap ProcessBeatmapToData(Beatmap beatmap, KRRLNTransformerOptions parameters)
         {

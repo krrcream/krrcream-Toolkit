@@ -21,7 +21,7 @@ namespace krrTools.Tools.KRRLNTransformer
             public double LevelValue { get; set; } = 5;
 
             [Option(LabelKey = nameof(KRRShortLimitLabel), Min = 0, Max = 50, UIType = UIType.Slider, DataType = typeof(double))]
-            public int LimitValue { get; set; } = 20;
+            public double LimitValue { get; set; } = 20;
 
             [Option(LabelKey = nameof(KRRShortRandomLabel), Min = 0, Max = 100, UIType = UIType.Slider, DataType = typeof(double))]
             public double RandomValue { get; set; } = 50;
@@ -36,7 +36,7 @@ namespace krrTools.Tools.KRRLNTransformer
             public double LevelValue { get; set; } = 5;
 
             [Option(LabelKey = nameof(KRRLongLimitLabel), Min = 0, Max = 50, UIType = UIType.Slider, DataType = typeof(double))]
-            public int LimitValue { get; set; } = 20;
+            public double LimitValue { get; set; } = 20;
 
             [Option(LabelKey = nameof(KRRLongRandomLabel), Min = 0, Max = 100, UIType = UIType.Slider, DataType = typeof(double))]
             public double RandomValue { get; set; } = 50;
@@ -45,7 +45,7 @@ namespace krrTools.Tools.KRRLNTransformer
         public class LengthThresholdSettings : ToolOptionsBase
         {
             [Option(LabelKey = nameof(LengthThresholdLabel), Min = 0, Max = 12, UIType = UIType.Slider, DataType = typeof(double))]
-            public int Value
+            public double Value
             {
                 get => _value;
                 set => SetProperty(ref _value, value);
@@ -58,7 +58,7 @@ namespace krrTools.Tools.KRRLNTransformer
                 set => SetProperty(ref _isChecked, value);
             }
 
-            private int _value = 4;
+            private double _value = 4;
             private bool _isChecked;
         }
         

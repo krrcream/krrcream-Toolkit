@@ -1,14 +1,12 @@
 using System.Collections.Generic;
-using System.Globalization;
 using krrTools.Configuration;
-using krrTools.Localization;
 
 namespace krrTools.Tools.KRRLNTransformer
 {
     public class KRRLNTransformerViewModel : ToolViewModelBase<KRRLNTransformerOptions>, IPreviewOptionsProvider
     {
         // 节拍显示映射字典
-        private static readonly Dictionary<int, string> AlignValuesDict = new Dictionary<int, string>
+        public static readonly Dictionary<double, string> AlignValuesDict = new Dictionary<double, string>
         {
             { 1, "1/16" },
             { 2, "1/8" },
@@ -21,8 +19,9 @@ namespace krrTools.Tools.KRRLNTransformer
             { 9, "1/1" }
         };
 
-        private static readonly Dictionary<int, string> LengthThresholdDict = new Dictionary<int, string>
+        public static readonly Dictionary<double, string> LengthThresholdDict = new Dictionary<double, string>
         {
+            { 0, "Off" },
             { 1, "1/16" },
             { 2, "1/8" },
             { 3, "1/7" },
@@ -31,39 +30,15 @@ namespace krrTools.Tools.KRRLNTransformer
             { 6, "1/4" },
             { 7, "1/3" },
             { 8, "1/2" },
-            { 9, "1/1" }
+            { 9, "1/1" },
+            { 10, "2/1" },
+            { 11, "3/1" },
+            { 12, "4/1" }
         };
         
         public KRRLNTransformerViewModel(KRRLNTransformerOptions options) : base(ConverterEnum.KRRLN, true, options)
         {
-            Options.Alignment.PropertyChanged += (_, _) => OnPropertyChanged(nameof(AlignDisplayText));
-            Options.LNAlignment.PropertyChanged += (_, _) => OnPropertyChanged(nameof(LNAlignDisplayText));
-            Options.LNAlignment.PropertyChanged += (_, _) => OnPropertyChanged(nameof(LengthThresholdText));
         }
-
-        /// <summary>
-        /// 获取对齐值的显示文本
-        /// </summary>
-        private string GetAlignDisplayText(double value, string prefix, Dictionary<int, string> Dict)
-        {
-            int key = (int)value;
-            if (Dict.TryGetValue(key, out var displayText))
-            {
-                return Strings.FormatLocalized(prefix, displayText);
-            }
-            return Strings.FormatLocalized(prefix, value.ToString(CultureInfo.InvariantCulture));
-        }
-
-        public string LengthThresholdText => GetAlignDisplayText(Options.LengthThreshold.Value, Strings.KRRLNAlignLabel, LengthThresholdDict);
-        /// <summary>
-        /// 获取对齐值的显示文本（用于绑定）
-        /// </summary>
-        public string AlignDisplayText => GetAlignDisplayText(Options.Alignment.Value, Strings.KRRAlignLabel, AlignValuesDict);
-
-        /// <summary>
-        /// 获取LN对齐值的显示文本（用于绑定）
-        /// </summary>
-        public string LNAlignDisplayText => GetAlignDisplayText(Options.LNAlignment.Value, Strings.KRRLNAlignLabel, AlignValuesDict);
 
         public IToolOptions GetPreviewOptions() => Options;
     }
