@@ -21,6 +21,9 @@ namespace krrTools.Configuration
 
         // DP specific constants
         public const string DPDefaultTag = "krrcream's converter DP";
+        
+        // LN specific constants
+        public const string KRRLNDefaultTag = "krrcream's converter LN";
 
         // 统一的配置文件路径 (exe 所在文件夹)
         private static string ConfigFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ConfigFileName);

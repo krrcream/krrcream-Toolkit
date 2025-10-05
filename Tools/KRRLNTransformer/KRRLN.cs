@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using krrTools.Beatmaps;
+using krrTools.Configuration;
 using krrTools.Core;
 using OsuParsers.Beatmaps;
+using OsuParsers.Beatmaps.Objects.Mania;
 
 namespace krrTools.Tools.KRRLNTransformer
 {
@@ -58,262 +60,230 @@ namespace krrTools.Tools.KRRLNTransformer
 
         private int[,] BuildAndProcessMatrix(int[,] matrix, List<int> timeAxis, Beatmap beatmap, KRRLNTransformerOptions parameters)
         {
-            var ANA = new OsuAnalyzer();
-            double BPM = beatmap.GetBPM();
-
-            var beatLengthDict = beatmap.GetBeatLengthList();
-            var beatLengthAxis = ANA.GetBeatLengthAxis(beatLengthDict, BPM, timeAxis);
-            var AvailableTime = CalculateAvailableTime(matrix, timeAxis);
-
-            int[,] longMTX = new int[matrix.GetLength(0), matrix.GetLength(1)];
-            int[,] shortMTX = new int[matrix.GetLength(0), matrix.GetLength(1)];
-
-            for (int i = 0; i < matrix.GetLength(0); i++)
+            // 创建带种子的随机数生成器
+            var RG = parameters.Seed.HasValue
+                ? new Random(parameters.Seed.Value)
+                : new Random();
+            
+            List<ManiaNote> ManiaObjects = beatmap.HitObjects.OfType<ManiaNote>().ToList();
+            int CS = (int)beatmap.DifficultySection.CircleSize;
+            int? rows = ManiaObjects.Last().RowIndex;
+            // 初始化都是-1的矩阵
+            int[,] matrix1 = new int[rows.Value + 1, CS];
+            for (int i = 0; i < rows.Value + 1; i++)
             {
-                for (int j = 0; j < matrix.GetLength(1); j++)
+                for (int j = 0; j < CS; j++)
                 {
-                    longMTX[i, j] = -1;
-                    shortMTX[i, j] = -1;
+                    matrix1[i, j] = -1;
                 }
             }
-
-            for (int i = 0; i < matrix.GetLength(0); i++)
+            // 初始化原始长度矩阵和可用时间矩阵
+            int[,] LNLength = DeepCopyMatrix(matrix1);
+            int[,] AvailableTimeMTX = DeepCopyMatrix(matrix1);
+            // 完成坐标矩阵，长度矩阵，可用时间矩阵初始化
+            for(int i = 0; i < ManiaObjects.Count; i++)
             {
-                for (int j = 0; j < matrix.GetLength(1); j++)
+                var obj = ManiaObjects[i];
+                int? rowindex = obj.RowIndex;
+                int? colindex = obj.ColIndex;
+                matrix1[rowindex.Value, colindex.Value] = i;
+                LNLength[rowindex.Value, colindex.Value] = obj.HoldLength;
+                AvailableTimeMTX[rowindex.Value, colindex.Value] = timeAxis[i];
+            }
+            // 完成是否是原LN矩阵
+            bool[,] orgIsLN = new bool[rows.Value + 1, CS];
+            foreach (var obj in ManiaObjects)
+            {
+                if (obj.GetType() == typeof(ManiaHoldNote))
                 {
-                    if (AvailableTime[i, j] >= 0) // 只处理有效位置
+                    int? rowindex = obj.RowIndex;
+                    int? colindex = obj.ColIndex;
+                    orgIsLN[rowindex.Value, colindex.Value] = true;
+                }
+            }
+            //是否处理原始面条初步判定
+            if (!parameters.General.ProcessOriginalIsChecked)
+            {
+                for (int i = 0; i < matrix1.GetLength(0); i++)
+                {
+                    for (int j = 0; j < matrix1.GetLength(1); j++)
                     {
-                        double threshold = beatLengthAxis[i] * 2;
-                        if (AvailableTime[i, j] > threshold)
+                        if (matrix1[i, j] >= 0 && orgIsLN[i, j])
                         {
-                            longMTX[i, j] = AvailableTime[i, j];
+                            matrix1[i, j] = -1;
+                        }
+                    }
+                }
+            }
+            //通过百分比标记处理位置
+            int border = parameters.LengthThreshold.Value;
+            bool[,] shortLNFlag = new bool[rows.Value + 1, CS];
+            bool[,] longLNFlag = new bool[rows.Value + 1, CS];
+            for (int i = 0; i < matrix1.GetLength(0); i++)
+            {
+                for (int j = 0; j < matrix1.GetLength(1); j++)
+                {
+                    if (matrix1[i, j] >= 0)
+                    {
+                        if (AvailableTimeMTX[i, j] > border)
+                        {
+                            longLNFlag[i, j] = true;
                         }
                         else
                         {
-                            shortMTX[i, j] = AvailableTime[i, j];
+                            shortLNFlag[i, j] = true;
                         }
                     }
                 }
             }
+            longLNFlag = MarkByPercentage(longLNFlag, parameters.Long.PercentageValue, RG);
+            shortLNFlag = MarkByPercentage(shortLNFlag, parameters.Short.PercentageValue, RG);
+            longLNFlag = LimitTruePerRow(longLNFlag, parameters.Long.LimitValue, RG);
+            shortLNFlag = LimitTruePerRow(shortLNFlag, parameters.Short.LimitValue, RG);
+            return LNLength;
+        }
+        
+        private bool[,] MarkByPercentage(bool[,] MTX, double P, Random random)
+        {
+            // 边界情况处理
+            if (P >= 100)
+            {
+                // 返回原始矩阵
+                return MTX;
+            }
 
-            ProcessMatrix(shortMTX, (int)parameters.Short.PercentageValue, (int)parameters.Short.LimitValue);
-            ProcessMatrix(longMTX, (int)parameters.Long.PercentageValue, (int)parameters.Long.LimitValue);
-            GenerateTailLength(shortMTX, (int)parameters.Short.LevelValue);
-            GenerateTailLength(longMTX, (int)parameters.Long.LevelValue);
+            if (P <= 0)
+            {
+                // 返回全false矩阵
+                return new bool[MTX.GetLength(0), MTX.GetLength(1)];
+            }
 
-            int[,] mergeAlbMtx = new int[matrix.GetLength(0), matrix.GetLength(1)];
+            // 收集所有true的位置
+            List<(int row, int col)> truePositions = new List<(int, int)>();
+            for (int i = 0; i < MTX.GetLength(0); i++)
+            {
+                for (int j = 0; j < MTX.GetLength(1); j++)
+                {
+                    if (MTX[i, j])
+                    {
+                        truePositions.Add((i, j));
+                    }
+                }
+            }
+
+            // 如果没有true位置，直接返回全false矩阵
+            if (truePositions.Count == 0)
+            {
+                return new bool[MTX.GetLength(0), MTX.GetLength(1)];
+            }
+
+            double ratio = 1.0 - P / 100.0;
+            // 计算需要设置为false的数量
+            int countToSetFalse = (int)Math.Round(truePositions.Count * ratio);
+            
+            // 按行分组，实现分层抽样
+            var groupedByRow = truePositions.GroupBy(pos => pos.row)
+                                           .ToDictionary(g => g.Key, g => g.ToList());
+            
+            HashSet<(int, int)> positionsToSetFalse = new HashSet<(int, int)>();
+            
+            foreach (var group in groupedByRow)
+            {
+                int row = group.Key;
+                var positionsInRow = group.Value;
+                int countInRow = (int)Math.Round(positionsInRow.Count * ratio);
+                countInRow = Math.Min(countInRow, positionsInRow.Count);
+                var selectedInRow = positionsInRow.OrderBy(x => random.Next())
+                                                 .Take(countInRow);
+                foreach (var pos in selectedInRow)
+                {
+                    positionsToSetFalse.Add(pos);
+                }
+            }
+            // 如果还有剩余配额未满足，补充随机选择
+            if (positionsToSetFalse.Count < countToSetFalse)
+            {
+                var remaining = truePositions.Where(pos => !positionsToSetFalse.Contains(pos))
+                                            .OrderBy(pos => random.Next())
+                                            .Take(countToSetFalse - positionsToSetFalse.Count);
+                
+                foreach (var pos in remaining)
+                {
+                    positionsToSetFalse.Add(pos);
+                }
+            }
+            // 构建结果矩阵
+            bool[,] result = new bool[MTX.GetLength(0), MTX.GetLength(1)];
+            for (int i = 0; i < MTX.GetLength(0); i++)
+            {
+                for (int j = 0; j < MTX.GetLength(1); j++)
+                {
+                    if (MTX[i, j] && !positionsToSetFalse.Contains((i, j)))
+                    {
+                        result[i, j] = true;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private bool[,] LimitTruePerRow(bool[,] MTX, int limit, Random random)
+        {
+            int rows = MTX.GetLength(0);
+            int cols = MTX.GetLength(1);
+
+            bool[,] result = new bool[rows, cols];
+            
+            for (int i = 0; i < rows; i++)
+            {
+                List<int> truePositions = new List<int>();
+                for (int j = 0; j < cols; j++)
+                {
+                    if (MTX[i, j])
+                    {
+                        truePositions.Add(j);
+                    }
+                }
+                
+                if (truePositions.Count > limit)
+                {
+                    var shuffledPositions = truePositions.OrderBy(x => random.Next()).ToList();
+                    for (int k = 0; k < limit; k++)
+                    {
+                        result[i, shuffledPositions[k]] = true;
+                    }
+                }
+                else
+                {
+                    for (int j = 0; j < cols; j++)
+                    {
+                        result[i, j] = MTX[i, j];
+                    }
+                }
+            }
+
+            return result;
+        }
+
+
+        private void ApplyChangesToHitObjects(ManiaBeatmap beatmap, int[,] mergeMTX, KRRLNTransformerOptions parameters)
+        {
+            var (matrix, _) = beatmap.BuildMatrix(); // 重新构建以获取索引
 
             for (int i = 0; i < matrix.GetLength(0); i++)
             {
                 for (int j = 0; j < matrix.GetLength(1); j++)
                 {
-                    mergeAlbMtx[i, j] = -1;
-                }
-            }
-
-            for (int i = 0; i < matrix.GetLength(0); i++)
-            {
-                for (int j = 0; j < matrix.GetLength(1); j++)
-                {
-                    if (shortMTX[i, j] >= 0)
+                    if (mergeMTX[i, j] > 0)
                     {
-                        mergeAlbMtx[i, j] = shortMTX[i, j];
-                    }
-                    else if (longMTX[i, j] >= 0)
-                    {
-                        mergeAlbMtx[i, j] = longMTX[i, j];
-                    }
-                }
-            }
-
-            return mergeAlbMtx;
-        }
-
-        private int[,] CalculateAvailableTime(int[,] matrix, List<int> timeAxis)
-        {
-            int rows = matrix.GetLength(0);
-            int cols = matrix.GetLength(1);
-
-            // 创建同样大小的矩阵，默认值为-1
-            int[,] availableTime = new int[rows, cols];
-
-            // 初始化为-1
-            for (int i = 0; i < rows; i++)
-            {
-                for (int j = 0; j < cols; j++)
-                {
-                    availableTime[i, j] = -1;
-                }
-            }
-
-            // 按列遍历
-            for (int col = 0; col < cols; col++)
-            {
-                for (int row = 0; row < rows; row++)
-                {
-                    // 如果当前元素大于等于0
-                    if (matrix[row, col] >= 0)
-                    {
-                        int nextRowIndex = -1;
-
-                        // 寻找同一列中下一个大于等于0的元素
-                        for (int nextRow = row + 1; nextRow < rows; nextRow++)
+                        if (beatmap.HitObjects[matrix[i, j]].EndTime - beatmap.HitObjects[matrix[i, j]].StartTime > 9
+                            && !parameters.General.ProcessOriginalIsChecked)
                         {
-                            if (matrix[nextRow, col] >= 0)
-                            {
-                                nextRowIndex = nextRow;
-                                break;
-                            }
+                            continue;
                         }
 
-                        // 计算可用时间
-                        if (nextRowIndex == -1)
-                        {
-                            // 如果没有下一个元素，使用最后时间轴的时间
-                            availableTime[row, col] = timeAxis[timeAxis.Count - 1] - timeAxis[row];
-                        }
-                        else
-                        {
-                            // 计算与下一个时间轴的时间差
-                            availableTime[row, col] = timeAxis[nextRowIndex] - timeAxis[row];
-                        }
-                    }
-                }
-            }
-
-            return availableTime;
-        }
-
-        private void ProcessMatrix(int[,] mtx, int p, int x)
-        {
-            int rows = mtx.GetLength(0);
-            int cols = mtx.GetLength(1);
-
-            // 计算需要保留的位置数量比例
-            double keepRatio = p / 100.0;
-
-            Random random = new Random();
-
-            // 按行处理
-            for (int i = 0; i < rows; i++)
-            {
-                // 统计当前行中大于等于0的位置
-                List<int> validPositions = new List<int>();
-                for (int j = 0; j < cols; j++)
-                {
-                    if (mtx[i, j] >= 0)
-                    {
-                        validPositions.Add(j);
-                    }
-                }
-
-                // 如果当前行的非负数数量已经超过限制X
-                if (validPositions.Count > x)
-                {
-                    // 必须减少到X个，计算需要移除的数量
-                    int removeCount = validPositions.Count - x;
-
-                    // 使用权重法随机选择要移除的位置
-                    List<int> positionsToRemove = SelectPositionsByWeight(validPositions, removeCount, random);
-
-                    // 将选中的位置设置为-1
-                    foreach (int col in positionsToRemove)
-                    {
-                        mtx[i, col] = -1;
-                    }
-                }
-                else if (validPositions.Count > 0)
-                {
-                    // 根据百分比计算需要保留的数量
-                    int keepCount = (int)Math.Round(validPositions.Count * keepRatio);
-                    int removeCount = validPositions.Count - keepCount;
-
-                    if (removeCount > 0)
-                    {
-                        // 使用权重法随机选择要移除的位置
-                        List<int> positionsToRemove =
-                            SelectPositionsByWeight(validPositions, removeCount, random);
-
-                        // 将选中的位置设置为-1
-                        foreach (int col in positionsToRemove)
-                        {
-                            mtx[i, col] = -1;
-                        }
-                    }
-                }
-            }
-        }
-
-        private List<int> SelectPositionsByWeight(List<int> validPositions, int removeCount, Random random)
-        {
-            List<int> positionsToRemove = new List<int>();
-            List<int> availablePositions = new List<int>(validPositions);
-
-            for (int i = 0; i < removeCount; i++)
-            {
-                // 计算每个位置的权重（这里使用简单的随机权重，可以根据需要调整）
-                Dictionary<int, double> weights = new Dictionary<int, double>();
-                double totalWeight = 0;
-
-                foreach (int col in availablePositions)
-                {
-                    // 权重可以根据位置的重要性来计算，这里使用简单的随机权重
-                    double weight = random.NextDouble() + 0.1; // 避免权重为0
-                    weights[col] = weight;
-                    totalWeight += weight;
-                }
-
-                // 根据权重选择一个位置
-                double randomValue = random.NextDouble() * totalWeight;
-                double currentWeight = 0;
-                int selectedCol = availablePositions[0];
-
-                foreach (int col in availablePositions)
-                {
-                    currentWeight += weights[col];
-                    if (randomValue <= currentWeight)
-                    {
-                        selectedCol = col;
-                        break;
-                    }
-                }
-
-                positionsToRemove.Add(selectedCol);
-                availablePositions.Remove(selectedCol);
-            }
-
-            return positionsToRemove;
-        }
-
-        private void GenerateTailLength(int[,] mtx, int p)
-        {
-            int rows = mtx.GetLength(0);
-            int cols = mtx.GetLength(1);
-            double percentage = p / 100.0;
-
-            for (int i = 0; i < rows; i++)
-            {
-                for (int j = 0; j < cols; j++)
-                {
-                    // 只处理大于等于0的位置
-                    if (mtx[i, j] >= 0)
-                    {
-                        // 计算当前数字乘以百分比
-                        double calculatedValue = mtx[i, j] * percentage;
-
-                        // 计算阈值：原本数字减50
-                        int threshold = mtx[i, j] - 50;
-
-                        // 如果计算值大于阈值，则设置为阈值
-                        if (calculatedValue > threshold)
-                        {
-                            mtx[i, j] = threshold;
-                        }
-                        else
-                        {
-                            // 否则保持计算值（需要转换为整数）
-                            mtx[i, j] = (int)calculatedValue;
-                        }
+                        beatmap.HitObjects[matrix[i, j]].EndTime = mergeMTX[i, j];
                     }
                 }
             }
@@ -322,6 +292,35 @@ namespace krrTools.Tools.KRRLNTransformer
         public new Beatmap ProcessBeatmapToData(Beatmap beatmap, KRRLNTransformerOptions parameters)
         {
             return base.ProcessBeatmapToData(beatmap, parameters);
+        }
+
+        //修改难度名，tag，和标签等
+        private void changeMeta(Beatmap beatmap)
+        {
+            beatmap.MetadataSection.Version = $"[KRR LN.]{beatmap.MetadataSection.Version}";
+            beatmap.MetadataSection.Creator = "Krr LN. & " + beatmap.MetadataSection.Creator;
+            var currentTags = beatmap.MetadataSection.Tags ?? [];
+            var tagToAdd = BaseOptionsManager.KRRLNDefaultTag;
+            if (!currentTags.Contains(tagToAdd))
+            {
+                var newTags = currentTags.Concat([tagToAdd]).ToArray();
+                beatmap.MetadataSection.Tags = newTags;
+            }
+        }
+        private int[,] DeepCopyMatrix(int[,] source)
+        {
+            int rows = source.GetLength(0);
+            int cols = source.GetLength(1);
+            int[,] destination = new int[rows, cols];
+    
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < cols; j++)
+                {
+                    destination[i, j] = source[i, j];
+                }
+            }
+            return destination;
         }
     }
 }
