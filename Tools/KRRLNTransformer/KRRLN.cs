@@ -68,6 +68,7 @@ namespace krrTools.Tools.KRRLNTransformer
             List<ManiaNote> ManiaObjects = beatmap.HitObjects.OfType<ManiaNote>().ToList();
             int CS = (int)beatmap.DifficultySection.CircleSize;
             int? rows = ManiaObjects.Last().RowIndex;
+            double MainBPM = beatmap.MainBPM;
             // 初始化都是-1的矩阵
             int[,] matrix1 = new int[rows.Value + 1, CS];
             for (int i = 0; i < rows.Value + 1; i++)
@@ -77,9 +78,13 @@ namespace krrTools.Tools.KRRLNTransformer
                     matrix1[i, j] = -1;
                 }
             }
-            // 初始化原始长度矩阵和可用时间矩阵
-            int[,] LNLength = DeepCopyMatrix(matrix1);
-            int[,] AvailableTimeMTX = DeepCopyMatrix(matrix1);
+            // 初始化原始长度矩阵(用于不处理Org时的面条对齐，也要和原面条对齐)和可用时间矩阵，以及长短面等待修改的矩阵
+            int[,] result = DeepCopyMatrix(matrix1);
+            int[,] lnLength = DeepCopyMatrix(matrix1);
+            int[,] availableTimeMtx = DeepCopyMatrix(matrix1);
+            int[,] longLnWaitModify = DeepCopyMatrix(matrix1);
+            int[,] shortLnWaitModify = DeepCopyMatrix(matrix1);
+            
             // 完成坐标矩阵，长度矩阵，可用时间矩阵初始化
             for(int i = 0; i < ManiaObjects.Count; i++)
             {
@@ -87,8 +92,8 @@ namespace krrTools.Tools.KRRLNTransformer
                 int? rowindex = obj.RowIndex;
                 int? colindex = obj.ColIndex;
                 matrix1[rowindex.Value, colindex.Value] = i;
-                LNLength[rowindex.Value, colindex.Value] = obj.HoldLength;
-                AvailableTimeMTX[rowindex.Value, colindex.Value] = timeAxis[i];
+                lnLength[rowindex.Value, colindex.Value] = obj.HoldLength;
+                availableTimeMtx[rowindex.Value, colindex.Value] = timeAxis[i];
             }
             // 完成是否是原LN矩阵
             bool[,] orgIsLN = new bool[rows.Value + 1, CS];
@@ -108,15 +113,16 @@ namespace krrTools.Tools.KRRLNTransformer
                 {
                     for (int j = 0; j < matrix1.GetLength(1); j++)
                     {
-                        if (matrix1[i, j] >= 0 && orgIsLN[i, j])
-                {
+                        if (orgIsLN[i, j])
+                        {
                             matrix1[i, j] = -1;
                         }
+                    }
                 }
             }
-            }
             //通过百分比标记处理位置
-            int border = (int)parameters.LengthThreshold.Value;
+            int borderKey = (int)parameters.LengthThreshold.Value;
+            
             bool[,] shortLNFlag = new bool[rows.Value + 1, CS];
             bool[,] longLNFlag = new bool[rows.Value + 1, CS];
             for (int i = 0; i < matrix1.GetLength(0); i++)
@@ -125,7 +131,7 @@ namespace krrTools.Tools.KRRLNTransformer
                 {
                     if (matrix1[i, j] >= 0)
                     {
-                        if (AvailableTimeMTX[i, j] > border)
+                        if (availableTimeMtx[i, j] > borderlist[borderKey]*ManiaObjects[matrix1[i, j]].BeatLengthOfThisNote)
                         {
                             longLNFlag[i, j] = true;
                         }
@@ -133,14 +139,43 @@ namespace krrTools.Tools.KRRLNTransformer
                         {
                             shortLNFlag[i, j] = true;
                         }
-                        }
                     }
                 }
+            }
             longLNFlag = MarkByPercentage(longLNFlag, parameters.Long.PercentageValue, RG);
             shortLNFlag = MarkByPercentage(shortLNFlag, parameters.Short.PercentageValue, RG);
             longLNFlag = LimitTruePerRow(longLNFlag, (int)parameters.Long.LimitValue, RG);
             shortLNFlag = LimitTruePerRow(shortLNFlag, (int)parameters.Short.LimitValue, RG);
-            return LNLength;
+            
+            //正式生成longLN矩阵
+            for (int i = 0; i < matrix1.GetLength(0); i++)
+                for (int j = 0; j < matrix1.GetLength(1); j++)
+                    if (longLNFlag[i, j])
+                    {
+                        int indexObj = matrix1[i, j];
+                        int NewLength = GenerateTriangularRandom(
+                            borderlist[borderKey] * ManiaObjects[indexObj].BeatLengthOfThisNote ,
+                            availableTimeMtx[i, j] - 600000/MainBPM/8 ,
+                            availableTimeMtx[i, j] * parameters.Long.PercentageValue / 100 ,
+                            parameters.Long.RandomValue , RG
+                        );
+                        longLnWaitModify[i, j] = NewLength;
+                    }
+            //正式生成shortLN矩阵
+            for (int i = 0; i < matrix1.GetLength(0); i++)
+            for (int j = 0; j < matrix1.GetLength(1); j++)
+                if (shortLNFlag[i, j])
+                {
+                    int indexObj = matrix1[i, j];
+                    int NewLength = GenerateTriangularRandom(
+                        600000/MainBPM/8 ,
+                        borderlist[borderKey] * ManiaObjects[indexObj].BeatLengthOfThisNote  ,
+                        availableTimeMtx[i, j] * parameters.Short.PercentageValue / 100 ,
+                        parameters.Long.RandomValue , RG
+                    );
+                    shortLnWaitModify[i, j] = NewLength;
+                }
+            return result;
             }
 
         private bool[,] MarkByPercentage(bool[,] MTX, double P, Random random)
@@ -163,13 +198,13 @@ namespace krrTools.Tools.KRRLNTransformer
             for (int i = 0; i < MTX.GetLength(0); i++)
             {
                 for (int j = 0; j < MTX.GetLength(1); j++)
-            {
-                    if (MTX[i, j])
                 {
+                    if (MTX[i, j])
+                    {
                         truePositions.Add((i, j));
                     }
                 }
-                }
+            }
 
             // 如果没有true位置，直接返回全false矩阵
             if (truePositions.Count == 0)
@@ -202,22 +237,22 @@ namespace krrTools.Tools.KRRLNTransformer
             }
             // 如果还有剩余配额未满足，补充随机选择
             if (positionsToSetFalse.Count < countToSetFalse)
-                {
+            {
                 var remaining = truePositions.Where(pos => !positionsToSetFalse.Contains(pos))
                                             .OrderBy(pos => random.Next())
                                             .Take(countToSetFalse - positionsToSetFalse.Count);
                 
                 foreach (var pos in remaining)
-                    {
+                {
                     positionsToSetFalse.Add(pos);
                 }
-                    }
+            }
             // 构建结果矩阵
             bool[,] result = new bool[MTX.GetLength(0), MTX.GetLength(1)];
             for (int i = 0; i < MTX.GetLength(0); i++)
             {
                 for (int j = 0; j < MTX.GetLength(1); j++)
-                    {
+                {
                     if (MTX[i, j] && !positionsToSetFalse.Contains((i, j)))
                     {
                         result[i, j] = true;
@@ -243,21 +278,21 @@ namespace krrTools.Tools.KRRLNTransformer
                     if (MTX[i, j])
                     {
                         truePositions.Add(j);
+                    }
                 }
-            }
 
                 if (truePositions.Count > limit)
                 {
                     var shuffledPositions = truePositions.OrderBy(x => random.Next()).ToList();
                     for (int k = 0; k < limit; k++)
-                            {
+                    {
                         result[i, shuffledPositions[k]] = true;
-                            }
-                        }
-                        else
-                        {
-                for (int j = 0; j < cols; j++)
+                    }
+                }
+                else
                 {
+                    for (int j = 0; j < cols; j++)
+                    {
                         result[i, j] = MTX[i, j];
                     }
                 }
@@ -266,7 +301,69 @@ namespace krrTools.Tools.KRRLNTransformer
             return result;
         }
 
-
+        private int GenerateTriangularRandom(double D, double U, double M, int P, Random r)
+        {
+            if (P <= 0 || D >= U || M > U)
+                return M>U ? (int)U:(int)M;
+            if (M < D)
+                return (int)D;
+            if (P >= 100)
+                P = 100;
+            // 计算实际百分比
+            double p = P / 100.0;
+    
+            // 计算新的下界限和上界限
+            double d = M - (M - D) * p;  // (D,M)距离M的p位置
+            double u = M + (U - M) * p;  // (M,U)距离M的p位置
+    
+            // 确保新范围在原范围内
+            d = Math.Max(d, D);
+            u = Math.Min(u, U);
+    
+            // 如果范围无效，则返回中心值
+            if (d >= u)
+                return (int)M;
+    
+            // 使用三角分布生成随机数
+            // 三角分布公式：F(x) = (x-a)²/((b-a)(c-a))  when a≤x≤c
+            //              F(x) = 1-(b-x)²/((b-a)(b-c))  when c≤x≤b
+            double a = d;  // 下限
+            double b = u;  // 上限
+            double c = M;  // 众数(期望最大值)
+    
+            // 确保众数在范围内
+            c = Math.Max(a, Math.Min(b, c));
+    
+            Random random = r;
+            double u_random = random.NextDouble();  // 生成[0,1)的随机数
+    
+            double result;
+            if (u_random <= (c - a) / (b - a))
+            {
+                result = a + Math.Sqrt(u_random * (b - a) * (c - a));
+            }
+            else
+            {
+                result = b - Math.Sqrt((1 - u_random) * (b - a) * (b - c));
+            }
+    
+            return (int)result;
+        }
+        
+        private Dictionary<int, double> borderlist = new Dictionary<int, double>
+        {
+            { 0, 0 },
+            { 1, 1.0/8 },
+            { 2, 1.0/6 },
+            { 3, 1.0/4 },
+            { 4, 1.0/3 },
+            { 5, 1.0/2 },
+            { 6, 1.0/1 },
+            { 7, 3.0/2 },
+            { 8, 2.0/1 },
+            { 9, 4.0/1 },
+            { 10, 999 }
+        };
         // 统一用Beatmap，不要用ManiaBeatmap，ApplyChangesToHitObjects只有一个匹配接口方法
         // ManiaBeatmap会导致一些问题
         // private void ApplyChangesToHitObjects(ManiaBeatmap beatmap, int[,] mergeMTX, KRRLNTransformerOptions parameters)
