@@ -13,29 +13,46 @@ namespace krrTools.Tools.KRRLNTransformer
     {
         protected override int[,] ProcessMatrix(int[,] matrix, List<int> timeAxis, Beatmap beatmap, KRRLNTransformerOptions options)
         {
+            
             return BuildAndProcessMatrix(matrix, timeAxis, beatmap, options);
+            
         }
 
         protected override void ApplyChangesToHitObjects(Beatmap beatmap, int[,] mergeMTX, KRRLNTransformerOptions options)
         {
-            var (matrix, _) = beatmap.BuildMatrix(); // 重新构建以获取索引
-
-            for (int i = 0; i < matrix.GetLength(0); i++)
+           
+            List<ManiaNote> ManiaObjects = beatmap.HitObjects.OfType<ManiaNote>().ToList();
+            int CS = (int)beatmap.DifficultySection.CircleSize;
+            int? rows = ManiaObjects.Last().RowIndex;
+            int[,] matrix2 = new int[rows.Value + 1, CS];
+            for (int i = 0; i < rows.Value + 1; i++)
             {
-                for (int j = 0; j < matrix.GetLength(1); j++)
+                for (int j = 0; j < CS; j++)
                 {
-                    if (mergeMTX[i, j] > 0)
-                    {
-                        if (beatmap.HitObjects[matrix[i, j]].EndTime - beatmap.HitObjects[matrix[i, j]].StartTime > 9
-                            && !options.General.ProcessOriginalIsChecked)
-                        {
-                            continue;
-                        }
-
-                        beatmap.HitObjects[matrix[i, j]].EndTime = mergeMTX[i, j];
-                    }
+                    matrix2[i, j] = -1;
                 }
             }
+            for (int i = 0; i < ManiaObjects.Count; i++)
+            {
+                var obj = ManiaObjects[i];
+                int? rowindex = obj.RowIndex;
+                int? colindex = obj.ColIndex;
+                matrix2[rowindex.Value, colindex.Value] = i;
+            }
+
+
+            for(int i = 0; i < beatmap.HitObjects.Count; i++)
+                for (int j = 0; j < beatmap.HitObjects.Count; j++)
+                {
+                    if (mergeMTX[i, j] > 0);
+                    int index = matrix2[i, j];
+                    ManiaHoldNote note = ManiaObjects[index] as ManiaHoldNote;
+                    if (note != null)
+                    {
+                        note.HoldLength = (int)mergeMTX[i, j];
+                    }
+                }
+                
         }
         
         protected override void ModifyMetadata(Beatmap beatmap, KRRLNTransformerOptions options)
@@ -60,6 +77,7 @@ namespace krrTools.Tools.KRRLNTransformer
 
         private int[,] BuildAndProcessMatrix(int[,] matrix, List<int> timeAxis, Beatmap beatmap, KRRLNTransformerOptions parameters)
         {
+            
             // 创建带种子的随机数生成器
             var RG = parameters.Seed.HasValue
                 ? new Random(parameters.Seed.Value)
@@ -79,7 +97,6 @@ namespace krrTools.Tools.KRRLNTransformer
                 }
             }
             // 初始化原始长度矩阵(用于不处理Org时的面条对齐，也要和原面条对齐)和可用时间矩阵，以及长短面等待修改的矩阵
-            int[,] result = DeepCopyMatrix(matrix1);
             int[,] lnLength = DeepCopyMatrix(matrix1);
             int[,] availableTimeMtx = DeepCopyMatrix(matrix1);
             int[,] longLnWaitModify = DeepCopyMatrix(matrix1);
@@ -106,6 +123,7 @@ namespace krrTools.Tools.KRRLNTransformer
                     orgIsLN[rowindex.Value, colindex.Value] = true;
                 }
             }
+            
             //是否处理原始面条初步判定
             if (!parameters.General.ProcessOriginalIsChecked)
             {
@@ -120,6 +138,7 @@ namespace krrTools.Tools.KRRLNTransformer
                     }
                 }
             }
+            
             //通过百分比标记处理位置
             int borderKey = (int)parameters.LengthThreshold.Value;
             
@@ -175,6 +194,15 @@ namespace krrTools.Tools.KRRLNTransformer
                     );
                     shortLnWaitModify[i, j] = NewLength;
                 }
+            var result = MergeMatrices(longLnWaitModify, shortLnWaitModify);
+            
+            for(int i = 0; i < result.GetLength(0); i++)
+                for (int j = 0; j < result.GetLength(1); j++)
+                {
+                    Console.Write(result[i, j]);    
+                }
+                Console.WriteLine();
+                
             return result;
             }
 
@@ -350,6 +378,42 @@ namespace krrTools.Tools.KRRLNTransformer
             return (int)result;
         }
         
+        private int[,] MergeMatrices(int[,] matrix1, int[,] matrix2)
+        {
+            int rows = matrix1.GetLength(0);
+            int cols = matrix1.GetLength(1);
+
+            int[,] result = new int[rows, cols];
+
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < cols; j++)
+                {
+                    int val1 = matrix1[i, j];
+                    int val2 = matrix2[i, j];
+
+                    if (val1 >= -1 && val2 >= -1)
+                    {
+                        result[i, j] = Math.Max(val1, val2);
+                    }
+                    else if (val1 >= -1)
+                    {
+                        result[i, j] = val1;
+                    }
+                    else if (val2 >= -1)
+                    {
+                        result[i, j] = val2;
+                    }
+                    else
+                    {
+                        result[i, j] = -1; // 或者保持不变，根据需求决定
+                    }
+                }
+            }
+
+            return result;
+        }
+        
         private Dictionary<int, double> borderlist = new Dictionary<int, double>
         {
             { 0, 0 },
@@ -364,29 +428,7 @@ namespace krrTools.Tools.KRRLNTransformer
             { 9, 4.0/1 },
             { 10, 999 }
         };
-        // 统一用Beatmap，不要用ManiaBeatmap，ApplyChangesToHitObjects只有一个匹配接口方法
-        // ManiaBeatmap会导致一些问题
-        // private void ApplyChangesToHitObjects(ManiaBeatmap beatmap, int[,] mergeMTX, KRRLNTransformerOptions parameters)
-        //             {
-        //     var (matrix, _) = beatmap.BuildMatrix(); // 重新构建以获取索引
-        //
-        //     for (int i = 0; i < matrix.GetLength(0); i++)
-        //                 {
-        //         for (int j = 0; j < matrix.GetLength(1); j++)
-        //         {
-        //             if (mergeMTX[i, j] > 0)
-        //                 {
-        //                 if (beatmap.HitObjects[matrix[i, j]].EndTime - beatmap.HitObjects[matrix[i, j]].StartTime > 9
-        //                     && !parameters.General.ProcessOriginalIsChecked)
-        //                 {
-        //                     continue;
-        //                 }
-        //
-        //                 beatmap.HitObjects[matrix[i, j]].EndTime = mergeMTX[i, j];
-        //             }
-        //         }
-        //     }
-        // }
+  
 
         public new Beatmap ProcessBeatmapToData(Beatmap beatmap, KRRLNTransformerOptions parameters)
         {
