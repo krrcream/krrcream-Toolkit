@@ -16,8 +16,8 @@
 
 ## 📥 下载
 
-- [GitHub Release](https://github.com/krrcream/krrcream-Toolkit/releases) 🚀*（推荐）*
-- [百度网盘](https://pan.baidu.com/s/1VBhS-RCG402KkjoX9obQNw?from=init&pwd=kr8k) 🔗*（密码：kr8k）*
+- [GitHub Release](https://github.com/krrcream/krrcream-Toolkit/releases) 🚀<i>（推荐）</i>
+- [百度网盘](https://pan.baidu.com/s/1VBhS-RCG402KkjoX9obQNw?from=init&pwd=kr8k) 🔗<i>（密码：kr8k）</i>
 
 ---
 
