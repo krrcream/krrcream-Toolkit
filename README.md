@@ -1,15 +1,18 @@
-﻿
-# 🎵 krrcream's Toolkit
+<h1><p align="center">
+🎵 krrcream's Toolkit
+</p></h1>
+
+<b><p align="center">
+A collection of tools for osu!mania beatmaps
+</p></b>
 
 <p align="center">
-  <b>A collection of tools for osumania beatmap</b>
+These tools allow creating new maps by either dragging batch files into them or pressing hotkeys directly in-game.
 </p>
 
 <p align="center">
-These tools allows creating new maps by either dragging batch files into the window or pressing hotkeys directly in-game.
+English | <a href="./README_zh-hans.md">简体中文</a>
 </p>
-
-
 
 ## 📥 Download
 
@@ -21,10 +24,10 @@ These tools allows creating new maps by either dragging batch files into the win
 ## 🛠️ Tools Included
 
 ### 🎵 krr AnyKeys Converter
-Converts osu! beatmap files with any keys layout.
+Converts osu!mania beatmaps into any key layouts.
 
 ### 📝 YLS LN Transformer
-Customize the proportion and length of Long Notes.
+Customize the proportion and length of long notes.
 
 ### 🗝 DP Tool
 Keys doubling tool with adjustable density.
@@ -43,6 +46,7 @@ Automatically rates beatmaps based on KRR LV.
 ![img_LI.png](img/LI.png)
 ![img_1.png](img/1.png)
 ![img_S.png](img/S.png)
+
 ### .osu File Manager
 ![img_2.png](img/I2.png)
 
@@ -53,5 +57,5 @@ Automatically rates beatmaps based on KRR LV.
 
 ## 📞 Contact
 For any issues or inquiries, please contact me via:
-- **Discord:** krrcream
-- **QQ:** 510089504
+- **Discord:** `krrcream`
+- **QQ:** `510089504`
