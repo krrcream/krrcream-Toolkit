@@ -17,7 +17,7 @@ namespace krrTools.Tools.N2NC
         }
         private double _targetKeys = 10;
 
-        //TODO: 功能脱节，需要检查修复
+        // 动态最大值将由ViewModel的约束管理处理
         [Option(LabelKey = nameof(N2NCMaxKeysTemplate), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double))]
         public double MaxKeys
         {

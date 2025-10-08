@@ -15,8 +15,6 @@ namespace krrTools.Tools.Listener;
 public partial class ListenerControl
 {
     private readonly ListenerViewModel _viewModel;
-    private readonly object? _sourceWindow;
-    private readonly int _sourceId;
     private ConversionHotkeyManager? _conversionHotkeyManager;
 
     private TextBox? _n2ncHotkeyTextBox;
@@ -27,8 +25,6 @@ public partial class ListenerControl
     // 用于避免重复加载同一个预览文件的静态变量
     private static string? _lastPreviewFilePath;
     private static DateTime _lastPreviewLoadTime = DateTime.MinValue;
-
-    internal static bool IsOpen { get; private set; }
 
     public RelayCommand ConvertCommand { get; }
     public RelayCommand BrowseCommand { get; }
@@ -43,13 +39,11 @@ public partial class ListenerControl
     private bool IsRealTimePreviewEnabled =>
         (Application.Current.MainWindow as MainWindow)?.RealTimePreviewEnabled ?? false;
 
-    internal ListenerControl(object? sourceWindow = null, int sourceId = 0)
+    internal ListenerControl()
     {
         InitializeComponent();
         _viewModel = new ListenerViewModel();
         DataContext = _viewModel;
-        _sourceWindow = sourceWindow;
-        _sourceId = sourceId;
 
         ConvertCommand = new RelayCommand(ExecuteConvert);
         BrowseCommand = new RelayCommand(() => _viewModel.SetSongsPath());
@@ -241,8 +235,6 @@ public partial class ListenerControl
     {
         _viewModel.Cleanup();
         _conversionHotkeyManager?.Dispose();
-
-        IsOpen = false;
     }
 
     // ViewModel 属性变化处理（关注 RealTimePreview）
@@ -341,65 +333,54 @@ public partial class ListenerControl
     {
         if (_fileInfoContainer == null) return;
 
-        var dataGrid = new System.Windows.Controls.DataGrid
+        // 创建一个简单的StackPanel来显示当前文件信息
+        var stackPanel = new System.Windows.Controls.StackPanel
         {
-            AutoGenerateColumns = false,
-            CanUserAddRows = false,
-            SelectionMode = System.Windows.Controls.DataGridSelectionMode.Single,
-            SelectionUnit = System.Windows.Controls.DataGridSelectionUnit.FullRow,
-            Margin = new Thickness(0, 5, 0, 0)
+            Orientation = System.Windows.Controls.Orientation.Vertical,
+            Margin = new Thickness(10)
         };
 
-        // Create columns
-        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
-            { Header = "Title", Binding = new System.Windows.Data.Binding("Title"), Width = 140 });
-        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
-            { Header = "Artist", Binding = new System.Windows.Data.Binding("Artist"), Width = 140 });
-        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
-            { Header = "Creator", Binding = new System.Windows.Data.Binding("Creator"), Width = 140 });
-        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
-            { Header = "Version", Binding = new System.Windows.Data.Binding("Version"), Width = 140 });
-        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
-        {
-            Header = "BPM", Binding = new System.Windows.Data.Binding("BPM") { StringFormat = "F1" },
-            Width = System.Windows.Controls.DataGridLength.Auto
-        });
-        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
-        {
-            Header = "OD", Binding = new System.Windows.Data.Binding("OD") { StringFormat = "F1" },
-            Width = System.Windows.Controls.DataGridLength.Auto
-        });
-        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
-        {
-            Header = "HP", Binding = new System.Windows.Data.Binding("HP") { StringFormat = "F1" },
-            Width = System.Windows.Controls.DataGridLength.Auto
-        });
-        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
-        {
-            Header = "Keys", Binding = new System.Windows.Data.Binding("Keys"),
-            Width = System.Windows.Controls.DataGridLength.Auto
-        });
-        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
-        {
-            Header = "Notes", Binding = new System.Windows.Data.Binding("NotesCount"),
-            Width = System.Windows.Controls.DataGridLength.Auto
-        });
-        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
-        {
-            Header = "LN%", Binding = new System.Windows.Data.Binding("LNPercent") { StringFormat = "F2" },
-            Width = System.Windows.Controls.DataGridLength.Auto
-        });
-        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
-        {
-            Header = "Status", Binding = new System.Windows.Data.Binding("Status"),
-            Width = System.Windows.Controls.DataGridLength.Auto
+        // 先创建静态内容测试UI是否工作
+        stackPanel.Children.Add(new System.Windows.Controls.TextBlock 
+        { 
+            Text = "=== DEBUG: UI Container Working ===",
+            FontWeight = FontWeights.Bold,
+            FontSize = 16,
+            Foreground = System.Windows.Media.Brushes.Red
         });
 
-        // Bind to current file info as a single-item collection
-        dataGrid.SetBinding(System.Windows.Controls.ItemsControl.ItemsSourceProperty,
-            new System.Windows.Data.Binding("CurrentFileInfoCollection"));
+        stackPanel.Children.Add(new System.Windows.Controls.TextBlock 
+        { 
+            Text = "Title: Static Test Title",
+            FontSize = 14
+        });
+
+        stackPanel.Children.Add(new System.Windows.Controls.TextBlock 
+        { 
+            Text = "Artist: Static Test Artist",
+            FontSize = 14
+        });
+
+        stackPanel.Children.Add(new System.Windows.Controls.TextBlock 
+        { 
+            Text = "Keys: 7",
+            FontSize = 14
+        });
+
+        stackPanel.Children.Add(new System.Windows.Controls.TextBlock 
+        { 
+            Text = "XXY SR: 12.345",
+            FontSize = 14
+        });
+
+        stackPanel.Children.Add(new System.Windows.Controls.TextBlock 
+        { 
+            Text = "Status: UI Test Working",
+            FontSize = 14,
+            Foreground = System.Windows.Media.Brushes.Green
+        });
 
         // Add to container
-        _fileInfoContainer.Child = dataGrid;
+        _fileInfoContainer.Child = stackPanel;
     }
 }

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Localization;
 using Microsoft.Extensions.Logging;
@@ -28,6 +29,7 @@ public class ListenerViewModel : ObservableObject
     // 智能检查相关
     private bool _wasOsuRunning;
     private int _consecutiveFailures;
+    private int _invalidDataCount; // 用于计数无效数据，避免过度日志
 
     // 记忆路径、热键等配置
     public ListenerConfig Config { get; }
@@ -78,6 +80,14 @@ public class ListenerViewModel : ObservableObject
         // 初始化文件信息集合
         CurrentFileInfoCollection.Add(CurrentFileInfo);
 
+        // 设置初始状态信息
+        CurrentFileInfo.Status = "Ready to monitor...";
+        CurrentFileInfo.Title = "Test Title";
+        CurrentFileInfo.Artist = "Test Artist";
+        CurrentFileInfo.Keys = 7;
+        CurrentFileInfo.XxySR = 12.34;
+        CurrentFileInfo.KrrLV = 56.78;
+
         // 尝试加载已保存的配置（已在上方完成）
         InitializeOsuMonitoring();
 
@@ -108,6 +118,13 @@ public class ListenerViewModel : ObservableObject
         private int _notesCount;
         private double _lnPercent;
         private string _status = "Monitoring...";
+        
+        // LV 分析相关属性
+        private double _xxySR;
+        private double _krrLV = -1;
+        private double _ylsLV = -1;
+        private double _maxKPS;
+        private double _avgKPS;
 
         public string Title
         {
@@ -174,6 +191,37 @@ public class ListenerViewModel : ObservableObject
             get => _status;
             set => SetProperty(ref _status, value);
         }
+
+        // LV 分析指标属性
+        public double XxySR
+        {
+            get => _xxySR;
+            set => SetProperty(ref _xxySR, value);
+        }
+
+        public double KrrLV
+        {
+            get => _krrLV;
+            set => SetProperty(ref _krrLV, value);
+        }
+
+        public double YlsLV
+        {
+            get => _ylsLV;
+            set => SetProperty(ref _ylsLV, value);
+        }
+
+        public double MaxKPS
+        {
+            get => _maxKPS;
+            set => SetProperty(ref _maxKPS, value);
+        }
+
+        public double AvgKPS
+        {
+            get => _avgKPS;
+            set => SetProperty(ref _avgKPS, value);
+        }
     }
 
     // 简单数据类，用于传递谱面信息
@@ -199,7 +247,7 @@ public class ListenerViewModel : ObservableObject
 
     private void SetupTimer()
     {
-        _checkTimer = new System.Timers.Timer(150);
+        _checkTimer = new System.Timers.Timer(1000); // 设置为1秒间隔，减少系统负载
         _checkTimer.Elapsed += async (_, _) => await CheckOsuBeatmapAsync();
         _checkTimer.Start();
     }
@@ -226,8 +274,8 @@ public class ListenerViewModel : ObservableObject
                 return;
             }
 
-            // 进程运行时重置为快速检查
-            if (!_wasOsuRunning && _checkTimer != null) _checkTimer.Interval = 150;
+            // 进程运行时重置为合理的检查间隔 (避免过于频繁)
+            if (!_wasOsuRunning && _checkTimer != null) _checkTimer.Interval = 500;
             _wasOsuRunning = true;
             _consecutiveFailures = 0; // 重置失败计数
 
@@ -286,9 +334,47 @@ public class ListenerViewModel : ObservableObject
             var beatmapFile = _memoryReader.GetOsuFileName();
             var mapFolderName = _memoryReader.GetMapFolderName();
 
-            if (!string.IsNullOrEmpty(beatmapFile) && !string.IsNullOrEmpty(mapFolderName) &&
-                _lastBeatmapId != beatmapFile)
+            // 验证文件名有效性 - 防止无效或不完整的文件名
+            bool isValidBeatmapFile = !string.IsNullOrEmpty(beatmapFile) && 
+                                     beatmapFile.Length > 3 && 
+                                     beatmapFile.EndsWith(".osu", StringComparison.OrdinalIgnoreCase);
+            
+            bool isValidMapFolder = !string.IsNullOrEmpty(mapFolderName) && 
+                                   mapFolderName.Length > 1;
+
+            if (!isValidBeatmapFile || !isValidMapFolder)
             {
+                _invalidDataCount++;
+                
+                // 只在前几次或间隔记录日志，避免日志泛滥
+                if (_invalidDataCount <= 3 || _invalidDataCount % 50 == 0)
+                {
+                    Logger.WriteLine(LogLevel.Debug, 
+                        "[ListenerViewModel] Invalid data detected - BeatmapFile: '{0}' (length: {1}), MapFolder: '{2}' (length: {3})", 
+                        beatmapFile ?? "null", beatmapFile?.Length ?? 0,
+                        mapFolderName ?? "null", mapFolderName?.Length ?? 0);
+                }
+                
+                // 如果数据无效，清空当前状态
+                if (!string.IsNullOrEmpty(_lastBeatmapId))
+                {
+                    _lastBeatmapId = string.Empty;
+                    Application.Current?.Dispatcher?.Invoke(() =>
+                    {
+                        CurrentFileInfo.Status = "Monitoring...";
+                    });
+                }
+                return;
+            }
+
+            // 重置无效数据计数
+            _invalidDataCount = 0;
+
+            // 检查是否是新的谱面文件
+            if (_lastBeatmapId != beatmapFile)
+            {
+                Logger.WriteLine(LogLevel.Information, 
+                    "[ListenerViewModel] Processing new beatmap: {0} in folder {1}", beatmapFile, mapFolderName);
                 await ProcessBeatmapAsync(beatmapFile, mapFolderName);
                 _lastBeatmapId = beatmapFile;
             }
@@ -336,48 +422,181 @@ public class ListenerViewModel : ObservableObject
     {
         await Task.Run(() =>
         {
-            var filePath = Path.Combine(BaseOptionsManager.GetGlobalSettings().SongsPath, mapFolderName, beatmapFile);
-            var beatmap = BeatmapDecoder.Decode(filePath);
-            var bgPath = string.Empty;
-            var bg = beatmap.EventsSection.BackgroundImage;
-            if (!string.IsNullOrWhiteSpace(bg)) bgPath = Path.Combine(Path.GetDirectoryName(filePath)!, bg);
-
-            // 计算LN百分比 (暂时简化，稍后可以改进)
-            var totalNotes = beatmap.HitObjects.Count;
-            var lnPercent = 0.0;
-
-            // 计算BPM
-            var bpm = 0.0;
-            if (beatmap.TimingPoints.Count > 0)
+            try
             {
-                var firstTimingPoint = beatmap.TimingPoints[0];
-                bpm = 60000.0 / firstTimingPoint.BeatLength;
+                var filePath = Path.Combine(BaseOptionsManager.GetGlobalSettings().SongsPath, mapFolderName, beatmapFile);
+                
+                // 验证文件是否存在
+                if (!File.Exists(filePath))
+                {
+                    Logger.WriteLine(LogLevel.Warning, "[ListenerViewModel] File not found: {0}", filePath);
+                    return;
+                }
+                
+                Logger.WriteLine(LogLevel.Debug, "[ListenerViewModel] Analyzing file: {0}", filePath);
+                
+                // 使用 OsuAnalyzer 进行完整分析
+                var analyzer = new OsuAnalyzer();
+                OsuAnalysisResult analysisResult;
+                
+                try 
+                {
+                    analysisResult = analyzer.Analyze(filePath);
+                }
+                catch (Exception ex)
+                {
+                    Logger.WriteLine(LogLevel.Error, 
+                        "[ListenerViewModel] OsuAnalyzer.Analyze() failed for {0}: {1}", filePath, ex.Message);
+                    throw new InvalidOperationException($"Analysis failed: {ex.Message}", ex);
+                }
+                
+                // 调试：输出分析结果的原始数据
+                Logger.WriteLine(LogLevel.Debug, 
+                    "[ListenerViewModel] Analysis result - XXY_SR: {0}, KRR_LV: {1}, Keys: {2}",
+                    analysisResult.XXY_SR, analysisResult.KRR_LV, analysisResult.Keys);
+                
+            // 检查分析结果是否有效
+            if (analysisResult.XXY_SR <= 0 || analysisResult.KRR_LV <= 0)
+            {
+                string statusMessage = "Analysis failed";
+                
+                // 特别检查是否是不支持的键数
+                if (analysisResult.Keys > 10)
+                {
+                    statusMessage = $"Unsupported key count: {analysisResult.Keys}K (max 10K)";
+                    Logger.WriteLine(LogLevel.Warning, 
+                        "[ListenerViewModel] Unsupported key count for {0} - Keys: {1} (SRCalculator only supports 1-10K)",
+                        filePath, analysisResult.Keys);
+                }
+                else
+                {
+                    Logger.WriteLine(LogLevel.Warning, 
+                        "[ListenerViewModel] Invalid analysis result for {0} - XXY_SR: {1}, KRR_LV: {2}",
+                        filePath, analysisResult.XXY_SR, analysisResult.KRR_LV);
+                }
+                
+                // 显示基本信息和错误状态
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    CurrentFileInfo.Status = statusMessage;
+                    CurrentFileInfo.Title = analysisResult.Title ?? "Unknown";
+                    CurrentFileInfo.Artist = analysisResult.Artist ?? "Unknown";
+                    CurrentFileInfo.Creator = analysisResult.Creator ?? "Unknown";
+                    CurrentFileInfo.Version = analysisResult.Diff ?? "Unknown";
+                    CurrentFileInfo.Keys = (int)analysisResult.Keys;
+                    CurrentFileInfo.BPM = double.TryParse(analysisResult.BPMDisplay?.Replace(" BPM", ""), out var bpm) ? bpm : 0.0;
+                    CurrentFileInfo.OD = analysisResult.OD;
+                    CurrentFileInfo.HP = analysisResult.HP;
+                    CurrentFileInfo.NotesCount = analysisResult.NotesCount;
+                    CurrentFileInfo.LNPercent = analysisResult.LNPercent;
+                    // LV 分析指标设为无效值
+                    CurrentFileInfo.XxySR = -1;
+                    CurrentFileInfo.KrrLV = -1;
+                    CurrentFileInfo.YlsLV = double.NaN;
+                    CurrentFileInfo.MaxKPS = analysisResult.MaxKPS;
+                    CurrentFileInfo.AvgKPS = analysisResult.AvgKPS;
+                });
+                return;
+            }                // 获取背景图片路径
+                var beatmap = BeatmapDecoder.Decode(filePath);
+                
+                // 检查游戏模式
+                Logger.WriteLine(LogLevel.Debug, 
+                    "[ListenerViewModel] Beatmap mode: {0}, CircleSize: {1}", 
+                    beatmap.GeneralSection.Mode, beatmap.DifficultySection.CircleSize);
+                
+                // 检查是否为 mania 模式 (ModeId = 3)
+                // 首先尝试通过 Ruleset 获取模式ID
+                bool isMania;
+                try
+                {
+                    // 假设 Mode 是 Ruleset 类型，尝试获取其值
+                    var modeValue = (int)beatmap.GeneralSection.Mode;
+                    isMania = (modeValue == 3);
+                }
+                catch
+                {
+                    // 如果转换失败，尝试字符串匹配
+                    string modeString = beatmap.GeneralSection.Mode.ToString();
+                    isMania = modeString.Contains("Mania", StringComparison.OrdinalIgnoreCase) || modeString.Contains("3");
+                }
+                
+                if (!isMania)
+                {
+                    Logger.WriteLine(LogLevel.Warning, 
+                        "[ListenerViewModel] Beatmap {0} is not mania mode (Mode: {1})", 
+                        filePath, beatmap.GeneralSection.Mode);
+                    
+                    Application.Current?.Dispatcher?.Invoke(() =>
+                    {
+                        CurrentFileInfo.Status = $"Not Mania Mode ({beatmap.GeneralSection.Mode})";
+                        CurrentFileInfo.Title = beatmap.MetadataSection.Title ?? "Unknown";
+                        CurrentFileInfo.Artist = beatmap.MetadataSection.Artist ?? "Unknown";
+                    });
+                    return;
+                }
+                
+                var bgPath = string.Empty;
+                var bg = beatmap.EventsSection.BackgroundImage;
+                if (!string.IsNullOrWhiteSpace(bg)) bgPath = Path.Combine(Path.GetDirectoryName(filePath)!, bg);
+
+                // 计算 YLS LV (基于 XXY SR)
+                var ylsLV = CalculateYlsLevel(analysisResult.XXY_SR);
+
+                var info = new BeatmapInfo
+                {
+                    FilePath = filePath,
+                    BackgroundImagePath = bgPath
+                };
+
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    CurrentOsuFilePath = filePath;
+                    BeatmapSelected?.Invoke(this, info);
+
+                    // 更新当前文件信息 - 现在包含完整的 LV 分析数据
+                    CurrentFileInfo.Title = analysisResult.Title ?? string.Empty;
+                    CurrentFileInfo.Artist = analysisResult.Artist ?? string.Empty;
+                    CurrentFileInfo.Creator = analysisResult.Creator ?? string.Empty;
+                    CurrentFileInfo.Version = analysisResult.Diff ?? string.Empty;
+                    CurrentFileInfo.BPM = double.TryParse(analysisResult.BPMDisplay?.Replace(" BPM", ""), out var bpmValue) ? bpmValue : 0.0;
+                    CurrentFileInfo.OD = analysisResult.OD;
+                    CurrentFileInfo.HP = analysisResult.HP;
+                    CurrentFileInfo.Keys = (int)analysisResult.Keys;
+                    CurrentFileInfo.NotesCount = analysisResult.NotesCount;
+                    CurrentFileInfo.LNPercent = analysisResult.LNPercent;
+                    
+                    // LV 分析指标
+                    CurrentFileInfo.XxySR = analysisResult.XXY_SR;
+                    CurrentFileInfo.KrrLV = analysisResult.KRR_LV;
+                    CurrentFileInfo.YlsLV = ylsLV;
+                    CurrentFileInfo.MaxKPS = analysisResult.MaxKPS;
+                    CurrentFileInfo.AvgKPS = analysisResult.AvgKPS;
+                    
+                    CurrentFileInfo.Status = "Analyzed";
+                    
+                    // 调试日志
+                    Logger.WriteLine(LogLevel.Information, 
+                        "[ListenerViewModel] Updated CurrentFileInfo: {0} - {1} | XXY_SR: {2}, KRR_LV: {3}, YLS_LV: {4}",
+                        CurrentFileInfo.Artist, CurrentFileInfo.Title, 
+                        CurrentFileInfo.XxySR, CurrentFileInfo.KrrLV, CurrentFileInfo.YlsLV);
+                });
             }
-
-            var info = new BeatmapInfo
+            catch (ArgumentException ex) when (ex.Message == "不是mania模式")
             {
-                FilePath = filePath,
-                BackgroundImagePath = bgPath
-            };
-
-            Application.Current?.Dispatcher?.Invoke(() =>
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    CurrentFileInfo.Status = "Not Mania Mode";
+                });
+            }
+            catch (Exception ex)
             {
-                CurrentOsuFilePath = filePath;
-                BeatmapSelected?.Invoke(this, info);
-
-                // 更新当前文件信息
-                CurrentFileInfo.Title = beatmap.MetadataSection.Title ?? string.Empty;
-                CurrentFileInfo.Artist = beatmap.MetadataSection.Artist ?? string.Empty;
-                CurrentFileInfo.Creator = beatmap.MetadataSection.Creator ?? string.Empty;
-                CurrentFileInfo.Version = beatmap.MetadataSection.Version ?? string.Empty;
-                CurrentFileInfo.BPM = bpm;
-                CurrentFileInfo.OD = beatmap.DifficultySection.OverallDifficulty;
-                CurrentFileInfo.HP = beatmap.DifficultySection.HPDrainRate;
-                CurrentFileInfo.Keys = (int)beatmap.DifficultySection.CircleSize;
-                CurrentFileInfo.NotesCount = totalNotes;
-                CurrentFileInfo.LNPercent = lnPercent;
-                CurrentFileInfo.Status = "Active";
-            });
+                Logger.WriteLine(LogLevel.Error, "[ListenerViewModel] ProcessBeatmapAsync failed: {0}", ex.Message);
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    CurrentFileInfo.Status = $"Error: {ex.Message}";
+                });
+            }
         });
     }
 
@@ -400,5 +619,98 @@ public class ListenerViewModel : ObservableObject
     public async Task TriggerImmediateCheck()
     {
         await CheckOsuBeatmapAsync();
+    }
+
+    // 用于调试的方法 - 设置测试数据
+    public void SetTestData()
+    {
+        Application.Current?.Dispatcher?.Invoke(() =>
+        {
+            CurrentFileInfo.Title = "Test Song Title";
+            CurrentFileInfo.Artist = "Test Artist";
+            CurrentFileInfo.Creator = "Test Creator";
+            CurrentFileInfo.Version = "Test Difficulty";
+            CurrentFileInfo.BPM = 180.0;
+            CurrentFileInfo.OD = 8.5;
+            CurrentFileInfo.HP = 7.0;
+            CurrentFileInfo.Keys = 4;
+            CurrentFileInfo.NotesCount = 1250;
+            CurrentFileInfo.LNPercent = 0.15;
+            CurrentFileInfo.XxySR = 5.67;
+            CurrentFileInfo.KrrLV = 12.34;
+            CurrentFileInfo.YlsLV = 8.91;
+            CurrentFileInfo.MaxKPS = 15.5;
+            CurrentFileInfo.AvgKPS = 8.2;
+            CurrentFileInfo.Status = "Test Data";
+            
+            Logger.WriteLine(LogLevel.Information, "[ListenerViewModel] Test data set successfully!");
+        });
+    }
+
+    // LV 分析指标属性（供 ViewModel 使用）
+    private double _xxySR;
+    private double _krrLV;
+    private double _ylsLV;
+    private double _maxKPS;
+    private double _avgKPS;
+
+    public double XxySR
+    {
+        get => _xxySR;
+        set => SetProperty(ref _xxySR, value);
+    }
+
+    public double KrrLV
+    {
+        get => _krrLV;
+        set => SetProperty(ref _krrLV, value);
+    }
+
+    public double YlsLV
+    {
+        get => _ylsLV;
+        set => SetProperty(ref _ylsLV, value);
+    }
+
+    public double MaxKPS
+    {
+        get => _maxKPS;
+        set => SetProperty(ref _maxKPS, value);
+    }
+
+    public double AvgKPS
+    {
+        get => _avgKPS;
+        set => SetProperty(ref _avgKPS, value);
+    }
+
+    private static double CalculateYlsLevel(double xxyStarRating)
+    {
+        const double LOWER_BOUND = 2.76257856739498;
+        const double UPPER_BOUND = 10.5541834716376;
+
+        if (xxyStarRating is >= LOWER_BOUND and <= UPPER_BOUND)
+        {
+            return FittingFormula(xxyStarRating);
+        }
+
+        if (xxyStarRating is < LOWER_BOUND and > 0)
+        {
+            return 3.6198 * xxyStarRating;
+        }
+
+        if (xxyStarRating is > UPPER_BOUND and < 12.3456789)
+        {
+            return (2.791 * xxyStarRating) + 0.5436;
+        }
+
+        return double.NaN;
+    }
+
+    private static double FittingFormula(double x)
+    {
+        // TODO: 实现正确的拟合公式
+        // For now, returning a placeholder value
+        return x * 1.5; // Replace with actual formula
     }
 }

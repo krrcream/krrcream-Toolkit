@@ -4,7 +4,6 @@ using System.Linq;
 using System.Numerics;
 using krrTools.Beatmaps;
 using krrTools.Configuration;
-using krrTools.Core;
 using OsuParsers.Beatmaps;
 using OsuParsers.Beatmaps.Objects.Mania;
 

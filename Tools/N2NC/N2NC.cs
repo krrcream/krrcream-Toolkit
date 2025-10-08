@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using krrTools.Beatmaps;
-using krrTools.Core;
 using krrTools.Data;
 using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;

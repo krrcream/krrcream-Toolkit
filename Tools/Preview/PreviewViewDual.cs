@@ -38,7 +38,7 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
         _currentTool = tool;
     }
     private DateTime _lastSettingsChange = DateTime.MinValue;
-    private const int SettingsChangeThrottleMs = 150;
+    private const int SettingsChangeThrottleMs = 50;
 
     private bool _autoLoadedSample;
     private string? _currentBackgroundPath;
@@ -72,20 +72,12 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
 
     public void Refresh()
     {
-        // 手动刷新，立即执行
-        if (ViewModel != null)
-        {
-            // 使用ViewModel的refreshManager
-            var refreshManager = new PreviewRefreshManager(ViewModel);
-            refreshManager.TriggerRefresh(RefreshTrigger.Manual);
-        }
+        ViewModel?.TriggerRefresh();
     }
 
     public void LoadPreview(string input)
     {
         ViewModel?.LoadFromPath(input);
-        // 触发刷新
-        Refresh();
     }
 
     public PreviewViewDual(PreviewViewModel viewModel)
@@ -247,7 +239,7 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
         _isProcessing = true;
         try
         {
-            ViewModel?.TriggerRefresh(RefreshTrigger.SettingsChanged);
+            ViewModel?.TriggerRefresh();
         }
         finally
         {
@@ -266,13 +258,6 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
         if (_autoLoadedSample || ViewModel?.OriginalVisual != null) return;
         ViewModel?.LoadBuiltInSample();
         _autoLoadedSample = true;
-    }
-
-    // 监听DataContext变化以自动刷新
-    private void DualPreviewControl_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
-    {
-        // 完全移除DataContext变化监听，避免任何可能的副作用
-        // 预览只通过明确的刷新触发器控制
     }
 
     // 加载谱面背景图的方法，统一在项目中使用

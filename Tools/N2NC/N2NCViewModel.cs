@@ -50,6 +50,9 @@ namespace krrTools.Tools.N2NC
         public N2NCViewModel(N2NCOptions options) : base(ConverterEnum.N2NC, true, options)
         {
             InitializeLocalized();
+            
+            // 订阅Options的PropertyChanged事件来触发约束
+            Options.PropertyChanged += OnOptionsPropertyChangedHandler;
         }
 
         private KeySelectionFlags _keySelection = KeySelectionFlags.None;
@@ -181,16 +184,8 @@ namespace krrTools.Tools.N2NC
                 {
                     Options.TargetKeys = value;
                     OnPropertyChanged();
-                    // 更新MaxKeys和MinKeys以不超过TargetKeys
-                    if (MaxKeys > TargetKeys)
-                        MaxKeys = TargetKeys;
-                    if (MinKeys > TargetKeys)
-                        MinKeys = TargetKeys;
-                    // 确保MinKeys <= MaxKeys
-                    if (MinKeys > MaxKeys)
-                        MinKeys = MaxKeys;
-                    OnPropertyChanged(nameof(MaxKeysMaximum));
-                    OnPropertyChanged(nameof(MinKeysMaximum));
+                    // 事件驱动更新约束
+                    UpdateKeyConstraints();
                 }
             }
         }
@@ -206,18 +201,8 @@ namespace krrTools.Tools.N2NC
                 {
                     Options.MaxKeys = value;
                     OnPropertyChanged();
-                    // 确保MaxKeys不超过TargetKeys
-                    if (MaxKeys > TargetKeys)
-                        MaxKeys = TargetKeys;
-
-                    // 当最大键数改变时，更新最小键数
-                    // 如果最大键数等于1，最小键数等于1；否则最小键数等于2
-                    MinKeys = Math.Abs(Options.MaxKeys - 1.0) < 0 ? 1 : 2;
-
-                    // 确保MinKeys不超过MaxKeys
-                    if (MinKeys > MaxKeys)
-                        MinKeys = MaxKeys;
-                    OnPropertyChanged(nameof(MinKeysMaximum));
+                    // 事件驱动更新约束
+                    UpdateKeyConstraints();
                 }
             }
         }
@@ -231,17 +216,68 @@ namespace krrTools.Tools.N2NC
                 {
                     Options.MinKeys = value;
                     OnPropertyChanged();
-                    // 确保MinKeys不超过TargetKeys和MaxKeys
-                    if (MinKeys > TargetKeys)
-                        MinKeys = TargetKeys;
-                    if (MinKeys > MaxKeys)
-                        MinKeys = MaxKeys;
+                    // 事件驱动更新约束
+                    UpdateKeyConstraints();
                 }
             }
         }
 
         public double MinKeysMaximum => MaxKeys;
         public double MaxKeysMaximum => TargetKeys;
+
+        /// <summary>
+        /// 事件驱动的约束更新方法
+        /// 确保键数设置的逻辑正确性
+        /// </summary>
+        private void UpdateKeyConstraints()
+        {
+            Console.WriteLine($"[N2NCViewModel] UpdateKeyConstraints called - TargetKeys: {Options.TargetKeys}, MaxKeys: {Options.MaxKeys}, MinKeys: {Options.MinKeys}");
+            
+            // 确保MaxKeys不超过TargetKeys
+            if (Options.MaxKeys > Options.TargetKeys)
+            {
+                Console.WriteLine($"[N2NCViewModel] Constraining MaxKeys from {Options.MaxKeys} to {Options.TargetKeys}");
+                Options.MaxKeys = Options.TargetKeys;
+                OnPropertyChanged(nameof(MaxKeys));
+            }
+            
+            // 确保MinKeys不超过TargetKeys
+            if (Options.MinKeys > Options.TargetKeys)
+            {
+                Console.WriteLine($"[N2NCViewModel] Constraining MinKeys from {Options.MinKeys} to {Options.TargetKeys}");
+                Options.MinKeys = Options.TargetKeys;
+                OnPropertyChanged(nameof(MinKeys));
+            }
+            
+            // 确保MinKeys不超过MaxKeys
+            if (Options.MinKeys > Options.MaxKeys)
+            {
+                Console.WriteLine($"[N2NCViewModel] Constraining MinKeys from {Options.MinKeys} to {Options.MaxKeys}");
+                Options.MinKeys = Options.MaxKeys;
+                OnPropertyChanged(nameof(MinKeys));
+            }
+            
+            // 总是通知UI动态最大值属性已更改，确保滑条最大值更新
+            Console.WriteLine($"[N2NCViewModel] Notifying MaxKeysMaximum: {MaxKeysMaximum}, MinKeysMaximum: {MinKeysMaximum}");
+            OnPropertyChanged(nameof(MaxKeysMaximum));
+            OnPropertyChanged(nameof(MinKeysMaximum));
+        }
+
+        /// <summary>
+        /// 处理Options属性变化，触发约束更新
+        /// </summary>
+        private void OnOptionsPropertyChangedHandler(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            Console.WriteLine($"[N2NCViewModel] Options property changed: {e.PropertyName}");
+            
+            // 当相关键数属性变化时，触发约束更新
+            if (e.PropertyName == nameof(Options.TargetKeys) || 
+                e.PropertyName == nameof(Options.MaxKeys) || 
+                e.PropertyName == nameof(Options.MinKeys))
+            {
+                UpdateKeyConstraints();
+            }
+        }
 
         // TransformSpeed is a double representing the actual configured speed (slider-controlled)
         public double TransformSpeed

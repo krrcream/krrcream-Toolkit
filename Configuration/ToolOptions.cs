@@ -19,7 +19,6 @@ public interface IToolOptions
 /// </summary>
 public interface IPreviewOptionsProvider
 {
-    IToolOptions GetPreviewOptions();
 }
 
 // 基类，实现了基本的选项加载和保存逻辑
@@ -132,41 +131,70 @@ public abstract class   ToolViewModelBase<TOptions> : ObservableObject where TOp
     private readonly bool _autoSave;
     private readonly DispatcherTimer? _saveTimer;
 
+    private bool _isInitializing = true;
+
     protected ToolViewModelBase(ConverterEnum toolEnum, bool autoSave = true, TOptions? injectedOptions = null)
     {
         _toolEnum = toolEnum;
         _autoSave = autoSave;
         _options = injectedOptions ?? new TOptions();
 
-        // Load options on initialization if not injected
-        if (injectedOptions == null) DoLoadOptions();
-
-        // Subscribe to settings changes
-        BaseOptionsManager.SettingsChanged += OnSettingsChanged;
-
-        // Initialize save timer for debouncing
+        // Initialize save timer for debouncing - 增加防抖时间
         if (_autoSave)
         {
-            _saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+            _saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
             _saveTimer.Tick += (_, _) =>
             {
                 _saveTimer.Stop();
-                DoSaveOptions();
+                if (!_isInitializing) 
+                {
+                    try
+                    {
+                        var optionsToSave = Options;
+                        optionsToSave.Validate();
+                        BaseOptionsManager.SaveOptions(_toolEnum, optionsToSave);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.WriteLine(LogLevel.Error, $"[ToolOptions] Failed to save options for {_toolEnum}: {ex.Message}");
+                        Console.WriteLine("[DEBUG] Failed to save options; changes may be lost.");
+                    }
+                }
             };
         }
 
-        // Subscribe to property changes for auto-save if enabled
-        if (_autoSave)
+        // 延迟初始化，避免构造时的事件风暴
+        Dispatcher.CurrentDispatcher.BeginInvoke(() =>
         {
-            PropertyChanged += OnPropertyChanged;
-            if (_options is ObservableObject observableOptions)
-                observableOptions.PropertyChanged += OnOptionsPropertyChanged;
-        }
+            try
+            {
+                // Load options on initialization if not injected
+                if (injectedOptions == null) DoLoadOptions();
+
+                // Subscribe to settings changes
+                BaseOptionsManager.SettingsChanged += OnSettingsChanged;
+
+                // Subscribe to property changes for auto-save if enabled
+                if (_autoSave)
+                {
+                    PropertyChanged += OnPropertyChanged;
+                    if (_options is ObservableObject observableOptions)
+                        observableOptions.PropertyChanged += OnOptionsPropertyChanged;
+                }
+            }
+            finally
+            {
+                _isInitializing = false;
+            }
+        }, DispatcherPriority.Background);
     }
 
     private void OnSettingsChanged(ConverterEnum changedConverter)
     {
-        if (changedConverter == _toolEnum) DoLoadOptions();
+        if (changedConverter == _toolEnum && !_isInitializing) 
+        {
+            DoLoadOptions();
+        }
     }
 
     /// <summary>
@@ -201,7 +229,12 @@ public abstract class   ToolViewModelBase<TOptions> : ObservableObject where TOp
             if (saved != null)
             {
                 saved.Validate();
+                
+                // 临时禁用初始化状态来设置选项
+                var wasInitializing = _isInitializing;
+                _isInitializing = true;
                 Options = saved;
+                _isInitializing = wasInitializing;
             }
         }
         catch
@@ -210,31 +243,35 @@ public abstract class   ToolViewModelBase<TOptions> : ObservableObject where TOp
         }
     }
 
-    private void DoSaveOptions()
-    {
-        try
-        {
-            var optionsToSave = Options;
-            optionsToSave.Validate();
-            BaseOptionsManager.SaveOptions(_toolEnum, optionsToSave);
-        }
-        catch (Exception ex)
-        {
-            Logger.WriteLine(LogLevel.Error, $"[ToolOptions] Failed to save options for {_toolEnum}: {ex.Message}");
-            Console.WriteLine("[DEBUG] Failed to save options; changes may be lost.");
-        }
-    }
+
 
     private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (_autoSave && e.PropertyName != nameof(Options)) StartDelayedSave();
+        if (_autoSave && e.PropertyName != nameof(Options) && !_isInitializing) 
+        {
+            StartDelayedSave();
+            TriggerPreviewRefresh();
+        }
     }
 
     private void OnOptionsPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (_isInitializing) return;
+        
         // 触发ViewModel的PropertyChanged事件，以便UI（如预览）能监听到选项变化
         OnPropertyChanged(new PropertyChangedEventArgs(nameof(Options)));
-        if (_autoSave) DoSaveOptions();
+        if (_autoSave) 
+        {
+            StartDelayedSave();
+            TriggerPreviewRefresh();
+        }
+    }
+    
+    protected virtual void TriggerPreviewRefresh()
+    {
+        // 子类可以重写此方法来触发预览刷新
+        // 严格禁止在这里传递或缓存beatmap对象
+        // 只发送刷新信号，让预览组件自己重新加载数据
     }
 
     private void StartDelayedSave()
@@ -279,13 +316,6 @@ public abstract class ToolViewBase<TOptions> : UserControl where TOptions : clas
     {
         var saved = BaseOptionsManager.LoadOptions<TOptions>(_toolEnum);
         if (saved != null) Options = saved;
-    }
-
-    private void DoSaveOptions()
-    {
-        var optionsToSave = Options;
-        optionsToSave.Validate();
-        BaseOptionsManager.SaveOptions(_toolEnum, optionsToSave);
     }
 }
 

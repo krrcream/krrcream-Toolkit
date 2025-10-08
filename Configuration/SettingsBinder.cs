@@ -60,52 +60,6 @@ public static class QuickBind
     }
 
     /// <summary>
-    /// 双向绑定：control.Bind(source, x => x.Property) - 兼容旧版本
-    /// </summary>
-    public static T Bind<T>(this T control, object source, Expression<Func<object, object>> property)
-        where T : FrameworkElement
-    {
-        var path = GetPath(property);
-        var binding = new Binding(path)
-        {
-            Source = source,
-            Mode = BindingMode.TwoWay,
-            UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
-        };
-
-        // 根据控件类型自动选择目标属性
-        var targetProperty = control switch
-        {
-            ToggleButton => ToggleButton.IsCheckedProperty,
-            RangeBase => RangeBase.ValueProperty,
-            TextBox => System.Windows.Controls.TextBox.TextProperty,
-            ComboBox => Selector.SelectedItemProperty,
-            _ => throw new NotSupportedException($"不支持的控件类型: {typeof(T)}")
-        };
-
-        control.SetBinding(targetProperty, binding);
-        return control;
-    }
-
-    /// <summary>
-    /// 枚举专用绑定：combo.BindEnum&lt;EnumType&gt;(source, x => x.Property)
-    /// </summary>
-    public static ComboBox BindEnum<TEnum>(this ComboBox combo, object source, Expression<Func<object, TEnum>> property)
-        where TEnum : struct, Enum
-    {
-        var path = GetPath(property);
-        combo.ItemsSource = Enum.GetValues(typeof(TEnum));
-        var binding = new Binding(path)
-        {
-            Source = source,
-            Mode = BindingMode.TwoWay,
-            UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
-        };
-        combo.SetBinding(Selector.SelectedItemProperty, binding);
-        return combo;
-    }
-
-    /// <summary>
     /// 从表达式提取属性路径
     /// </summary>
     private static string GetPath(Expression expression)
@@ -202,7 +156,7 @@ public static class SettingsBinder
                     // 转换propertySelector为double类型
                     var doublePropertySelector = Expression.Lambda<Func<T, double>>(
                         Expression.Convert(propertySelector.Body, typeof(double)), propertySelector.Parameters);
-                    return (FrameworkElement)CreateTemplatedSlider(options, doublePropertySelector, null, null);
+                    return (FrameworkElement)CreateTemplatedSlider(options, doublePropertySelector);
                 }
                 break;
             case UIType.NumberBox:
@@ -239,7 +193,7 @@ public static class SettingsBinder
                             typeof(Func<,>).MakeGenericType(typeof(object), effectiveType),
                             convertToEnum, param);
 
-                        genericMethod.Invoke(null, new object[] { comboBox, options, typedSelector });
+                        genericMethod.Invoke(null, [comboBox, options, typedSelector]);
                     }
                     return comboBox;
                 }
@@ -379,5 +333,57 @@ public static class SettingsBinder
         grid.Children.Add(generateButton);
 
         return grid;
+    }
+
+    /// <summary>
+    /// 创建支持动态最大值的模板化滑块控件
+    /// </summary>
+    public static UIElement CreateTemplatedSliderWithDynamicMax<T>(
+        T options, 
+        Expression<Func<T, double>> propertySelector,
+        object dynamicMaxSource,
+        string dynamicMaxPath,
+        Expression<Func<T, object>>? checkPropertySelector = null, 
+        Dictionary<double, string>? valueDisplayMap = null) where T : class
+    {
+        var propertyInfo = GetPropertyInfoFromExpression(propertySelector);
+        if (propertyInfo == null) return new TextBlock { Text = "Invalid property selector" };
+
+        var checkPropertyInfo =
+            checkPropertySelector != null ? GetPropertyInfoFromExpression(checkPropertySelector) : null;
+        var checkEnabled = checkPropertyInfo != null;
+
+        var attr = propertyInfo.GetCustomAttribute<OptionAttribute>();
+        if (attr == null) return new TextBlock { Text = $"No OptionAttribute for {propertyInfo.Name}" };
+
+        var label = GetLocalizedString(attr.LabelKey);
+        var tooltip = string.IsNullOrEmpty(attr.TooltipKey) ? null : GetLocalizedString(attr.TooltipKey);
+
+        if (IsNumericType(propertyInfo.PropertyType))
+        {
+            // 转换propertySelector为double类型
+            var doublePropertySelector = Expression.Lambda<Func<T, double>>(
+                Expression.Convert(propertySelector.Body, typeof(double)), propertySelector.Parameters);
+
+            var slider = new SettingsSlider<T>
+            {
+                LabelText = label,
+                TooltipText = tooltip ?? "",
+                Min = Convert.ToDouble(attr.Min ?? 0),
+                Max = Convert.ToDouble(attr.Max ?? 100), // 初始最大值，会被动态绑定覆盖
+                TickFrequency = attr.TickFrequency ?? 1,
+                KeyboardStep = attr.KeyboardStep ?? 1,
+                Source = options,
+                PropertySelector = doublePropertySelector,
+                CheckEnabled = checkEnabled,
+                ValueDisplayMap = valueDisplayMap,
+                // 设置动态绑定
+                DynamicMaxSource = dynamicMaxSource,
+                DynamicMaxPath = dynamicMaxPath
+            };
+            return slider;
+        }
+
+        return new TextBlock { Text = $"Unsupported slider type for {propertyInfo.Name}" };
     }
 }

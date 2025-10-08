@@ -99,7 +99,7 @@ public class FilesManagerView : UserControl
         // 设置选中行样式 - 更明显的蓝色高亮
         var rowStyle = new Style(typeof(DataGridRow));
         var selectedTrigger = new Trigger { Property = DataGridRow.IsSelectedProperty, Value = true };
-        selectedTrigger.Setters.Add(new Setter(DataGridRow.BackgroundProperty, new SolidColorBrush(Color.FromRgb(33, 150, 243)))); // 蓝色高亮
+        selectedTrigger.Setters.Add(new Setter(BackgroundProperty, new SolidColorBrush(Color.FromRgb(33, 150, 243)))); // 蓝色高亮
         rowStyle.Triggers.Add(selectedTrigger);
         _fileDataGrid.RowStyle = rowStyle;
 

@@ -97,7 +97,7 @@
                     <Button
                         Grid.Column="1"
                         Width="120"
-                        Height="32"
+                        Height="38"
                         Padding="10,2"
                         Command="{Binding BrowseCommand}"
                         Content="Browse Songs" />
@@ -118,7 +118,6 @@
                 <Border
                     x:Name="FileInfoContainer"
                     Margin="0,5,0,0"
-                    Background="White"
                     BorderBrush="Gray"
                     BorderThickness="1" />
             </GroupBox>

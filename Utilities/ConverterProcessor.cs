@@ -102,11 +102,31 @@ public class ConverterProcessor : IPreviewProcessor
             return new TextBlock { Text = "转换后谱面无Mania notes" };
         }
         
-        var dyn = new PreviewDynamicControl(notes, columns, quarterMs)
+        // 使用新的分层控件 - 支持小节线和音符分离绘制
+        var layeredControl = new LayeredPreviewControl
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch
         };
-        return dyn;
+        
+        // 传递谱面路径用于判断小节线是否需要重绘
+        var beatmapPath = GetBeatmapPath(beatmap);
+        layeredControl.UpdatePreview(notes, columns, quarterMs, beatmapPath);
+        
+        return layeredControl;
+    }
+    
+    /// <summary>
+    /// 获取谱面的唯一标识路径，用于判断小节线是否需要重绘
+    /// </summary>
+    private string GetBeatmapPath(Beatmap beatmap)
+    {
+        // 如果是内置样本，返回固定标识
+        if (beatmap?.MetadataSection?.Title == "Built-in Sample")
+            return "builtin-sample";
+            
+        // 使用Title作为唯一标识（简化版本，避免复杂判断）
+        var title = beatmap?.MetadataSection?.Title;
+        return string.IsNullOrEmpty(title) ? "unknown" : title;
     }
 }

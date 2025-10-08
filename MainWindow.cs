@@ -92,7 +92,7 @@ public class MainWindow : FluentWindow
     private ContentControl? FilesManagerHost => _settingsHosts.GetValueOrDefault(ModuleEnum.FilesManager);
     private ContentControl? ListenerSettingsHost => _settingsHosts.GetValueOrDefault(ModuleEnum.Listener);
 
-    public FileDropZoneViewModel? FileDropZoneViewModel { get; private set; }
+    public FileDropZoneViewModel? FileDropZoneViewModel => null;
 
     public MainWindow()
     {

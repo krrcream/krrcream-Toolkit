@@ -19,6 +19,11 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
 {
     private TextBlock Label { get; set; }
     private Slider InnerSlider { get; }
+    
+    public object? DynamicMaxSource { get; init; }
+    public string? DynamicMaxPath { get; init; }
+    public object? DynamicMinSource { get; init; }
+    public string? DynamicMinPath { get; init; }
     private CheckBox? CheckBox { get; set; }
 
     private readonly string _labelText = string.Empty;
@@ -38,10 +43,8 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
     public Expression<Func<TDataContext, double>>? PropertySelector { get; init; }
     public bool CheckEnabled { get; init; }
 
-    // Dictionary mapping support
     public Dictionary<double, string>? ValueDisplayMap { get; init; }
 
-    // Enum-based provider support
     public IEnumSettingsProvider? EnumProvider { get; set; }
     public Enum? EnumKey { get; set; }
     public double Min { get; init; } = 1;
@@ -75,7 +78,7 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
         SetColumnSpan(InnerSlider, 2);
         Children.Add(InnerSlider);
 
-        _debounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+        _debounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(5) }; // 设置5ms的防抖间隔
         _debounceTimer.Tick += OnDebounceTimerTick;
         Loaded += SettingsSlider_Loaded;
         Unloaded += SettingsSlider_Unloaded;
@@ -90,9 +93,13 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
         if (_isInitialized) return;
         _isInitialized = true;
 
+        // Console.WriteLine(
+        //     $"[SettingsControls] SettingsSlider_Loaded - DynamicMaxSource: {DynamicMaxSource}, DynamicMaxPath: {DynamicMaxPath}");
+
         InitializeCheckBox();
         InitializeLabel();
         InitializeSliderProperties();
+        SetupDynamicBindings();
 
         if (EnumProvider != null && EnumKey != null)
             SetupEnumBinding();
@@ -108,12 +115,12 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
 
             CheckBox.Checked += (_, _) =>
             {
-                Console.WriteLine("[SettingsControls] CheckBox checked, enabling slider");
+                // Console.WriteLine("[SettingsControls] CheckBox checked, enabling slider");
                 InnerSlider.IsEnabled = true;
             };
             CheckBox.Unchecked += (_, _) =>
             {
-                Console.WriteLine("[SettingsControls] CheckBox unchecked, disabling slider");
+                // Console.WriteLine("[SettingsControls] CheckBox unchecked, disabling slider");
                 InnerSlider.IsEnabled = false;
             };
         }
@@ -150,6 +157,45 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
         if (!double.IsNaN(TickFrequency)) InnerSlider.TickFrequency = TickFrequency;
         InnerSlider.SmallChange = KeyboardStep;
         InnerSlider.IsSnapToTickEnabled = !double.IsNaN(TickFrequency);
+    }
+
+    /// <summary>
+    /// 设置动态属性绑定（如动态最大值、最小值）
+    /// </summary>
+    private void SetupDynamicBindings()
+    {
+        // 设置动态最大值绑定
+        if (DynamicMaxSource != null && !string.IsNullOrEmpty(DynamicMaxPath))
+        {
+            // Console.WriteLine(
+            //     $"[SettingsControls] Setting up dynamic max binding: {DynamicMaxPath}, Source: {DynamicMaxSource}");
+            var maxBinding = new Binding(DynamicMaxPath)
+            {
+                Source = DynamicMaxSource,
+                Mode = BindingMode.OneWay,
+                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+            };
+            InnerSlider.SetBinding(RangeBase.MaximumProperty, maxBinding);
+        }
+        else
+        {
+            // Console.WriteLine(
+            //     $"[SettingsControls] No dynamic max binding - Source: {DynamicMaxSource}, Path: {DynamicMaxPath}");
+        }
+
+        // 设置动态最小值绑定
+        if (DynamicMinSource != null && !string.IsNullOrEmpty(DynamicMinPath))
+        {
+            // Console.WriteLine(
+            //     $"[SettingsControls] Setting up dynamic min binding: {DynamicMinPath}, Source: {DynamicMinSource}");
+            var minBinding = new Binding(DynamicMinPath)
+            {
+                Source = DynamicMinSource,
+                Mode = BindingMode.OneWay,
+                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+            };
+            InnerSlider.SetBinding(RangeBase.MinimumProperty, minBinding);
+        }
     }
 
     private void SetupEnumBinding()
@@ -281,10 +327,7 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
             {
                 // 使用反射从lambda表达式中提取属性信息并设置值
                 var propertyInfo = GetPropertyInfoFromExpression(PropertySelector);
-                if (propertyInfo != null)
-                {
-                    propertyInfo.SetValue(Source, _pendingValue);
-                }
+                if (propertyInfo != null) propertyInfo.SetValue(Source, _pendingValue);
             }
         }
         catch (Exception ex)
@@ -347,7 +390,8 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
     /// <summary>
     /// 从lambda表达式获取属性信息
     /// </summary>
-    private static PropertyInfo? GetPropertyInfoFromExpression<T, TResult>(Expression<Func<T, TResult>> propertySelector)
+    private static PropertyInfo? GetPropertyInfoFromExpression<T, TResult>(
+        Expression<Func<T, TResult>> propertySelector)
     {
         var current = propertySelector.Body;
 

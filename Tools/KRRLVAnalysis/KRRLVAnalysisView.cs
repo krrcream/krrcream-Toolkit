@@ -81,7 +81,7 @@ namespace krrTools.Tools.KRRLVAnalysis
                 Maximum = 100
             };
             progressBar.SetBinding(RangeBase.ValueProperty, new Binding("ProgressValue"));
-            progressBar.SetBinding(ProgressBar.VisibilityProperty, new Binding("IsProgressVisible")
+            progressBar.SetBinding(VisibilityProperty, new Binding("IsProgressVisible")
             {
                 Converter = new BooleanToVisibilityConverter()
             });
