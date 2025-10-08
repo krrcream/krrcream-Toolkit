@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
+using OsuParsers.Beatmaps.Objects;
 
 namespace krrTools.Beatmaps;
 
@@ -38,7 +40,7 @@ public static class BeatmapExtensions
         return asMs ? 60000.0 / Math.Max(1.0, bpm) : bpm;
     }
 
-    public static (int[,], List<int>) BuildMatrix(this Beatmap beatmap)
+    public static (NoteMatrix, List<int>) BuildMatrix(this Beatmap beatmap)
     {
         var cs = (int)beatmap.DifficultySection.CircleSize;
         var timePoints = new SortedSet<int>();
@@ -52,10 +54,8 @@ public static class BeatmapExtensions
         var h = timeAxis.Count;
         var a = cs;
 
-        var matrix = new int[h, a];
-        for (var i = 0; i < h; i++)
-        for (var j = 0; j < a; j++)
-            matrix[i, j] = -1;
+        var matrix = new NoteMatrix(h, a);
+        // NoteMatrix already initialized to Empty (-1)
 
         var timeToRow = timeAxis
             .Select((time, index) => new { time, index })
@@ -73,7 +73,7 @@ public static class BeatmapExtensions
             {
                 var endRow = timeToRow[hitObject.EndTime];
 
-                for (var row = startRow + 1; row <= endRow; row++) matrix[row, column] = -7;
+                for (var row = startRow + 1; row <= endRow; row++) matrix[row, column] = NoteMatrix.HoldBody;
             }
         }
 
@@ -166,4 +166,65 @@ public static class BeatmapExtensions
         return beatmap;
     }
 
+    public static HitObject CopyHitObjectByPositionX(HitObject hitObject, int positionX)
+    {
+        // 复制所有基本属性
+        var newPosition = new Vector2(positionX, hitObject.Position.Y);
+        var startTime = hitObject.StartTime;
+        var endTime = hitObject.EndTime;
+        var hitSound = hitObject.HitSound;
+
+        // 正确复制Extras，确保不为null
+        var newExtras = hitObject.Extras != null
+            ? new Extras(
+                hitObject.Extras.SampleSet,
+                hitObject.Extras.AdditionSet,
+                hitObject.Extras.CustomIndex,
+                hitObject.Extras.Volume,
+                hitObject.Extras.SampleFileName
+            )
+            : new Extras();
+
+        // 保持原始对象的其他属性
+        var isNewCombo = hitObject.IsNewCombo;
+        var comboOffset = hitObject.ComboOffset;
+
+        // 根据WriteHelper.TypeByte的逻辑来判断对象类型
+        // 检查是否是长音符（mania模式下）
+        var isHoldNote = hitObject.EndTime > hitObject.StartTime;
+
+        if (isHoldNote)
+            // 创建ManiaHoldNote对象
+            return new OsuParsers.Beatmaps.Objects.Mania.ManiaHoldNote(
+                newPosition,
+                startTime,
+                endTime,
+                hitSound,
+                newExtras,
+                isNewCombo,
+                comboOffset
+            );
+        else
+            // 创建普通HitObject对象
+            return new OsuParsers.Beatmaps.Objects.Mania.ManiaNote(
+                newPosition,
+                startTime,
+                endTime,
+                hitSound,
+                newExtras,
+                isNewCombo,
+                comboOffset
+            );
+    }
+
+    public static void SortHitObjects(this Beatmap beatmap)
+    {
+        beatmap.HitObjects.Sort((a, b) =>
+        {
+            if (a.StartTime == b.StartTime)
+                return a.Position.X.CompareTo(b.Position.X);
+            else
+                return a.StartTime.CompareTo(b.StartTime);
+        });
+    }
 }

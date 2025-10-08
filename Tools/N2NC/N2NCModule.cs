@@ -1,8 +1,6 @@
 using krrTools.Core;
 using krrTools.Localization;
 using OsuParsers.Beatmaps;
-using OsuParsers.Decoders;
-using System;
 
 namespace krrTools.Tools.N2NC
 {
@@ -15,19 +13,14 @@ namespace krrTools.Tools.N2NC
 
         public override string DisplayName => Strings.TabN2NC;
 
-        protected override Beatmap ProcessBeatmap(Beatmap input, N2NCOptions options)
+        /// <summary>
+        /// 应用转换到谱面（内部实现）
+        /// </summary>
+        /// <param name="beatmap">谱面对象</param>
+        protected override void ApplyToBeatmapInternal(Beatmap beatmap)
         {
-            var N2NC = new N2NC();
-            var resultBeatmap = N2NC.ProcessBeatmapToData(input, options);
-            return resultBeatmap;
-        }
-
-        protected override Beatmap ProcessSingleFile(string filePath, N2NCOptions options)
-        {
-            var beatmap = BeatmapDecoder.Decode(filePath);
-            if (beatmap == null) throw new Exception("[N2NC]Failed to load beatmap");
-            if (beatmap.GeneralSection.ModeId != 3) throw new Exception("Not mania");
-            return ProcessBeatmap(beatmap, options);
+            var transformer = new N2NC();
+            transformer.TransformBeatmap(beatmap, _currentOptions);
         }
     }
 }

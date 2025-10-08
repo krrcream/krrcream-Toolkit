@@ -253,8 +253,8 @@ namespace krrTools.Tools.N2NC
                 {
                     Options.TransformSpeed = value;
                     OnPropertyChanged();
-                    // 当 TransformSpeed 更新时，通知 TransformSpeedDisplay 也已更新
                     OnPropertyChanged(nameof(TransformSpeedDisplay));
+                    OnPropertyChanged(nameof(TransformSpeedSlot));
                 }
             }
         }

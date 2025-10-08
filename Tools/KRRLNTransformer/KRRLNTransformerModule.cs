@@ -1,8 +1,6 @@
 using krrTools.Core;
 using krrTools.Localization;
 using OsuParsers.Beatmaps;
-using OsuParsers.Decoders;
-using System;
 
 namespace krrTools.Tools.KRRLNTransformer
 {
@@ -12,19 +10,14 @@ namespace krrTools.Tools.KRRLNTransformer
 
         public override string DisplayName => Strings.TabKRRsLN;
 
-        protected override Beatmap ProcessBeatmap(Beatmap input, KRRLNTransformerOptions options)
+        /// <summary>
+        /// 应用转换到谱面（内部实现）
+        /// </summary>
+        /// <param name="beatmap">谱面对象</param>
+        protected override void ApplyToBeatmapInternal(Beatmap beatmap)
         {
             var transformer = new KRRLN();
-            var resultBeatmap = transformer.ProcessBeatmapToData(input, options);
-            return resultBeatmap;
-        }
-
-        protected override Beatmap ProcessSingleFile(string filePath, KRRLNTransformerOptions options)
-        {
-            var beatmap = BeatmapDecoder.Decode(filePath);
-            if (beatmap == null) throw new Exception("[KRRLN]Failed to load beatmap");
-            if (beatmap.GeneralSection.ModeId != 3) throw new Exception("Not mania");
-            return ProcessBeatmap(beatmap, options);
+            transformer.TransformBeatmap(beatmap, _currentOptions);
         }
     }
 }

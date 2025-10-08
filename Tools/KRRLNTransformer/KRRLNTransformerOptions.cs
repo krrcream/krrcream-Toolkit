@@ -1,117 +1,192 @@
 ﻿using krrTools.Configuration;
 using static krrTools.Localization.Strings;
 
-namespace krrTools.Tools.KRRLNTransformer
+namespace krrTools.Tools.KRRLNTransformer;
+
+public class KRRLNTransformerOptions : UnifiedToolOptions
 {
-    public class KRRLNTransformerOptions : UnifiedToolOptions
+    public ShortSettings Short { get; set; } = new();
+    public LongSettings Long { get; set; } = new();
+    public LengthThresholdSettings LengthThreshold { get; set; } = new();
+    public AlignmentSettings Alignment { get; set; } = new();
+    public LNAlignmentSettings LNAlignment { get; set; } = new();
+    public GeneralSettings General { get; set; } = new();
+
+    public class ShortSettings : ToolOptionsBase
     {
-        public ShortSettings Short { get; set; } = new ShortSettings();
-        public LongSettings Long { get; set; } = new LongSettings();
-        public LengthThresholdSettings LengthThreshold { get; set; } = new LengthThresholdSettings();
-        public AlignmentSettings Alignment { get; set; } = new AlignmentSettings();
-        public LNAlignmentSettings LNAlignment { get; set; } = new LNAlignmentSettings();
-        public GeneralSettings General { get; set; } = new GeneralSettings();
-
-        public class ShortSettings : ToolOptionsBase
+        [Option(LabelKey = nameof(KRRShortPercentageLabel), Min = 0, Max = 100, UIType = UIType.Slider,
+            DataType = typeof(double))]
+        public double PercentageValue
         {
-            [Option(LabelKey = nameof(KRRShortPercentageLabel), Min = 0, Max = 100, UIType = UIType.Slider, DataType = typeof(double))]
-            public int PercentageValue { get; set; } = 100;
-
-            [Option(LabelKey = nameof(KRRShortLevelLabel), Min = 0, Max = 100, UIType = UIType.Slider, DataType = typeof(double))]
-            public int LevelValue { get; set; } = 100;
-
-            [Option(LabelKey = nameof(KRRShortLimitLabel), Min = 0, Max = 10, UIType = UIType.Slider, DataType = typeof(double))]
-            public int LimitValue { get; set; } = 10;
-
-            [Option(LabelKey = nameof(KRRShortRandomLabel), Min = 0, Max = 100, UIType = UIType.Slider, DataType = typeof(double))]
-            public int RandomValue { get; set; } = 0;
+            get => _percentageValue;
+            set => SetProperty(ref _percentageValue, value);
         }
 
-        public class LongSettings : ToolOptionsBase
+        private double _percentageValue = 50;
+
+        [Option(LabelKey = nameof(KRRShortLevelLabel), Min = 0, Max = 10, UIType = UIType.Slider,
+            DataType = typeof(double))]
+        public double LevelValue
         {
-            [Option(LabelKey = nameof(KRRLongPercentageLabel), Min = 0, Max = 100, UIType = UIType.Slider, DataType = typeof(double))]
-            public int PercentageValue { get; set; } = 50;
-
-            [Option(LabelKey = nameof(KRRLongLevelLabel), Min = 0, Max = 100, UIType = UIType.Slider, DataType = typeof(double))]
-            public int LevelValue { get; set; } = 50;
-
-            [Option(LabelKey = nameof(KRRLongLimitLabel), Min = 0, Max = 10, UIType = UIType.Slider, DataType = typeof(double))]
-            public int LimitValue { get; set; } = 10;
-
-            [Option(LabelKey = nameof(KRRLongRandomLabel), Min = 0, Max = 100, UIType = UIType.Slider, DataType = typeof(double))]
-            public int RandomValue { get; set; } = 50;
+            get => _levelValue;
+            set => SetProperty(ref _levelValue, value);
         }
 
-        public class LengthThresholdSettings : ToolOptionsBase
+        private double _levelValue = 5;
+
+        [Option(LabelKey = nameof(KRRShortLimitLabel), Min = 0, Max = 50, UIType = UIType.Slider,
+            DataType = typeof(double))]
+        public double LimitValue
         {
-            [Option(LabelKey = nameof(LengthThresholdLabel), Min = 0, Max = 10, UIType = UIType.Slider, DataType = typeof(double))]
-            public int Value
-            {
-                get => _value;
-                set => SetProperty(ref _value, value);
-            }
-
-            [Option(LabelKey = nameof(LengthThresholdLabel), UIType = UIType.Toggle, DataType = typeof(bool))]
-            public bool IsChecked
-            {
-                get => _isChecked;
-                set => SetProperty(ref _isChecked, value);
-            }
-
-            private int _value = 6;
-            private bool _isChecked;
-        }
-        
-        public class AlignmentSettings : ToolOptionsBase
-        {
-            [Option(LabelKey = nameof(KRRAlignLabel), Min = 1, Max = 9, UIType = UIType.Slider, DataType = typeof(double))]
-            public double Value
-            {
-                get => _value;
-                set => SetProperty(ref _value, value);
-            }
-
-            [Option(LabelKey = nameof(KRRAlignLabel), UIType = UIType.Toggle, DataType = typeof(bool))]
-            public bool IsChecked
-            {
-                get => _isChecked;
-                set => SetProperty(ref _isChecked, value);
-            }
-
-            private double _value = 4;
-            private bool _isChecked;
+            get => _limitValue;
+            set => SetProperty(ref _limitValue, value);
         }
 
-        public class LNAlignmentSettings : ToolOptionsBase
+        private double _limitValue = 20;
+
+        [Option(LabelKey = nameof(KRRShortRandomLabel), Min = 0, Max = 100, UIType = UIType.Slider,
+            DataType = typeof(double))]
+        public double RandomValue
         {
-            [Option(LabelKey = nameof(KRRLNAlignLabel), Min = 1, Max = 9, UIType = UIType.Slider, DataType = typeof(double))]
-            public double Value
-            {
-                get => _value;
-                set => SetProperty(ref _value, value);
-            }
-
-            [Option(LabelKey = nameof(KRRLNAlignLabel), UIType = UIType.Toggle, DataType = typeof(bool))]
-            public bool IsChecked
-            {
-                get => _isChecked;
-                set => SetProperty(ref _isChecked, value);
-            }
-
-            private double _value = 4;
-            private bool _isChecked;
+            get => _randomValue;
+            set => SetProperty(ref _randomValue, value);
         }
 
-        public class GeneralSettings : ToolOptionsBase
-        {
-            [Option(LabelKey = nameof(KRRProcessOriginalLabel), UIType = UIType.Toggle, DataType = typeof(bool))]
-            public bool ProcessOriginalIsChecked { get; set; }
-
-            [Option(LabelKey = nameof(ODSliderLabel), Min = 0, Max = 10, UIType = UIType.Slider, DataType = typeof(double))]
-            public double ODValue { get; set; } = 0;
-        }
-
-        [Option(LabelKey = nameof(SeedButtonLabel), UIType = UIType.NumberBox, DataType = typeof(int?))]
-        public int? Seed { get; set; } = 114514;
+        private double _randomValue = 50;
     }
+
+    public class LongSettings : ToolOptionsBase
+    {
+        [Option(LabelKey = nameof(KRRLongPercentageLabel), Min = 0, Max = 100, UIType = UIType.Slider,
+            DataType = typeof(double))]
+        public double PercentageValue
+        {
+            get => _percentageValue;
+            set => SetProperty(ref _percentageValue, value);
+        }
+
+        private double _percentageValue = 50;
+
+        [Option(LabelKey = nameof(KRRLongLevelLabel), Min = 0, Max = 10, UIType = UIType.Slider,
+            DataType = typeof(double))]
+        public double LevelValue
+        {
+            get => _levelValue;
+            set => SetProperty(ref _levelValue, value);
+        }
+
+        private double _levelValue = 5;
+
+        [Option(LabelKey = nameof(KRRLongLimitLabel), Min = 0, Max = 50, UIType = UIType.Slider,
+            DataType = typeof(double))]
+        public double LimitValue
+        {
+            get => _limitValue;
+            set => SetProperty(ref _limitValue, value);
+        }
+
+        private double _limitValue = 20;
+
+        [Option(LabelKey = nameof(KRRLongRandomLabel), Min = 0, Max = 100, UIType = UIType.Slider,
+            DataType = typeof(double))]
+        public int RandomValue
+        {
+            get => _randomValue;
+            set => SetProperty(ref _randomValue, value);
+        }
+
+        private int _randomValue = 50;
+    }
+
+    public class LengthThresholdSettings : ToolOptionsBase
+    {
+        [Option(LabelKey = nameof(LengthThresholdLabel), Min = 0, Max = 10, UIType = UIType.Slider,
+            DataType = typeof(double))]
+        public double Value
+        {
+            get => _value;
+            set => SetProperty(ref _value, value);
+        }
+
+        [Option(LabelKey = nameof(LengthThresholdLabel), UIType = UIType.Toggle, DataType = typeof(bool))]
+        public bool IsChecked
+        {
+            get => _isChecked;
+            set => SetProperty(ref _isChecked, value);
+        }
+
+        private double _value = 4;
+        private bool _isChecked;
+    }
+
+    public class AlignmentSettings : ToolOptionsBase
+    {
+        [Option(LabelKey = nameof(KRRAlignLabel), Min = 1, Max = 9, UIType = UIType.Slider, DataType = typeof(double))]
+        public double Value
+        {
+            get => _value;
+            set => SetProperty(ref _value, value);
+        }
+
+        [Option(LabelKey = nameof(KRRAlignLabel), UIType = UIType.Toggle, DataType = typeof(bool))]
+        public bool IsChecked
+        {
+            get => _isChecked;
+            set => SetProperty(ref _isChecked, value);
+        }
+
+        private double _value = 4;
+        private bool _isChecked;
+    }
+
+    public class LNAlignmentSettings : ToolOptionsBase
+    {
+        [Option(LabelKey = nameof(KRRLNAlignLabel), Min = 1, Max = 9, UIType = UIType.Slider,
+            DataType = typeof(double))]
+        public double Value
+        {
+            get => _value;
+            set => SetProperty(ref _value, value);
+        }
+
+        [Option(LabelKey = nameof(KRRLNAlignLabel), UIType = UIType.Toggle, DataType = typeof(bool))]
+        public bool IsChecked
+        {
+            get => _isChecked;
+            set => SetProperty(ref _isChecked, value);
+        }
+
+        private double _value = 4;
+        private bool _isChecked;
+    }
+
+    public class GeneralSettings : ToolOptionsBase
+    {
+        [Option(LabelKey = nameof(KRRProcessOriginalLabel), UIType = UIType.Toggle, DataType = typeof(bool))]
+        public bool ProcessOriginalIsChecked
+        {
+            get => _processOriginalIsChecked;
+            set => SetProperty(ref _processOriginalIsChecked, value);
+        }
+
+        private bool _processOriginalIsChecked;
+
+        [Option(LabelKey = nameof(ODSliderLabel), Min = 0, Max = 10, UIType = UIType.Slider, DataType = typeof(double))]
+        public double ODValue
+        {
+            get => _odValue;
+            set => SetProperty(ref _odValue, value);
+        }
+
+        private double _odValue;
+    }
+
+    [Option(LabelKey = nameof(SeedButtonLabel), UIType = UIType.NumberBox, DataType = typeof(int?))]
+    public int? Seed
+    {
+        get => _seed;
+        set => SetProperty(ref _seed, value);
+    }
+
+    private int? _seed = 114514;
 }

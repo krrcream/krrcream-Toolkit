@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Windows;
-using Microsoft.Extensions.Logging;
+using CommunityToolkit.Mvvm.Input;
 using krrTools.Configuration;
 using krrTools.Localization;
 using krrTools.UI;
-using OsuParsers.Decoders;
+using Microsoft.Extensions.Logging;
 using Wpf.Ui.Controls;
 using MessageBox = System.Windows.MessageBox;
 using MessageBoxButton = System.Windows.MessageBoxButton;
-using CommunityToolkit.Mvvm.Input;
 using TextBox = System.Windows.Controls.TextBox;
 
 namespace krrTools.Tools.Listener;
@@ -18,9 +17,16 @@ public partial class ListenerControl
     private readonly ListenerViewModel _viewModel;
     private readonly object? _sourceWindow;
     private readonly int _sourceId;
-    private GlobalHotkey? _globalHotkey;
+    private ConversionHotkeyManager? _conversionHotkeyManager;
 
-    private TextBox? _hotkeyTextBox;
+    private TextBox? _n2ncHotkeyTextBox;
+    private TextBox? _dpHotkeyTextBox;
+    private TextBox? _krrlnHotkeyTextBox;
+    private Border? _fileInfoContainer;
+
+    // 用于避免重复加载同一个预览文件的静态变量
+    private static string? _lastPreviewFilePath;
+    private static DateTime _lastPreviewLoadTime = DateTime.MinValue;
 
     internal static bool IsOpen { get; private set; }
 
@@ -34,7 +40,8 @@ public partial class ListenerControl
 
     public ListenerViewModel ViewModel => _viewModel;
 
-    private bool IsRealTimePreviewEnabled => (Application.Current.MainWindow as MainWindow)?.RealTimePreviewEnabled ?? false;
+    private bool IsRealTimePreviewEnabled =>
+        (Application.Current.MainWindow as MainWindow)?.RealTimePreviewEnabled ?? false;
 
     internal ListenerControl(object? sourceWindow = null, int sourceId = 0)
     {
@@ -47,15 +54,14 @@ public partial class ListenerControl
         ConvertCommand = new RelayCommand(ExecuteConvert);
         BrowseCommand = new RelayCommand(() => _viewModel.SetSongsPath());
 
+        // Get reference to FileInfoContainer from XAML
+        _fileInfoContainer = FindName("FileInfoContainer") as Border;
+
+        // Create DataGrid for file info display
+        CreateFileInfoDataGrid();
+
         SharedUIComponents.LanguageChanged += OnLanguageChanged;
         Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
-
-        // 监听热键变化
-        _viewModel.HotkeyChanged += (_, _) =>
-        {
-            UnregisterHotkey();
-            Dispatcher.BeginInvoke(new Action(InitializeHotkey));
-        };
 
         // 订阅 BeatmapSelected 事件以便在实时预览开启时把文件推送到预览控件
         _viewModel.BeatmapSelected += ViewModel_BeatmapSelected;
@@ -63,13 +69,25 @@ public partial class ListenerControl
         _viewModel.Config.PropertyChanged += ViewModel_ConfigPropertyChanged;
         _viewModel.WindowTitle = Strings.OSUListener.Localize();
 
-        Loaded += (_, _) => 
+        Loaded += (_, _) =>
         {
-            InitializeHotkey();
-            if (FindName("HotkeyTextBox") is TextBox tb) 
+            InitializeConversionHotkeys();
+            if (FindName("N2NCHotkeyTextBox") is TextBox n2ncTb)
             {
-                tb.PreviewKeyDown += HotkeyTextBox_PreviewKeyDown;
-                _hotkeyTextBox = tb;
+                n2ncTb.PreviewKeyDown += N2NCHotkeyTextBox_PreviewKeyDown;
+                _n2ncHotkeyTextBox = n2ncTb;
+            }
+
+            if (FindName("DPHotkeyTextBox") is TextBox dpTb)
+            {
+                dpTb.PreviewKeyDown += DPHotkeyTextBox_PreviewKeyDown;
+                _dpHotkeyTextBox = dpTb;
+            }
+
+            if (FindName("KRRLNHotkeyTextBox") is TextBox krrlnTb)
+            {
+                krrlnTb.PreviewKeyDown += KRRLNHotkeyTextBox_PreviewKeyDown;
+                _krrlnHotkeyTextBox = krrlnTb;
             }
         };
         Unloaded += Window_Closing;
@@ -78,21 +96,19 @@ public partial class ListenerControl
     private void ExecuteConvert()
     {
         // 检查是否设置了Songs目录且当前有选中的谱面
-        if (string.IsNullOrEmpty(_viewModel.Config.SongsPath) && string.IsNullOrEmpty(_viewModel.CurrentOsuFilePath))
+        if (string.IsNullOrEmpty(BaseOptionsManager.GetGlobalSettings().SongsPath) &&
+            string.IsNullOrEmpty(_viewModel.CurrentOsuFilePath))
         {
-            var message = string.IsNullOrEmpty(_viewModel.Config.SongsPath)
+            var message = string.IsNullOrEmpty(BaseOptionsManager.GetGlobalSettings().SongsPath)
                 ? "Please set the Songs directory first."
                 : "No beatmap is currently selected.";
             MessageBox.Show(message, Strings.CannotConvert.Localize(), MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        // Get current active tab from MainWindow
         var mainWindow = Application.Current.MainWindow as MainWindow;
-        var activeTab = mainWindow?.TabControl.SelectedItem as TabViewItem;
-        var activeTag = activeTab?.Tag as string;
 
-        if (string.IsNullOrEmpty(activeTag))
+        if (mainWindow == null)
         {
             MessageBox.Show(Strings.NoActiveTabSelected.Localize(), Strings.CannotConvert.Localize(),
                 MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -104,7 +120,8 @@ public partial class ListenerControl
         {
             if (IsRealTimePreviewEnabled && !string.IsNullOrEmpty(_viewModel.CurrentOsuFilePath))
             {
-                mainWindow?._fileDispatcher.ConvertFiles([_viewModel.CurrentOsuFilePath], activeTag);
+                mainWindow.FileDropZoneViewModel?.SetFiles([_viewModel.CurrentOsuFilePath],
+                    source: FileDropZoneViewModel.FileSource.Listened);
                 return;
             }
         }
@@ -117,18 +134,22 @@ public partial class ListenerControl
 
         // Fallback/single-file behavior: process the current selected osu file
         if (!string.IsNullOrEmpty(_viewModel.CurrentOsuFilePath))
-            mainWindow?._fileDispatcher.ConvertFiles([_viewModel.CurrentOsuFilePath], activeTag);
+            mainWindow.FileDropZoneViewModel?.SetFiles([_viewModel.CurrentOsuFilePath],
+                source: FileDropZoneViewModel.FileSource.Listened);
     }
 
-    private void HotkeyTextBox_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    private void N2NCHotkeyTextBox_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         e.Handled = true;
 
-        bool ctrl = (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) == System.Windows.Input.ModifierKeys.Control;
-        bool shift = (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Shift) == System.Windows.Input.ModifierKeys.Shift;
-        bool alt = (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Alt) == System.Windows.Input.ModifierKeys.Alt;
+        var ctrl = (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) ==
+                   System.Windows.Input.ModifierKeys.Control;
+        var shift = (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Shift) ==
+                    System.Windows.Input.ModifierKeys.Shift;
+        var alt = (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Alt) ==
+                  System.Windows.Input.ModifierKeys.Alt;
 
-        System.Windows.Input.Key key = e.Key == System.Windows.Input.Key.System ? e.SystemKey : e.Key;
+        var key = e.Key == System.Windows.Input.Key.System ? e.SystemKey : e.Key;
 
         if (key == System.Windows.Input.Key.Escape)
             return;
@@ -138,52 +159,88 @@ public partial class ListenerControl
             key == System.Windows.Input.Key.LeftAlt || key == System.Windows.Input.Key.RightAlt)
             return;
 
-        string hotkey = string.Empty;
+        var hotkey = string.Empty;
         if (ctrl) hotkey += "Ctrl+";
         if (shift) hotkey += "Shift+";
         if (alt) hotkey += "Alt+";
 
         hotkey += key.ToString();
 
-        _viewModel.SetHotkey(hotkey);
-        if (_hotkeyTextBox != null) _hotkeyTextBox.Text = hotkey;
-        Console.WriteLine($"Hotkey set to: {hotkey}");
+        _viewModel.SetN2NCHotkey(hotkey);
+        if (_n2ncHotkeyTextBox != null) _n2ncHotkeyTextBox.Text = hotkey;
+        Console.WriteLine($"N2NC Hotkey set to: {hotkey}");
     }
 
-    private void InitializeHotkey()
+    private void DPHotkeyTextBox_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
-        try
-        {
-            var hostWindow = GetWindow(this) ?? Application.Current?.MainWindow;
-            if (hostWindow == null)
-                throw new InvalidOperationException("ListenerControl must be hosted in a Window to register hotkeys.");
-            _globalHotkey = new GlobalHotkey(_viewModel.Config.Hotkey ?? string.Empty, () =>
-            {
-                // 在UI线程执行转换操作
-                Dispatcher.Invoke(ExecuteConvert);
-            }, hostWindow);
-        }
-        catch (Exception ex)
-        {
-            Logger.WriteLine(LogLevel.Error, "[ListenerControl] Failed to register hotkey: {0}", ex.Message);
-            MessageBox.Show(
-                Strings.FailedToRegisterHotkey.Localize() + ": " + ex.Message + "\n\nPlease bind a new hotkey.",
-                Strings.HotkeyError.Localize(),
-                MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
+        e.Handled = true;
+
+        var ctrl = (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) ==
+                   System.Windows.Input.ModifierKeys.Control;
+        var shift = (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Shift) ==
+                    System.Windows.Input.ModifierKeys.Shift;
+        var alt = (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Alt) ==
+                  System.Windows.Input.ModifierKeys.Alt;
+
+        var key = e.Key == System.Windows.Input.Key.System ? e.SystemKey : e.Key;
+
+        if (key == System.Windows.Input.Key.Escape)
+            return;
+
+        if (key == System.Windows.Input.Key.LeftCtrl || key == System.Windows.Input.Key.RightCtrl ||
+            key == System.Windows.Input.Key.LeftShift || key == System.Windows.Input.Key.RightShift ||
+            key == System.Windows.Input.Key.LeftAlt || key == System.Windows.Input.Key.RightAlt)
+            return;
+
+        var hotkey = string.Empty;
+        if (ctrl) hotkey += "Ctrl+";
+        if (shift) hotkey += "Shift+";
+        if (alt) hotkey += "Alt+";
+
+        hotkey += key.ToString();
+
+        _viewModel.SetDPHotkey(hotkey);
+        if (_dpHotkeyTextBox != null) _dpHotkeyTextBox.Text = hotkey;
+        Console.WriteLine($"DP Hotkey set to: {hotkey}");
     }
 
-    private void UnregisterHotkey()
+    private void KRRLNHotkeyTextBox_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
-        _globalHotkey?.Unregister();
-        _globalHotkey = null;
+        e.Handled = true;
+
+        var ctrl = (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) ==
+                   System.Windows.Input.ModifierKeys.Control;
+        var shift = (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Shift) ==
+                    System.Windows.Input.ModifierKeys.Shift;
+        var alt = (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Alt) ==
+                  System.Windows.Input.ModifierKeys.Alt;
+
+        var key = e.Key == System.Windows.Input.Key.System ? e.SystemKey : e.Key;
+
+        if (key == System.Windows.Input.Key.Escape)
+            return;
+
+        if (key == System.Windows.Input.Key.LeftCtrl || key == System.Windows.Input.Key.RightCtrl ||
+            key == System.Windows.Input.Key.LeftShift || key == System.Windows.Input.Key.RightShift ||
+            key == System.Windows.Input.Key.LeftAlt || key == System.Windows.Input.Key.RightAlt)
+            return;
+
+        var hotkey = string.Empty;
+        if (ctrl) hotkey += "Ctrl+";
+        if (shift) hotkey += "Shift+";
+        if (alt) hotkey += "Alt+";
+
+        hotkey += key.ToString();
+
+        _viewModel.SetKRRLNHotkey(hotkey);
+        if (_krrlnHotkeyTextBox != null) _krrlnHotkeyTextBox.Text = hotkey;
+        Console.WriteLine($"KRRLN Hotkey set to: {hotkey}");
     }
 
     private void Window_Closing(object? sender, RoutedEventArgs e)
     {
-        _viewModel.SaveConfig();
         _viewModel.Cleanup();
-        UnregisterHotkey();
+        _conversionHotkeyManager?.Dispose();
 
         IsOpen = false;
     }
@@ -191,11 +248,7 @@ public partial class ListenerControl
     // ViewModel 属性变化处理（关注 RealTimePreview）
     private void ViewModel_ConfigPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == "Hotkey")
-        {
-            UnregisterHotkey();
-            Dispatcher.BeginInvoke(new Action(InitializeHotkey));
-        }
+        // 不再需要处理主快捷键变化
     }
 
     // Beatmap 被选中时的处理：当实时预览开启则把文件广播到预览並暂存以便转换
@@ -204,24 +257,20 @@ public partial class ListenerControl
         if (!IsRealTimePreviewEnabled) return; // 只有在实时预览开启时才路由
         if (string.IsNullOrEmpty(info.FilePath)) return;
 
+        // 避免重复加载同一个文件或短时间内频繁加载
+        var now = DateTime.Now;
+        if (_lastPreviewFilePath == info.FilePath && (now - _lastPreviewLoadTime).TotalSeconds < 0.5) return;
+        _lastPreviewFilePath = info.FilePath;
+        _lastPreviewLoadTime = now;
+
         try
         {
             if (Application.Current?.MainWindow is MainWindow main)
             {
                 // Load to global preview if current tool is a converter
-                var selectedTag = (main.TabControl.SelectedItem as TabViewItem)?.Tag;
-                if (selectedTag is ConverterEnum)
-                {
-                    var globalPreview = main.PreviewDualControl;
-                    if (globalPreview != null)
-                    {
-                        var beatmaps = BeatmapDecoder.Decode(info.FilePath);
-                        globalPreview.LoadPreview(beatmaps);
-                        Console.WriteLine($"尝试加载预览文件: {info.FilePath}");
-                    }
-                    
-                    Console.WriteLine($"{globalPreview}为空");
-                }
+                main.FileDropZoneViewModel?.SetFiles([info.FilePath],
+                    source: FileDropZoneViewModel.FileSource.Listened);
+                Console.WriteLine($"尝试加载预览文件: {info.FilePath}");
             }
         }
         catch (Exception ex)
@@ -233,5 +282,124 @@ public partial class ListenerControl
     private void OnLanguageChanged()
     {
         Dispatcher.BeginInvoke(new Action(() => { _viewModel.WindowTitle = Strings.OSUListener; }));
+    }
+
+    private void InitializeConversionHotkeys()
+    {
+        var mainWindow = Application.Current.MainWindow as MainWindow;
+        if (mainWindow == null) return;
+
+        _conversionHotkeyManager = new ConversionHotkeyManager(
+            ExecuteConvertWithModule,
+            mainWindow
+        );
+
+        // 注册快捷键
+        var globalSettings = BaseOptionsManager.GetGlobalSettings();
+        _conversionHotkeyManager.RegisterHotkeys(globalSettings);
+    }
+
+    private void ExecuteConvertWithModule(ConverterEnum converter)
+    {
+        // 检查是否设置了Songs目录且当前有选中的谱面
+        if (string.IsNullOrEmpty(BaseOptionsManager.GetGlobalSettings().SongsPath) &&
+            string.IsNullOrEmpty(_viewModel.CurrentOsuFilePath))
+        {
+            var message = string.IsNullOrEmpty(BaseOptionsManager.GetGlobalSettings().SongsPath)
+                ? "Please set the Songs directory first."
+                : "No beatmap is currently selected.";
+            MessageBox.Show(message, Strings.CannotConvert.Localize(), MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        // 使用指定的转换模块
+        try
+        {
+            if (Application.Current.MainWindow is MainWindow mainWindow && IsRealTimePreviewEnabled && !string.IsNullOrEmpty(_viewModel.CurrentOsuFilePath))
+            {
+                mainWindow.FileDropZoneViewModel?.SetFiles([_viewModel.CurrentOsuFilePath],
+                    source: FileDropZoneViewModel.FileSource.Listened);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.WriteLine(LogLevel.Error,
+                "[ListenerControl] Error while attempting to process current file: " + ex.Message);
+        }
+
+        // Fallback: process the current selected osu file
+        if (!string.IsNullOrEmpty(_viewModel.CurrentOsuFilePath))
+        {
+            if (Application.Current.MainWindow is MainWindow mainWindow)
+                mainWindow.FileDropZoneViewModel?.SetFiles([_viewModel.CurrentOsuFilePath],
+                    source: FileDropZoneViewModel.FileSource.Listened);
+        }
+    }
+
+    private void CreateFileInfoDataGrid()
+    {
+        if (_fileInfoContainer == null) return;
+
+        var dataGrid = new System.Windows.Controls.DataGrid
+        {
+            AutoGenerateColumns = false,
+            CanUserAddRows = false,
+            SelectionMode = System.Windows.Controls.DataGridSelectionMode.Single,
+            SelectionUnit = System.Windows.Controls.DataGridSelectionUnit.FullRow,
+            Margin = new Thickness(0, 5, 0, 0)
+        };
+
+        // Create columns
+        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
+            { Header = "Title", Binding = new System.Windows.Data.Binding("Title"), Width = 140 });
+        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
+            { Header = "Artist", Binding = new System.Windows.Data.Binding("Artist"), Width = 140 });
+        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
+            { Header = "Creator", Binding = new System.Windows.Data.Binding("Creator"), Width = 140 });
+        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
+            { Header = "Version", Binding = new System.Windows.Data.Binding("Version"), Width = 140 });
+        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
+        {
+            Header = "BPM", Binding = new System.Windows.Data.Binding("BPM") { StringFormat = "F1" },
+            Width = System.Windows.Controls.DataGridLength.Auto
+        });
+        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
+        {
+            Header = "OD", Binding = new System.Windows.Data.Binding("OD") { StringFormat = "F1" },
+            Width = System.Windows.Controls.DataGridLength.Auto
+        });
+        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
+        {
+            Header = "HP", Binding = new System.Windows.Data.Binding("HP") { StringFormat = "F1" },
+            Width = System.Windows.Controls.DataGridLength.Auto
+        });
+        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
+        {
+            Header = "Keys", Binding = new System.Windows.Data.Binding("Keys"),
+            Width = System.Windows.Controls.DataGridLength.Auto
+        });
+        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
+        {
+            Header = "Notes", Binding = new System.Windows.Data.Binding("NotesCount"),
+            Width = System.Windows.Controls.DataGridLength.Auto
+        });
+        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
+        {
+            Header = "LN%", Binding = new System.Windows.Data.Binding("LNPercent") { StringFormat = "F2" },
+            Width = System.Windows.Controls.DataGridLength.Auto
+        });
+        dataGrid.Columns.Add(new System.Windows.Controls.DataGridTextColumn
+        {
+            Header = "Status", Binding = new System.Windows.Data.Binding("Status"),
+            Width = System.Windows.Controls.DataGridLength.Auto
+        });
+
+        // Bind to current file info as a single-item collection
+        dataGrid.SetBinding(System.Windows.Controls.ItemsControl.ItemsSourceProperty,
+            new System.Windows.Data.Binding("CurrentFileInfoCollection"));
+
+        // Add to container
+        _fileInfoContainer.Child = dataGrid;
     }
 }

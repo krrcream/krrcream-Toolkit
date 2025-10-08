@@ -16,6 +16,7 @@ namespace krrTools.Configuration
     public enum ModuleEnum
     {
         LVCalculator,
-        FilesManager
+        FilesManager,
+        Listener
     }
 }

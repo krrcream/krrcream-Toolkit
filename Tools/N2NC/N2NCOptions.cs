@@ -10,20 +10,45 @@ namespace krrTools.Tools.N2NC
     public class N2NCOptions : UnifiedToolOptions
     {
         [Option(LabelKey = nameof(KeysSliderLabel), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double))]
-        public double TargetKeys { get; set; } = 10;
+        public double TargetKeys
+        {
+            get => _targetKeys;
+            set => SetProperty(ref _targetKeys, value);
+        }
+        private double _targetKeys = 10;
 
         //TODO: 功能脱节，需要检查修复
         [Option(LabelKey = nameof(N2NCMaxKeysTemplate), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double))]
-        public double MaxKeys { get; set; } = 10;
+        public double MaxKeys
+        {
+            get => _maxKeys;
+            set => SetProperty(ref _maxKeys, value);
+        }
+        private double _maxKeys = 10;
 
         [Option(LabelKey = nameof(N2NCMinKeysTemplate), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double))]
-        public double MinKeys { get; set; } = 2;
+        public double MinKeys
+        {
+            get => _minKeys;
+            set => SetProperty(ref _minKeys, value);
+        }
+        private double _minKeys = 2;
 
         [Option(LabelKey = nameof(N2NCTransformSpeedTemplate), Min = 1, Max = 8, UIType = UIType.Slider, DataType = typeof(double))]
-        public double TransformSpeed { get; set; } = 4.0;
+        public double TransformSpeed
+        {
+            get => _transformSpeed;
+            set => SetProperty(ref _transformSpeed, value);
+        }
+        private double _transformSpeed = 4.0;
 
         [Option(LabelKey = nameof(SeedButtonLabel), UIType = UIType.NumberBox, DataType = typeof(int?))]
-        public int? Seed { get; set; } = 114514;
+        public int? Seed
+        {
+            get => _seed;
+            set => SetProperty(ref _seed, value);
+        }
+        private int? _seed = 114514;
 
         public List<int>? SelectedKeyTypes { get; set; }
 

@@ -7,6 +7,8 @@
         <UseWPF>true</UseWPF>
         <ApplicationIcon>fq.ico</ApplicationIcon>
         <Nullable>enable</Nullable>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <NoWarn>CA1416</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
@@ -15,6 +17,7 @@
     
     <ItemGroup>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+        <PackageReference Include="DataGridExtensions" Version="2.7.0" />
         <PackageReference Include="krrcream.OsuParsers" Version="1.8.0.4" />
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.0.0-1.25277.114">
           <PrivateAssets>all</PrivateAssets>
@@ -27,6 +30,7 @@
         <PackageReference Include="OsuFileIO" Version="0.1.1" />
         <PackageReference Include="OsuFileIO.Analyzer" Version="0.1.1" />
         <PackageReference Include="OsuMemoryDataProvider" Version="0.11.1" />
+        <PackageReference Include="ProcessMemoryDataFinder" Version="0.9.0" />
         <PackageReference Include="WPF-UI" Version="4.0.3" />
         <PackageReference Include="WPF-UI.Abstractions" Version="4.0.3" />
         <PackageReference Include="WPF-UI.DependencyInjection" Version="4.0.3" />
@@ -50,6 +54,7 @@
     <ItemGroup>
       <Compile Remove="tools\YLsLNTransformer\**" />
       <Compile Remove="publish\**" />
+      <Compile Remove="tests\**" />
     </ItemGroup>
 
     <ItemGroup>

@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using krrTools.Configuration;
@@ -41,22 +40,7 @@ namespace krrTools.UI
                     del.Width = 80; // 设置固定宽度以保持按钮大小一致
                     del.Click += (_, _) =>
                     {
-                        var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), BaseOptionsManager.BaseAppFolderName, toolName, BaseOptionsManager.PresetsFolderName);
-                        var safe = MakeSafeFilename(name) + ".json";
-                        var path = Path.Combine(folder, safe);
-                        try
-                        {
-                            if (File.Exists(path))
-                                File.Delete(path);
-                        }
-                        catch (IOException ex)
-                        {
-                            Console.WriteLine($"[DEBUG] Failed delete preset file: {ex.Message}");
-                        }
-                        catch (UnauthorizedAccessException ex)
-                        {
-                            Console.WriteLine($"[DEBUG] Failed delete preset file: {ex.Message}");
-                        }
+                        BaseOptionsManager.DeletePreset(toolName, name);
                         Refresh();
                     };
                     row.Children.Add(del);
@@ -98,12 +82,6 @@ namespace krrTools.UI
             outer.Children.Add(controlRow);
 
             return outer;
-        }
-
-        private static string MakeSafeFilename(string name)
-        {
-            foreach (var c in Path.GetInvalidFileNameChars()) name = name.Replace(c, '_');
-            return name;
         }
 
         private class InputDialog : Window

@@ -9,51 +9,40 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
-using Microsoft.Extensions.Logging;
 using System.Windows.Media;
+using DataGridExtensions;
 using krrTools.Data;
 using krrTools.Localization;
 using krrTools.UI;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.Tools.FilesManager;
 
-public class FilesManagerView : UserControl
+public class FilesManagerView : UserControl 
 {
     private readonly FilesManagerViewModel _viewModel;
 
     // 取反，数据加载时禁用按钮
-    private static readonly InverseBoolBtn _inverseBoolBtn = new();
+    private readonly InverseBoolBtn _inverseBoolBtn = new();
 
     private DataGrid? _fileDataGrid;
-
-    private TextBox? _titleFilterBox,
-        _diffFilterBox,
-        _artistFilterBox,
-        _creatorFilterBox;
-    private ComboBox? _keysFilterBox;
-    private TextBox? _odFilterBox,
-        _hpFilterBox,
-        _beatmapIdFilterBox,
-        _beatmapSetIdFilterBox,
-        _filePathFilterBox;
-
     private ProgressBar? _progressBarControl;
     private TextBlock? _progressTextBlockControl;
-    private Grid? _topGrid;
 
     public FilesManagerView()
     {
         _viewModel = new FilesManagerViewModel();
         DataContext = _viewModel;
-
+        AllowDrop = true;
+        
         BuildUI();
 
         SharedUIComponents.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) =>
         {
-            if (DataContext is FilesManagerViewModel vm)
+            if (DataContext is FilesManagerViewModel)
             {
-                vm.FilteredOsuFiles.Refresh();
+                // DataGridExtensions will handle filtering automatically
             }
             else
             {
@@ -65,15 +54,12 @@ public class FilesManagerView : UserControl
 
     private void BuildUI()
     {
-        AllowDrop = true;
-
         var rootGrid = new Grid();
 
         rootGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         rootGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         rootGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        BuildFilterSection(rootGrid);
         BuildDataSection(rootGrid);
         BuildActionSection(rootGrid);
 
@@ -81,118 +67,91 @@ public class FilesManagerView : UserControl
 
         Drop += OnDrop;
         DragEnter += OnDragEnter;
-        PreviewDrop += OnDrop;
-        PreviewDragEnter += OnDragEnter;
+        // PreviewDrop += OnDrop;
+        // PreviewDragEnter += OnDragEnter;
     }
 
-    private void BuildFilterSection(Grid rootGrid)
-    {
-        // Top filter grid
-        _topGrid = new Grid
-        {
-            Margin = new Thickness(0, 0, 0, 5),
-            Height = 40,
-        };
-        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Title
-        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Diff
-        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Artist
-        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Creator
-        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Keys
-        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // OD
-        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // HP
-        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // beatmapID
-        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // setID
-        _topGrid.ColumnDefinitions.Add(new ColumnDefinition
-            { Width = new GridLength(1, GridUnitType.Star) }); // FilePath
-        _topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Clear button
 
-        _titleFilterBox = CreateBoundTextBox("TitleFilter");
-        _topGrid.Children.Add(PlaceInGrid(_titleFilterBox, 0));
-        _diffFilterBox = CreateBoundTextBox("DiffFilter");
-        _topGrid.Children.Add(PlaceInGrid(_diffFilterBox, 1));
-        _artistFilterBox = CreateBoundTextBox("ArtistFilter");
-        _topGrid.Children.Add(PlaceInGrid(_artistFilterBox, 2));
-        _creatorFilterBox = CreateBoundTextBox("CreatorFilter");
-        _topGrid.Children.Add(PlaceInGrid(_creatorFilterBox, 3));
-        _keysFilterBox = CreateBoundComboBox("KeysFilter", ["", "4", "5", "6", "7", "8", "9", "10", "12", "14", "16", "18"]);
-        _topGrid.Children.Add(PlaceInGrid(_keysFilterBox, 4));
-        _odFilterBox = CreateBoundTextBox("OdFilter");
-        _topGrid.Children.Add(PlaceInGrid(_odFilterBox, 5));
-        _hpFilterBox = CreateBoundTextBox("HpFilter");
-        _topGrid.Children.Add(PlaceInGrid(_hpFilterBox, 6));
-        _beatmapIdFilterBox = CreateBoundTextBox("BeatmapIdFilter");
-        _topGrid.Children.Add(PlaceInGrid(_beatmapIdFilterBox, 7));
-        _beatmapSetIdFilterBox = CreateBoundTextBox("BeatmapSetIdFilter");
-        _topGrid.Children.Add(PlaceInGrid(_beatmapSetIdFilterBox, 8));
-        _filePathFilterBox = CreateBoundTextBox("FilePathFilter");
-        _topGrid.Children.Add(PlaceInGrid(_filePathFilterBox, 9));
-
-        // Add clear filters button
-        var clearButton = new Button
-        {
-            Content = "清除过滤",
-            Height = 20,
-            Margin = new Thickness(5, 0, 0, 5),
-            Padding = new Thickness(10, 0, 10, 0)
-        };
-        clearButton.Click += ClearFiltersButton_Click;
-        _topGrid.Children.Add(PlaceInGrid(clearButton, 10));
-
-        Grid.SetRow(_topGrid, 0);
-        rootGrid.Children.Add(_topGrid);
-    }
 
     private void BuildDataSection(Grid rootGrid)
     {
         // DataGrid
         _fileDataGrid = new DataGrid
         {
-            AutoGenerateColumns = false, CanUserAddRows = false, SelectionMode = DataGridSelectionMode.Extended,
-            SelectionUnit = DataGridSelectionUnit.FullRow
+            AutoGenerateColumns = false,
+            CanUserAddRows = false,
+            // IsReadOnly = true, // 设置为只读模式，提高选中灵敏度
+            SelectionMode = DataGridSelectionMode.Extended,
+            SelectionUnit = DataGridSelectionUnit.FullRow,
+            CanUserSortColumns = true, // 启用排序
+            CanUserReorderColumns = true, // 允许列重新排序
+            CanUserResizeColumns = true, // 允许调整列宽
+            // AlternatingRowBackground = new SolidColorBrush(Color.FromArgb(15, 255, 255, 255)), // 浅色交替行，带透明度，但是会和选中高亮冲突
+            GridLinesVisibility = DataGridGridLinesVisibility.All, // 显示网格线
+            RowHeaderWidth = 50, // 行号列宽度
+            IsEnabled = true, // 确保控件启用
+            Focusable = true // 确保可以获得焦点
         };
-        _fileDataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("FilteredOsuFiles"));
+
+        // 启用 DataGridExtensions 高级功能
+        _fileDataGrid.SetValue(DataGridFilter.IsAutoFilterEnabledProperty, true);        _fileDataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("FilteredOsuFiles"));
+
+        // 设置选中行样式 - 更明显的蓝色高亮
+        var rowStyle = new Style(typeof(DataGridRow));
+        var selectedTrigger = new Trigger { Property = DataGridRow.IsSelectedProperty, Value = true };
+        selectedTrigger.Setters.Add(new Setter(DataGridRow.BackgroundProperty, new SolidColorBrush(Color.FromRgb(33, 150, 243)))); // 蓝色高亮
+        rowStyle.Triggers.Add(selectedTrigger);
+        _fileDataGrid.RowStyle = rowStyle;
 
         _fileDataGrid.Columns.Add(new DataGridTextColumn
         {
             Header = "Artist", Binding = new Binding("Artist.Value"),
-            Width = 120
+            Width = 120,
+            IsReadOnly = false // 可编辑
         });
         _fileDataGrid.Columns.Add(new DataGridTextColumn
         {
-            Header = "Title", Binding = new Binding("Title.Value"), Width = 120
+            Header = "Title", Binding = new Binding("Title.Value"), 
+            Width = 120,
+            IsReadOnly = false // 可编辑
         });
         _fileDataGrid.Columns.Add(new DataGridTextColumn
         {
             Header = "Creator", Binding = new Binding("Creator.Value"),
-            Width = DataGridLength.Auto
+            Width = DataGridLength.Auto,
+            IsReadOnly = false // 可编辑
         });
         _fileDataGrid.Columns.Add(new DataGridTextColumn
         {
-            Header = "Diff", Binding = new Binding("Diff.Value"), Width = 120
+            Header = "Diff", Binding = new Binding("Diff.Value"), 
+            Width = 120,
+            IsReadOnly = false // 可编辑
         });
         _fileDataGrid.Columns.Add(new DataGridTextColumn
-            { Header = "Keys", Binding = new Binding("Keys"), Width = DataGridLength.SizeToHeader, IsReadOnly = true });
+            { Header = "Keys", Binding = new Binding("Keys"), Width = DataGridLength.SizeToHeader, IsReadOnly = true }); // 只读
         _fileDataGrid.Columns.Add(new DataGridTextColumn
-            { Header = "OD", Binding = new Binding("OD.Value"), Width = DataGridLength.SizeToHeader });
+            { Header = "OD", Binding = new Binding("OD.Value"), Width = DataGridLength.SizeToHeader, IsReadOnly = false }); // 可编辑
         _fileDataGrid.Columns.Add(new DataGridTextColumn
-            { Header = "HP", Binding = new Binding("HP.Value"), Width = DataGridLength.SizeToHeader });
+            { Header = "HP", Binding = new Binding("HP.Value"), Width = DataGridLength.SizeToHeader, IsReadOnly = false }); // 可编辑
         _fileDataGrid.Columns.Add(new DataGridTextColumn
-            { Header = "beatmapID", Binding = new Binding("BeatmapID"), Width = DataGridLength.Auto, IsReadOnly = true });
+            { Header = "beatmapID", Binding = new Binding("BeatmapID"), Width = DataGridLength.Auto, IsReadOnly = true }); // 只读
         _fileDataGrid.Columns.Add(new DataGridTextColumn
-            { Header = "setID", Binding = new Binding("BeatmapSetID"), Width = DataGridLength.Auto, IsReadOnly = true });
+            { Header = "setID", Binding = new Binding("BeatmapSetID"), Width = DataGridLength.Auto, IsReadOnly = true }); // 只读
         _fileDataGrid.Columns.Add(new DataGridTextColumn
         {
             Header = "FilePath", Binding = new Binding("FilePath.Value"),
-            Width = DataGridLength.Auto
+            Width = DataGridLength.Auto,
+            IsReadOnly = false // 可编辑
         });
 
-        // Sync top grid column widths with DataGrid columns
-        _fileDataGrid.LayoutUpdated += (_, _) =>
+        // 冻结前3列，方便查看
+        _fileDataGrid.FrozenColumnCount = 3;
+
+        // 启用列过滤
+        foreach (var column in _fileDataGrid.Columns)
         {
-            if (_topGrid != null && _fileDataGrid != null)
-                for (var i = 0; i < Math.Min(_topGrid.ColumnDefinitions.Count, _fileDataGrid.Columns.Count); i++)
-                    _topGrid.ColumnDefinitions[i].Width = new GridLength(_fileDataGrid.Columns[i].ActualWidth);
-        };
+            column.SetValue(DataGridFilterColumn.IsFilterVisibleProperty, true);
+        }
 
         // Context menu
         var ctx = new ContextMenu();
@@ -212,19 +171,54 @@ public class FilesManagerView : UserControl
     {
         // Bottom area
         var bottomGrid = new Grid { Margin = new Thickness(10) };
-        bottomGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Path display
+        bottomGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Stats
         bottomGrid.ColumnDefinitions.Add(new ColumnDefinition
             { Width = new GridLength(1, GridUnitType.Star) }); // Progress
         bottomGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Load button
 
-        var pathTextBlock = new TextBlock
+        // 统计信息面板
+        var statsPanel = new StackPanel
         {
-            VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0),
+            Orientation = Orientation.Horizontal,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 10, 0)
+        };
+
+        var totalFilesText = new TextBlock
+        {
+            Text = "总文件数: ",
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 5, 0)
+        };
+        var totalFilesValue = new TextBlock
+        {
+            VerticalAlignment = VerticalAlignment.Center,
             FontWeight = FontWeights.Bold
         };
-        pathTextBlock.SetBinding(TextBlock.TextProperty, new Binding("SelectedFolderPath"));
-        bottomGrid.Children.Add(pathTextBlock);
-        Grid.SetColumn(pathTextBlock, 0);
+        totalFilesValue.SetBinding(TextBlock.TextProperty, new Binding("OsuFiles.Count"));
+
+        var filteredFilesText = new TextBlock
+        {
+            Text = "显示文件数: ",
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(20, 0, 5, 0)
+        };
+        var filteredFilesValue = new TextBlock
+        {
+            VerticalAlignment = VerticalAlignment.Center,
+            FontWeight = FontWeights.Bold,
+            Foreground = Brushes.Blue
+        };
+        filteredFilesValue.SetBinding(TextBlock.TextProperty, 
+            new Binding("FilteredOsuFiles.Count") { FallbackValue = "0" });
+
+        statsPanel.Children.Add(totalFilesText);
+        statsPanel.Children.Add(totalFilesValue);
+        statsPanel.Children.Add(filteredFilesText);
+        statsPanel.Children.Add(filteredFilesValue);
+
+        bottomGrid.Children.Add(statsPanel);
+        Grid.SetColumn(statsPanel, 0);
 
         var progressPanel = new StackPanel
         {
@@ -281,44 +275,7 @@ public class FilesManagerView : UserControl
         e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
     }
 
-    private void ClearFiltersButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (DataContext is FilesManagerViewModel vm)
-        {
-            vm.TitleFilter = "";
-            vm.DiffFilter = "";
-            vm.ArtistFilter = "";
-            vm.CreatorFilter = "";
-            vm.KeysFilter = "";
-            vm.OdFilter = "";
-            vm.HpFilter = "";
-            vm.BeatmapIdFilter = "";
-            vm.BeatmapSetIdFilter = "";
-            vm.FilePathFilter = "";
-        }
-    }
 
-    private FrameworkElement PlaceInGrid(UIElement element, int column)
-    {
-        Grid.SetColumn(element, column);
-        return (FrameworkElement)element;
-    }
-
-    private TextBox CreateBoundTextBox(string path)
-    {
-        var tb = new TextBox { Height = 20, Margin = new Thickness(0, 0, 0, 5), Width = double.NaN };
-        tb.SetBinding(TextBox.TextProperty,
-            new Binding(path) { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
-        return tb;
-    }
-
-    private ComboBox CreateBoundComboBox(string path, string[] items)
-    {
-        var cb = new ComboBox { Height = 20, Margin = new Thickness(0, 0, 0, 5), Width = double.NaN, ItemsSource = items };
-        cb.SetBinding(Selector.SelectedItemProperty,
-            new Binding(path) { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
-        return cb;
-    }
 
     private async void DeleteMenuItem_Click(object sender, RoutedEventArgs e)
     {

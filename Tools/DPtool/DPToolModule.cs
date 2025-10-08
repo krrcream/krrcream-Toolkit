@@ -1,8 +1,6 @@
-using System;
 using krrTools.Core;
 using krrTools.Localization;
 using OsuParsers.Beatmaps;
-using OsuParsers.Decoders;
 
 namespace krrTools.Tools.DPtool
 {
@@ -15,19 +13,14 @@ namespace krrTools.Tools.DPtool
 
         public override string DisplayName => Strings.TabDPTool;
 
-        protected override Beatmap ProcessBeatmap(Beatmap input, DPToolOptions options)
+        /// <summary>
+        /// 应用转换到谱面（内部实现）
+        /// </summary>
+        /// <param name="beatmap">谱面对象</param>
+        protected override void ApplyToBeatmapInternal(Beatmap beatmap)
         {
-            var dp = new DP();
-            var resultBeatmap = dp.ProcessBeatmapToData(input, options);
-            return resultBeatmap;
-        }
-
-        protected override Beatmap ProcessSingleFile(string filePath, DPToolOptions options)
-        {
-            var beatmap = BeatmapDecoder.Decode(filePath);
-            if (beatmap == null) throw new Exception("[DPTool]Failed to load beatmap");
-            if (beatmap.GeneralSection.ModeId != 3) throw new Exception("Not mania");
-            return ProcessBeatmap(beatmap, options);
+            var transformer = new DP();
+            transformer.TransformBeatmap(beatmap, _currentOptions);
         }
     }
 }

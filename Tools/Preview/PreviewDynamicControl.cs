@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -42,30 +41,18 @@ internal class PreviewDynamicControl : Grid
     private readonly Canvas _canvas;
     private readonly ScrollViewer _scrollViewer;
     private readonly DrawingVisualHost _visualHost;
-    private double _lastAvailableHeight = -1;
-    private double _lastAvailableWidth = -1;
     private bool _initialScrollSet;
-
-    // 多线程预计算
-    private Task? _calculationTask;
-    
-    // 增量更新：跟踪变化
-    private List<ManiaHitObject> _lastNotes;
 
     private const double LaneSpacing = 4.0;
 
-    public PreviewDynamicControl(List<(int columnIndex, List<ManiaHitObject> notesInColumn)> grouped, int columns,
+    public PreviewDynamicControl(List<ManiaHitObject> notes, int columns,
         double quarterMs)
     {
-        // grouped 已排序；展开为单一 notes 列表并记录第一个时间点
-        _notes = grouped.SelectMany(g => g.Item2).OrderBy(n => n.StartTime).ToList();
+        // notes 已排序；记录第一个时间点
+        _notes = notes.OrderBy(n => n.StartTime).ToList();
         _firstTime = _notes.Any() ? _notes.Min(n => n.StartTime) : 0;
         _columns = columns;
         _quarterMs = quarterMs;
-
-        // 初始化增量更新字段
-        _lastNotes = new List<ManiaHitObject>(_notes);
-        _calculationTask = Task.CompletedTask;
 
         // 初始化 DrawingVisualHost
         _visualHost = new DrawingVisualHost();
@@ -98,13 +85,6 @@ internal class PreviewDynamicControl : Grid
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            // 增量更新：检查数据是否变化
-            var notesChanged = !_notes.SequenceEqual(_lastNotes);
-
-            if (!notesChanged && Math.Abs(_lastAvailableHeight - _canvas.Height) < 5 &&
-                Math.Abs(_lastAvailableWidth - _canvas.Width) < 5) return;
-            _lastNotes = new List<ManiaHitObject>(_notes);
-
             var availableWidth = Math.Max(100, ActualWidth - 20); // 保留内边距
 
             // 时间窗口：基于固定行间距计算
@@ -121,14 +101,12 @@ internal class PreviewDynamicControl : Grid
             }
 
             var totalTimeRange = Math.Max(PreviewConstants.MinWindowLengthMs, lastTime - firstTime);
-// 设定最大和最小密度
-            const double maxPixelsPerMs = 0.3;
+            // 动态像素密度：基于期望显示8行note（8个四分音符）
+            const int desiredLines = 8;
+            double timeRangeForLines = desiredLines * _quarterMs;
             const double minPixelsPerMs = 0.08;
-            const int maxNotes = 2000;
-
-// 线性插值，音符越多，pixelsPerMs 越小
-            var t = Math.Clamp(_notes.Count / (double)maxNotes, 0, 1);
-            var pixelsPerMs = maxPixelsPerMs * t + minPixelsPerMs * (1 - t);
+            const double maxPixelsPerMs = 0.3;
+            var pixelsPerMs = Math.Clamp(ActualHeight / timeRangeForLines, minPixelsPerMs, maxPixelsPerMs);
             
             // Canvas高度：基于总时间范围和像素每毫秒计算
             var totalCanvasHeight = totalTimeRange * pixelsPerMs;
@@ -136,9 +114,6 @@ internal class PreviewDynamicControl : Grid
             // 高度：容器可用高度
             var availableHeight = Math.Max(PreviewConstants.CanvasMinHeight, ActualHeight);
             var canvasHeight = Math.Max(availableHeight, totalCanvasHeight);
-
-            _lastAvailableHeight = canvasHeight;
-            _lastAvailableWidth = availableWidth;
 
             var totalSpacing = (_columns - 1) * LaneSpacing;
             var contentWidth = Math.Max(10, 
@@ -153,10 +128,8 @@ internal class PreviewDynamicControl : Grid
             _canvas.Width = canvasWidth;
             _canvas.Height = canvasHeight;
 
-            // 后台计算和绘制
-            if (_calculationTask is { IsCompleted: false })
-                _calculationTask.Wait(); // 等待之前的任务完成
-            _calculationTask = Task.Run(() => CalculateAndDraw(firstTime, totalTimeRange, pixelsPerMs, laneWidth, canvasWidth));
+            // 同步计算和绘制
+            CalculateAndDraw(firstTime, totalTimeRange, pixelsPerMs, laneWidth, canvasWidth);
 
             // 初始滚动到底部，显示时间最早的部分
             if (!_initialScrollSet)
@@ -177,10 +150,9 @@ internal class PreviewDynamicControl : Grid
         }
     }
 
-    private async Task CalculateAndDraw(double firstTime, double totalTimeRange, double pixelsPerMs, double laneWidth, double canvasWidth)
+    private void CalculateAndDraw(double firstTime, double totalTimeRange, double pixelsPerMs, double laneWidth, double canvasWidth)
     {
-        try
-        {
+
             // 获取可见音符
             var visibleNotes = GetVisibleNotes(firstTime, totalTimeRange);
 
@@ -188,42 +160,20 @@ internal class PreviewDynamicControl : Grid
             var drawing = CreateDrawing(visibleNotes, laneWidth, firstTime, pixelsPerMs, totalTimeRange, canvasWidth);
 
             // 在 UI 线程更新
-            await Dispatcher.InvokeAsync(() =>
+            var dv = new DrawingVisual();
+            using (var dc = dv.RenderOpen())
             {
-                var dv = new DrawingVisual();
-                using (var dc = dv.RenderOpen())
-                {
-                    dc.DrawDrawing(drawing);
-                }
-                _visualHost.Clear();
-                _visualHost.AddVisual(dv);
-            });
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"[PreviewDynamicControl] CalculateAndDraw error: {e}");
-        }
+                dc.DrawDrawing(drawing);
+            }
+            _visualHost.Clear();
+            _visualHost.AddVisual(dv);
     }
 
     private List<ManiaHitObject> GetVisibleNotes(double firstTime, double totalTimeRange)
     {
         var startTime = firstTime;
         var endTime = firstTime + totalTimeRange;
-        var startIndex = LowerBound(_notes, startTime);
-        var endIndex = LowerBound(_notes, endTime + 1); // > endTime
-        return _notes.GetRange(startIndex, endIndex - startIndex);
-    }
-
-    private int LowerBound(List<ManiaHitObject> list, double time)
-    {
-        int low = 0, high = list.Count;
-        while (low < high)
-        {
-            int mid = (low + high) / 2;
-            if (list[mid].StartTime < time) low = mid + 1;
-            else high = mid;
-        }
-        return low;
+        return _notes.Where(n => n.StartTime >= startTime && n.StartTime <= endTime).ToList();
     }
 
     private DrawingGroup CreateDrawing(List<ManiaHitObject> notes, double laneWidth, double firstTime,
@@ -234,13 +184,14 @@ internal class PreviewDynamicControl : Grid
         {
             const double noteHeight = PreviewConstants.NoteFixedHeight;
 
-            // 绘制节拍线
+            // 绘制小节线（每4拍）
             if (_quarterMs > 0)
             {
+                var measureMs = 2 * _quarterMs; // 小节间隔：2拍
                 var windowStart = firstTime;
                 var windowEnd = firstTime + totalTimeRange;
-                var startQ = Math.Ceiling(windowStart / _quarterMs) * _quarterMs;
-                for (var t = startQ; t <= windowEnd; t += _quarterMs)
+                var startM = windowStart; // 从窗口开始时间绘制，确保与notes对齐
+                for (var t = startM; t <= windowEnd; t += measureMs)
                 {
                     var relTime = t - firstTime;
                     var y = (totalTimeRange - relTime) * pixelsPerMs;

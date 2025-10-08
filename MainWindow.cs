@@ -23,13 +23,10 @@ using krrTools.UI;
 using krrTools.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using OsuParsers.Decoders;
-using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 using Grid = Wpf.Ui.Controls.Grid;
 using Point = System.Windows.Point;
 using Size = System.Windows.Size;
-using ToggleSwitch = Wpf.Ui.Controls.ToggleSwitch;
 
 namespace krrTools;
 
@@ -40,31 +37,28 @@ public class MainWindow : FluentWindow
     private readonly TabView MainTabControl;
     private readonly Grid _mainGrid;
 
-    private ToggleButton GlobalOsuListenerButton = null!;
-    private ToggleSwitch _realTimeToggle = null!;
-
     private PreviewViewDual? _previewDual;
     private ContentControl? _currentSettingsContainer;
     private ListenerViewModel? _listenerVM;
-    private Window? _currentListenerWindow;
 
     // 跟踪选项卡拖动/分离
     private Point _dragStartPoint;
     private TabViewItem? _draggedTab;
-    private DateTime _lastPreviewRefresh = DateTime.MinValue;
-
-    private PropertyChangedEventHandler? _currentOptionsChangedHandler;
-
-    private object? _currentTool;
-    private string? _internalOsuPath;
-    private bool _realTimePreview;
     public TabView TabControl => MainTabControl;
-    // 文件调度器
-    public readonly FileDispatcher _fileDispatcher;
-    public FileDispatcher FileDispatcher => _fileDispatcher;
+
+    public PreviewViewDual? PreviewDualControl => _previewDual;
+
+    public FileDropZone? FileDropZone => _fileDropZone;
+
+    private FileDropZone? _fileDropZone;
+
     // 工具调度器
     private IModuleManager ModuleManager { get; }
 
+    // private object? _currentTool;
+    // private string? _internalOsuPath;
+    // private string? _lastProcessedBackgroundPath;
+    private bool _realTimePreview;
     public bool RealTimePreviewEnabled => _realTimePreview;
 
     private bool RealTimePreview
@@ -75,36 +69,30 @@ public class MainWindow : FluentWindow
             if (_realTimePreview != value)
             {
                 _realTimePreview = value;
-                SaveRealTimePreview();
+                BaseOptionsManager.SetRealTimePreview(_realTimePreview);
                 OnRealTimePreviewChanged();
             }
         }
     }
 
-    private void SaveRealTimePreview() => BaseOptionsManager.SetRealTimePreview(_realTimePreview);
-    private void LoadRealTimePreview() => _realTimePreview = BaseOptionsManager.GetRealTimePreview();
-
-    private void DebouncedRefresh(PreviewViewDual control, int ms = 100)
+    private void LoadRealTimePreview()
     {
-        var now = DateTime.UtcNow;
-        if ((now - _lastPreviewRefresh).TotalMilliseconds < ms) return;
-        _lastPreviewRefresh = now;
-        control.Refresh();
+        _realTimePreview = BaseOptionsManager.GetRealTimePreview();
     }
 
     private N2NCView _convWindowInstance = null!;
     private DPToolView _dpToolWindowInstance = null!;
     private KRRLNTransformerView _krrLnTransformerInstance = null!;
+    private ListenerControl _listenerControlInstance = null!;
 
     private ContentControl? N2NCSettingsHost => _settingsHosts.GetValueOrDefault(ConverterEnum.N2NC);
     private ContentControl? DPSettingsHost => _settingsHosts.GetValueOrDefault(ConverterEnum.DP);
     private ContentControl? KRRLNSettingsHost => _settingsHosts.GetValueOrDefault(ConverterEnum.KRRLN);
     private ContentControl? LVCalSettingsHost => _settingsHosts.GetValueOrDefault(ModuleEnum.LVCalculator);
     private ContentControl? FilesManagerHost => _settingsHosts.GetValueOrDefault(ModuleEnum.FilesManager);
+    private ContentControl? ListenerSettingsHost => _settingsHosts.GetValueOrDefault(ModuleEnum.Listener);
 
-    public PreviewViewDual? PreviewDualControl => _previewDual;
-
-    private FileDropZone? _fileDropZone;
+    public FileDropZoneViewModel? FileDropZoneViewModel { get; private set; }
 
     public MainWindow()
     {
@@ -113,15 +101,15 @@ public class MainWindow : FluentWindow
         Height = 750;
         ResizeMode = ResizeMode.CanResize;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        Content = root = new Grid()
+        Content = root = new Grid
         {
             RowDefinitions =
             {
                 new RowDefinition { Height = GridLength.Auto }, // 标题栏
                 new RowDefinition { Height = GridLength.Auto }, // 选项卡行
                 new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }, // 主内容区域（设置 + 预览）
-                new RowDefinition { Height = GridLength.Auto }, // Footer状态栏行
-            }        
+                new RowDefinition { Height = GridLength.Auto } // Footer状态栏行
+            }
         };
         MainTabControl = new TabView
         {
@@ -139,17 +127,15 @@ public class MainWindow : FluentWindow
                 new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) } // 预览器 - 动态适应剩余宽度
             }
         };
-        
-        _fileDispatcher = new FileDispatcher(MainTabControl);
+
         ModuleManager = App.Services.GetRequiredService<IModuleManager>();
-        
+
         LoadRealTimePreview();
-        OnRealTimePreviewChanged();
         BuildUI();
+        OnRealTimePreviewChanged();
 
         LoadToolSettingsHosts();
-        SetupPreviewProcessors();
-        
+
         Loaded += ApplyToThemeLoaded;
         MainTabControl.PreviewMouseLeftButtonDown += TabControl_PreviewMouseLeftButtonDown;
         MainTabControl.PreviewMouseMove += TabControl_PreviewMouseMove;
@@ -171,14 +157,16 @@ public class MainWindow : FluentWindow
         BuildNoPreViewTabs();
 
         // 全局预览器
-        _previewDual = new PreviewViewDual
-        {
-            ModuleScheduler = ModuleManager
-        };
+        var previewViewModel = new PreviewViewModel();
+        _previewDual = new PreviewViewDual(previewViewModel);
 
-        var fileDropZone = new FileDropZone();
+        // 创建 FileDropZoneViewModel
+        var fileDispatcher = new FileDispatcher();
+        var fileDropZoneViewModel = new FileDropZoneViewModel(_previewDual, fileDispatcher, GetActiveTabTag);
+        var fileDropZone = new FileDropZone(fileDropZoneViewModel);
         _fileDropZone = fileDropZone;
-        fileDropZone.StartConversionRequested += StartConversionRequested;
+        // fileDropZoneViewModel.FilesDropped += OnFilesDropped;
+        // fileDropZoneViewModel.StartConversionRequested += StartConversionRequested;
 
         var previewGrid = new Grid();
         previewGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -187,31 +175,36 @@ public class MainWindow : FluentWindow
         var previewPanel = SharedUIComponents.CreateStandardPanel(_previewDual, new Thickness(8));
         previewGrid.Children.Add(previewPanel);
         previewGrid.Children.Add(fileDropZone);
-        
+
         // Footer
-        _realTimeToggle = new ToggleSwitch
+        var statusBarControl = new StatusBarControl
         {
-            IsChecked = RealTimePreview,
-            DataContext = new DynamicLocalizedString(Strings.RealTimePreviewLabel)
+            RealTimeToggle =
+            {
+                IsChecked = RealTimePreview
+            }
         };
-        _realTimeToggle.SetBinding(ContentProperty, new Binding("Value"));
-        _realTimeToggle.Checked += (_, _) => RealTimePreview = true;
-        _realTimeToggle.Unchecked += (_, _) => RealTimePreview = false;
+        
+        statusBarControl.RealTimeToggle.Checked += (_, _) => RealTimePreview = true;
+        statusBarControl.RealTimeToggle.Unchecked += (_, _) => RealTimePreview = false;
 
-        var localizedListenerText = new DynamicLocalizedString(Strings.OSUListener);
-        GlobalOsuListenerButton = new ToggleButton
+        var localizedRealTimeText = new DynamicLocalizedString(Strings.RealTimePreviewLabel);
+        statusBarControl.RealTimeToggle.SetBinding(ContentProperty, new Binding("Value") { Source = localizedRealTimeText });
+
+        statusBarControl.TopmostToggle.Checked += (_, _) =>
         {
-            Width = 120,
-            Height = 24,
-            Margin = new Thickness(4, 0, 4, 0),
-            HorizontalAlignment = HorizontalAlignment.Left,
-            VerticalAlignment = VerticalAlignment.Center,
-            IsChecked = false
+            Topmost = true;
+            statusBarControl.TopmostToggle.Content = new SymbolIcon { Symbol = SymbolRegular.Pin20 };
+            statusBarControl.TopmostToggle.ToolTip = "取消置顶";
         };
-        GlobalOsuListenerButton.SetBinding(ContentProperty, new Binding("Value") { Source = localizedListenerText });
-        GlobalOsuListenerButton.Click += GlobalOsuListenerButton_Click;
+        statusBarControl.TopmostToggle.Unchecked += (_, _) =>
+        {
+            Topmost = false;
+            statusBarControl.TopmostToggle.Content = new SymbolIcon { Symbol = SymbolRegular.PinOff20 };
+            statusBarControl.TopmostToggle.ToolTip = "置顶窗口";
+        };
 
-        var footer = SharedUIComponents.CreateStatusBar(_realTimeToggle, GlobalOsuListenerButton);
+        var footer = statusBarControl;
 
         // 设置Grid行
         System.Windows.Controls.Grid.SetRow(MainTabControl, 1);
@@ -223,14 +216,14 @@ public class MainWindow : FluentWindow
         System.Windows.Controls.Grid.SetRow(previewPanel, 0);
         System.Windows.Controls.Grid.SetRow(fileDropZone, 1);
         System.Windows.Controls.Grid.SetColumn(previewGrid, 1);
-        
+
         _mainGrid.Children.Add(settingsContainer);
         _mainGrid.Children.Add(previewGrid);
-        root.Children.Add(new TitleBar() { Title = Strings.WindowTitle });
+        root.Children.Add(new TitleBar { Title = Strings.WindowTitle });
         root.Children.Add(MainTabControl);
         root.Children.Add(_mainGrid);
         root.Children.Add(footer);
-        
+
         AllowDrop = true;
         // 设置初始选项卡内容
         MainTabControl_SelectionChanged(null, null);
@@ -241,21 +234,13 @@ public class MainWindow : FluentWindow
         // 使用Dispatcher延迟应用主题，确保窗口完全初始化
         Dispatcher.BeginInvoke(new Action(() =>
         {
-            var savedTheme = SharedUIComponents.GetSavedApplicationTheme() != null
-                             && Enum.TryParse<ApplicationTheme>(SharedUIComponents.GetSavedApplicationTheme(), out var theme) ?
-                theme : ApplicationTheme.Light;
-
-            var savedBackdrop = SharedUIComponents.GetSavedWindowBackdropType() != null
-                                && Enum.TryParse<WindowBackdropType>(SharedUIComponents.GetSavedWindowBackdropType(), out var backdrop) ?
-                backdrop : WindowBackdropType.Acrylic;
-
-            var savedAccent = SharedUIComponents.GetSavedUpdateAccent() ?? true;
-            ApplicationThemeManager.Apply(savedTheme, savedBackdrop, savedAccent);
+            StatusBarControl.ApplyThemeSettings();
             InvalidateVisual(); // 强制重新绘制以应用主题
-        }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
     }
 
     #region 创建带预览器选项卡
+
     private void BuildPreviewTabs()
     {
         foreach (var cfg in Enum.GetValuesAsUnderlyingType(
@@ -287,9 +272,11 @@ public class MainWindow : FluentWindow
             MainTabControl.Items.Add(tab);
         }
     }
+
     #endregion
 
     #region 创建简单选项卡（无预览器）
+
     private void BuildNoPreViewTabs()
     {
         foreach (var cfg in Enum.GetValuesAsUnderlyingType(
@@ -299,6 +286,7 @@ public class MainWindow : FluentWindow
             {
                 ModuleEnum.LVCalculator => Strings.TabKrrLV,
                 ModuleEnum.FilesManager => Strings.TabFilesManager,
+                ModuleEnum.Listener => Strings.OSUListener,
                 _ => cfg.ToString()
             };
             var headerLabel = SharedUIComponents.CreateHeaderLabel(headerText);
@@ -317,30 +305,8 @@ public class MainWindow : FluentWindow
             MainTabControl.Items.Add(tab);
         }
     }
+
     #endregion
-
-    private void SetupPreviewProcessors()
-    {
-        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-
-        var direct = Path.Combine(baseDir, "mania-PreView.osu");
-
-        if (!File.Exists(direct))
-        {
-            var dir = new DirectoryInfo(baseDir);
-            for (var i = 0; i < 6; i++)
-            {
-                if (dir == null) break;
-
-                direct = Path.Combine(dir.FullName, "tools", "Preview",
-                    "mania-PreView.osu");
-                if (!File.Exists(direct))
-                    dir = dir.Parent;
-            }
-        }
-
-        _internalOsuPath = direct;
-    }
 
     // 清除固定尺寸属性，以便嵌入时自适应布局
     private void ClearFixedSizes(DependencyObject? element)
@@ -383,6 +349,7 @@ public class MainWindow : FluentWindow
     }
 
     #region 嵌入各工具设置窗口
+
     private class ToolEmbeddingConfig
     {
         public required Func<UserControl> ControlFactory { get; init; }
@@ -443,12 +410,22 @@ public class MainWindow : FluentWindow
             new ToolEmbeddingConfig
             {
                 ControlFactory = () => new KRRLVAnalysisView(),
-                HostGetter = () => LVCalSettingsHost,
+                HostGetter = () => LVCalSettingsHost
             },
             new ToolEmbeddingConfig
             {
                 ControlFactory = () => new FilesManagerView(),
                 HostGetter = () => FilesManagerHost
+            },
+            new ToolEmbeddingConfig
+            {
+                ControlFactory = () => new ListenerControl(),
+                HostGetter = () => ListenerSettingsHost,
+                InstanceSetter = control =>
+                {
+                    _listenerControlInstance = (ListenerControl)control;
+                    _listenerControlInstance.ViewModel.PropertyChanged += ListenerViewModel_PropertyChanged;
+                }
             }
         };
 
@@ -462,22 +439,9 @@ public class MainWindow : FluentWindow
                 EmbedTool(control, host);
                 config.InstanceSetter?.Invoke(control);
             }
-
-            // 特殊处理：设置变化监听，用于实时预览更新
-            if (control is KRRLNTransformerView krrControl)
-            {
-                krrControl.SettingsChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(ConverterEnum.KRRLN);
-            }
-            else if (control is N2NCView n2ncControl)
-            {
-                n2ncControl.SettingsChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(ConverterEnum.N2NC);
-            }
-            else if (control is DPToolView dpControl)
-            {
-                dpControl.SettingsChanged += (_, _) => RefreshGlobalPreviewIfCurrentTool(ConverterEnum.DP);
-            }
         }
     }
+
     #endregion
 
     // 选项卡拖动/分离处理 - 克隆内容用于分离窗口，保持原选项卡不变
@@ -506,6 +470,7 @@ public class MainWindow : FluentWindow
     }
 
     #region 构建独立选项卡，切换时更新设置和预览
+
     private void DetachTab(TabViewItem tab)
     {
         if (!MainTabControl.Items.Contains(tab)) return;
@@ -520,14 +485,18 @@ public class MainWindow : FluentWindow
         var moduleControlMap = new Dictionary<ModuleEnum, Type>
         {
             { ModuleEnum.LVCalculator, typeof(KRRLVAnalysisView) },
-            { ModuleEnum.FilesManager, typeof(FilesManagerView) },
+            { ModuleEnum.FilesManager, typeof(FilesManagerView) }
             // 如有其他 ModuleEnum 项，继续添加
         };
 
-        if (!Enum.TryParse(toolKey, out ModuleEnum moduleEnum) || !moduleControlMap.TryGetValue(moduleEnum, out var controlType))
+        if (!Enum.TryParse(toolKey, out ModuleEnum moduleEnum) ||
+            !moduleControlMap.TryGetValue(moduleEnum, out var controlType))
             throw new ArgumentOutOfRangeException();
 
-        ContentControl CreateFreshWindow() => (ContentControl)Activator.CreateInstance(controlType)!;
+        ContentControl CreateFreshWindow()
+        {
+            return (ContentControl)Activator.CreateInstance(controlType)!;
+        }
 
         var control = CreateFreshWindow(); // 创建新控件实例
         var win = new Window // 独立窗口
@@ -600,74 +569,15 @@ public class MainWindow : FluentWindow
 
         win.Show();
     }
+
     #endregion
 
-    private void StartConversionRequested(object? sender, string[]? paths)
+    private ConverterEnum GetActiveTabTag()
     {
-        if (paths == null || paths.Length == 0) return;
-
-        // Get the currently active tool from the selected tab
-        var selectedTag = (MainTabControl.SelectedItem as TabViewItem)?.Tag?.ToString();
-        if (string.IsNullOrEmpty(selectedTag))
-        {
-            return;
-        }
-
-        // Filter out internal sample and invalid files
-        var toProcess = paths.Where(p => !string.Equals(p, _internalOsuPath, StringComparison.OrdinalIgnoreCase))
-            .Where(p => File.Exists(p) && Path.GetExtension(p).Equals(".osu", StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-        if (toProcess.Length == 0) return;
-
-        _fileDispatcher.ConvertFiles(toProcess, selectedTag);
+        return (MainTabControl.SelectedItem as TabViewItem)?.Tag is ConverterEnum converter
+            ? converter
+            : ConverterEnum.N2NC;
     }
-
-    private void GlobalOsuListenerButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_currentListenerWindow is { IsVisible: true })
-        {
-            _currentListenerWindow.Close();
-            _currentListenerWindow = null;
-            GlobalOsuListenerButton.IsChecked = false;
-            return;
-        }
-
-        var selectedTab = MainTabControl.SelectedItem as TabViewItem;
-
-        object? source = null;
-        var toolEnum = selectedTab?.Tag;
-        var sourceId = toolEnum is ConverterEnum converter ? BaseOptionsManager.GetSourceId(converter) : 0;
-
-        // 使用自动映射获取控件实例
-        switch (toolEnum)
-        {
-            case ConverterEnum.N2NC:
-                source = _convWindowInstance;
-                break;
-            case ConverterEnum.DP:
-                source = _dpToolWindowInstance;
-                break;
-            case ConverterEnum.KRRLN:
-                source = _krrLnTransformerInstance;
-                break;
-        }
-
-        var listenerControl = new ListenerControl(source, sourceId);
-        _currentListenerWindow = listenerControl;
-        var listenerVM = (_currentListenerWindow as ListenerControl)?.ViewModel;
-        if (listenerVM != null)
-        {
-            listenerVM.PropertyChanged += ListenerViewModel_PropertyChanged;
-        }
-        _currentListenerWindow.Closed += (_, _) => 
-        {
-            _currentListenerWindow = null;
-            GlobalOsuListenerButton.IsChecked = false;
-        };
-        GlobalOsuListenerButton.IsChecked = true;
-        _currentListenerWindow.Show();
-    }
-
 
     // Custom TabPanel that allows dynamic widths
     private class CustomTabPanel : TabPanel
@@ -682,6 +592,7 @@ public class MainWindow : FluentWindow
                 totalWidth += child.DesiredSize.Width;
                 maxHeight = Math.Max(maxHeight, child.DesiredSize.Height);
             }
+
             return new Size(totalWidth, maxHeight);
         }
     }
@@ -695,11 +606,14 @@ public class MainWindow : FluentWindow
                 _listenerVM = new ListenerViewModel();
                 _listenerVM.BeatmapSelected += OnBeatmapSelected;
             }
-            if (string.IsNullOrEmpty(_listenerVM.Config.SongsPath))
-            {
-                _listenerVM.SetSongsPath();
-            }
-            // 移除直接设置拖拽区的逻辑，由事件处理
+
+            // 立即触发一次检查，以加载当前选中的谱面
+            _ = _listenerVM.TriggerImmediateCheck();
+            // 移除直接调用SetSongsPath的逻辑，让ListenerViewModel自动检测osu!进程并获取Songs路径
+            // if (string.IsNullOrEmpty(_listenerVM.Config.SongsPath))
+            // {
+            //     _listenerVM.SetSongsPath();
+            // }
         }
         else
         {
@@ -708,106 +622,66 @@ public class MainWindow : FluentWindow
                 _listenerVM.Cleanup();
                 _listenerVM = null;
             }
+
             // 当关闭实时预览时，重置预览到默认内置样本
-            _previewDual?.ResetToDefaultPreview();
+            _previewDual?.ResetPreview();
             // 清除拖入区的监听文件
-            _fileDropZone?.SetListenedFiles(null);
+            _fileDropZone?.SetManualMode(null);
         }
     }
 
     private void OnBeatmapSelected(object? sender, ListenerViewModel.BeatmapInfo e)
     {
-        if (string.IsNullOrEmpty(e.FilePath)) return;
-        Dispatcher.BeginInvoke(new Action(() =>
+        if (string.IsNullOrEmpty(e.FilePath) || !File.Exists(e.FilePath)) return;
+
+        try
         {
-            try
-            {
-                if (!File.Exists(e.FilePath)) return;
-
-                // 首先更新拖拽区状态为监听文件
-                _fileDropZone?.SetListenedFiles([e.FilePath]);
-
-                // 然后加载预览
-                if (_currentTool is ConverterEnum && _previewDual != null)
-                {
-                    var beatmaps = BeatmapDecoder.Decode(e.FilePath);
-                    beatmaps.OriginalFilePath = e.FilePath;
-                    _previewDual.LoadPreview(beatmaps);
-                }
-
-                // 加载背景图，如果实时预览开启
-                if (RealTimePreview && _previewDual != null && !string.IsNullOrEmpty(e.BackgroundImagePath))
-                {
-                    _previewDual.LoadBackgroundBrush(e.BackgroundImagePath);
-                }
-            }
-            catch (Exception ex)
-            {
-                LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("MainWindow")
-                    .LogError($"Error loading beatmap in real-time preview: {ex.Message}");
-            }
-        }));
-    }
-
-    private void RefreshGlobalPreviewIfCurrentTool(ConverterEnum toolEnum)
-    {
-        if (_previewDual != null)
+            _fileDropZone?.SetManualMode([e.FilePath], FileDropZoneViewModel.FileSource.Listened);
+        }
+        catch (Exception ex)
         {
-            _previewDual!.Refresh();
+            LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("MainWindow")
+                .LogError($"Error loading beatmap in real-time preview: {ex.Source}{ex.Message}{ex.StackTrace}");
         }
     }
 
     private void MainTabControl_SelectionChanged(object? sender, SelectionChangedEventArgs? e)
     {
         var selectedTag = (MainTabControl.SelectedItem as TabViewItem)?.Tag;
-        bool isConverter = selectedTag is ConverterEnum;
-        
+        var isConverter = selectedTag is ConverterEnum;
+
         if (_previewDual != null && selectedTag != null)
         {
             _previewDual.Visibility = isConverter ? Visibility.Visible : Visibility.Collapsed;
             if (isConverter)
             {
+                var converterEnum = (ConverterEnum)selectedTag;
+
                 // 直接创建统一的处理器
-                var processor = new ConverterProcessor
+                var processor = new ConverterProcessor(ModuleManager, GetOptionsProviderForConverter(converterEnum))
                 {
-                    ModuleScheduler = ModuleManager,
-                    OptionsProvider = selectedTag switch
-                    {
-                        ConverterEnum.N2NC => () => (_convWindowInstance.DataContext as N2NCViewModel)?.Options ?? new N2NCOptions(),
-                        ConverterEnum.DP => () => (_dpToolWindowInstance.DataContext as DPToolViewModel)?.Options ?? new DPToolOptions(),
-                        ConverterEnum.KRRLN => () => (_krrLnTransformerInstance.DataContext as KRRLNTransformerViewModel)?.Options ?? new KRRLNTransformerOptions(),
-                        _ => null
-                    },
-                    ModuleTool = selectedTag as ConverterEnum?,
+                    ModuleTool = converterEnum
                 };
-                _previewDual.Processor = processor;
 
                 // 设置选项变化监听
-                object? viewModel = selectedTag switch
-                {
-                    ConverterEnum.N2NC => _convWindowInstance.DataContext,
-                    ConverterEnum.DP => _dpToolWindowInstance.DataContext,
-                    ConverterEnum.KRRLN => _krrLnTransformerInstance.DataContext,
-                    _ => null
-                };
+                var viewModel = GetViewModelForConverter(converterEnum);
 
-                // 设置 DataContext 以便监听属性变化
-                _previewDual.DataContext = viewModel;
-
-                var optionsProperty = viewModel?.GetType().GetProperty("Options");
-                if (optionsProperty != null && optionsProperty.GetValue(viewModel) is INotifyPropertyChanged optionsNpc)
+                if (viewModel != null)
                 {
-                    _currentOptionsChangedHandler = (_, _) => DebouncedRefresh(_previewDual);
-                    optionsNpc.PropertyChanged += _currentOptionsChangedHandler;
+                    // 只设置DataContext，不触发刷新
+                    _previewDual.DataContext = viewModel;
+
+                    // 通过ViewModel设置处理器，它会处理刷新
+                    _previewDual.ViewModel!.SetProcessor(processor);
+                    _previewDual.SetCurrentTool(converterEnum);
                 }
-                _previewDual.Refresh();
             }
             else
             {
-                _previewDual.Processor = null;
+                _previewDual.ViewModel!.SetProcessor(null);
             } // 非转换工具时清除处理器
         }
-        
+
         // 动态调整列宽度
         if (isConverter)
         {
@@ -819,24 +693,11 @@ public class MainWindow : FluentWindow
             _mainGrid.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
             _mainGrid.ColumnDefinitions[1].Width = new GridLength(0);
         }
-        
+
         // 切换前先清空内容，避免重复父级
         UpdateSettingsContainer(selectedTag, isConverter);
-        
-        _currentTool = selectedTag;
     }
 
-    private object? GetViewModelForConverter(ConverterEnum converter)
-    {
-        return converter switch
-        {
-            ConverterEnum.N2NC => _convWindowInstance.DataContext,
-            ConverterEnum.DP => _dpToolWindowInstance.DataContext,
-            ConverterEnum.KRRLN => _krrLnTransformerInstance.DataContext,
-            _ => null
-        };
-    }
-    
     private void UpdateSettingsContainer(object? selectedTag, bool isConverter)
     {
         if (_currentSettingsContainer == null) return;
@@ -863,13 +724,39 @@ public class MainWindow : FluentWindow
         if (e.PropertyName == "CurrentOsuFilePath")
         {
             if (sender is ListenerViewModel listenerVM && !string.IsNullOrEmpty(listenerVM.CurrentOsuFilePath))
-            {
                 _fileDropZone?.SetManualMode([listenerVM.CurrentOsuFilePath]);
-            }
             else
-            {
                 _fileDropZone?.SetManualMode(null);
-            }
         }
     }
+
+    #region 辅助方法
+
+    private Func<IToolOptions> GetOptionsProviderForConverter(ConverterEnum converter)
+    {
+        return converter switch
+        {
+            ConverterEnum.N2NC => () =>
+                (_convWindowInstance.DataContext as N2NCViewModel)?.Options ?? new N2NCOptions(),
+            ConverterEnum.DP => () =>
+                (_dpToolWindowInstance.DataContext as DPToolViewModel)?.Options ?? new DPToolOptions(),
+            ConverterEnum.KRRLN => () =>
+                (_krrLnTransformerInstance.DataContext as KRRLNTransformerViewModel)?.Options ??
+                new KRRLNTransformerOptions(),
+            _ => () => new N2NCOptions() // 默认返回N2NC选项，避免null
+        };
+    }
+
+    private object? GetViewModelForConverter(ConverterEnum converter)
+    {
+        return converter switch
+        {
+            ConverterEnum.N2NC => _convWindowInstance.DataContext,
+            ConverterEnum.DP => _dpToolWindowInstance.DataContext,
+            ConverterEnum.KRRLN => _krrLnTransformerInstance.DataContext,
+            _ => null
+        };
+    }
+
+    #endregion
 }

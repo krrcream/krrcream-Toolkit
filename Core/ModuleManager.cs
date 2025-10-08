@@ -1,209 +1,107 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using krrTools.Beatmaps;
 using krrTools.Configuration;
-using OsuParsers.Beatmaps;
-using OsuParsers.Decoders;
 
-namespace krrTools.Core
+namespace krrTools.Core;
+
+/// <summary>
+/// 模块管理器实现
+/// </summary>
+public class ModuleManager : IModuleManager
 {
+    private readonly Dictionary<ToolModuleType, IToolModule> _modules = new();
+    private readonly Dictionary<string, ITool> _tools = new();
+
     /// <summary>
-    /// 模块管理器实现
+    /// 构造函数，通过 DI 注入所有模块
     /// </summary>
-    public class ModuleManager : IModuleManager
+    public ModuleManager(IEnumerable<IToolModule> modules)
     {
-        private readonly Dictionary<ToolModuleType, IToolModule> _modules = new();
-        private readonly Dictionary<string, ITool> _tools = new();
+        foreach (var module in modules) RegisterModule(module);
+    }
 
-        /// <summary>
-        /// 构造函数，通过 DI 注入所有模块
-        /// </summary>
-        public ModuleManager(IEnumerable<IToolModule> modules)
+    /// <summary>
+    /// 构造函数，通过反射自动发现模块
+    /// </summary>
+    public ModuleManager() : this(DiscoverModules())
+    {
+    }
+
+    /// <summary>
+    /// 获取所有模块
+    /// </summary>
+    public IEnumerable<IToolModule> GetAllModules()
+    {
+        return _modules.Values;
+    }
+
+    /// <summary>
+    /// 注册模块
+    /// </summary>
+    public void RegisterModule(IToolModule module)
+    {
+        if (_modules.TryAdd(module.ModuleType, module))
+            // Console.WriteLine($"[INFO] 注册模块: {module.DisplayName}");
+            RegisterTool(module.CreateTool());
+    }
+
+    /// <summary>
+    /// 注销模块
+    /// </summary>
+    public void UnregisterModule(IToolModule module)
+    {
+        if (_modules.Remove(module.ModuleType))
         {
-            foreach (var module in modules)
-            {
-                RegisterModule(module);
-            }
+            Console.WriteLine($"[INFO] 注销模块: {module.DisplayName}");
+            _tools.Remove(module.CreateTool().Name);
         }
+    }
 
-        /// <summary>
-        /// 构造函数，通过反射自动发现模块
-        /// </summary>
-        public ModuleManager() : this(DiscoverModules())
-        {
-        }
+    /// <summary>
+    /// 注册工具
+    /// </summary>
+    /// <param name="tool">工具实例</param>
+    private void RegisterTool(ITool tool)
+    {
+        _tools[tool.Name] = tool;
+    }
 
-        /// <summary>
-        /// 获取所有模块
-        /// </summary>
-        public IEnumerable<IToolModule> GetAllModules() => _modules.Values;
+    // /// <summary>
+    // /// 获取已注册的工具列表
+    // /// </summary>
+    // public IEnumerable<ITool> GetRegisteredTools()
+    // {
+    //     return _tools.Values;
+    // }
 
-        /// <summary>
-        /// 注册模块
-        /// </summary>
-        public void RegisterModule(IToolModule module)
-        {
-            if (_modules.TryAdd(module.ModuleType, module))
-            {
-                Console.WriteLine($"[INFO] 注册模块: {module.DisplayName}");
-                RegisterTool(module.CreateTool());
-            }
-        }
+    /// <summary>
+    /// 根据名称获取工具
+    /// </summary>
+    public ITool? GetToolName(string toolName)
+    {
+        return _tools.GetValueOrDefault(toolName);
+    }
 
-        /// <summary>
-        /// 注销模块
-        /// </summary>
-        public void UnregisterModule(IToolModule module)
-        {
-            if (_modules.Remove(module.ModuleType))
-            {
-                Console.WriteLine($"[INFO] 注销模块: {module.DisplayName}");
-                _tools.Remove(module.CreateTool().Name);
-            }
-        }
+    /// <summary>
+    /// 通过反射发现所有IToolModule实现
+    /// </summary>
+    private static IEnumerable<IToolModule> DiscoverModules()
+    {
+        var modules = new List<IToolModule>();
+        var assembly = typeof(ModuleManager).Assembly;
 
-        /// <summary>
-        /// 注册工具
-        /// </summary>
-        /// <param name="tool">工具实例</param>
-        private void RegisterTool(ITool tool)
-        {
-            _tools[tool.Name] = tool;
-        }
-
-        /// <summary>
-        /// 获取已注册的工具列表
-        /// </summary>
-        public IEnumerable<ITool> GetRegisteredTools()
-        {
-            return _tools.Values;
-        }
-
-        /// <summary>
-        /// 根据名称获取工具
-        /// </summary>
-        public ITool? GetToolByName(string toolName)
-        {
-            return _tools.GetValueOrDefault(toolName);
-        }
-
-        /// <summary>
-        /// 异步执行单个工具（使用指定的选项）
-        /// </summary>
-        /// <param name="toolName">工具名称</param>
-        /// <param name="filePath">输入文件路径</param>
-        /// <param name="options">工具选项</param>
-        /// <returns>输出文件路径，失败返回null</returns>
-        public async Task<string?> ExecuteSingleAsync(string toolName, string filePath, IToolOptions options)
-        {
-            if (!_tools.TryGetValue(toolName, out var tool))
-                return null;
-
-            return await Task.Run(() => tool.ProcessFileSave(filePath, options));
-        }
-
-        /// <summary>
-        /// 同步执行单个工具（使用工具内部加载的设置）
-        /// </summary>
-        /// <param name="toolName">工具名称</param>
-        /// <param name="filePath">输入文件路径</param>
-        /// <returns>输出文件路径，失败返回null</returns>
-        public string? ExecuteSingle(string toolName, string filePath)
-        {
-            if (!_tools.TryGetValue(toolName, out var tool))
-                return null;
-
-            return tool.ProcessFileSave(filePath);
-        }
-
-        /// <summary>
-        /// 处理Beatmap对象（使用工具内部加载的设置）
-        /// </summary>
-        /// <param name="toolName">工具名称</param>
-        /// <param name="beatmap">输入Beatmap</param>
-        /// <returns>处理后的Beatmap，失败返回null</returns>
-        public Beatmap? ProcessBeatmap(ConverterEnum toolName, Beatmap beatmap)
-        {
-            if (!_tools.TryGetValue(toolName.ToString(), out var tool))
-                return null;
-
-            return tool.ProcessBeatmap(beatmap);
-        }
-
-        /// <summary>
-        /// 处理Beatmap对象（使用指定的选项）
-        /// </summary>
-        /// <param name="toolName">工具名称</param>
-        /// <param name="beatmap">输入Beatmap</param>
-        /// <param name="options">工具选项</param>
-        /// <returns>处理后的Beatmap，失败返回null</returns>
-        public Beatmap? ProcessBeatmap(ConverterEnum toolName, Beatmap beatmap, IToolOptions options)
-        {
-            if (!_tools.TryGetValue(toolName.ToString(), out var tool))
-                return null;
-
-            return tool.ProcessBeatmap(beatmap, options);
-        }
-
-        /// <summary>
-        /// 执行Beatmap管道
-        /// </summary>
-        /// <param name="pipeline">管道步骤列表</param>
-        /// <param name="beatmap">输入Beatmap</param>
-        /// <returns>最终处理后的Beatmap，失败返回null</returns>
-        public Beatmap? ExecuteBeatmapPipeline(IEnumerable<(ConverterEnum ToolName, IToolOptions Options)> pipeline, Beatmap beatmap)
-        {
-            Beatmap currentBeatmap = beatmap;
-            foreach (var (toolName, options) in pipeline)
-            {
-                var result = ProcessBeatmap(toolName, currentBeatmap, options);
-                if (result == null)
-                    return null;
-                currentBeatmap = result;
-            }
-            return currentBeatmap;
-        }
-
-        /// <summary>
-        /// 从路径加载ManiaBeatmap, 预留方法，未来可扩展为其他模式，由模块定义加载对象
-        /// </summary>
-        /// <param name="filePath">文件路径</param>
-        /// <returns>ManiaBeatmap实例，失败返回null</returns>
-        public Beatmap LoadBeatmap(string filePath)
-        {
-            return BeatmapDecoder.Decode(filePath).GetManiaBeatmap(filePath);
-        }
-
-        /// <summary>
-        /// 通过反射发现所有IToolModule实现
-        /// </summary>
-        private static IEnumerable<IToolModule> DiscoverModules()
-        {
-            var modules = new List<IToolModule>();
-            var assembly = typeof(ModuleManager).Assembly;
-
-            foreach (var type in assembly.GetTypes())
-            {
-                if (typeof(IToolModule).IsAssignableFrom(type) && type is { IsAbstract: false, IsInterface: false })
+        foreach (var type in assembly.GetTypes())
+            if (typeof(IToolModule).IsAssignableFrom(type) && type is { IsAbstract: false, IsInterface: false })
+                try
                 {
-                    try
-                    {
-                        var instance = Activator.CreateInstance(type);
-                        if (instance is IToolModule module)
-                        {
-                            modules.Add(module);
-                            Console.WriteLine($"[INFO] 自动发现模块: {module.DisplayName}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[ERROR] 创建模块实例失败: {type.FullName}, {ex.Message}");
-                    }
+                    var instance = Activator.CreateInstance(type);
+                    if (instance is IToolModule module) modules.Add(module);
                 }
-            }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] 创建模块实例失败: {type.FullName}, {ex.Message}");
+                }
 
-            return modules;
-        }
+        return modules;
     }
 }

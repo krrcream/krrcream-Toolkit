@@ -5,14 +5,14 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using krrTools.Beatmaps;
+using krrTools.Configuration;
 using krrTools.Localization;
-using krrTools.Utilities;
-using krrTools.Core;
-using OsuParsers.Beatmaps;
+using Wpf.Ui.Controls;
 using static krrTools.UI.SharedUIComponents;
-using TextBlock = Wpf.Ui.Controls.TextBlock;
+using Border = System.Windows.Controls.Border;
 using Button = Wpf.Ui.Controls.Button;
+using Grid = System.Windows.Controls.Grid;
+using TextBlock = Wpf.Ui.Controls.TextBlock;
 
 namespace krrTools.Tools.Preview;
 
@@ -24,23 +24,27 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
     private static readonly Thickness BorderMargin = new(0, 4, 0, 4);
     private static readonly Thickness BorderPadding = new(6);
 
-    // 常量
-    private const int MaxFileNameLength = 80; // 显示在标题中的文件名最大长度
-    private const int RefreshThrottleMs = 150;
-
     // 字段只声明
-    private readonly TextBlock _previewTitle;
-    private readonly TextBlock _originalHint;
-    private readonly TextBlock _convertedHint;
-    private readonly ContentControl _originalContent;
-    private readonly ContentControl _convertedContent;
+    private TextBlock _previewTitle = null!;
+    private TextBlock _originalHint = null!;
+    private TextBlock _convertedHint = null!;
+    private ContentControl _originalContent = null!;
+    private ContentControl _convertedContent = null!;
     private TextBlock _startTimeDisplay = null!;
+    private ConverterEnum? _currentTool;
+
+    public void SetCurrentTool(ConverterEnum? tool)
+    {
+        _currentTool = tool;
+    }
+    private DateTime _lastSettingsChange = DateTime.MinValue;
+    private const int SettingsChangeThrottleMs = 150;
 
     private bool _autoLoadedSample;
-    private INotifyPropertyChanged? _observedDc;
-    private DateTime _lastRefresh = DateTime.MinValue;
-    private Beatmap? _originalBeatmap;
-    public IModuleManager? ModuleScheduler { get; set; }
+    private string? _currentBackgroundPath;
+    private bool _isProcessing;
+
+    public PreviewViewModel? ViewModel { get; set; }
 
     #region 回调属性刷新预览
 
@@ -56,7 +60,7 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
 
     public static readonly DependencyProperty AutoRefreshTokenProperty = DependencyProperty.Register(
         nameof(AutoRefreshToken), typeof(object), typeof(PreviewViewDual),
-        new PropertyMetadata(null, OnAnyPropertyChanged));
+        new PropertyMetadata(null)); // 移除回调
 
     public object? AutoRefreshToken
     {
@@ -64,81 +68,55 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
         set => SetValue(AutoRefreshTokenProperty, value);
     }
 
-    public static readonly DependencyProperty ProcessorProperty = DependencyProperty.Register(
-        nameof(Processor), typeof(IPreviewProcessor), typeof(PreviewViewDual),
-        new PropertyMetadata(null, OnAnyPropertyChanged));
-
-    public IPreviewProcessor? Processor
-    {
-        get => (IPreviewProcessor?)GetValue(ProcessorProperty);
-        set => SetValue(ProcessorProperty, value);
-    }
-
-    // 通用属性变更回调
-    private static void OnAnyPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        if (d is PreviewViewDual ctrl)
-        {
-            if (e.Property == ProcessorProperty)
-            {
-                ctrl._autoLoadedSample = false;
-                if (e.NewValue == null)
-                {
-                    // 当 Processor 设置为 null 时，清空预览内容，以便显示内置预览
-                    ctrl._originalContent.Content = null;
-                    ctrl._convertedContent.Content = null;
-                }
-                else
-                {
-                    if (ctrl.Processor is ConverterProcessor cp)
-                        cp.ModuleScheduler = ctrl.ModuleScheduler;
-                    if (ctrl._originalBeatmap != null)
-                        ctrl.LoadConvertedPreview(ctrl._originalBeatmap);
-                }
-            }
-            else
-            {
-                ctrl.TryAutoLoadSample();
-                if (ctrl._originalBeatmap != null)
-                    ctrl.LoadConvertedPreview(ctrl._originalBeatmap);
-            }
-        }
-    }
-
     #endregion
 
     public void Refresh()
     {
-        if (_originalBeatmap != null) LoadConvertedPreview(_originalBeatmap);
+        // 手动刷新，立即执行
+        if (ViewModel != null)
+        {
+            // 使用ViewModel的refreshManager
+            var refreshManager = new PreviewRefreshManager(ViewModel);
+            refreshManager.TriggerRefresh(RefreshTrigger.Manual);
+        }
     }
 
-    public void LoadPreview(Beatmap beatmap)
+    public void LoadPreview(string input)
     {
-        LoadOriginalPreview(beatmap);
-        LoadConvertedPreview(beatmap);
+        ViewModel?.LoadFromPath(input);
+        // 触发刷新
+        Refresh();
     }
 
-    public PreviewViewDual()
+    public PreviewViewDual(PreviewViewModel viewModel)
+    {
+        ViewModel = viewModel;
+        ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+
+        InitializeUI();
+    }
+
+    private void InitializeUI()
     {
         _previewTitle = new TextBlock
-            { FontSize = 15, FontWeight = FontWeights.Bold, Text = Strings.PreviewTitle.Localize() };
+            { FontSize = 16, FontWeight = FontWeights.Bold, Text = Strings.PreviewTitle.Localize() };
 
         // 创建重置按钮
         var resetButton = new Button
         {
-            Content = "重置预览",
+            Content = new SymbolIcon { Symbol = SymbolRegular.ArrowReset32 },
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Top,
             Margin = new Thickness(0, 0, 10, 0),
             Padding = new Thickness(8, 4, 8, 4),
-            FontSize = 12
+            FontSize = 14
         };
         resetButton.Click += ResetButton_Click;
 
         // 创建标题网格
         var titleGrid = new Grid
         {
-            ColumnDefinitions = 
+            ColumnDefinitions =
             {
                 new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
                 new ColumnDefinition { Width = GridLength.Auto }
@@ -171,7 +149,7 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
 
         Loaded += DualPreviewControl_Loaded;
         Unloaded += DualPreviewControl_Unloaded;
-        DataContextChanged += DualPreviewControl_DataContextChanged;
+        // DataContextChanged += DualPreviewControl_DataContextChanged;
     }
 
     private Border CreatePreviewBorder(string hintText, out TextBlock hint, out ContentControl content)
@@ -187,7 +165,7 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
         {
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
             VerticalContentAlignment = VerticalAlignment.Stretch,
-            Visibility = Visibility.Collapsed
+            Visibility = Visibility.Visible
         };
         var grid = new Grid
         {
@@ -248,6 +226,7 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
     private void DualPreviewControl_Loaded(object sender, RoutedEventArgs e)
     {
         LocalizationService.LanguageChanged += OnLanguageChanged;
+        BaseOptionsManager.SettingsChanged += OnSettingsChanged;
         TryAutoLoadSample();
         Visibility = Visibility.Visible;
     }
@@ -255,7 +234,25 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
     private void DualPreviewControl_Unloaded(object? sender, RoutedEventArgs e)
     {
         LocalizationService.LanguageChanged -= OnLanguageChanged;
+        BaseOptionsManager.SettingsChanged -= OnSettingsChanged;
         Visibility = Visibility.Collapsed;
+    }
+
+    private void OnSettingsChanged(ConverterEnum changedConverter)
+    {
+        if ((DateTime.UtcNow - _lastSettingsChange).TotalMilliseconds < SettingsChangeThrottleMs) return;
+        _lastSettingsChange = DateTime.UtcNow;
+
+        if (_isProcessing || changedConverter != _currentTool) return;
+        _isProcessing = true;
+        try
+        {
+            ViewModel?.TriggerRefresh(RefreshTrigger.SettingsChanged);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
     }
 
     private void OnLanguageChanged()
@@ -266,123 +263,30 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
 
     private void TryAutoLoadSample()
     {
-        if (_autoLoadedSample || _originalContent.Content != null) return;
-        Processor ??= new ConverterProcessor();
-        if (Processor is ConverterProcessor cp)
-            cp.ModuleScheduler = ModuleScheduler;
-        var beatmap = PreviewManiaNote.BuiltInSampleStream();
-        LoadOriginalPreview(beatmap);
+        if (_autoLoadedSample || ViewModel?.OriginalVisual != null) return;
+        ViewModel?.LoadBuiltInSample();
         _autoLoadedSample = true;
-    }
-
-    private void LoadOriginalPreview(Beatmap beatmap)
-    {
-        _originalBeatmap = beatmap;
-        _previewTitle.Text = UpdateTitleSuffix(_originalBeatmap);
-
-        if (Processor == null)
-        {
-            SetNoProcessorState();
-            return;
-        }
-
-        if (_originalBeatmap == null || Processor == null) return;
-        var originalVisual = Processor.BuildOriginalVisual(_originalBeatmap);
-        _originalContent.Content = originalVisual;
-        _originalContent.Visibility = Visibility.Visible;
-    }
-
-    private void LoadConvertedPreview(Beatmap beatmap)
-    {
-        _originalBeatmap = beatmap;
-        _previewTitle.Text = UpdateTitleSuffix(_originalBeatmap);
-        // ApplyColumnOverrideToProcessor();
-        if (Processor == null)
-        {
-            SetNoProcessorState();
-            return;
-        }
-
-        if (_originalBeatmap == null || Processor == null) return;
-        var convertedVisual = Processor.BuildConvertedVisual(_originalBeatmap);
-        _convertedContent.Content = convertedVisual;
-        _convertedContent.Visibility = Visibility.Visible;
-
-        var startMsText = Processor is ConverterProcessor bp && bp.StartMs != 0
-            ? $"start {bp.StartMs} ms"
-            : string.Empty;
-        _startTimeDisplay.Text = startMsText;
-    }
-
-    private void SetNoProcessorState()
-    {
-        _originalContent.Content = new TextBlock
-            { Text = Strings.NoProcessorSet.Localize(), Foreground = Brushes.DarkRed };
-        _originalContent.Visibility = Visibility.Visible;
-        _convertedContent.Content = null;
-        _convertedContent.Visibility = Visibility.Collapsed;
     }
 
     // 监听DataContext变化以自动刷新
     private void DualPreviewControl_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        if (_observedDc != null)
-            _observedDc.PropertyChanged -= ObservedDcOnPropertyChanged;
-        _observedDc = e.NewValue as INotifyPropertyChanged;
-        if (_observedDc != null)
-            _observedDc.PropertyChanged += ObservedDcOnPropertyChanged;
+        // 完全移除DataContext变化监听，避免任何可能的副作用
+        // 预览只通过明确的刷新触发器控制
     }
-
-    private void ObservedDcOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if ((DateTime.UtcNow - _lastRefresh).TotalMilliseconds < RefreshThrottleMs) return;
-        _lastRefresh = DateTime.UtcNow;
-        Refresh();
-    }
-
-    #region 更新预览标题，预览文件名
-
-    private string UpdateTitleSuffix(Beatmap? beatmap)
-    {
-        if (beatmap == null) return string.Empty;
-
-        string titleSuffix;
-        if (beatmap.MetadataSection.Title == "Built-in Sample")
-        {
-            titleSuffix = "Built-in Sample";
-        }
-        else
-        {
-            var name = beatmap.GetOutputOsuFileName(true);
-            titleSuffix = TruncateFileNameMiddle(name, MaxFileNameLength);
-        }
-
-        return "DIFF: " + titleSuffix;
-    }
-
-    private static string TruncateFileNameMiddle(string name, int maxLen)
-    {
-        if (string.IsNullOrEmpty(name) || name.Length <= maxLen) return name;
-        var ext = Path.GetExtension(name);
-        var nameOnly = name.Substring(0, name.Length - ext.Length);
-        var keep = maxLen - ext.Length - 3;
-        if (keep <= 0) return name.Substring(0, maxLen - 3) + "...";
-        var head = keep / 2;
-        var tail = keep - head;
-        return nameOnly.Substring(0, head) + "..." + nameOnly.Substring(nameOnly.Length - tail) + ext;
-    }
-
-    #endregion
-
-    // private void ApplyColumnOverrideToProcessor()
-    // {
-    //     if (Processor is ConverterProcessor baseProc && ColumnOverride != null)
-    //         baseProc.ColumnOverride = (int)ColumnOverride;
-    // }
 
     // 加载谱面背景图的方法，统一在项目中使用
     public void LoadBackgroundBrush(string path)
     {
+        if (string.IsNullOrEmpty(path))
+        {
+            Console.WriteLine("[LoadBackgroundBrush] Empty path provided");
+            return;
+        }
+
+        // 检查是否已经加载了相同的背景，避免重复加载
+        if (_currentBackgroundPath == path) return;
+
         if (!File.Exists(path))
         {
             Console.WriteLine("[LoadBackgroundBrush] No Find:" + path);
@@ -402,6 +306,7 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
                 Stretch = Stretch.UniformToFill,
                 Opacity = 0.25
             };
+            _currentBackgroundPath = path;
             Console.WriteLine("[PreviewViewDual] Loaded BG from " + path);
         }
         catch (Exception ex)
@@ -413,14 +318,31 @@ public class PreviewViewDual : Wpf.Ui.Controls.Grid
 
     private void ResetButton_Click(object sender, RoutedEventArgs e)
     {
-        ResetToDefaultPreview();
+        ViewModel?.Reset();
     }
 
-    public void ResetToDefaultPreview()
+    public void ResetPreview()
     {
-        _autoLoadedSample = false;
-        _originalContent.Content = null;
-        _convertedContent.Content = null;
+        ViewModel?.Reset();
+        _autoLoadedSample = false; // 允许重新加载内置样本
         TryAutoLoadSample();
+    }
+
+    private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (ViewModel == null) return;
+
+        switch (e.PropertyName)
+        {
+            case nameof(ViewModel.Title):
+                _previewTitle.Text = ViewModel.Title;
+                break;
+            case nameof(ViewModel.OriginalVisual):
+                _originalContent.Content = ViewModel.OriginalVisual;
+                break;
+            case nameof(ViewModel.ConvertedVisual):
+                _convertedContent.Content = ViewModel.ConvertedVisual;
+                break;
+        }
     }
 }

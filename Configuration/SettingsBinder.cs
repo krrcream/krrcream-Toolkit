@@ -8,6 +8,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using krrTools.Localization;
 using krrTools.UI;
+using Expression = System.Linq.Expressions.Expression;
 using Grid = Wpf.Ui.Controls.Grid;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 using TextBox = Wpf.Ui.Controls.TextBox;
@@ -107,7 +108,7 @@ public static class QuickBind
     /// <summary>
     /// 从表达式提取属性路径
     /// </summary>
-    private static string GetPath(System.Linq.Expressions.Expression expression)
+    private static string GetPath(Expression expression)
     {
         var path = new List<string>();
         var current = expression is LambdaExpression lambda ? lambda.Body : expression;
@@ -149,16 +150,7 @@ public static class QuickBind
 
 public static class SettingsBinder
 {
-    private static void BindToggle(ToggleButton toggle, object source, string path)
-    {
-        var binding = new Binding(path)
-        {
-            Source = source,
-            Mode = BindingMode.TwoWay,
-            UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
-        };
-        toggle.SetBinding(ToggleButton.IsCheckedProperty, binding);
-    }
+
 
     private static string GetLocalizedString(string? key)
     {
@@ -191,50 +183,67 @@ public static class SettingsBinder
         var label = GetLocalizedString(attr.LabelKey);
         var tooltip = string.IsNullOrEmpty(attr.TooltipKey) ? null : GetLocalizedString(attr.TooltipKey);
 
-        // 布尔类型 - 使用CheckBox
-        if (propertyInfo.PropertyType == typeof(bool))
+        var effectiveType = attr.DataType ?? propertyInfo.PropertyType;
+
+        // 根据UIType决定控件类型
+        switch (attr.UIType)
         {
-            var checkBox = SharedUIComponents.CreateStandardCheckBox(label, tooltip);
-            checkBox.Bind(options, propertySelector);
-            return checkBox;
-        }
+            case UIType.Toggle:
+                if (effectiveType == typeof(bool))
+                {
+                    var checkBox = SharedUIComponents.CreateStandardCheckBox(label, tooltip);
+                    checkBox.Bind(options, propertySelector);
+                    return checkBox;
+                }
+                break;
+            case UIType.Slider:
+                if (IsNumericType(effectiveType))
+                {
+                    // 转换propertySelector为double类型
+                    var doublePropertySelector = Expression.Lambda<Func<T, double>>(
+                        Expression.Convert(propertySelector.Body, typeof(double)), propertySelector.Parameters);
+                    return (FrameworkElement)CreateTemplatedSlider(options, doublePropertySelector, null, null);
+                }
+                break;
+            case UIType.NumberBox:
+                // 对于数字输入框，使用TextBox
+                var numberBox = SharedUIComponents.CreateStandardTextBox();
+                numberBox.Bind(options, propertySelector);
+                return numberBox;
+            case UIType.Text:
+                // 对于文本，使用TextBox
+                var textBox = SharedUIComponents.CreateStandardTextBox();
+                textBox.Bind(options, propertySelector);
+                return textBox;
+            case UIType.ComboBox:
+                if (effectiveType.IsEnum)
+                {
+                    var comboBox = new ComboBox { Margin = new Thickness(0, 0, 0, 10) };
+                    if (!string.IsNullOrEmpty(tooltip)) ToolTipService.SetToolTip(comboBox, tooltip);
 
-        // 枚举类型 - 使用ComboBox
-        if (propertyInfo.PropertyType.IsEnum)
-        {
-            var comboBox = new ComboBox { Margin = new Thickness(0, 0, 0, 10) };
-            if (!string.IsNullOrEmpty(tooltip)) ToolTipService.SetToolTip(comboBox, tooltip);
+                    // 使用动态方法调用BindEnum
+                    var bindEnumMethod = typeof(QuickBind).GetMethod("BindEnum");
+                    var genericMethod = bindEnumMethod?.MakeGenericMethod(effectiveType);
+                    if (genericMethod != null)
+                    {
+                        // 创建类型化的selector: x => (TEnum)propertySelector.Compile()((T)x)
+                        var compiledSelector = propertySelector.Compile();
+                        var param = Expression.Parameter(typeof(object), "x");
+                        var castToT = Expression.Convert(param, typeof(T));
+                        var callSelector = Expression.Call(
+                            Expression.Constant(compiledSelector),
+                            typeof(Func<T, object>).GetMethod("Invoke")!,
+                            castToT);
+                        var convertToEnum = Expression.Convert(callSelector, effectiveType);
+                        var typedSelector = Expression.Lambda(
+                            typeof(Func<,>).MakeGenericType(typeof(object), effectiveType),
+                            convertToEnum, param);
 
-            // 使用动态方法调用BindEnum
-            var bindEnumMethod = typeof(QuickBind).GetMethod("BindEnum");
-            var genericMethod = bindEnumMethod?.MakeGenericMethod(propertyInfo.PropertyType);
-            if (genericMethod != null)
-            {
-                // 创建类型化的selector: x => (TEnum)propertySelector.Compile()((T)x)
-                var compiledSelector = propertySelector.Compile();
-                var param = System.Linq.Expressions.Expression.Parameter(typeof(object), "x");
-                var castToT = System.Linq.Expressions.Expression.Convert(param, typeof(T));
-                var callSelector = System.Linq.Expressions.Expression.Call(
-                    System.Linq.Expressions.Expression.Constant(compiledSelector),
-                    typeof(Func<T, object>).GetMethod("Invoke")!,
-                    castToT);
-                var convertToEnum = System.Linq.Expressions.Expression.Convert(callSelector, propertyInfo.PropertyType);
-                var typedSelector = System.Linq.Expressions.Expression.Lambda(
-                    typeof(Func<,>).MakeGenericType(typeof(object), propertyInfo.PropertyType),
-                    convertToEnum, param);
-
-                genericMethod.Invoke(null, [comboBox, options, typedSelector]);
-            }
-
-            return comboBox;
-        }
-
-        // 字符串和数值类型 - 使用TextBox
-        if (propertyInfo.PropertyType == typeof(string) || IsNumericType(propertyInfo.PropertyType))
-        {
-            var textBox = SharedUIComponents.CreateStandardTextBox();
-            textBox.Bind(options, propertySelector);
-            return textBox;
+                        genericMethod.Invoke(null, new object[] { comboBox, options, typedSelector });
+                    }
+                    return comboBox;
+                }
+                break;
         }
 
         return new TextBlock { Text = $"Unsupported control type for {propertyInfo.Name}" };
@@ -243,7 +252,7 @@ public static class SettingsBinder
     /// <summary>
     /// 创建模板化的滑块控件（使用表达式，可选勾选框，可选字典映射）
     /// </summary>
-    public static UIElement CreateTemplatedSlider<T>(T options, Expression<Func<T, object>> propertySelector,
+    public static UIElement CreateTemplatedSlider<T>(T options, Expression<Func<T, double>> propertySelector,
         Expression<Func<T, object>>? checkPropertySelector = null, Dictionary<double, string>? valueDisplayMap = null) where T : class
     {
         var propertyInfo = GetPropertyInfoFromExpression(propertySelector);
@@ -261,6 +270,10 @@ public static class SettingsBinder
 
         if (IsNumericType(propertyInfo.PropertyType))
         {
+            // 转换propertySelector为double类型
+            var doublePropertySelector = Expression.Lambda<Func<T, double>>(
+                Expression.Convert(propertySelector.Body, typeof(double)), propertySelector.Parameters);
+
             var slider = new SettingsSlider<T>
             {
                 LabelText = label,
@@ -270,7 +283,7 @@ public static class SettingsBinder
                 TickFrequency = attr.TickFrequency ?? 1,
                 KeyboardStep = attr.KeyboardStep ?? 1,
                 Source = options,
-                PropertySelector = propertySelector,
+                PropertySelector = doublePropertySelector,
                 CheckEnabled = checkEnabled,
                 ValueDisplayMap = valueDisplayMap
             };
@@ -283,11 +296,11 @@ public static class SettingsBinder
     /// <summary>
     /// 从lambda表达式获取属性信息
     /// </summary>
-    private static PropertyInfo? GetPropertyInfoFromExpression<T>(Expression<Func<T, object>> propertySelector)
+    private static PropertyInfo? GetPropertyInfoFromExpression<T, TResult>(Expression<Func<T, TResult>> propertySelector)
     {
         var current = propertySelector.Body;
 
-        // 处理可能的转换 (如 int -> object)
+        // 处理可能的转换 (如 int -> double)
         if (current is UnaryExpression { NodeType: ExpressionType.Convert } unary) current = unary.Operand;
 
         if (current is MemberExpression { Member: PropertyInfo propertyInfo }) return propertyInfo;
@@ -325,7 +338,8 @@ public static class SettingsBinder
     /// <summary>
     /// 创建种子输入面板，包含标签、文本框和生成按钮
     /// </summary>
-    public static FrameworkElement CreateSeedPanel(object dataContext, string seedPath = "Options.Seed")
+    public static FrameworkElement CreateSeedPanel<T, TProperty>(T dataContext, Expression<Func<T, TProperty>> seedProperty)
+        where T : class
     {
         var grid = new Grid { Margin = new Thickness(0, 0, 0, 10) };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -341,6 +355,7 @@ public static class SettingsBinder
         SeedTextBox.IsReadOnly = false;
 
         // 绑定 Seed 属性
+        var seedPath = GetPropertyPathFromExpression(seedProperty);
         var binding = new Binding(seedPath)
         {
             Source = dataContext,

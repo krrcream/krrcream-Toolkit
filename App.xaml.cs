@@ -40,10 +40,10 @@ public partial class App
                 builder.SetMinimumLevel(LogLevel.Information);
             });
 
-            // 注册选项服务
-            services.AddSingleton(BaseOptionsManager.LoadOptions<N2NCOptions>(ConverterEnum.N2NC) ?? new N2NCOptions());
-            services.AddSingleton(BaseOptionsManager.LoadOptions<DPToolOptions>(ConverterEnum.DP) ?? new DPToolOptions());
-            services.AddSingleton(BaseOptionsManager.LoadOptions<KRRLNTransformerOptions>(ConverterEnum.KRRLN) ?? new KRRLNTransformerOptions());
+            // 注册选项服务 - 使用事件驱动的选项
+            services.AddSingleton(new ObservableOptions<N2NCOptions>(ConverterEnum.N2NC));
+            services.AddSingleton(new ObservableOptions<DPToolOptions>(ConverterEnum.DP));
+            services.AddSingleton(new ObservableOptions<KRRLNTransformerOptions>(ConverterEnum.KRRLN));
 
             // 注册模块管理器
             services.AddSingleton<IModuleManager, ModuleManager>();

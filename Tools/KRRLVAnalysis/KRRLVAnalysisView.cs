@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using krrTools.Data;
 using krrTools.UI;
@@ -79,7 +80,7 @@ namespace krrTools.Tools.KRRLVAnalysis
                 Minimum = 0,
                 Maximum = 100
             };
-            progressBar.SetBinding(ProgressBar.ValueProperty, new Binding("ProgressValue"));
+            progressBar.SetBinding(RangeBase.ValueProperty, new Binding("ProgressValue"));
             progressBar.SetBinding(ProgressBar.VisibilityProperty, new Binding("IsProgressVisible")
             {
                 Converter = new BooleanToVisibilityConverter()

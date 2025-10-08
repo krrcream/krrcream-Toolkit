@@ -2,17 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Interop;
 using Microsoft.Extensions.Logging;
-using krrTools.Beatmaps;
-using krrTools.Localization;
-using krrTools.Tools.Listener;
 using Application = System.Windows.Application;
-using MessageBox = System.Windows.MessageBox;
-using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 
 namespace krrTools.Data;
@@ -86,59 +80,5 @@ public static class FilesHelper
         }
 
         return dialog.SelectedPath;
-    }
-
-    /// <summary>
-    /// 判断文件路径是否为有效的 .osu 文件
-    /// </summary>
-    private static bool EnsureIsOsuFile(string? filePath)
-    {
-        return !string.IsNullOrEmpty(filePath) && File.Exists(filePath) &&
-               Path.GetExtension(filePath).Equals(".osu", StringComparison.OrdinalIgnoreCase);
-    }
-
-    /// <summary>
-    /// 统计路径集合中的 .osu 文件数量（包括 .osz 压缩包）
-    /// </summary>
-    public static int GetOsuFilesCount(IEnumerable<string> paths)
-    {
-        var count = 0;
-        foreach (var path in paths)
-            if (File.Exists(path))
-            {
-                var ext = Path.GetExtension(path);
-                if (string.Equals(ext, ".osu", StringComparison.OrdinalIgnoreCase))
-                    count++;
-                else if (string.Equals(ext, ".osz", StringComparison.OrdinalIgnoreCase))
-                    try
-                    {
-                        using var archive = System.IO.Compression.ZipFile.OpenRead(path);
-                        count += archive.Entries.Count(e =>
-                            e.Name.EndsWith(".osu", StringComparison.OrdinalIgnoreCase));
-                    }
-                    catch
-                    {
-                        Logger.WriteLine(LogLevel.Error, "[FilesHelper] Error opening .osz file: {0}", path);
-                    }
-            }
-            else if (Directory.Exists(path))
-            {
-                count += Directory.EnumerateFiles(path, "*.osu", SearchOption.AllDirectories).Count();
-            }
-
-        return count;
-    }
-
-    /// <summary>
-    /// 遍历路径集合中的所有 .osu 文件
-    /// </summary>
-    public static IEnumerable<string> EnumerateOsuFiles(IEnumerable<string> paths)
-    {
-        foreach (var path in paths)
-            if (File.Exists(path) && Path.GetExtension(path).Equals(".osu", StringComparison.OrdinalIgnoreCase))
-                yield return path;
-            else if (Directory.Exists(path))
-                foreach (var file in Directory.EnumerateFiles(path, "*.osu", SearchOption.AllDirectories))
-                    yield return file;
     }
 }

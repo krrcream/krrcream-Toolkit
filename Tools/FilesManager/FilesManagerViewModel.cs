@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.Logging;
 using krrTools.Data;
+using Microsoft.Extensions.Logging;
 using OsuParsers.Decoders;
 using Application = System.Windows.Application;
 
@@ -20,36 +19,13 @@ public partial class FilesManagerViewModel : ObservableObject
     // TODO: 改为WPF控件，更换输入框过滤功能的控件功能，找一个类似Excel的筛选功能
     public FilesManagerViewModel()
     {
-        // 初始化过滤视图
-        _progressValue = 0;
+        // 初始化数据源
         FilteredOsuFiles = CollectionViewSource.GetDefaultView(OsuFiles);
-        FilteredOsuFiles.Filter = FilterPredicate;
     }
 
     [ObservableProperty] private ObservableCollection<FilesManagerInfo> _osuFiles = new();
 
     [ObservableProperty] private ICollectionView _filteredOsuFiles;
-
-    // 各列的筛选条件
-    [ObservableProperty] private string _titleFilter = "";
-
-    [ObservableProperty] private string _diffFilter = "";
-
-    [ObservableProperty] private string _artistFilter = "";
-
-    [ObservableProperty] private string _creatorFilter = "";
-
-    [ObservableProperty] private string _keysFilter = "";
-
-    [ObservableProperty] private string _odFilter = "";
-
-    [ObservableProperty] private string _hpFilter = "";
-
-    [ObservableProperty] private string _beatmapIdFilter = "";
-
-    [ObservableProperty] private string _beatmapSetIdFilter = "";
-
-    [ObservableProperty] private string _filePathFilter = "";
 
     [ObservableProperty] private bool _isProcessing;
 
@@ -158,7 +134,6 @@ public partial class FilesManagerViewModel : ObservableObject
             Application.Current?.Dispatcher?.Invoke(() =>
             {
                 FilteredOsuFiles = CollectionViewSource.GetDefaultView(OsuFiles);
-                FilteredOsuFiles.Filter = FilterPredicate;
                 OnPropertyChanged(nameof(FilteredOsuFiles));
                 Logger.WriteLine(LogLevel.Information,
                     "[FilesManagerViewModel] FilteredOsuFiles refreshed in ProcessFilesAsync, count: {0}",
@@ -176,7 +151,7 @@ public partial class FilesManagerViewModel : ObservableObject
         try
         {
             // 在后台线程获取文件列表（包括.osz包内osu）
-            var files = await Task.Run(() => FilesHelper.EnumerateOsuFiles([doPath]).ToArray());
+            var files = await Task.Run(() => BeatmapFileHelper.EnumerateOsuFiles([doPath]).ToArray());
 
             Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] Enumerated {0} files from {1}",
                 files.Length, doPath);
@@ -251,7 +226,6 @@ public partial class FilesManagerViewModel : ObservableObject
             Application.Current?.Dispatcher?.Invoke(() =>
             {
                 FilteredOsuFiles = CollectionViewSource.GetDefaultView(OsuFiles);
-                FilteredOsuFiles.Filter = FilterPredicate;
                 OnPropertyChanged(nameof(FilteredOsuFiles));
                 Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] FilteredOsuFiles refreshed, count: {0}",
                     FilteredOsuFiles.Cast<object>().Count());
@@ -290,113 +264,5 @@ public partial class FilesManagerViewModel : ObservableObject
 
     // 定义OsuFileInfo类来存储解析后的数据
 
-    private bool FilterPredicate(object item)
-    {
-        if (item is not FilesManagerInfo fileInfo) return false;
 
-        // 转换为小写进行模糊匹配
-        var title = fileInfo.Title.Value.ToLower();
-        var diff = fileInfo.Diff.Value.ToLower();
-        var artist = fileInfo.Artist.Value.ToLower();
-        var creator = fileInfo.Creator.Value.ToLower();
-        var keys = fileInfo.Keys.ToString();
-        var od = fileInfo.OD.Value.ToString(CultureInfo.InvariantCulture);
-        var hp = fileInfo.HP.Value.ToString(CultureInfo.InvariantCulture);
-        var beatmapId = fileInfo.BeatmapID.ToString();
-        var beatmapSetId = fileInfo.BeatmapSetID.ToString();
-        var filePath = fileInfo.FilePath.Value.ToLower();
-
-        // 检查是否满足所有筛选条件
-        return (string.IsNullOrEmpty(TitleFilter) || title.Contains(TitleFilter.ToLower())) &&
-               (string.IsNullOrEmpty(DiffFilter) || diff.Contains(DiffFilter.ToLower())) &&
-               (string.IsNullOrEmpty(ArtistFilter) || artist.Contains(ArtistFilter.ToLower())) &&
-               (string.IsNullOrEmpty(CreatorFilter) || creator.Contains(CreatorFilter.ToLower())) &&
-               (string.IsNullOrEmpty(KeysFilter) || keys.Contains(KeysFilter)) &&
-               (string.IsNullOrEmpty(OdFilter) || od.Contains(OdFilter)) &&
-               (string.IsNullOrEmpty(HpFilter) || hp.Contains(HpFilter)) &&
-               (string.IsNullOrEmpty(BeatmapIdFilter) || beatmapId.Contains(BeatmapIdFilter)) &&
-               (string.IsNullOrEmpty(BeatmapSetIdFilter) || beatmapSetId.Contains(BeatmapSetIdFilter)) &&
-               (string.IsNullOrEmpty(FilePathFilter) || filePath.Contains(FilePathFilter.ToLower()));
-    }
-
-    // 当任一筛选属性发生变化时，刷新过滤视图以更新UI。
-    // CommunityToolkit 的 [ObservableProperty] 会生成以下形式的局部方法：
-    // partial void On<PropertyName>Changed(<type> value)
-    // 在这里实现这些方法以在属性变更时触发过滤刷新。
-    partial void OnTitleFilterChanged(string value)
-    {
-        _ = value;
-        RefreshFilter();
-    }
-
-    partial void OnDiffFilterChanged(string value)
-    {
-        _ = value;
-        RefreshFilter();
-    }
-
-    partial void OnArtistFilterChanged(string value)
-    {
-        _ = value;
-        RefreshFilter();
-    }
-
-    partial void OnCreatorFilterChanged(string value)
-    {
-        _ = value;
-        RefreshFilter();
-    }
-
-    partial void OnKeysFilterChanged(string value)
-    {
-        _ = value;
-        RefreshFilter();
-    }
-
-    partial void OnOdFilterChanged(string value)
-    {
-        _ = value;
-        RefreshFilter();
-    }
-
-    partial void OnHpFilterChanged(string value)
-    {
-        _ = value;
-        RefreshFilter();
-    }
-
-    partial void OnBeatmapIdFilterChanged(string value)
-    {
-        _ = value;
-        RefreshFilter();
-    }
-
-    partial void OnBeatmapSetIdFilterChanged(string value)
-    {
-        _ = value;
-        RefreshFilter();
-    }
-
-    partial void OnFilePathFilterChanged(string value)
-    {
-        _ = value;
-        RefreshFilter();
-    }
-
-    // 在 UI 线程上安全地刷新 ICollectionView
-    private void RefreshFilter()
-    {
-        try
-        {
-            // FilteredOsuFiles 为非空成员（在构造函数中初始化），因此不再进行重复的 null 检查。
-            if (Application.Current?.Dispatcher?.CheckAccess() == true)
-                FilteredOsuFiles.Refresh();
-            else
-                Application.Current?.Dispatcher?.Invoke(() => FilteredOsuFiles.Refresh());
-        }
-        catch (Exception ex)
-        {
-            Logger.WriteLine(LogLevel.Error, "[FilesManagerViewModel] RefreshFilter error: {0}", ex.Message);
-        }
-    }
 }

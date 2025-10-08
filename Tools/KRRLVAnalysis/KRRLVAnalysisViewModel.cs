@@ -172,7 +172,7 @@ namespace krrTools.Tools.KRRLVAnalysis
             try
             {
                 // 计算总文件数（包括.osz中的.osu文件）
-                TotalCount = FilesHelper.GetOsuFilesCount(files);
+                TotalCount = BeatmapFileHelper.GetOsuFilesCount(files);
                 _currentProcessedCount = 0;
 
                 // 显示进度窗口,处理前

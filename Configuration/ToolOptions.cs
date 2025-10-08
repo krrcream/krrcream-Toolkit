@@ -25,12 +25,60 @@ public interface IPreviewOptionsProvider
 // 基类，实现了基本的选项加载和保存逻辑
 public abstract class ToolOptionsBase : ObservableObject, IToolOptions
 {
+    protected bool IsValidating { get; set; }
+
     /// <summary>
     /// Validate and normalize option values (called by UI or callers before use)
-    /// Default implementation does nothing.
+    /// Default implementation clamps numeric properties based on OptionAttribute Min/Max.
     /// </summary>
     public virtual void Validate()
     {
+        if (IsValidating) return;
+        IsValidating = true;
+        try
+        {
+            var properties = GetType().GetProperties();
+            foreach (var prop in properties)
+            {
+                var attr = prop.GetCustomAttribute<OptionAttribute>();
+                if (attr?.Min != null && attr.Max != null && prop.PropertyType == typeof(int))
+                {
+                    var value = (int)prop.GetValue(this)!;
+                    var min = Convert.ToInt32(attr.Min);
+                    var max = Convert.ToInt32(attr.Max);
+                    var clamped = Math.Clamp(value, min, max);
+                    if (clamped != value)
+                    {
+                        prop.SetValue(this, clamped);
+                    }
+                }
+                else if (attr?.Min != null && attr.Max != null && prop.PropertyType == typeof(double))
+                {
+                    var value = (double)prop.GetValue(this)!;
+                    var min = Convert.ToDouble(attr.Min);
+                    var max = Convert.ToDouble(attr.Max);
+                    var clamped = Math.Clamp(value, min, max);
+                    if (Math.Abs(clamped - value) > 1e-9)
+                    {
+                        prop.SetValue(this, clamped);
+                    }
+                }
+            }
+        }
+        finally
+        {
+            IsValidating = false;
+        }
+    }
+
+    protected override void OnPropertyChanged(PropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+        if (!IsValidating)
+            // 设置变化时，通过UI或其他方式触发BaseOptionsManager.SaveOptions
+            Console.WriteLine($"[ToolOptions] Property changed: {e.PropertyName}");
+        else
+            Console.WriteLine($"[ToolOptions] Property changed during validation, not sending message");
     }
 }
 
@@ -40,25 +88,6 @@ public abstract class ToolOptionsBase : ObservableObject, IToolOptions
 public abstract class UnifiedToolOptions : ToolOptionsBase
 {
     public PresetKind SelectedPreset { get; init; } = PresetKind.Default;
-
-    public override void Validate()
-    {
-        var properties = GetType().GetProperties();
-        foreach (var prop in properties)
-        {
-            var attr = prop.GetCustomAttribute<OptionAttribute>();
-            if (attr != null)
-            {
-                var value = prop.GetValue(this);
-
-                if (value is IComparable comparable)
-                {
-                    if (attr.Min != null && comparable.CompareTo(attr.Min) < 0) prop.SetValue(this, attr.Min);
-                    if (attr.Max != null && comparable.CompareTo(attr.Max) > 0) prop.SetValue(this, attr.Max);
-                }
-            }
-        }
-    }
 }
 
 /// <summary>
@@ -96,12 +125,12 @@ public enum UIType
 /// 基类，提供选项加载和保存功能
 /// </summary>
 /// <typeparam name="TOptions">The options type for this tool</typeparam>
-public abstract class ToolViewModelBase<TOptions> : ObservableObject where TOptions : class, IToolOptions, new()
+public abstract class   ToolViewModelBase<TOptions> : ObservableObject where TOptions : class, IToolOptions, new()
 {
     private TOptions _options;
     private readonly ConverterEnum _toolEnum;
     private readonly bool _autoSave;
-    private DispatcherTimer? _saveTimer;
+    private readonly DispatcherTimer? _saveTimer;
 
     protected ToolViewModelBase(ConverterEnum toolEnum, bool autoSave = true, TOptions? injectedOptions = null)
     {
@@ -111,6 +140,9 @@ public abstract class ToolViewModelBase<TOptions> : ObservableObject where TOpti
 
         // Load options on initialization if not injected
         if (injectedOptions == null) DoLoadOptions();
+
+        // Subscribe to settings changes
+        BaseOptionsManager.SettingsChanged += OnSettingsChanged;
 
         // Initialize save timer for debouncing
         if (_autoSave)
@@ -132,6 +164,11 @@ public abstract class ToolViewModelBase<TOptions> : ObservableObject where TOpti
         }
     }
 
+    private void OnSettingsChanged(ConverterEnum changedConverter)
+    {
+        if (changedConverter == _toolEnum) DoLoadOptions();
+    }
+
     /// <summary>
     /// The options for this tool
     /// </summary>
@@ -141,6 +178,9 @@ public abstract class ToolViewModelBase<TOptions> : ObservableObject where TOpti
         set
         {
             if (SetProperty(ref _options, value))
+            {
+                // Validate the new options
+                _options.Validate();
                 // Unsubscribe from old options and subscribe to new ones
                 if (_autoSave)
                 {
@@ -149,6 +189,7 @@ public abstract class ToolViewModelBase<TOptions> : ObservableObject where TOpti
                     if (value is ObservableObject newObservable)
                         newObservable.PropertyChanged += OnOptionsPropertyChanged;
                 }
+            }
         }
     }
 
@@ -157,7 +198,11 @@ public abstract class ToolViewModelBase<TOptions> : ObservableObject where TOpti
         try
         {
             var saved = BaseOptionsManager.LoadOptions<TOptions>(_toolEnum);
-            if (saved != null) Options = saved;
+            if (saved != null)
+            {
+                saved.Validate();
+                Options = saved;
+            }
         }
         catch
         {
@@ -182,14 +227,14 @@ public abstract class ToolViewModelBase<TOptions> : ObservableObject where TOpti
 
     private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // Auto-save when ViewModel properties change (not just Options)
         if (_autoSave && e.PropertyName != nameof(Options)) StartDelayedSave();
     }
 
     private void OnOptionsPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // Auto-save when Options properties change
-        if (_autoSave) StartDelayedSave();
+        // 触发ViewModel的PropertyChanged事件，以便UI（如预览）能监听到选项变化
+        OnPropertyChanged(new PropertyChangedEventArgs(nameof(Options)));
+        if (_autoSave) DoSaveOptions();
     }
 
     private void StartDelayedSave()
@@ -215,6 +260,14 @@ public abstract class ToolViewBase<TOptions> : UserControl where TOptions : clas
 
         // Load options on initialization if not injected
         if (injectedOptions == null) DoLoadOptions();
+
+        // 订阅设置变化事件
+        BaseOptionsManager.SettingsChanged += OnSettingsChanged;
+    }
+
+    private void OnSettingsChanged(ConverterEnum changedConverter)
+    {
+        if (changedConverter == _toolEnum) DoLoadOptions();
     }
 
     /// <summary>
@@ -224,29 +277,15 @@ public abstract class ToolViewBase<TOptions> : UserControl where TOptions : clas
 
     private void DoLoadOptions()
     {
-        try
-        {
-            var saved = BaseOptionsManager.LoadOptions<TOptions>(_toolEnum);
-            if (saved != null) Options = saved;
-        }
-        catch
-        {
-            // Best-effort load; ignore errors and keep defaults
-        }
+        var saved = BaseOptionsManager.LoadOptions<TOptions>(_toolEnum);
+        if (saved != null) Options = saved;
     }
 
-    protected void DoSaveOptions()
+    private void DoSaveOptions()
     {
-        try
-        {
-            var optionsToSave = Options;
-            optionsToSave.Validate();
-            BaseOptionsManager.SaveOptions(_toolEnum, optionsToSave);
-        }
-        catch
-        {
-            // Best-effort save; ignore errors
-        }
+        var optionsToSave = Options;
+        optionsToSave.Validate();
+        BaseOptionsManager.SaveOptions(_toolEnum, optionsToSave);
     }
 }
 

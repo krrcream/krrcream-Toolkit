@@ -5,23 +5,22 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using krrTools.Configuration;
 using krrTools.Core;
 using krrTools.Localization;
-using Wpf.Ui.Controls;
 using MessageBox = System.Windows.MessageBox;
 using MessageBoxButton = System.Windows.MessageBoxButton;
 
 namespace krrTools.Utilities
 {
-    public class FileDispatcher(TabView mainTabControl)
+    public class FileDispatcher
     {
-        public void ConvertFiles(string[] paths, string? activeTabTag = null)
+        public void ConvertFiles(string[] paths, ConverterEnum activeTabTag)
         {
-            activeTabTag ??= GetActiveTabTag();
             ConvertWithResults(paths, activeTabTag);
         }
 
-        private void ConvertWithResults(string[] paths, string activeTabTag)
+        private void ConvertWithResults(string[] paths, ConverterEnum activeTabTag)
         {
             var startTime = DateTime.Now;
             Console.WriteLine($"[INFO] 开始转换 - 调用模块: {activeTabTag}, 使用活动设置, 文件数量: {paths.Length}");
@@ -34,7 +33,7 @@ namespace krrTools.Utilities
                 return;
             }
 
-            var tool = moduleManager.GetToolByName(activeTabTag);
+            var tool = moduleManager.GetToolName(nameof(activeTabTag));
             if (tool == null)
             {
                 Console.WriteLine($"[ERROR] 未找到工具: {activeTabTag}");
@@ -129,11 +128,6 @@ namespace krrTools.Utilities
             }
 
             MessageBox.Show(message, title, MessageBoxButton.OK, icon);
-        }
-        
-        private string GetActiveTabTag()
-        {
-            return (mainTabControl.SelectedItem as TabViewItem)?.Tag?.ToString() ?? string.Empty;
         }
     }
 }

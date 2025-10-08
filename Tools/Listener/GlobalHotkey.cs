@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using Microsoft.Extensions.Logging;
 using System.Windows.Input;
 using System.Windows.Interop;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.Tools.Listener
 {

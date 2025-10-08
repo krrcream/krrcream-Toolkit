@@ -1,13 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
-using krrTools.Beatmaps;
 using krrTools.Localization;
-using OsuParsers.Decoders;
 using Border = Wpf.Ui.Controls.Border;
 using Button = Wpf.Ui.Controls.Button;
 using Grid = Wpf.Ui.Controls.Grid;
@@ -17,30 +14,18 @@ namespace krrTools.UI
 {
     public sealed class FileDropZone : Border
     {
-        private enum FileSource
-        {
-            None,
-            Dropped,
-            Listened
-        }
-
-        private FileSource CurrentSource { get; set; } = FileSource.None;
-
-        public event EventHandler<string[]>? FilesDropped;
-
         private readonly TextBlock DropHint;
         private readonly Button StartConversionButton;
-        private string[]? _stagedPaths;
+        private readonly FileDropZoneViewModel _viewModel;
 
         // 本地化字符串对象
-        private readonly DynamicLocalizedString _dropHintLocalized = new(Strings.DropHint);
-        private readonly DynamicLocalizedString _dropFilesHintLocalized = new(Strings.DropFilesHint);
         private readonly DynamicLocalizedString _startButtonTextLocalized = new(Strings.StartButtonText);
 
-        public event EventHandler<string[]?>? StartConversionRequested;
-
-        public FileDropZone()
+        public FileDropZone(FileDropZoneViewModel viewModel)
         {
+            _viewModel = viewModel;
+            DataContext = _viewModel;
+
             AllowDrop = true;
             Background = new SolidColorBrush(Color.FromArgb(160, 245, 248, 255));
             BorderBrush = new SolidColorBrush(Color.FromArgb(255, 175, 200, 255));
@@ -57,7 +42,7 @@ namespace krrTools.UI
                 TextAlignment = TextAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            DropHint.SetBinding(System.Windows.Controls.TextBlock.TextProperty, new Binding("Value") { Source = _dropHintLocalized });
+            DropHint.SetBinding(System.Windows.Controls.TextBlock.TextProperty, new Binding("DisplayText"));
 
             StartConversionButton = new Button
             {
@@ -69,9 +54,9 @@ namespace krrTools.UI
                 MinWidth = 92,
             };
             StartConversionButton.SetBinding(ContentControl.ContentProperty, new Binding("Value") { Source = _startButtonTextLocalized });
+            StartConversionButton.SetBinding(UIElement.VisibilityProperty, new Binding("IsConversionEnabled") { Converter = new BooleanToVisibilityConverter() });
+
             InitializeUI();
-            UpdateTexts();
-            Unloaded += FileDropZone_Unloaded;
         }
 
         private void InitializeUI()
@@ -84,32 +69,12 @@ namespace krrTools.UI
             Drop += OnDrop;
             StartConversionButton.Click += StartConversionButton_Click;
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
+            Unloaded += FileDropZone_Unloaded;
         }
 
         private void OnLanguageChanged()
         {
-            UpdateTexts();
-        }
-
-        private void UpdateTexts()
-        {
-            if (_stagedPaths == null || _stagedPaths.Length == 0)
-            {
-                // 清除绑定并设置默认文本
-                DropHint.ClearValue(System.Windows.Controls.TextBlock.TextProperty);
-                DropHint.Text = _dropHintLocalized.Value;
-                CurrentSource = FileSource.None;
-            }
-            else
-            {
-                string prefix = CurrentSource switch
-                {
-                    FileSource.Dropped => "[拖入] ",
-                    FileSource.Listened => "[监听] ",
-                    _ => ""
-                };
-                DropHint.Text = prefix + string.Format(_dropFilesHintLocalized.Value, _stagedPaths.Length);
-            }
+            // ViewModel handles localization
         }
 
         private void OnDrop(object sender, DragEventArgs e)
@@ -118,61 +83,15 @@ namespace krrTools.UI
             var files = e.Data.GetData(DataFormats.FileDrop) as string[];
             if (files == null || files.Length == 0) return;
 
-            var osuFiles = CollectOsuFiles(files);
+            var osuFiles = _viewModel.CollectOsuFiles(files);
             if (osuFiles.Count == 0) return;
-            
-            _stagedPaths = osuFiles.ToArray();
-            CurrentSource = FileSource.Dropped; // 设置来源为拖入
-            FilesDropped?.Invoke(this, _stagedPaths);
 
-            // 如果有谱面文件，预览第一个
-            if (_stagedPaths.Length >= 1)
-            {
-                LoadPreviewForDroppedFile(_stagedPaths[0]);
-            }
-
-            UpdateTexts();
-            StartConversionButton.Visibility = _stagedPaths is { Length: > 0 } ? Visibility.Visible : Visibility.Collapsed;
-        }
-
-        private void LoadPreviewForDroppedFile(string filePath)
-        {
-            var mainWindow = Application.Current?.Windows.OfType<MainWindow>().FirstOrDefault();
-            if (mainWindow is { PreviewDualControl: not null })
-            {
-                var beatmap = BeatmapDecoder.Decode(filePath).GetManiaBeatmap(filePath);
-                mainWindow.PreviewDualControl.LoadPreview(beatmap);
-            }
-        }
-        
-        private List<string> CollectOsuFiles(string[] items)
-        {
-            var osuFiles = new List<string>();
-            foreach (var item in items)
-            {
-                if (System.IO.File.Exists(item) && System.IO.Path.GetExtension(item).Equals(".osu", StringComparison.OrdinalIgnoreCase))
-                {
-                    osuFiles.Add(item);
-                }
-                else if (System.IO.Directory.Exists(item))
-                {
-                    try
-                    {
-                        var found = System.IO.Directory.GetFiles(item, "*.osu", System.IO.SearchOption.AllDirectories);
-                        osuFiles.AddRange(found);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[ERROR] Error accessing directory {item}: {ex.Message}");
-                    }
-                }
-            }
-            return osuFiles;
+            _viewModel.SetFiles(osuFiles.ToArray(), source: FileDropZoneViewModel.FileSource.Dropped);
         }
 
         private void StartConversionButton_Click(object sender, RoutedEventArgs e)
         {
-            StartConversionRequested?.Invoke(this, _stagedPaths);
+            _viewModel.ConvertFiles();
         }
 
         private void FileDropZone_Unloaded(object sender, RoutedEventArgs e)
@@ -180,20 +99,10 @@ namespace krrTools.UI
             SharedUIComponents.LanguageChanged -= OnLanguageChanged;
         }
 
-        public void SetManualMode(string[]? files)
+        // Public methods for external access
+        public void SetManualMode(string[]? files, FileDropZoneViewModel.FileSource source = FileDropZoneViewModel.FileSource.Dropped)
         {
-            _stagedPaths = files;
-            CurrentSource = files is { Length: > 0 } ? FileSource.Dropped : FileSource.None;
-            UpdateTexts();
-            StartConversionButton.Visibility = _stagedPaths is { Length: > 0 } ? Visibility.Visible : Visibility.Collapsed;
-        }
-
-        public void SetListenedFiles(string[]? files)
-        {
-            _stagedPaths = files;
-            CurrentSource = files is { Length: > 0 } ? FileSource.Listened : FileSource.None;
-            UpdateTexts();
-            StartConversionButton.Visibility = _stagedPaths is { Length: > 0 } ? Visibility.Visible : Visibility.Collapsed;
+            _viewModel.SetFiles(files, source);
         }
     }
 }

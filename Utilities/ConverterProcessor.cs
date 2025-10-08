@@ -16,36 +16,24 @@ public class ConverterProcessor : IPreviewProcessor
     public ConverterEnum? ModuleTool { get; set; } // 当前使用的转换工具名称，在主程序中获取
 
     public int StartMs { get; private set; } // 谱面起始时间，用于预览控件定位
-    
+
     public IModuleManager? ModuleScheduler { get; set; } // 模块调度器，从主程序传入
 
     public Func<IToolOptions>? OptionsProvider { get; init; } // 选项提供器，从主程序传入模块设置
 
-    private Func<ConverterEnum, Beatmap, Beatmap?> ConversionProvider { get; set; } // 转换提供器，分配活动工具、输入路径开始转换
+    // 注意：转换预览必须实时生成，不可缓存。因为预览需要反映最新的选项变化和谱面状态。
+    // 每次调用BuildConvertedVisual时，都应重新执行转换以确保准确性。
+    // 不可添加任何形式的缓存机制，禁止深克隆！
 
-    public ConverterProcessor()
+    public ConverterProcessor(IModuleManager moduleManager, Func<IToolOptions>? optionsProvider = null)
     {
-        // 分配活动工具、输入路径开始转换
-        ConversionProvider = (toolName, beatmap) =>
-        {
-            if (ModuleScheduler != null)
-            {
-                var clonedBeatmap = beatmap;
-                if (OptionsProvider != null)
-                {
-                    var options = OptionsProvider();
-                    return ModuleScheduler.ProcessBeatmap(toolName, clonedBeatmap, options);
-                }
-
-                Console.WriteLine("[ConversionProvider] TPScheduler未获得IToolOptions。");
-                return ModuleScheduler.ProcessBeatmap(toolName, clonedBeatmap);
-            }
-
-            Console.WriteLine("[ConversionProvider] ModuleScheduler为空，未转换，返回了原始beatmap。");
-            return beatmap;
-        };
+        ModuleScheduler = moduleManager;
+        OptionsProvider = optionsProvider;
     }
 
+    /// <summary>
+    /// 处理Beatmap转换的核心方法
+    /// </summary>
     public FrameworkElement BuildOriginalVisual(Beatmap input)
     {
         var maniaBeatmap = input;
@@ -60,14 +48,37 @@ public class ConverterProcessor : IPreviewProcessor
     public FrameworkElement BuildConvertedVisual(Beatmap input)
     {
         if (ModuleTool == null)
-            return new TextBlock { Text = "lamda && ModuleTool == null" };
+            return new TextBlock { Text = "ModuleTool == null" };
 
-        var maniaBeatmap = ConversionProvider(ModuleTool.Value, input);
-        if (maniaBeatmap == null)
-            return new TextBlock { Text = "Conv. ManiaBeatmap == null" };
+        if (ModuleScheduler == null)
+            return new TextBlock { Text = "ModuleScheduler == null" };
 
-        return BuildManiaTimeRowsFromNotes(maniaBeatmap);
-    } // 通过委托获得转换结果，传递绘制
+        var tool = ModuleScheduler.GetToolName(ModuleTool.Value.ToString());
+        if (tool == null)
+            return new TextBlock { Text = "Tool not found" };
+
+        // 使用IApplyToBeatmap进行转换（如果工具支持）
+        if (tool is IApplyToBeatmap applier)
+        {
+            try
+            {
+                var maniaBeatmap = input as IBeatmap ?? ManiaBeatmap.FromBeatmap(input);
+
+                applier.ApplyToBeatmap(maniaBeatmap);
+
+                return BuildManiaTimeRowsFromNotes(maniaBeatmap as Beatmap ?? input);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ConverterProcessor] Transformation failed: {ex.Message}");
+                return new TextBlock { Text = $"转换失败: {ex.Message}" };
+            }
+        }
+        else
+        {
+            return new TextBlock { Text = "Tool does not support Beatmap conversion" };
+        }
+    } // 通过方法获得转换结果，传递绘制
 
     private FrameworkElement BuildManiaTimeRowsFromNotes(Beatmap beatmap)
     {
@@ -85,13 +96,13 @@ public class ConverterProcessor : IPreviewProcessor
                 EndTime = hit.EndTime,
                 IsHold = hit.StartTime != hit.EndTime
             });
-
-        var columnGroups = notes.GroupBy(n => n.Index)
-            .OrderBy(g => g.Key)
-            .Select(g => (g.Key, g.OrderBy(n => n.StartTime).ToList()))
-            .ToList();
-
-        var dyn = new PreviewDynamicControl(columnGroups, columns, quarterMs)
+        
+        if (notes.Count == 0)
+        {
+            return new TextBlock { Text = "转换后谱面无Mania notes" };
+        }
+        
+        var dyn = new PreviewDynamicControl(notes, columns, quarterMs)
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch

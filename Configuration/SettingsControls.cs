@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -28,16 +29,13 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
         init
         {
             _labelText = value;
-            if (_isInitialized)
-            {
-                UpdateLabelWithValue(InnerSlider.Value);
-            }
+            if (_isInitialized) UpdateLabelWithValue(InnerSlider.Value);
         }
     }
 
     public string TooltipText { get; init; } = string.Empty;
     public TDataContext? Source { get; init; }
-    public Expression<Func<TDataContext, object>>? PropertySelector { get; init; }
+    public Expression<Func<TDataContext, double>>? PropertySelector { get; init; }
     public bool CheckEnabled { get; init; }
 
     // Dictionary mapping support
@@ -80,6 +78,7 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
         _debounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
         _debounceTimer.Tick += OnDebounceTimerTick;
         Loaded += SettingsSlider_Loaded;
+        Unloaded += SettingsSlider_Unloaded;
         IsEnabledChanged += SettingsSlider_IsEnabledChanged;
 
         // Listen to language changes to update labels
@@ -96,13 +95,8 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
         InitializeSliderProperties();
 
         if (EnumProvider != null && EnumKey != null)
-        {
             SetupEnumBinding();
-        }
-        else if (Source != null && PropertySelector != null)
-        {
-            SetupSourceBinding();
-        }
+        else if (Source != null && PropertySelector != null) SetupSourceBinding();
     }
 
     private void InitializeCheckBox()
@@ -185,18 +179,26 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
 
     private void SetupSourceBinding()
     {
-        // 使用QuickBind API进行类型安全的绑定
+        // 使用单向绑定显示值，debounce设置值
         try
         {
             var path = GetPropertyPathFromExpression(PropertySelector!);
-            var binding = new Binding(path)
+            // Console.WriteLine($"[SettingsControls] Binding to path: {path}, Source: {Source}");
+            var binding = new Binding
             {
+                Path = new PropertyPath(path),
                 Source = Source,
                 Mode = BindingMode.TwoWay,
                 UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
             };
             InnerSlider.SetBinding(RangeBase.ValueProperty, binding);
-            InnerSlider.ValueChanged += (_, ev) => UpdateLabelWithValue(ev.NewValue);
+            InnerSlider.ValueChanged += (_, ev) =>
+            {
+                _pendingValue = ev.NewValue;
+                _debounceTimer?.Stop();
+                _debounceTimer?.Start();
+                UpdateLabelWithValue(ev.NewValue);
+            };
             UpdateLabelWithValue(InnerSlider.Value);
         }
         catch (Exception ex)
@@ -244,20 +246,15 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
     }
 
 
-
     private void UpdateLabelWithValue(double value)
     {
         if (!string.IsNullOrEmpty(_labelText))
         {
             string displayValue;
             if (ValueDisplayMap != null && ValueDisplayMap.TryGetValue(value, out var mappedValue))
-            {
                 displayValue = mappedValue;
-            }
             else
-            {
                 displayValue = ((int)value).ToString();
-            }
 
             if (_labelText.Contains("{0}"))
             {
@@ -292,7 +289,8 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
         }
         catch (Exception ex)
         {
-            Logger.WriteLine(LogLevel.Error, "[SettingsControls] SettingsSlider debounce writeback error: {0}", ex.Message);
+            Logger.WriteLine(LogLevel.Error, "[SettingsControls] SettingsSlider debounce writeback error: {0}",
+                ex.Message);
         }
     }
 
@@ -309,30 +307,25 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
         }
     }
 
+    private void SettingsSlider_Unloaded(object? sender, RoutedEventArgs e)
+    {
+        _debounceTimer?.Stop();
+    }
+
     private void OnLanguageChanged()
     {
-        if (_isInitialized)
-        {
-            UpdateLabelWithValue(InnerSlider.Value);
-        }
+        if (_isInitialized) UpdateLabelWithValue(InnerSlider.Value);
     }
 
     /// <summary>
     /// 从lambda表达式获取属性路径
     /// </summary>
-    private static string GetPropertyPathFromExpression<T>(Expression<Func<T, object>> propertySelector)
+    private static string GetPropertyPathFromExpression<T, TResult>(Expression<Func<T, TResult>> propertySelector)
     {
-        var path = new System.Collections.Generic.List<string>();
+        var path = new List<string>();
         var current = propertySelector.Body;
 
-        // 处理可能的转换 (如 int -> object)
-        if (current is UnaryExpression unary && unary.NodeType == ExpressionType.Convert)
-        {
-            current = unary.Operand;
-        }
-
         while (current != null)
-        {
             if (current is MemberExpression member)
             {
                 path.Insert(0, member.Member.Name);
@@ -347,7 +340,6 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
             {
                 break;
             }
-        }
 
         return string.Join(".", path);
     }
@@ -355,20 +347,11 @@ public class SettingsSlider<TDataContext> : Grid where TDataContext : class
     /// <summary>
     /// 从lambda表达式获取属性信息
     /// </summary>
-    private static System.Reflection.PropertyInfo? GetPropertyInfoFromExpression<T>(Expression<Func<T, object>> propertySelector)
+    private static PropertyInfo? GetPropertyInfoFromExpression<T, TResult>(Expression<Func<T, TResult>> propertySelector)
     {
         var current = propertySelector.Body;
 
-        // 处理可能的转换 (如 int -> object)
-        if (current is UnaryExpression unary && unary.NodeType == ExpressionType.Convert)
-        {
-            current = unary.Operand;
-        }
-
-        if (current is MemberExpression member && member.Member is System.Reflection.PropertyInfo propertyInfo)
-        {
-            return propertyInfo;
-        }
+        if (current is MemberExpression { Member: PropertyInfo propertyInfo }) return propertyInfo;
 
         return null;
     }

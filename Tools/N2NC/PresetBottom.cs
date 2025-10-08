@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
-using Microsoft.Extensions.Logging;
 using krrTools.Configuration;
 using krrTools.Localization;
 using krrTools.UI;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.Tools.N2NC
 {

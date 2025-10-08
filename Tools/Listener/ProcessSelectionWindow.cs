@@ -2,8 +2,8 @@ using System;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
-using Microsoft.Extensions.Logging;
 using krrTools.UI;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.Tools.Listener
 {

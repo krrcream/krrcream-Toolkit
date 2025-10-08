@@ -1,196 +1,246 @@
 using System;
-using System.Threading.Tasks;
+using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Data;
+using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 
-namespace krrTools.Core
+namespace krrTools.Core;
+
+/// <summary>
+/// 转换模块类型枚举
+/// </summary>
+public enum ToolModuleType
 {
-    /// <summary>
-    /// 转换模块类型枚举
-    /// </summary>
-    public enum ToolModuleType
+    N2NC,
+    DP,
+    KRRLN
+    // 新模块在此添加
+}
+
+/// <summary>
+/// 转换模块基类 - 实现IToolModule和IApplyToBeatmap，职责分离
+/// 提供统一的模块框架，支持选项管理、UI创建和谱面转换。
+/// 子类需实现ApplyToBeatmapInternal以定义具体转换逻辑。
+/// </summary>
+public abstract class ToolModuleBase<TOptions, TViewModel, TControl> : IToolModule, IApplyToBeatmap
+    where TOptions : ToolOptionsBase, new()
+    where TViewModel : ToolViewModelBase<TOptions>
+    where TControl : ToolViewBase<TOptions>
+{
+    protected TOptions _currentOptions = new();
+
+    protected ToolModuleBase()
     {
-        N2NC,
-        DP,
-        KRRLN,
-        // 新模块在此添加
+        LoadCurrentOptions();
+        // 订阅设置变化事件
+        BaseOptionsManager.SettingsChanged += OnSettingsChanged;
+    }
+
+    private void OnSettingsChanged(ConverterEnum changedConverter)
+    {
+        if (changedConverter.ToString() == ModuleType.ToString()) LoadCurrentOptions();
     }
 
     /// <summary>
-    /// 转换模块基类
+    /// 加载当前选项
     /// </summary>
-    public abstract class ToolModuleBase<TOptions, TViewModel, TControl> : IToolModule
-        where TOptions : ToolOptionsBase, new()
-        where TViewModel : ToolViewModelBase<TOptions>
-        where TControl : ToolViewBase<TOptions>
+    private void LoadCurrentOptions()
     {
-        /// <summary>
-        /// 模块类型
-        /// </summary>
-        public abstract ToolModuleType ModuleType { get; }
-
-        /// <summary>
-        /// 枚举值（实现 Configuration.IToolModule）
-        /// </summary>
-        public object EnumValue => ModuleType;
-
-        /// <summary>
-        /// 选项类型（实现 Configuration.IToolModule）
-        /// </summary>
-        public Type OptionsType => typeof(TOptions);
-
-        /// <summary>
-        /// 模块内部名称（用于配置和文件）
-        /// </summary>
-        public virtual string ModuleName => ModuleType.ToString();
-
-        /// <summary>
-        /// 模块显示名称
-        /// </summary>
-        public abstract string DisplayName { get; }
-
-        /// <summary>
-        /// 创建默认选项
-        /// </summary>
-        protected virtual TOptions CreateDefaultOptions() => new TOptions();
-
-        /// <summary>
-        /// 创建ViewModel
-        /// </summary>
-        protected virtual TViewModel CreateViewModel()
-        {
-            // Try to get injected options from DI container
-            var services = App.Services;
-            if (services.GetService(typeof(TOptions)) is TOptions options)
-            {
-                // Use the DI constructor
-                return (TViewModel)Activator.CreateInstance(typeof(TViewModel), options, true)!;
-            }
-            else
-            {
-                // Fallback to default constructor with tool enum
-                return (TViewModel)Activator.CreateInstance(typeof(TViewModel), ModuleType, true)!;
-            }
-        }
-
-        /// <summary>
-        /// 创建UI控件
-        /// </summary>
-        protected virtual TControl CreateControl()
-        {
-            // Try to get injected options from DI container
-            var services = App.Services;
-            if (services.GetService(typeof(TOptions)) is TOptions options)
-            {
-                // Use the DI constructor
-                return (TControl)Activator.CreateInstance(typeof(TControl), options)!;
-            }
-            else
-            {
-                // Fallback to default constructor with tool enum
-                return (TControl)Activator.CreateInstance(typeof(TControl), ModuleType)!;
-            }
-        }
-
-        /// <summary>
-        /// 创建工具实例
-        /// </summary>
-        public virtual ITool CreateTool() => new GenericTool(this);
-
-        /// <summary>
-        /// 核心算法：处理Beatmap
-        /// </summary>
-        protected abstract Beatmap ProcessBeatmap(Beatmap input, TOptions options);
-        protected abstract Beatmap ProcessSingleFile(string filePath, TOptions options);
-
-        /// <summary>
-        /// 非泛型版本：处理Beatmap（用于GenericTool）
-        /// </summary>
-        public Beatmap? ProcessBeatmapWithOptions(Object input, IToolOptions options)
-        {
-            if (options is TOptions concreteOptions)
-            {
-                if (input is Beatmap beatmap)
-                    return ProcessBeatmap(beatmap, concreteOptions);
-
-                if (input is string filePath)
-                    return ProcessSingleFile(filePath, concreteOptions);
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// 创建默认选项
-        /// </summary>
-        IToolOptions IToolModule.CreateDefaultOptions() => CreateDefaultOptions();
-
-        /// <summary>
-        /// 创建UI控件
-        /// </summary>
-        object IToolModule.CreateControl() => CreateControl();
-
-        /// <summary>
-        /// 创建ViewModel
-        /// </summary>
-        object IToolModule.CreateViewModel() => CreateViewModel();
+        _currentOptions = BaseOptionsManager.LoadOptions<TOptions>((ConverterEnum)Enum.Parse(typeof(ConverterEnum), ModuleType.ToString())) ?? CreateDefaultOptionsInternal();
     }
 
     /// <summary>
-    /// 通用工具实现
+    /// 模块类型
     /// </summary>
-    public class GenericTool(IToolModule module) : ITool
+    public abstract ToolModuleType ModuleType { get; }
+
+    /// <summary>
+    /// 枚举值（实现 Configuration.IToolModule）
+    /// </summary>
+    public object EnumValue => ModuleType;
+
+    /// <summary>
+    /// 选项类型（实现 Configuration.IToolModule）
+    /// </summary>
+    public Type OptionsType => typeof(TOptions);
+
+    /// <summary>
+    /// 模块内部名称（用于配置和文件）
+    /// </summary>
+    public virtual string ModuleName => ModuleType.ToString();
+
+    /// <summary>
+    /// 模块显示名称
+    /// </summary>
+    public abstract string DisplayName { get; }
+
+    /// <summary>
+    /// 创建默认选项（内部）
+    /// </summary>
+    protected virtual TOptions CreateDefaultOptionsInternal()
     {
-        public string Name => module.ModuleName;
+        return new TOptions();
+    }
 
-        public IToolOptions DefaultOptions => module.CreateDefaultOptions();
+    /// <summary>
+    /// 应用转换到谱面（内部实现，由子类提供具体逻辑）
+    /// </summary>
+    /// <param name="beatmap">谱面对象</param>
+    protected abstract void ApplyToBeatmapInternal(Beatmap beatmap);
 
-        // 处理单个文件（options 为 null 时使用内部加载的默认设置）
-        // 预留给管线调用的接口，目前实际上并未使用
-        public string? ProcessFileSave(string filePath, IToolOptions? opts = null)
+    /// <summary>
+    /// 创建ViewModel
+    /// </summary>
+    public virtual TViewModel CreateViewModel()
+    {
+        // Try to get injected options from DI container
+        var services = App.Services;
+        if (services.GetService(typeof(ObservableOptions<TOptions>)) is ObservableOptions<TOptions> obsOptions)
+            // Use the DI constructor with options
+            return (TViewModel)Activator.CreateInstance(typeof(TViewModel), obsOptions.Options, true)!;
+        else
+            // Fallback to default constructor with tool enum
+            return (TViewModel)Activator.CreateInstance(typeof(TViewModel), ModuleType, true)!;
+    }
+
+    /// <summary>
+    /// 创建UI控件
+    /// </summary>
+    public virtual TControl CreateControl()
+    {
+        // Try to get injected options from DI container
+        var services = App.Services;
+        if (services.GetService(typeof(ObservableOptions<TOptions>)) is ObservableOptions<TOptions> obsOptions)
+            // Use the DI constructor with options
+            return (TControl)Activator.CreateInstance(typeof(TControl), obsOptions.Options)!;
+        else
+            // Fallback to default constructor with tool enum
+            return (TControl)Activator.CreateInstance(typeof(TControl), ModuleType)!;
+    }
+
+    /// <summary>
+    /// 创建工具实例
+    /// </summary>
+    public virtual ITool CreateTool()
+    {
+        var logger = App.Services.GetService(typeof(ILogger<GenericTool>)) as ILogger<GenericTool>;
+        return new GenericTool(this, this, logger); // 传入 module 和 applier
+    }
+
+    /// <summary>
+    /// 实现 IApplyToBeatmap 接口
+    /// </summary>
+    public void ApplyToBeatmap(IBeatmap beatmap)
+    {
+        var b = beatmap as Beatmap ?? throw new ArgumentException("IBeatmap must be Beatmap");
+        ApplyToBeatmapInternal(b);
+    }
+
+    // ITool实现
+
+    // /// <summary>
+    // /// 处理单个文件
+    // /// </summary>
+    // public string? ProcessFileSave(string filePath, IToolOptions? opts = null)
+    // {
+    //     var options = opts ?? DefaultOptions;
+    //     try
+    //     {
+    //         var beatmap = BeatmapDecoder.Decode(filePath).GetManiaBeatmap();
+    //         var processedBeatmap = ProcessBeatmap(beatmap, options);
+    //
+    //         var outputPath = BeatmapFileHelper.GenerateOutputPath(filePath, ModuleName);
+    //
+    //         // 写入文件
+    //         if (BeatmapFileHelper.SaveBeatmapToFile(processedBeatmap, outputPath)) return outputPath;
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine($"[ERROR] 处理文件时出错，使用模块 {Name}: {ex.Message}");
+    //     }
+    //
+    //     return null;
+    // }
+
+    // /// <summary>
+    // /// 处理Beatmap对象
+    // /// </summary>
+    // private Beatmap ProcessBeatmap(Beatmap input, IToolOptions? options = null)
+    // {
+    //     var opts = options as TOptions ?? _currentOptions;
+    //     var maniaBeatmap = ManiaBeatmap.FromBeatmap(input);
+    //     ApplyToBeatmap(maniaBeatmap);
+    //     return maniaBeatmap;
+    // }
+
+    /// <summary>
+    /// 创建默认选项
+    /// </summary>
+    IToolOptions IToolModuleInfo.CreateDefaultOptions()
+    {
+        return new TOptions();
+    }
+
+    /// <summary>
+    /// 创建UI控件
+    /// </summary>
+    object IToolFactory.CreateControl()
+    {
+        return Activator.CreateInstance(typeof(TControl), ModuleType)!;
+    }
+
+    /// <summary>
+    /// 创建ViewModel
+    /// </summary>
+    object IToolFactory.CreateViewModel()
+    {
+        return Activator.CreateInstance(typeof(TViewModel), ModuleType)!;
+    }
+}
+
+/// <summary>
+/// 通用工具实现 - 实现ITool和IApplyToBeatmap，职责分离
+/// </summary>
+public class GenericTool(IToolModule module, IApplyToBeatmap applier, ILogger<GenericTool>? logger = null) : ITool, IApplyToBeatmap
+{
+    public string Name => module.ModuleName;
+
+    public IToolOptions DefaultOptions => module.CreateDefaultOptions();
+
+    /// <summary>
+    /// 处理单个文件 - 内部使用IApplyToBeatmap进行Beatmap转换
+    /// </summary>
+    public string? ProcessFileSave(string filePath, IToolOptions? opts = null)
+    {
+        try
         {
-            var options = opts ?? DefaultOptions;
-            try
-            {
-                var beatmap = BeatmapDecoder.Decode(filePath);
-                var processedBeatmap = ProcessBeatmap(beatmap, options);
+            var beatmap = BeatmapDecoder.Decode(filePath).GetManiaBeatmap();
+            var maniaBeatmap = beatmap as IBeatmap ?? ManiaBeatmap.FromBeatmap(beatmap);
+            
+            // 使用IApplyToBeatmap进行转换
+            ApplyToBeatmap(maniaBeatmap);
 
-                if (processedBeatmap == null)
-                    return null;
+            var outputPath = BeatmapFileHelper.GenerateOutputPath(filePath, module.ModuleName);
 
-                var outputPath = BeatmapOutputHelper.GenerateOutputPath(filePath, module.ModuleName);
-
-                // 写入文件
-                if (BeatmapOutputHelper.SaveBeatmapToFile(processedBeatmap, outputPath))
-                {
-                    return outputPath;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] 处理文件时出错，使用模块 {Name}: {ex.Message}");
-            }
-
-            return null;
+            // 写入文件
+            if (BeatmapFileHelper.SaveBeatmapToFile(maniaBeatmap as Beatmap ?? beatmap, outputPath)) return outputPath;
+        }
+        catch (Exception ex)
+        {
+            logger?.LogError(ex, "处理文件时出错，使用模块 {ModuleName}: {Message}", Name, ex.Message);
+            Console.WriteLine($"[ERROR] 处理文件时出错，使用模块 {Name}: {ex.Message}");
         }
 
-        public Beatmap? ProcessBeatmap(Beatmap input, IToolOptions? options = null)
-        {
-            var opts = options ?? DefaultOptions;
+        return null;
+    }
 
-            try
-            {
-                return module.ProcessBeatmapWithOptions(input, opts);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] 模块 {Name}处理谱面时出错: {ex.Message}");
-            }
-
-            return null;
-        }
-
-        public async Task<string?> ProcessFileAsync(string filePath) => await Task.Run(() => ProcessFileSave(filePath));
+    /// <summary>
+    /// 实现IApplyToBeatmap - 委托给内部applier
+    /// </summary>
+    public void ApplyToBeatmap(IBeatmap beatmap)
+    {
+        applier.ApplyToBeatmap(beatmap);
     }
 }

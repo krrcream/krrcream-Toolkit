@@ -38,6 +38,40 @@ namespace krrTools.Tools.KRRLNTransformer
         {
         }
 
-        public IToolOptions GetPreviewOptions() => Options;
+        public IToolOptions GetPreviewOptions() => new KRRLNTransformerOptions
+        {
+            Short = new KRRLNTransformerOptions.ShortSettings
+            {
+                PercentageValue = Options.Short.PercentageValue,
+                LevelValue = Options.Short.LevelValue,
+                LimitValue = Options.Short.LimitValue,
+                RandomValue = Options.Short.RandomValue
+            },
+            Long = new KRRLNTransformerOptions.LongSettings
+            {
+                PercentageValue = Options.Long.PercentageValue,
+                LevelValue = Options.Long.LevelValue,
+                LimitValue = Options.Long.LimitValue,
+                RandomValue = Options.Long.RandomValue
+            },
+            LengthThreshold = new KRRLNTransformerOptions.LengthThresholdSettings
+            {
+                Value = Options.LengthThreshold.Value
+            },
+            Alignment = new KRRLNTransformerOptions.AlignmentSettings
+            {
+                Value = Options.Alignment.Value
+            },
+            LNAlignment = new KRRLNTransformerOptions.LNAlignmentSettings
+            {
+                Value = Options.LNAlignment.Value
+            },
+            General = new KRRLNTransformerOptions.GeneralSettings
+            {
+                ProcessOriginalIsChecked = Options.General.ProcessOriginalIsChecked,
+                ODValue = Options.General.ODValue
+            },
+            Seed = Options.Seed
+        };
     }
 }
