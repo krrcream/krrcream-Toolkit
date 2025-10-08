@@ -4,7 +4,7 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "krrTools", "krrTools.csproj", "{4173FF73-DE49-0C4F-036A-E36463797E17}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "krrTools.UnitTests", "..\krrcream-Toolkit.Tests\krrTools.UnitTests\krrTools.UnitTests.csproj", "{8EB2D04F-440F-4E33-8A4C-C96477CAB59B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "krrTools.Tests", "tests\krrTools.Tests.csproj", "{8EB2D04F-440F-4E33-8A4C-C96477CAB59B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

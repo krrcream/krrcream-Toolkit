@@ -265,7 +265,7 @@ public class StatusBarControl : UserControl
         Enum.TryParse<ApplicationTheme>(BaseOptionsManager.GetApplicationTheme(), out var theme) ? theme : ApplicationTheme.Light;
 
     private static WindowBackdropType GetSavedWindowBackdropType() =>
-        Enum.TryParse<WindowBackdropType>(BaseOptionsManager.GetWindowBackdropType(), out var backdrop) ? backdrop : WindowBackdropType.Mica;
+        Enum.TryParse<WindowBackdropType>(BaseOptionsManager.GetWindowBackdropType(), out var backdrop) ? backdrop : WindowBackdropType.Acrylic;
 
     private static bool? GetSavedUpdateAccent() => BaseOptionsManager.GetUpdateAccent();
 }

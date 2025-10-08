@@ -39,7 +39,7 @@ public static class LocalizationService
 {
     #region 核心语言管理
 
-    private static bool _forceChinese;
+    private static bool _forceChinese = true; // 默认中文
     private static readonly ConcurrentDictionary<string, string[]> _localizationCache = new();
     private static readonly ConcurrentDictionary<string, DynamicLocalizedString> _localizedStringCache = new();
     private static readonly ConcurrentDictionary<Type, ConcurrentDictionary<string, string[]>> _enumCache = new();
