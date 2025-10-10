@@ -102,7 +102,7 @@ namespace krrTools.Tools.KRRLNTransformer
             private double _limitValue = 20;
 
             [Option(LabelKey = nameof(KRRLongRandomLabel), Min = 0, Max = 100, UIType = UIType.Slider,
-                DataType = typeof(double))]
+                DataType = typeof(int))]
             public int RandomValue
             {
                 get => _randomValue;

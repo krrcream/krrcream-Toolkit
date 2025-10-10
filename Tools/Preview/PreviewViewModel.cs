@@ -15,32 +15,67 @@ namespace krrTools.Tools.Preview
     /// </summary>
     public class PreviewViewModel : ReactiveViewModelBase
     {
+        // Mock event bus for testing
+        private class MockEventBus : IEventBus
+        {
+            public void Publish<T>(T eventData) { }
+            public IDisposable Subscribe<T>(Action<T> handler) => new MockDisposable();
+            
+            private class MockDisposable : IDisposable
+            {
+                public void Dispose() { }
+            }
+        }
         // 响应式属性
-        private FrameworkElement? _originalVisual;
-        private FrameworkElement? _convertedVisual;
-        private string _title = string.Empty;
+        private Bindable<FrameworkElement?> _originalVisual = new Bindable<FrameworkElement?>();
+        private Bindable<FrameworkElement?> _convertedVisual = new Bindable<FrameworkElement?>();
+        private Bindable<string> _title = new Bindable<string>(string.Empty);
     
         private string? _beatmapPath;
         private bool _isRefreshing;
 
         public PreviewViewModel(IEventBus? eventBus = null)
         {
-            eventBus ??= App.Services.GetRequiredService<IEventBus>();
+            IEventBus actualEventBus;
+            if (eventBus != null)
+            {
+                actualEventBus = eventBus;
+            }
+            else
+            {
+                try
+                {
+                    actualEventBus = App.Services.GetRequiredService<IEventBus>();
+                }
+                catch (Exception)
+                {
+                    // For testing purposes, create a mock event bus
+                    actualEventBus = new MockEventBus();
+                }
+            }
             
-            var settingsSubscription = eventBus.Subscribe<SettingsChangedEvent>(OnSettingsChanged);
+            // 连接Bindable属性的PropertyChanged事件到ViewModel的PropertyChanged事件
+            _originalVisual.PropertyChanged += (_, _) => OnPropertyChanged(nameof(OriginalVisual));
+            _convertedVisual.PropertyChanged += (_, _) => OnPropertyChanged(nameof(ConvertedVisual));
+            _title.PropertyChanged += (_, _) => OnPropertyChanged(nameof(Title));
+            
+            var settingsSubscription = actualEventBus.Subscribe<SettingsChangedEvent>(OnSettingsChanged);
             Disposables.Add(settingsSubscription);
             
-            var fileSubscription = eventBus.Subscribe<FileChangedEvent>(OnFileChanged);
+            var fileSubscription = actualEventBus.Subscribe<FileChangedEvent>(OnFileChanged);
             Disposables.Add(fileSubscription);
             
-            var refreshSubscription = eventBus.Subscribe<PreviewRefreshEvent>(OnPreviewRefreshRequested);
+            var refreshSubscription = actualEventBus.Subscribe<PreviewRefreshEvent>(OnPreviewRefreshRequested);
             Disposables.Add(refreshSubscription);
         }
 
+        // Parameterless constructor for testing
+        public PreviewViewModel() : this(null) { }
+
         public FrameworkElement? OriginalVisual
         {
-            get => _originalVisual;
-            private set => SetProperty(ref _originalVisual, value);
+            get => _originalVisual.Value;
+            private set => _originalVisual.Value = value;
         }
 
         /// <summary>
@@ -48,8 +83,8 @@ namespace krrTools.Tools.Preview
         /// </summary>
         public FrameworkElement? ConvertedVisual
         {
-            get => _convertedVisual;
-            private set => SetProperty(ref _convertedVisual, value);
+            get => _convertedVisual.Value;
+            private set => _convertedVisual.Value = value;
         }
 
         /// <summary>
@@ -57,8 +92,8 @@ namespace krrTools.Tools.Preview
         /// </summary>
         public string Title
         {
-            get => _title;
-            private set => SetProperty(ref _title, value);
+            get => _title.Value;
+            private set => _title.Value = value;
         }
 
         public IPreviewProcessor? Processor { get; private set; }

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -297,7 +296,7 @@ namespace krrTools.Configuration
             }
             catch (Exception ex)
             {
-                Logger.WriteLine(LogLevel.Error, "[SettingsControls] SettingsSlider QuickBind error: {0}", ex.Message);
+                Logger.WriteLine(LogLevel.Error, "[SettingsControls] SettingsSlider binding error: {0}", ex.Message);
             }
         }
 
@@ -373,9 +372,35 @@ namespace krrTools.Configuration
                 }
                 else if (Source != null && PropertySelector != null)
                 {
-                    // 使用反射从lambda表达式中提取属性信息并设置值
-                    var propertyInfo = GetPropertyInfoFromExpression(PropertySelector);
-                    if (propertyInfo != null) propertyInfo.SetValue(Source, _pendingValue);
+                    // 直接设置属性值 - WPF绑定应该已经处理了双向同步
+                    // 如果绑定不工作，可能是因为属性路径问题
+                    var path = GetPropertyPathFromExpression(PropertySelector);
+                    var propertyNames = path.Split('.');
+                    
+                    object? currentObject = Source;
+                    for (int i = 0; i < propertyNames.Length - 1; i++)
+                    {
+                        var property = currentObject.GetType().GetProperty(propertyNames[i]);
+                        currentObject = property?.GetValue(currentObject);
+                        if (currentObject == null) break;
+                    }
+                    
+                    if (currentObject != null)
+                    {
+                        var finalProperty = currentObject.GetType().GetProperty(propertyNames[^1]);
+                        if (finalProperty != null)
+                        {
+                            // 根据属性类型转换值
+                            object convertedValue = finalProperty.PropertyType switch
+                            {
+                                { } t when t == typeof(int) => (int)_pendingValue,
+                                { } t when t == typeof(float) => (float)_pendingValue,
+                                { } t when t == typeof(decimal) => (decimal)_pendingValue,
+                                _ => _pendingValue
+                            };
+                            finalProperty.SetValue(currentObject, convertedValue);
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -433,19 +458,6 @@ namespace krrTools.Configuration
                 }
 
             return string.Join(".", path);
-        }
-
-        /// <summary>
-        /// 从lambda表达式获取属性信息
-        /// </summary>
-        private static PropertyInfo? GetPropertyInfoFromExpression<T, TResult>(
-            Expression<Func<T, TResult>> propertySelector)
-        {
-            var current = propertySelector.Body;
-
-            if (current is MemberExpression { Member: PropertyInfo propertyInfo }) return propertyInfo;
-
-            return null;
         }
     }
 }

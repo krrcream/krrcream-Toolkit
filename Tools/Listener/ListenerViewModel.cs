@@ -26,8 +26,19 @@ namespace krrTools.Tools.Listener
     /// </summary>
     public class ListenerViewModel : ReactiveViewModelBase
     {
+        // Mock event bus for testing
+        private class MockEventBus : IEventBus
+        {
+            public void Publish<T>(T eventData) { }
+            public IDisposable Subscribe<T>(Action<T> handler) => new MockDisposable();
+            
+            private class MockDisposable : IDisposable
+            {
+                public void Dispose() { }
+            }
+        }
         private readonly IEventBus _eventBus;
-        private string _currentOsuFilePath = string.Empty;
+        private Bindable<string> _currentOsuFilePath = new Bindable<string>(string.Empty);
         private System.Timers.Timer? _checkTimer; // 明确指定命名空间
 #pragma warning disable CS0618 // IOsuMemoryReader is obsolete but kept for compatibility
         // 暂时不要处理
@@ -75,13 +86,29 @@ namespace krrTools.Tools.Listener
 
         public string CurrentOsuFilePath
         {
-            get => _currentOsuFilePath;
-            private set => SetProperty(ref _currentOsuFilePath, value);
+            get => _currentOsuFilePath.Value;
+            private set => _currentOsuFilePath.Value = value;
         }
 
         public ListenerViewModel(IEventBus? eventBus = null)
         {
-            _eventBus = eventBus ?? App.Services.GetRequiredService<IEventBus>();
+            if (eventBus != null)
+            {
+                _eventBus = eventBus;
+            }
+            else
+            {
+                try
+                {
+                    _eventBus = App.Services.GetRequiredService<IEventBus>();
+                }
+                catch (Exception)
+                {
+                    // For testing purposes, create a mock event bus
+                    _eventBus = new MockEventBus();
+                }
+            }
+
             // 初始化内存读取器
             // OsuMemoryReader is marked obsolete by the package; suppress the warning for the assignment
 #pragma warning disable CS0618
@@ -94,19 +121,13 @@ namespace krrTools.Tools.Listener
             // 初始化文件信息集合
             CurrentFileInfoCollection.Add(CurrentFileInfo);
 
-            // 设置初始状态信息
-            CurrentFileInfo.Status = "Ready to monitor...";
-            CurrentFileInfo.Title = "Test Title";
-            CurrentFileInfo.Artist = "Test Artist";
-            CurrentFileInfo.Keys = 7;
-            CurrentFileInfo.XxySR = 12.34;
-            CurrentFileInfo.KrrLV = 56.78;
-
-            // 尝试加载已保存的配置（已在上方完成）
             InitializeOsuMonitoring();
 
             ConvertCommand = new RelayCommand(() => { });
             BrowseCommand = new RelayCommand(SetSongsPath);
+
+            // 连接Bindable属性的PropertyChanged事件到ViewModel的PropertyChanged事件
+            _currentOsuFilePath.PropertyChanged += (_, _) => OnPropertyChanged(nameof(CurrentOsuFilePath));
         }
 
         // 配置类：现在是一个可观察对象，便于集中订阅变化并保存

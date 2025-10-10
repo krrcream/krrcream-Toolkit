@@ -53,18 +53,7 @@ namespace krrTools.Tools.KRRLNTransformer
         /// </summary>
         private void SubscribeToNestedOptionsChanges()
         {
-            if (Options.Short is INotifyPropertyChanged shortOptions)
-                shortOptions.PropertyChanged += OnNestedPropertyChanged;
-            if (Options.Long is INotifyPropertyChanged longOptions)
-                longOptions.PropertyChanged += OnNestedPropertyChanged;
-            if (Options.LengthThreshold is INotifyPropertyChanged lengthOptions)
-                lengthOptions.PropertyChanged += OnNestedPropertyChanged;
-            if (Options.Alignment is INotifyPropertyChanged alignOptions)
-                alignOptions.PropertyChanged += OnNestedPropertyChanged;
-            if (Options.LNAlignment is INotifyPropertyChanged lnAlignOptions)
-                lnAlignOptions.PropertyChanged += OnNestedPropertyChanged;
-            if (Options.General is INotifyPropertyChanged generalOptions)
-                generalOptions.PropertyChanged += OnNestedPropertyChanged;
+            ManageNestedOptionsSubscriptions((options, handler) => options.PropertyChanged += handler);
         }
 
         /// <summary>
@@ -72,18 +61,26 @@ namespace krrTools.Tools.KRRLNTransformer
         /// </summary>
         private void UnsubscribeFromNestedOptionsChanges()
         {
+            ManageNestedOptionsSubscriptions((options, handler) => options.PropertyChanged -= handler);
+        }
+
+        /// <summary>
+        /// 统一管理嵌套选项的事件订阅/取消订阅
+        /// </summary>
+        private void ManageNestedOptionsSubscriptions(Action<INotifyPropertyChanged, PropertyChangedEventHandler> action)
+        {
             if (Options.Short is INotifyPropertyChanged shortOptions)
-                shortOptions.PropertyChanged -= OnNestedPropertyChanged;
+                action(shortOptions, OnNestedPropertyChanged);
             if (Options.Long is INotifyPropertyChanged longOptions)
-                longOptions.PropertyChanged -= OnNestedPropertyChanged;
+                action(longOptions, OnNestedPropertyChanged);
             if (Options.LengthThreshold is INotifyPropertyChanged lengthOptions)
-                lengthOptions.PropertyChanged -= OnNestedPropertyChanged;
+                action(lengthOptions, OnNestedPropertyChanged);
             if (Options.Alignment is INotifyPropertyChanged alignOptions)
-                alignOptions.PropertyChanged -= OnNestedPropertyChanged;
+                action(alignOptions, OnNestedPropertyChanged);
             if (Options.LNAlignment is INotifyPropertyChanged lnAlignOptions)
-                lnAlignOptions.PropertyChanged -= OnNestedPropertyChanged;
+                action(lnAlignOptions, OnNestedPropertyChanged);
             if (Options.General is INotifyPropertyChanged generalOptions)
-                generalOptions.PropertyChanged -= OnNestedPropertyChanged;
+                action(generalOptions, OnNestedPropertyChanged);
         }
 
         /// <summary>

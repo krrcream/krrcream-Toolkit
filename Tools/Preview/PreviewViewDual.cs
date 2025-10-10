@@ -11,12 +11,12 @@ using Wpf.Ui.Controls;
 using static krrTools.UI.SharedUIComponents;
 using Border = System.Windows.Controls.Border;
 using Button = Wpf.Ui.Controls.Button;
-using Grid = System.Windows.Controls.Grid;
+using Grid = Wpf.Ui.Controls.Grid;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 
 namespace krrTools.Tools.Preview
 {
-    public class PreviewViewDual : Wpf.Ui.Controls.Grid
+    public class PreviewViewDual : Grid
     {
         // UI 相关常量
         private static readonly Thickness DefaultBorderThickness = new(1);

@@ -10,9 +10,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using krrTools.Beatmaps;
+using krrTools.Bindable;
 
 namespace krrTools.Tools.KRRLVAnalysis
 {
@@ -20,13 +20,10 @@ namespace krrTools.Tools.KRRLVAnalysis
     //        2.数据加载异常，显示数据为0;
     //        3.xxySR计算太慢，严重需要优化速度;
 
-    public partial class KRRLVAnalysisViewModel : ObservableObject
+    public partial class KRRLVAnalysisViewModel : ReactiveViewModelBase
     {
-        [ObservableProperty]
-        private string _pathInput = null!;
-
-        [ObservableProperty]
-        private ObservableCollection<KRRLVAnalysisItem> _osuFiles = new ObservableCollection<KRRLVAnalysisItem>();
+        private readonly Bindable<string> _pathInput = new(string.Empty);
+        private readonly Bindable<ObservableCollection<KRRLVAnalysisItem>> _osuFiles = new(new ObservableCollection<KRRLVAnalysisItem>());
 
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(4, 4); // 最多4个并发线程
         private readonly DispatcherTimer _updateTimer;
@@ -34,42 +31,40 @@ namespace krrTools.Tools.KRRLVAnalysis
         private readonly List<KRRLVAnalysisItem> _pendingItems = new List<KRRLVAnalysisItem>();
         private readonly Lock _pendingItemsLock = new Lock();
 
-        private int _totalCount;
-
         private int _currentProcessedCount;
 
-        private int TotalCount
+        private readonly Bindable<int> _totalCount = new();
+        private readonly Bindable<double> _progressValue = new();
+        private readonly Bindable<bool> _isProgressVisible = new();
+
+        public string PathInput
         {
-            get => _totalCount;
-            set => SetProperty(ref _totalCount, value);
+            get => _pathInput.Value;
+            set => _pathInput.Value = value;
         }
 
-        private double _progressValue;
+        public ObservableCollection<KRRLVAnalysisItem> OsuFiles
+        {
+            get => _osuFiles.Value;
+            set => _osuFiles.Value = value;
+        }
+
+        public int TotalCount
+        {
+            get => _totalCount.Value;
+            set => _totalCount.Value = value;
+        }
+
         public double ProgressValue
         {
-            get => _progressValue;
-            set
-            {
-                if (Math.Abs(_progressValue - value) > 0)
-                {
-                    _progressValue = value;
-                    OnPropertyChanged();
-                }
-            }
+            get => _progressValue.Value;
+            set => _progressValue.Value = value;
         }
 
-        private bool _isProgressVisible;
         public bool IsProgressVisible
         {
-            get => _isProgressVisible;
-            set
-            {
-                if (_isProgressVisible != value)
-                {
-                    _isProgressVisible = value;
-                    OnPropertyChanged();
-                }
-            }
+            get => _isProgressVisible.Value;
+            set => _isProgressVisible.Value = value;
         }
         
         public int ProcessedCount { get; set; }
@@ -82,6 +77,13 @@ namespace krrTools.Tools.KRRLVAnalysis
                 Interval = TimeSpan.FromMilliseconds(100)
             };
             _updateTimer.Tick += UpdateTimer_Tick;
+
+            // 连接Bindable属性的PropertyChanged事件到ViewModel的PropertyChanged事件
+            _pathInput.PropertyChanged += (_, _) => OnPropertyChanged(nameof(PathInput));
+            _osuFiles.PropertyChanged += (_, _) => OnPropertyChanged(nameof(OsuFiles));
+            _totalCount.PropertyChanged += (_, _) => OnPropertyChanged(nameof(TotalCount));
+            _progressValue.PropertyChanged += (_, _) => OnPropertyChanged(nameof(ProgressValue));
+            _isProgressVisible.PropertyChanged += (_, _) => OnPropertyChanged(nameof(IsProgressVisible));
         }
 
         private void UpdateTimer_Tick(object? sender, EventArgs e)
@@ -98,6 +100,54 @@ namespace krrTools.Tools.KRRLVAnalysis
             {
                 OsuFiles.Add(item);
             }
+        }
+
+        /// <summary>
+        /// 创建异步处理任务，包含进度更新逻辑
+        /// </summary>
+        private Task CreateProcessingTask(Func<Task> processingAction)
+        {
+            return Task.Run(processingAction)
+                .ContinueWith(_ =>
+                {
+                    _semaphore.Release();
+                    // 使用原子操作更新计数器
+                    Interlocked.Increment(ref _currentProcessedCount);
+
+                    // 更新UI进度
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        ProgressValue = (double)_currentProcessedCount / TotalCount * 100;
+                    });
+                });
+        }
+
+        /// <summary>
+        /// 更新分析结果到UI项目
+        /// </summary>
+        private void UpdateAnalysisResult(KRRLVAnalysisItem item, OsuAnalysisResult result)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                item.Diff = result.Diff;
+                item.Title = result.Title;
+                item.Artist = result.Artist;
+                item.Creator = result.Creator;
+                item.Keys = result.Keys;
+                item.BPM = result.BPMDisplay;
+                item.OD = result.OD;
+                item.HP = result.HP;
+                item.LNPercent = result.LNPercent;
+                item.BeatmapID = result.BeatmapID;
+                item.BeatmapSetID = result.BeatmapSetID;
+                item.XxySR = result.XXY_SR;
+                item.KrrLV = result.KRR_LV;
+                item.YlsLV = CalculateLevel(result.XXY_SR);
+                item.NotesCount = result.NotesCount;
+                item.MaxKPS = result.MaxKPS;
+                item.AvgKPS = result.AvgKPS;
+                item.Status = "已分析";
+            });
         }
 
         [RelayCommand]
@@ -200,40 +250,14 @@ namespace krrTools.Tools.KRRLVAnalysis
                             foreach (var osuFile in osuFiles)
                             {
                                 await _semaphore.WaitAsync();
-                                var task = Task.Run(() => ProcessOsuFile(osuFile))
-                                    .ContinueWith(_ =>
-                                    {
-                                        _semaphore.Release();
-                                        // 使用原子操作更新计数器
-                                        Interlocked.Increment(ref _currentProcessedCount);
-
-                                        // 更新UI进度, 处理中
-                                        Application.Current.Dispatcher.Invoke(() =>
-                                        {
-                                            // UpdateProgress(_currentProcessedCount, TotalCount);
-                                            ProgressValue = (double)_currentProcessedCount / TotalCount * 100;
-                                        });
-                                    });
+                                var task = CreateProcessingTask(() => Task.Run(() => ProcessOsuFile(osuFile)));
                                 tasks.Add(task);
                             }
                         }
                         else if (File.Exists(file) && Path.GetExtension(file).Equals(".osu", StringComparison.OrdinalIgnoreCase))
                         {
                             await _semaphore.WaitAsync();
-                            var task = Task.Run(() => ProcessOsuFile(file))
-                                .ContinueWith(_ =>
-                                {
-                                    _semaphore.Release();
-                                    // 使用原子操作更新计数器
-                                    Interlocked.Increment(ref _currentProcessedCount);
-
-                                    // 更新UI进度
-                                    Application.Current.Dispatcher.Invoke(() =>
-                                    {
-                                        // UpdateProgress(_currentProcessedCount, TotalCount);
-                                        ProgressValue = (double)_currentProcessedCount / TotalCount * 100;
-                                    });
-                                });
+                            var task = CreateProcessingTask(() => Task.Run(() => ProcessOsuFile(file)));
                             tasks.Add(task);
                         }
                         // 添加对.osz文件的支持
@@ -247,20 +271,7 @@ namespace krrTools.Tools.KRRLVAnalysis
                                 foreach (var entry in osuEntries)
                                 {
                                     await _semaphore.WaitAsync();
-                                    var task = Task.Run(() => ProcessOszEntry(entry, file))
-                                        .ContinueWith(_ =>
-                                        {
-                                            _semaphore.Release();
-                                            // 使用原子操作更新计数器
-                                            Interlocked.Increment(ref _currentProcessedCount);
-
-                                            // 更新UI进度
-                                            Application.Current.Dispatcher.Invoke(() =>
-                                            {
-                                                // UpdateProgress(_currentProcessedCount, TotalCount);
-                                                ProgressValue = (double)_currentProcessedCount / TotalCount * 100;
-                                            });
-                                        });
+                                    var task = CreateProcessingTask(() => Task.Run(() => ProcessOszEntry(entry, file)));
                                     tasks.Add(task);
                                 }
                             }
@@ -349,25 +360,8 @@ namespace krrTools.Tools.KRRLVAnalysis
                     var analyzer = new OsuAnalyzer();
                     var result = analyzer.Analyze(tempFilePath); // 调用已存在的方法
 
-                    // 更新 UI
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        item.Diff = result.Diff;
-                        item.Title = result.Title;
-                        item.Artist = result.Artist;
-                        item.Creator = result.Creator;
-                        item.Keys = result.Keys;
-                        item.BPM = result.BPMDisplay;
-                        item.OD = result.OD;
-                        item.HP = result.HP;
-                        item.LNPercent = result.LNPercent;
-                        item.BeatmapID = result.BeatmapID;
-                        item.BeatmapSetID = result.BeatmapSetID;
-                        item.XxySR = result.XXY_SR;
-                        item.KrrLV = result.KRR_LV;
-                        item.YlsLV = CalculateLevel(result.XXY_SR);
-                        item.Status = "已分析";
-                    });
+                    // 使用通用方法更新UI
+                    UpdateAnalysisResult(item, result);
                 }
                 finally
                 {
@@ -433,29 +427,8 @@ namespace krrTools.Tools.KRRLVAnalysis
                 var analyzer = new OsuAnalyzer();
                 var result = analyzer.Analyze(item.FilePath);
 
-                // 使用Dispatcher将更新操作调度到UI线程
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    // 更新 KRRLVAnalysisItem 的属性
-                    item.Diff = result.Diff;
-                    item.Title = result.Title;
-                    item.Artist = result.Artist;
-                    item.Creator = result.Creator;
-                    item.Keys = result.Keys;
-                    item.BPM = result.BPMDisplay;
-                    item.OD = result.OD;
-                    item.HP = result.HP;
-                    item.LNPercent = result.LNPercent;
-                    item.BeatmapID = result.BeatmapID;
-                    item.BeatmapSetID = result.BeatmapSetID;
-                    item.XxySR = result.XXY_SR;
-                    item.KrrLV = result.KRR_LV;
-                    item.YlsLV = CalculateLevel(result.XXY_SR);
-                    item.NotesCount = result.NotesCount;
-                    item.MaxKPS = result.MaxKPS;
-                    item.AvgKPS = result.AvgKPS;
-                    item.Status = "已分析";
-                });
+                // 使用通用方法更新UI
+                UpdateAnalysisResult(item, result);
             }
             catch (ArgumentException ex) when (ex.Message == "不是mania模式")
             {
@@ -504,7 +477,7 @@ namespace krrTools.Tools.KRRLVAnalysis
             return x * 1.5; // Replace with actual formula
         }
 
-        public void Dispose()
+        public new void Dispose()
         {
             _semaphore.Dispose();
             _updateTimer.Stop();

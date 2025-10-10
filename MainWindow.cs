@@ -44,6 +44,7 @@ namespace krrTools
 
         // 跟踪选项卡拖动/分离
         private Point _dragStartPoint;
+        private DateTime _dragStartTime;
         private TabViewItem? _draggedTab;
         public TabView TabControl => MainTabControl;
 
@@ -141,6 +142,7 @@ namespace krrTools
             Loaded += ApplyToThemeLoaded;
             MainTabControl.PreviewMouseLeftButtonDown += TabControl_PreviewMouseLeftButtonDown;
             MainTabControl.PreviewMouseMove += TabControl_PreviewMouseMove;
+            MainTabControl.PreviewMouseLeftButtonUp += TabControl_PreviewMouseLeftButtonUp;
             MainTabControl.SelectionChanged += MainTabControl_SelectionChanged;
 
             // 添加窗口关闭时的资源清理
@@ -454,6 +456,7 @@ namespace krrTools
         private void TabControl_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             _dragStartPoint = e.GetPosition(this);
+            _dragStartTime = DateTime.Now;
             // 查找鼠标下的 Tab
             var source = e.OriginalSource as DependencyObject;
             while (source != null && !(source is TabViewItem)) source = VisualTreeHelper.GetParent(source);
@@ -464,6 +467,10 @@ namespace krrTools
         private void TabControl_PreviewMouseMove(object sender, MouseEventArgs e)
         {
             if (e.LeftButton != MouseButtonState.Pressed || _draggedTab == null) return;
+            
+            // 检查按下时间是否超过阈值，避免误触
+            if ((DateTime.Now - _dragStartTime).TotalMilliseconds < 300) return;
+            
             var pos = e.GetPosition(this);
             var dx = Math.Abs(pos.X - _dragStartPoint.X);
             var dy = Math.Abs(pos.Y - _dragStartPoint.Y);
@@ -473,6 +480,11 @@ namespace krrTools
                 DetachTab(_draggedTab);
                 _draggedTab = null;
             }
+        }
+
+        private void TabControl_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            _draggedTab = null;
         }
 
         #region 构建独立选项卡，切换时更新设置和预览

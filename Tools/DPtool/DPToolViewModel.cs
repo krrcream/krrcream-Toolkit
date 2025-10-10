@@ -266,7 +266,6 @@ namespace krrTools.Tools.DPtool
                 if (_modifySingleSideKeyCount.Value != value)
                 {
                     _modifySingleSideKeyCount.Value = value;
-                    OnPropertyChanged();
                 }
             }
         }
@@ -279,7 +278,6 @@ namespace krrTools.Tools.DPtool
                 if (Math.Abs(_singleSideKeyCount.Value - value) > 1e-8)
                 {
                     _singleSideKeyCount.Value = value;
-                    OnPropertyChanged();
                 }
             }
         }
@@ -293,7 +291,6 @@ namespace krrTools.Tools.DPtool
                 {
                     Console.WriteLine($"[DP数据流] LMirror变更: {_lMirror.Value} → {value}");
                     _lMirror.Value = value;
-                    OnPropertyChanged(); // UI通知
                     // 注意：Options更新和事件发布由Bindable.OnValueChanged处理
                 }
             }
@@ -307,7 +304,6 @@ namespace krrTools.Tools.DPtool
                 if (_lDensity.Value != value)
                 {
                     _lDensity.Value = value;
-                    OnPropertyChanged();
                 }
             }
         }
@@ -320,7 +316,6 @@ namespace krrTools.Tools.DPtool
                 if (_lRemove.Value != value)
                 {
                     _lRemove.Value = value;
-                    OnPropertyChanged(); // 恢复调用，与N2NC保持一致
                 }
             }
         }
@@ -333,7 +328,6 @@ namespace krrTools.Tools.DPtool
                 if (Math.Abs(_lMaxKeys.Value - value) > 1e-8)
                 {
                     _lMaxKeys.Value = value;
-                    OnPropertyChanged();
                     OnPropertyChanged(nameof(LMinKeysMaximum)); // 通知计算属性更新
                 }
             }
@@ -347,7 +341,6 @@ namespace krrTools.Tools.DPtool
                 if (Math.Abs(_lMinKeys.Value - value) > 1e-8)
                 {
                     _lMinKeys.Value = value;
-                    OnPropertyChanged();
                 }
             }
         }
@@ -361,7 +354,6 @@ namespace krrTools.Tools.DPtool
                 {
                     Console.WriteLine($"[DP数据流] RMirror变更: {_rMirror.Value} → {value}");
                     _rMirror.Value = value;
-                    OnPropertyChanged(); // UI通知
                     // 注意：Options更新和事件发布由Bindable.OnValueChanged处理
                 }
             }
@@ -375,7 +367,6 @@ namespace krrTools.Tools.DPtool
                 if (_rDensity.Value != value)
                 {
                     _rDensity.Value = value;
-                    OnPropertyChanged();
                 }
             }
         }
@@ -388,7 +379,6 @@ namespace krrTools.Tools.DPtool
                 if (_rRemove.Value != value)
                 {
                     _rRemove.Value = value;
-                    OnPropertyChanged(); // 恢复调用，与N2NC保持一致
                 }
             }
         }
@@ -401,7 +391,6 @@ namespace krrTools.Tools.DPtool
                 if (Math.Abs(_rMaxKeys.Value - value) > 1e-8)
                 {
                     _rMaxKeys.Value = value;
-                    OnPropertyChanged();
                     OnPropertyChanged(nameof(RMinKeysMaximum)); // 通知计算属性更新
                 }
             }
@@ -415,7 +404,6 @@ namespace krrTools.Tools.DPtool
                 if (Math.Abs(_rMinKeys.Value - value) > 1e-8)
                 {
                     _rMinKeys.Value = value;
-                    OnPropertyChanged();
                 }
             }
         }

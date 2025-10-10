@@ -12,96 +12,10 @@ using Microsoft.Extensions.Logging;
 using Expression = System.Linq.Expressions.Expression;
 using Grid = Wpf.Ui.Controls.Grid;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
-using TextBox = Wpf.Ui.Controls.TextBox;
 
 namespace krrTools.Configuration
 {
-    /// <summary>
-    /// 用法示例：
-    /// <para></para>
-    /// control.Bind(source, x => x.Property)
-    /// <para></para>
-    /// - 布尔值：   checkBox.Bind(options, x => x.Enabled)
-    /// <para></para>
-    /// - 数值：     slider.Bind(options, x => x.Volume)
-    /// <para></para>
-    /// - 文本：     textBox.Bind(options, x => x.Name)
-    /// <para></para>
-    /// - 枚举：     comboBox.BindEnum&lt;MyEnum&gt;(options, x => x.Mode)
-    /// </summary>
-    public static class QuickBind
-    {
-        /// <summary>
-        /// 双向绑定：control.Bind(source, x => x.Property)
-        /// </summary>
-        public static T Bind<T, TSource, TProperty>(this T control, TSource source,
-            Expression<Func<TSource, TProperty>> property)
-            where T : FrameworkElement
-        {
-            var path = GetPath(property);
-            var binding = new Binding(path)
-            {
-                Source = source,
-                Mode = BindingMode.TwoWay,
-                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
-            };
 
-            // 根据控件类型自动选择目标属性
-            var targetProperty = control switch
-            {
-                ToggleButton => ToggleButton.IsCheckedProperty,
-                RangeBase => RangeBase.ValueProperty,
-                TextBox => System.Windows.Controls.TextBox.TextProperty,
-                ComboBox => Selector.SelectedItemProperty,
-                _ => throw new NotSupportedException($"不支持的控件类型: {typeof(T)}")
-            };
-
-            control.SetBinding(targetProperty, binding);
-            return control;
-        }
-
-        /// <summary>
-        /// 从表达式提取属性路径
-        /// </summary>
-        private static string GetPath(Expression expression)
-        {
-            var path = new List<string>();
-            var current = expression is LambdaExpression lambda ? lambda.Body : expression;
-
-            while (current != null)
-                if (current is MemberExpression member)
-                {
-                    path.Insert(0, member.Member.Name);
-                    current = member.Expression;
-                }
-                else if (current is UnaryExpression { Operand: MemberExpression unaryMember })
-                {
-                    path.Insert(0, unaryMember.Member.Name);
-                    current = unaryMember.Expression;
-                }
-                else if (current is MethodCallExpression
-                         {
-                             Method.Name: "GetValue", Arguments:
-                             [
-                                 _, ConstantExpression
-                                 {
-                                     Value: string pathStr
-                                 },
-                                 ..
-                             ]
-                         })
-                {
-                    // 处理 GetValue(x, "PropertyPath") 的情况
-                    return pathStr;
-                }
-                else
-                {
-                    break;
-                }
-
-            return string.Join(".", path);
-        }
-    }
 
     public static class SettingsBinder
     {
@@ -147,7 +61,15 @@ namespace krrTools.Configuration
                     if (effectiveType == typeof(bool))
                     {
                         var checkBox = SharedUIComponents.CreateStandardCheckBox(label, tooltip);
-                        checkBox.Bind(options, propertySelector);
+                        // 使用标准WPF绑定替代QuickBind
+                        var path = GetPropertyPathFromExpression(propertySelector);
+                        var binding = new Binding(path)
+                        {
+                            Source = options,
+                            Mode = BindingMode.TwoWay,
+                            UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+                        };
+                        checkBox.SetBinding(ToggleButton.IsCheckedProperty, binding);
                         return checkBox;
                     }
                     break;
@@ -163,12 +85,28 @@ namespace krrTools.Configuration
                 case UIType.NumberBox:
                     // 对于数字输入框，使用TextBox
                     var numberBox = SharedUIComponents.CreateStandardTextBox();
-                    numberBox.Bind(options, propertySelector);
+                    // 使用标准WPF绑定
+                    var numberPath = GetPropertyPathFromExpression(propertySelector);
+                    var numberBinding = new Binding(numberPath)
+                    {
+                        Source = options,
+                        Mode = BindingMode.TwoWay,
+                        UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+                    };
+                    numberBox.SetBinding(TextBox.TextProperty, numberBinding);
                     return numberBox;
                 case UIType.Text:
                     // 对于文本，使用TextBox
                     var textBox = SharedUIComponents.CreateStandardTextBox();
-                    textBox.Bind(options, propertySelector);
+                    // 使用标准WPF绑定
+                    var textPath = GetPropertyPathFromExpression(propertySelector);
+                    var textBinding = new Binding(textPath)
+                    {
+                        Source = options,
+                        Mode = BindingMode.TwoWay,
+                        UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+                    };
+                    textBox.SetBinding(TextBox.TextProperty, textBinding);
                     return textBox;
                 case UIType.ComboBox:
                     if (effectiveType.IsEnum)
@@ -176,26 +114,18 @@ namespace krrTools.Configuration
                         var comboBox = new ComboBox { Margin = new Thickness(0, 0, 0, 10) };
                         if (!string.IsNullOrEmpty(tooltip)) ToolTipService.SetToolTip(comboBox, tooltip);
 
-                        // 使用动态方法调用BindEnum
-                        var bindEnumMethod = typeof(QuickBind).GetMethod("BindEnum");
-                        var genericMethod = bindEnumMethod?.MakeGenericMethod(effectiveType);
-                        if (genericMethod != null)
+                        // 设置枚举项源
+                        comboBox.ItemsSource = Enum.GetValues(effectiveType);
+                        
+                        // 使用标准WPF绑定
+                        var enumPath = GetPropertyPathFromExpression(propertySelector);
+                        var enumBinding = new Binding(enumPath)
                         {
-                            // 创建类型化的selector: x => (TEnum)propertySelector.Compile()((T)x)
-                            var compiledSelector = propertySelector.Compile();
-                            var param = Expression.Parameter(typeof(object), "x");
-                            var castToT = Expression.Convert(param, typeof(T));
-                            var callSelector = Expression.Call(
-                                Expression.Constant(compiledSelector),
-                                typeof(Func<T, object>).GetMethod("Invoke")!,
-                                castToT);
-                            var convertToEnum = Expression.Convert(callSelector, effectiveType);
-                            var typedSelector = Expression.Lambda(
-                                typeof(Func<,>).MakeGenericType(typeof(object), effectiveType),
-                                convertToEnum, param);
-
-                            genericMethod.Invoke(null, [comboBox, options, typedSelector]);
-                        }
+                            Source = options,
+                            Mode = BindingMode.TwoWay,
+                            UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+                        };
+                        comboBox.SetBinding(Selector.SelectedItemProperty, enumBinding);
                         return comboBox;
                     }
                     break;
@@ -225,10 +155,6 @@ namespace krrTools.Configuration
 
             if (IsNumericType(propertyInfo.PropertyType))
             {
-                // 转换propertySelector为double类型
-                var doublePropertySelector = Expression.Lambda<Func<T, double>>(
-                    Expression.Convert(propertySelector.Body, typeof(double)), propertySelector.Parameters);
-
                 var slider = new SettingsSlider<T>
                 {
                     LabelText = label,
@@ -238,7 +164,7 @@ namespace krrTools.Configuration
                     TickFrequency = attr.TickFrequency ?? 1,
                     KeyboardStep = attr.KeyboardStep ?? 1,
                     Source = options,
-                    PropertySelector = doublePropertySelector,
+                    PropertySelector = propertySelector,
                     CheckEnabled = checkEnabled,
                     ValueDisplayMap = valueDisplayMap
                 };
@@ -317,7 +243,7 @@ namespace krrTools.Configuration
                 Mode = BindingMode.TwoWay,
                 UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
             };
-            SeedTextBox.SetBinding(System.Windows.Controls.TextBox.TextProperty, binding);
+            SeedTextBox.SetBinding(TextBox.TextProperty, binding);
 
             generateButton.Click += (_, _) =>
             {

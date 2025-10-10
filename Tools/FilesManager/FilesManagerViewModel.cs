@@ -5,37 +5,82 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Data;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using krrTools.Beatmaps;
+using krrTools.Bindable;
 using Microsoft.Extensions.Logging;
 using OsuParsers.Decoders;
 using Application = System.Windows.Application;
 
 namespace krrTools.Tools.FilesManager
 {
-    public partial class FilesManagerViewModel : ObservableObject
+    public partial class FilesManagerViewModel : ReactiveViewModelBase
     {
         // TODO: 改为WPF控件，更换输入框过滤功能的控件功能，找一个类似Excel的筛选功能
+        private readonly Bindable<ObservableCollection<FilesManagerInfo>> _osuFiles = new(new ObservableCollection<FilesManagerInfo>());
+        private readonly Bindable<ICollectionView> _filteredOsuFiles;
+        private readonly Bindable<bool> _isProcessing = new();
+        private readonly Bindable<int> _progressValue = new();
+        private readonly Bindable<int> _progressMaximum = new(100);
+        private readonly Bindable<string> _progressText = new(string.Empty);
+        private readonly Bindable<string> _selectedFolderPath = new("");
+
         public FilesManagerViewModel()
         {
             // 初始化数据源
-            FilteredOsuFiles = CollectionViewSource.GetDefaultView(OsuFiles);
+            _filteredOsuFiles = new Bindable<ICollectionView>(CollectionViewSource.GetDefaultView(OsuFiles));
+
+            // 连接Bindable属性的PropertyChanged事件到ViewModel的PropertyChanged事件
+            _osuFiles.PropertyChanged += (_, _) => OnPropertyChanged(nameof(OsuFiles));
+            _filteredOsuFiles.PropertyChanged += (_, _) => OnPropertyChanged(nameof(FilteredOsuFiles));
+            _isProcessing.PropertyChanged += (_, _) => OnPropertyChanged(nameof(IsProcessing));
+            _progressValue.PropertyChanged += (_, _) => OnPropertyChanged(nameof(ProgressValue));
+            _progressMaximum.PropertyChanged += (_, _) => OnPropertyChanged(nameof(ProgressMaximum));
+            _progressText.PropertyChanged += (_, _) => OnPropertyChanged(nameof(ProgressText));
+            _selectedFolderPath.PropertyChanged += (_, _) => OnPropertyChanged(nameof(SelectedFolderPath));
         }
 
-        [ObservableProperty] private ObservableCollection<FilesManagerInfo> _osuFiles = new();
+        public ObservableCollection<FilesManagerInfo> OsuFiles
+        {
+            get => _osuFiles.Value;
+            set => _osuFiles.Value = value;
+        }
 
-        [ObservableProperty] private ICollectionView _filteredOsuFiles;
+        public ICollectionView FilteredOsuFiles
+        {
+            get => _filteredOsuFiles.Value;
+            set => _filteredOsuFiles.Value = value;
+        }
 
-        [ObservableProperty] private bool _isProcessing;
+        public bool IsProcessing
+        {
+            get => _isProcessing.Value;
+            set => _isProcessing.Value = value;
+        }
 
-        [ObservableProperty] private int _progressValue;
+        public int ProgressValue
+        {
+            get => _progressValue.Value;
+            set => _progressValue.Value = value;
+        }
 
-        [ObservableProperty] private int _progressMaximum = 100;
+        public int ProgressMaximum
+        {
+            get => _progressMaximum.Value;
+            set => _progressMaximum.Value = value;
+        }
 
-        [ObservableProperty] private string _progressText = string.Empty;
+        public string ProgressText
+        {
+            get => _progressText.Value;
+            set => _progressText.Value = value;
+        }
 
-        [ObservableProperty] private string _selectedFolderPath = "";
+        public string SelectedFolderPath
+        {
+            get => _selectedFolderPath.Value;
+            set => _selectedFolderPath.Value = value;
+        }
 
 
         [RelayCommand]
@@ -134,7 +179,6 @@ namespace krrTools.Tools.FilesManager
                 Application.Current?.Dispatcher?.Invoke(() =>
                 {
                     FilteredOsuFiles = CollectionViewSource.GetDefaultView(OsuFiles);
-                    OnPropertyChanged(nameof(FilteredOsuFiles));
                     Logger.WriteLine(LogLevel.Information,
                         "[FilesManagerViewModel] FilteredOsuFiles refreshed in ProcessFilesAsync, count: {0}",
                         FilteredOsuFiles.Cast<object>().Count());
@@ -226,7 +270,6 @@ namespace krrTools.Tools.FilesManager
                 Application.Current?.Dispatcher?.Invoke(() =>
                 {
                     FilteredOsuFiles = CollectionViewSource.GetDefaultView(OsuFiles);
-                    OnPropertyChanged(nameof(FilteredOsuFiles));
                     Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] FilteredOsuFiles refreshed, count: {0}",
                         FilteredOsuFiles.Cast<object>().Count());
                 });
