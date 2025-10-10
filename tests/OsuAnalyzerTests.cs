@@ -1,5 +1,4 @@
 using Xunit;
-using System.IO;
 using krrTools.Beatmaps;
 
 namespace krrTools.Tests;

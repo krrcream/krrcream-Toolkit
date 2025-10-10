@@ -1,5 +1,4 @@
 #nullable enable
-using System;
 using krrTools.Tools.Listener;
 using Xunit;
 

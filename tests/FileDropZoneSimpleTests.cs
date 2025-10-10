@@ -1,7 +1,4 @@
 #nullable enable
-using System;
-using System.Windows;
-using System.Windows.Controls;
 using krrTools.Configuration;
 using krrTools.Tools.Preview;
 using krrTools.UI;
@@ -19,8 +16,8 @@ namespace krrTools.Tests.UI
             var mockPreviewViewModel = new Mock<PreviewViewModel>();
             var previewDual = new PreviewViewDual(mockPreviewViewModel.Object);
             var fileDispatcher = new FileDispatcher();
-            var getActiveTabTag = () => ConverterEnum.N2NC;
-            
+            static ConverterEnum getActiveTabTag() => ConverterEnum.N2NC;
+
             return new FileDropZoneViewModel(previewDual, fileDispatcher, getActiveTabTag);
         }
 
@@ -103,7 +100,7 @@ namespace krrTools.Tests.UI
                 Assert.False(viewModel.IsConversionEnabled);
                 
                 // Act - Set files
-                viewModel.SetFiles(new[] { "test.osu" });
+                viewModel.SetFiles(["test.osu"]);
                 
                 // Assert - Should be enabled
                 Assert.True(viewModel.IsConversionEnabled);
@@ -127,7 +124,7 @@ namespace krrTools.Tests.UI
                 var initialText = viewModel.DisplayText;
 
                 // Act
-                viewModel.SetFiles(new[] { "test1.osu", "test2.osu" });
+                viewModel.SetFiles(["test1.osu", "test2.osu"]);
                 var updatedText = viewModel.DisplayText;
 
                 // Assert

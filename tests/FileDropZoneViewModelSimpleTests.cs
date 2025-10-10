@@ -1,5 +1,4 @@
 #nullable enable
-using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using krrTools.Configuration;
@@ -22,8 +21,8 @@ namespace krrTools.Tests
                 var mockPreviewViewModel = new Mock<PreviewViewModel>();
                 var previewDual = new PreviewViewDual(mockPreviewViewModel.Object);
                 var fileDispatcher = new FileDispatcher();
-                var getActiveTabTag = () => ConverterEnum.N2NC;
-                
+                static ConverterEnum getActiveTabTag() => ConverterEnum.N2NC;
+
                 var viewModel = new FileDropZoneViewModel(previewDual, fileDispatcher, getActiveTabTag);
 
                 // Assert
@@ -41,8 +40,8 @@ namespace krrTools.Tests
                 var mockPreviewViewModel = new Mock<PreviewViewModel>();
                 var previewDual = new PreviewViewDual(mockPreviewViewModel.Object);
                 var fileDispatcher = new FileDispatcher();
-                var getActiveTabTag = () => ConverterEnum.N2NC;
-                
+                ConverterEnum getActiveTabTag() => ConverterEnum.N2NC;
+
                 var viewModel = new FileDropZoneViewModel(previewDual, fileDispatcher, getActiveTabTag);
                 
                 var testFiles = new[] { "test1.osu", "test2.osu" };
@@ -74,15 +73,15 @@ namespace krrTools.Tests
                 var mockPreviewViewModel = new Mock<PreviewViewModel>();
                 var previewDual = new PreviewViewDual(mockPreviewViewModel.Object);
                 var fileDispatcher = new FileDispatcher();
-                var getActiveTabTag = () => ConverterEnum.N2NC;
-                
+                ConverterEnum getActiveTabTag() => ConverterEnum.N2NC;
+
                 var viewModel = new FileDropZoneViewModel(previewDual, fileDispatcher, getActiveTabTag);
                 
                 var propertyChangedEvents = new List<PropertyChangedEventArgs>();
                 viewModel.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
 
                 // Act
-                viewModel.SetFiles(new[] { "test.osu" });
+                viewModel.SetFiles(["test.osu"]);
 
                 // Assert
                 Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(viewModel.DisplayText));

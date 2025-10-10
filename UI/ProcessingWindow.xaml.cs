@@ -1,18 +1,19 @@
 ﻿using System.Windows;
 
-namespace krrTools.UI;
-
-public partial class ProcessingWindow : Window
+namespace krrTools.UI
 {
-    public ProcessingWindow()
+    public partial class ProcessingWindow : Window
     {
-        InitializeComponent();
-    }
+        public ProcessingWindow()
+        {
+            InitializeComponent();
+        }
 
-    public void UpdateProgress(int current, int total)
-    {
-        progressBar.Maximum = total;
-        progressBar.Value = current;
-        progressText.Text = $"进度: {current} / {total}";
+        public void UpdateProgress(int current, int total)
+        {
+            progressBar.Maximum = total;
+            progressBar.Value = current;
+            progressText.Text = $"进度: {current} / {total}";
+        }
     }
 }

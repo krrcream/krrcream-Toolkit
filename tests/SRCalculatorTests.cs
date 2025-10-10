@@ -24,7 +24,7 @@ public class SRCalculatorTests
     {
         // Arrange
         var calculator = new SRCalculator();
-        var noteSequence = new List<Note> { new Note(4, 5, 1000) };
+        var noteSequence = new List<Note> { new Note(3, 5, 1000) };
         int keyCount = 4;
         double od = 8.0;
 

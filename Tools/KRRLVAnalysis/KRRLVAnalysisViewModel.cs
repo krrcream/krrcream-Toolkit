@@ -13,7 +13,6 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using krrTools.Beatmaps;
-using krrTools.Data;
 
 namespace krrTools.Tools.KRRLVAnalysis
 {

@@ -34,13 +34,26 @@ namespace krrTools.Tools.N2NC
         }
         private double _minKeys = 2;
 
-        [Option(LabelKey = nameof(N2NCTransformSpeedTemplate), Min = 1, Max = 8, UIType = UIType.Slider, DataType = typeof(double))]
+        [Option(LabelKey = nameof(N2NCTransformSpeedTemplate), Min = 1, Max = 8, UIType = UIType.Slider, DisplayMapField = "TransformSpeedDict", DataType = typeof(double))]
         public double TransformSpeed
         {
             get => _transformSpeed;
             set => SetProperty(ref _transformSpeed, value);
         }
         private double _transformSpeed = 4.0;
+
+        // N2NC 的 TransformSpeed 显示映射
+        public static readonly Dictionary<double, string> TransformSpeedDict = new Dictionary<double, string>
+        {
+            { 1, "1/16" },
+            { 2, "1/8" },
+            { 3, "1/4" },
+            { 4, "1/2" },
+            { 5, "1" },
+            { 6, "2" },
+            { 7, "4" },
+            { 8, "8" }
+        };
 
         [Option(LabelKey = nameof(SeedButtonLabel), UIType = UIType.NumberBox, DataType = typeof(int?))]
         public int? Seed
@@ -54,8 +67,25 @@ namespace krrTools.Tools.N2NC
 
         public KeySelectionFlags? SelectedKeyFlags { get; set; } = KeySelectionFlags.None;
 
-        public new void Validate()
+        public override void Validate()
         {
+            base.Validate(); // First clamp to Min/Max
+            
+            // 确保 TargetKeys 在合理范围内
+            if (TargetKeys < 1) TargetKeys = 1;
+            if (TargetKeys > 18) TargetKeys = 18;
+
+            // 确保 TransformSpeed 在有效范围内
+            if (TransformSpeed < 1) TransformSpeed = 1;
+            if (TransformSpeed > 8) TransformSpeed = 8;
+
+            // 确保 MinKeys 和 MaxKeys 在合理范围内
+            if (MinKeys < 1) MinKeys = 1;
+            if (MaxKeys > 18) MaxKeys = 18;
+
+            if (MaxKeys > TargetKeys) MaxKeys = TargetKeys;
+            if (MaxKeys < MinKeys) MaxKeys = MinKeys;
+            if (MinKeys > MaxKeys) MinKeys = MaxKeys;
         }
     }
 }

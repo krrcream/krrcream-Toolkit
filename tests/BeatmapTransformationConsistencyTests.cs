@@ -1,9 +1,7 @@
 #nullable enable
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using krrTools.Tools.N2NC;
-using krrTools.Beatmaps;
 using OsuParsers.Beatmaps;
 using OsuParsers.Beatmaps.Objects;
 using Xunit;
@@ -20,18 +18,25 @@ namespace krrTools.Tests
         /// </summary>
         private Beatmap CreateSimpleBeatmap(int keyCount = 4, int noteCount = 20)
         {
-            var beatmap = new Beatmap();
-            
-            // 设置基本属性
-            beatmap.DifficultySection.CircleSize = keyCount;
-            beatmap.DifficultySection.OverallDifficulty = 8;
-            beatmap.MetadataSection.Title = "Test Song";
-            beatmap.MetadataSection.Artist = "Test Artist";
-            beatmap.MetadataSection.Version = "Test Diff";
+            var beatmap = new Beatmap
+            {
+                DifficultySection =
+                {
+                    // 设置基本属性
+                    CircleSize = keyCount,
+                    OverallDifficulty = 8
+                },
+                MetadataSection =
+                {
+                    Title = "Test Song",
+                    Artist = "Test Artist",
+                    Version = "Test Diff"
+                },
+                HitObjects = []
+            };
 
             // 简单处理 - 创建空的列表，让转换器自己处理
-            beatmap.HitObjects = new List<HitObject>();
-            
+
             // 通过简单方式创建音符 - 直接使用基类构造函数
             for (int i = 0; i < noteCount; i++)
             {

@@ -3,17 +3,17 @@ using System.Text;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 
-namespace krrTools.Tools.Preview;
-
-public abstract class PreviewManiaNote
+namespace krrTools.Tools.Preview
 {
-    public static Beatmap BuiltInSampleStream()
+    public abstract class PreviewManiaNote
     {
-        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(ManiaData));
-        return BeatmapDecoder.Decode(stream);
-    }
+        public static Beatmap BuiltInSampleStream()
+        {
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(ManiaData));
+            return BeatmapDecoder.Decode(stream);
+        }
     
-    private const string ManiaData = @"
+        private const string ManiaData = @"
 osu file format v14
 
 [General]
@@ -60,4 +60,5 @@ SliderTickRate:2
 358,192,2318,1,14,0:0:0:0:
 460,192,2318,1,0,0:0:0:0:
 ";
+    }
 }

@@ -1,40 +1,41 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 
-namespace krrTools.Tools.FilesManager;
-
-public class EditableProperty<T> : INotifyPropertyChanged
+namespace krrTools.Tools.FilesManager
 {
-    private T _value = default!;
-    private T _previousValue = default!;
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    public T Value
+    public class EditableProperty<T> : INotifyPropertyChanged
     {
-        get => _value;
-        set
+        private T _value = default!;
+        private T _previousValue = default!;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public T Value
         {
-            if (!EqualityComparer<T>.Default.Equals(_value, value))
+            get => _value;
+            set
             {
-                _previousValue = _value;
-                _value = value;
+                if (!EqualityComparer<T>.Default.Equals(_value, value))
+                {
+                    _previousValue = _value;
+                    _value = value;
+                    OnPropertyChanged(nameof(Value));
+                }
+            }
+        }
+
+        public void Undo()
+        {
+            if (!EqualityComparer<T>.Default.Equals(_previousValue, default(T)))
+            {
+                _value = _previousValue;
                 OnPropertyChanged(nameof(Value));
             }
         }
-    }
 
-    public void Undo()
-    {
-        if (!EqualityComparer<T>.Default.Equals(_previousValue, default(T)))
+        private void OnPropertyChanged(string propertyName)
         {
-            _value = _previousValue;
-            OnPropertyChanged(nameof(Value));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
-    }
-
-    private void OnPropertyChanged(string propertyName)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

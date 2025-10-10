@@ -1,0 +1,641 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v9.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v9.0": {
+      "krrTools/1.0.0": {
+        "dependencies": {
+          "CommunityToolkit.Mvvm": "8.4.0",
+          "DataGridExtensions": "2.7.0",
+          "Microsoft.Extensions.DependencyInjection": "9.0.9",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.9",
+          "Microsoft.Extensions.Logging.Console": "9.0.9",
+          "NHotkey.Wpf": "3.0.0",
+          "OsuFileIO": "0.1.1",
+          "OsuFileIO.Analyzer": "0.1.1",
+          "OsuMemoryDataProvider": "0.11.1",
+          "ProcessMemoryDataFinder": "0.9.0",
+          "ReactiveUI.WPF": "20.1.1",
+          "System.Reactive": "6.1.0",
+          "WPF-UI": "4.0.3",
+          "WPF-UI.Abstractions": "4.0.3",
+          "WPF-UI.DependencyInjection": "4.0.3",
+          "WPF-UI.Tray": "4.0.3",
+          "WPF-UI.Violeta": "4.0.3.6",
+          "krrcream.OsuParsers": "1.8.0.4"
+        },
+        "runtime": {
+          "krrTools.dll": {}
+        }
+      },
+      "CommunityToolkit.Mvvm/8.4.0": {
+        "runtime": {
+          "lib/net8.0/CommunityToolkit.Mvvm.dll": {
+            "assemblyVersion": "8.4.0.0",
+            "fileVersion": "8.4.0.1"
+          }
+        }
+      },
+      "DataGridExtensions/2.7.0": {
+        "dependencies": {
+          "Microsoft.Xaml.Behaviors.Wpf": "1.1.135"
+        },
+        "runtime": {
+          "lib/net8.0-windows7.0/DataGridExtensions.dll": {
+            "assemblyVersion": "2.7.0.0",
+            "fileVersion": "2.7.0.0"
+          }
+        }
+      },
+      "DynamicData/8.4.1": {
+        "dependencies": {
+          "System.Reactive": "6.1.0"
+        },
+        "runtime": {
+          "lib/net8.0/DynamicData.dll": {
+            "assemblyVersion": "8.4.0.0",
+            "fileVersion": "8.4.1.20756"
+          }
+        }
+      },
+      "krrcream.OsuParsers/1.8.0.4": {
+        "runtime": {
+          "lib/netstandard2.0/OsuParsers.dll": {
+            "assemblyVersion": "1.8.0.4",
+            "fileVersion": "1.8.0.4"
+          }
+        }
+      },
+      "Microsoft.Extensions.Configuration/9.0.9": {
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "9.0.9",
+          "Microsoft.Extensions.Primitives": "9.0.9"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.Configuration.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.925.41916"
+          }
+        }
+      },
+      "Microsoft.Extensions.Configuration.Abstractions/9.0.9": {
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "9.0.9"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.Configuration.Abstractions.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.925.41916"
+          }
+        }
+      },
+      "Microsoft.Extensions.Configuration.Binder/9.0.9": {
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "9.0.9"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.Configuration.Binder.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.925.41916"
+          }
+        }
+      },
+      "Microsoft.Extensions.DependencyInjection/9.0.9": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.9"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.DependencyInjection.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.925.41916"
+          }
+        }
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions/9.0.9": {
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.925.41916"
+          }
+        }
+      },
+      "Microsoft.Extensions.Logging/9.0.9": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection": "9.0.9",
+          "Microsoft.Extensions.Logging.Abstractions": "9.0.9",
+          "Microsoft.Extensions.Options": "9.0.9"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.Logging.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.925.41916"
+          }
+        }
+      },
+      "Microsoft.Extensions.Logging.Abstractions/9.0.9": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.9"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.Logging.Abstractions.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.925.41916"
+          }
+        }
+      },
+      "Microsoft.Extensions.Logging.Configuration/9.0.9": {
+        "dependencies": {
+          "Microsoft.Extensions.Configuration": "9.0.9",
+          "Microsoft.Extensions.Configuration.Abstractions": "9.0.9",
+          "Microsoft.Extensions.Configuration.Binder": "9.0.9",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.9",
+          "Microsoft.Extensions.Logging": "9.0.9",
+          "Microsoft.Extensions.Logging.Abstractions": "9.0.9",
+          "Microsoft.Extensions.Options": "9.0.9",
+          "Microsoft.Extensions.Options.ConfigurationExtensions": "9.0.9"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.Logging.Configuration.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.925.41916"
+          }
+        }
+      },
+      "Microsoft.Extensions.Logging.Console/9.0.9": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.9",
+          "Microsoft.Extensions.Logging": "9.0.9",
+          "Microsoft.Extensions.Logging.Abstractions": "9.0.9",
+          "Microsoft.Extensions.Logging.Configuration": "9.0.9",
+          "Microsoft.Extensions.Options": "9.0.9"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.Logging.Console.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.925.41916"
+          }
+        }
+      },
+      "Microsoft.Extensions.Options/9.0.9": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.9",
+          "Microsoft.Extensions.Primitives": "9.0.9"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.Options.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.925.41916"
+          }
+        }
+      },
+      "Microsoft.Extensions.Options.ConfigurationExtensions/9.0.9": {
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "9.0.9",
+          "Microsoft.Extensions.Configuration.Binder": "9.0.9",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.9",
+          "Microsoft.Extensions.Options": "9.0.9",
+          "Microsoft.Extensions.Primitives": "9.0.9"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.Options.ConfigurationExtensions.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.925.41916"
+          }
+        }
+      },
+      "Microsoft.Extensions.Primitives/9.0.9": {
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.Primitives.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.925.41916"
+          }
+        }
+      },
+      "Microsoft.Xaml.Behaviors.Wpf/1.1.135": {
+        "runtime": {
+          "lib/net6.0-windows7.0/Microsoft.Xaml.Behaviors.dll": {
+            "assemblyVersion": "1.1.0.0",
+            "fileVersion": "1.1.135.29210"
+          }
+        }
+      },
+      "NHotkey/3.0.0": {
+        "runtime": {
+          "lib/net6.0-windows7.0/NHotkey.dll": {
+            "assemblyVersion": "3.0.0.0",
+            "fileVersion": "3.0.0.0"
+          }
+        }
+      },
+      "NHotkey.Wpf/3.0.0": {
+        "dependencies": {
+          "NHotkey": "3.0.0"
+        },
+        "runtime": {
+          "lib/net6.0-windows7.0/NHotkey.Wpf.dll": {
+            "assemblyVersion": "3.0.0.0",
+            "fileVersion": "3.0.0.0"
+          }
+        }
+      },
+      "OsuFileIO/0.1.1": {
+        "runtime": {
+          "lib/net6.0/OsuFileIO.dll": {
+            "assemblyVersion": "0.1.1.0",
+            "fileVersion": "0.1.1.0"
+          }
+        }
+      },
+      "OsuFileIO.Analyzer/0.1.1": {
+        "dependencies": {
+          "OsuFileIO": "0.1.1"
+        },
+        "runtime": {
+          "lib/net6.0/OsuFileIO.Analyzer.dll": {
+            "assemblyVersion": "0.1.1.0",
+            "fileVersion": "0.1.1.0"
+          }
+        }
+      },
+      "OsuMemoryDataProvider/0.11.1": {
+        "dependencies": {
+          "ProcessMemoryDataFinder": "0.9.0"
+        },
+        "runtime": {
+          "lib/net8.0/OsuMemoryDataProvider.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "ProcessMemoryDataFinder/0.9.0": {
+        "runtime": {
+          "lib/net8.0/ProcessMemoryDataFinder.dll": {
+            "assemblyVersion": "0.9.0.0",
+            "fileVersion": "0.9.0.0"
+          }
+        }
+      },
+      "ReactiveUI/20.1.1": {
+        "dependencies": {
+          "DynamicData": "8.4.1",
+          "Splat": "15.1.1"
+        },
+        "runtime": {
+          "lib/net8.0/ReactiveUI.dll": {
+            "assemblyVersion": "20.1.0.0",
+            "fileVersion": "20.1.1.46356"
+          }
+        }
+      },
+      "ReactiveUI.WPF/20.1.1": {
+        "dependencies": {
+          "DynamicData": "8.4.1",
+          "ReactiveUI": "20.1.1",
+          "Splat": "15.1.1"
+        },
+        "runtime": {
+          "lib/net462/ReactiveUI.Wpf.dll": {
+            "assemblyVersion": "20.1.0.0",
+            "fileVersion": "20.1.1.46356"
+          }
+        }
+      },
+      "Splat/15.1.1": {
+        "runtime": {
+          "lib/net8.0/Splat.dll": {
+            "assemblyVersion": "15.1.0.0",
+            "fileVersion": "15.1.1.17670"
+          }
+        }
+      },
+      "System.Reactive/6.1.0": {
+        "runtime": {
+          "lib/net6.0/System.Reactive.dll": {
+            "assemblyVersion": "6.1.0.0",
+            "fileVersion": "6.1.0.62682"
+          }
+        }
+      },
+      "WPF-UI/4.0.3": {
+        "dependencies": {
+          "WPF-UI.Abstractions": "4.0.3"
+        },
+        "runtime": {
+          "lib/net9.0-windows7.0/Wpf.Ui.dll": {
+            "assemblyVersion": "4.0.0.0",
+            "fileVersion": "4.0.0.0"
+          }
+        }
+      },
+      "WPF-UI.Abstractions/4.0.3": {
+        "runtime": {
+          "lib/net9.0/Wpf.Ui.Abstractions.dll": {
+            "assemblyVersion": "4.0.0.0",
+            "fileVersion": "4.0.0.0"
+          }
+        }
+      },
+      "WPF-UI.DependencyInjection/4.0.3": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.9",
+          "WPF-UI.Abstractions": "4.0.3"
+        },
+        "runtime": {
+          "lib/net9.0/Wpf.Ui.DependencyInjection.dll": {
+            "assemblyVersion": "4.0.0.0",
+            "fileVersion": "4.0.0.0"
+          }
+        }
+      },
+      "WPF-UI.Tray/4.0.3": {
+        "dependencies": {
+          "WPF-UI": "4.0.3"
+        },
+        "runtime": {
+          "lib/net9.0-windows7.0/Wpf.Ui.Tray.dll": {
+            "assemblyVersion": "4.0.0.0",
+            "fileVersion": "4.0.0.0"
+          }
+        }
+      },
+      "WPF-UI.Violeta/4.0.3.6": {
+        "dependencies": {
+          "WPF-UI": "4.0.3"
+        },
+        "runtime": {
+          "lib/net9.0-windows7.0/Wpf.Ui.Violeta.dll": {
+            "assemblyVersion": "4.0.3.6",
+            "fileVersion": "4.0.3.6"
+          }
+        },
+        "resources": {
+          "lib/net9.0-windows7.0/de/Wpf.Ui.Violeta.resources.dll": {
+            "locale": "de"
+          },
+          "lib/net9.0-windows7.0/fr/Wpf.Ui.Violeta.resources.dll": {
+            "locale": "fr"
+          },
+          "lib/net9.0-windows7.0/id/Wpf.Ui.Violeta.resources.dll": {
+            "locale": "id"
+          },
+          "lib/net9.0-windows7.0/ja/Wpf.Ui.Violeta.resources.dll": {
+            "locale": "ja"
+          },
+          "lib/net9.0-windows7.0/ko/Wpf.Ui.Violeta.resources.dll": {
+            "locale": "ko"
+          },
+          "lib/net9.0-windows7.0/pt/Wpf.Ui.Violeta.resources.dll": {
+            "locale": "pt"
+          },
+          "lib/net9.0-windows7.0/ru/Wpf.Ui.Violeta.resources.dll": {
+            "locale": "ru"
+          },
+          "lib/net9.0-windows7.0/vi/Wpf.Ui.Violeta.resources.dll": {
+            "locale": "vi"
+          },
+          "lib/net9.0-windows7.0/zh-Hans/Wpf.Ui.Violeta.resources.dll": {
+            "locale": "zh-Hans"
+          },
+          "lib/net9.0-windows7.0/zh-Hant/Wpf.Ui.Violeta.resources.dll": {
+            "locale": "zh-Hant"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "krrTools/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "CommunityToolkit.Mvvm/8.4.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-tqVU8yc/ADO9oiTRyTnwhFN68hCwvkliMierptWOudIAvWY1mWCh5VFh+guwHJmpMwfg0J0rY+yyd5Oy7ty9Uw==",
+      "path": "communitytoolkit.mvvm/8.4.0",
+      "hashPath": "communitytoolkit.mvvm.8.4.0.nupkg.sha512"
+    },
+    "DataGridExtensions/2.7.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-vMtruEKx6kIrAOMg0YSfoE8BHuNieMQVJXv6uLE3PIoHob5WYR5vVjaCDsb8FE1Es/IZCNYpKp/80ze8NeO8hQ==",
+      "path": "datagridextensions/2.7.0",
+      "hashPath": "datagridextensions.2.7.0.nupkg.sha512"
+    },
+    "DynamicData/8.4.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-Mn1+fU/jqxgONEJq8KLQPGWEi7g/hUVTbjZyn4QM0sWWDAVOHPO9WjXWORSykwdfg/6S3GM15qsfz+2EvO+QAQ==",
+      "path": "dynamicdata/8.4.1",
+      "hashPath": "dynamicdata.8.4.1.nupkg.sha512"
+    },
+    "krrcream.OsuParsers/1.8.0.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-9wQ3r79tUSV25St1AVGdfth6rHIRQMcsQjHj3COB4eb2cssvBerkhGh99t52r84pdAU+epQXiAr5m0xGT2JOAA==",
+      "path": "krrcream.osuparsers/1.8.0.4",
+      "hashPath": "krrcream.osuparsers.1.8.0.4.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Configuration/9.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-w87wF/90/VI0ZQBhf4rbMEeyEy0vi2WKjFmACsNAKNaorY+ZlVz7ddyXkbADvaWouMKffNmR0yQOGcrvSSvKGg==",
+      "path": "microsoft.extensions.configuration/9.0.9",
+      "hashPath": "microsoft.extensions.configuration.9.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Configuration.Abstractions/9.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-p5RKAY9POvs3axwA/AQRuJeM8AHuE8h4qbP1NxQeGm0ep46aXz1oCLAp/oOYxX1GsjStgdhHrN3XXLLXr0+b3w==",
+      "path": "microsoft.extensions.configuration.abstractions/9.0.9",
+      "hashPath": "microsoft.extensions.configuration.abstractions.9.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Configuration.Binder/9.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-6SIp/6Bngk4jm2W36JekZbiIbFPdE/eMUtrJEqIqHGpd1zar3jvgnwxnpWQfzUiGrkyY8q8s6V82zkkEZozghA==",
+      "path": "microsoft.extensions.configuration.binder/9.0.9",
+      "hashPath": "microsoft.extensions.configuration.binder.9.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.DependencyInjection/9.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-zQV2WOSP+3z1EuK91ULxfGgo2Y75bTRnmJHp08+w/YXAyekZutX/qCd88/HOMNh35MDW9mJJJxPpMPS+1Rww8A==",
+      "path": "microsoft.extensions.dependencyinjection/9.0.9",
+      "hashPath": "microsoft.extensions.dependencyinjection.9.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.DependencyInjection.Abstractions/9.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-/hymojfWbE9AlDOa0mczR44m00Jj+T3+HZO0ZnVTI032fVycI0ZbNOVFP6kqZMcXiLSYXzR2ilcwaRi6dzeGyA==",
+      "path": "microsoft.extensions.dependencyinjection.abstractions/9.0.9",
+      "hashPath": "microsoft.extensions.dependencyinjection.abstractions.9.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Logging/9.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-MaCB0Y9hNDs4YLu3HCJbo199WnJT8xSgajG1JYGANz9FkseQ5f3v/llu3HxLI6mjDlu7pa7ps9BLPWjKzsAAzQ==",
+      "path": "microsoft.extensions.logging/9.0.9",
+      "hashPath": "microsoft.extensions.logging.9.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Logging.Abstractions/9.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-FEgpSF+Z9StMvrsSViaybOBwR0f0ZZxDm8xV5cSOFiXN/t+ys+rwAlTd/6yG7Ld1gfppgvLcMasZry3GsI9lGA==",
+      "path": "microsoft.extensions.logging.abstractions/9.0.9",
+      "hashPath": "microsoft.extensions.logging.abstractions.9.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Logging.Configuration/9.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-Abuo+S0Sg+Ke6vzSh5Ell+lwJJM+CEIqg1ImtWnnqF6a/ibJkQnmFJi4/ekEw/0uAcdFKJXtGV7w6cFN0nyXeg==",
+      "path": "microsoft.extensions.logging.configuration/9.0.9",
+      "hashPath": "microsoft.extensions.logging.configuration.9.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Logging.Console/9.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-x3+W7IfW9Tg3sV+sU9N1039M4CqklaAecwhz9qNtjOCBdmg7h96JaL+NAvhYgZgweVJTJaxAvuO8I+ZZehE7Pg==",
+      "path": "microsoft.extensions.logging.console/9.0.9",
+      "hashPath": "microsoft.extensions.logging.console.9.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Options/9.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-loxGGHE1FC2AefwPHzrjPq7X92LQm64qnU/whKfo6oWaceewPUVYQJBJs3S3E2qlWwnCpeZ+dGCPTX+5dgVAuQ==",
+      "path": "microsoft.extensions.options/9.0.9",
+      "hashPath": "microsoft.extensions.options.9.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Options.ConfigurationExtensions/9.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-n4DCdnn2qs6V5U06Sx62FySEAZsJiJJgOzrPHDh9hPK7c2W8hEabC76F3Re3tGPjpiKa02RvB6FxZyxo8iICzg==",
+      "path": "microsoft.extensions.options.configurationextensions/9.0.9",
+      "hashPath": "microsoft.extensions.options.configurationextensions.9.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Primitives/9.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-z4pyMePOrl733ltTowbN565PxBw1oAr8IHmIXNDiDqd22nFpYltX9KhrNC/qBWAG1/Zx5MHX+cOYhWJQYCO/iw==",
+      "path": "microsoft.extensions.primitives/9.0.9",
+      "hashPath": "microsoft.extensions.primitives.9.0.9.nupkg.sha512"
+    },
+    "Microsoft.Xaml.Behaviors.Wpf/1.1.135": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-r8qBEXmQfORso2+MVHnt8PSH4761zJ0SIxgQTSEDVLU97EN2FZdG6/ZCYUPhQy+OrPKgnpYBCAs3PS6Bs7wRsg==",
+      "path": "microsoft.xaml.behaviors.wpf/1.1.135",
+      "hashPath": "microsoft.xaml.behaviors.wpf.1.1.135.nupkg.sha512"
+    },
+    "NHotkey/3.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-IEghs0QqWsQYH0uUmvIl0Ye6RaebWRh38eB6ToOkDnQucTYRGFOgtig0gSxlwCszTilYFz3n1ZuY762x+kDR3A==",
+      "path": "nhotkey/3.0.0",
+      "hashPath": "nhotkey.3.0.0.nupkg.sha512"
+    },
+    "NHotkey.Wpf/3.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-BIUKlhTG5KtFf9OQzWvkmVmktt5/FFj6AOEgag8Uf0R2YdZt5ajUzs3sVskcJcT2TztWlEHKQr1jFj3KQ0D9Nw==",
+      "path": "nhotkey.wpf/3.0.0",
+      "hashPath": "nhotkey.wpf.3.0.0.nupkg.sha512"
+    },
+    "OsuFileIO/0.1.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-0SioP8rqeNEfV3V4o5GV0P5AeTJ0WjlPTNyLrPFMyPwDDlH2MwdVyZ/XRQJcJAWSCorX5ujq0I2CIFc/7FBcgQ==",
+      "path": "osufileio/0.1.1",
+      "hashPath": "osufileio.0.1.1.nupkg.sha512"
+    },
+    "OsuFileIO.Analyzer/0.1.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-X49LC9ExM+XhXEuDzTlwBp2ZRZBWSTSAFhJQebruD+u1tAXkjZj5+UivnffLv5+foRN91o3bmEiuMvDC/z15xg==",
+      "path": "osufileio.analyzer/0.1.1",
+      "hashPath": "osufileio.analyzer.0.1.1.nupkg.sha512"
+    },
+    "OsuMemoryDataProvider/0.11.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-BRzM+rL0FXIEvLzhWpVgg9er+LJVtD2qKcVG3oFH8+UJVOkn4BR4G8EGofieoWYj3DG6JMZ/6U7bStzbuepGeA==",
+      "path": "osumemorydataprovider/0.11.1",
+      "hashPath": "osumemorydataprovider.0.11.1.nupkg.sha512"
+    },
+    "ProcessMemoryDataFinder/0.9.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-0flwDLpXqlnX/EO6zaH2bBpW1/UUt9njT21J+1KUWncV9Fvqu0ULC+y6ehvBzVRicqUacVjxsEmlGBxlx19QDw==",
+      "path": "processmemorydatafinder/0.9.0",
+      "hashPath": "processmemorydatafinder.0.9.0.nupkg.sha512"
+    },
+    "ReactiveUI/20.1.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-9hNPknWjijnaSWs6auypoXqUptPZcRpUypF+cf1zD50fgW+SEoQda502N3fVZ2eWPcaiUad+z6GaLwOWmUVHNw==",
+      "path": "reactiveui/20.1.1",
+      "hashPath": "reactiveui.20.1.1.nupkg.sha512"
+    },
+    "ReactiveUI.WPF/20.1.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-/xWQwprSkd5Bwa/xmlN2dZL93M53Avv5ok4s2FFg3GGzwnroeYVP/T785/J1S86x70e+5d5j2IwFlNyCTFoCIQ==",
+      "path": "reactiveui.wpf/20.1.1",
+      "hashPath": "reactiveui.wpf.20.1.1.nupkg.sha512"
+    },
+    "Splat/15.1.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-RHDTdF90FwVbRia2cmuIzkiVoETqnXSB2dDBBi/I35HWXqv4OKGqoMcfcd6obMvO2OmmY5PjU1M62K8LkJafAA==",
+      "path": "splat/15.1.1",
+      "hashPath": "splat.15.1.1.nupkg.sha512"
+    },
+    "System.Reactive/6.1.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-M5cCC1ZMkZr9jbSQGTHnVkb5TDN67qWCV7AP8TAHdGkvDlu0puT5NzemESNn9+HkYIDpWpocP68/i+/ame2/2w==",
+      "path": "system.reactive/6.1.0",
+      "hashPath": "system.reactive.6.1.0.nupkg.sha512"
+    },
+    "WPF-UI/4.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-izkG9uL33gYDkZkirpamlvk6v9ru5QL+97Dgqhr0rkGcwuJZOPd5zkhEUwlDOZ25OFX3Hbp2O/jpHILCYPNfiQ==",
+      "path": "wpf-ui/4.0.3",
+      "hashPath": "wpf-ui.4.0.3.nupkg.sha512"
+    },
+    "WPF-UI.Abstractions/4.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-HyoPrc5TmasqzYqHk3UCvYFNWfBEj8GOI3ZXpX6Cl+BghHFWR5nMzjGkwJ2341ISs5HEt4Iun6DZgrYVZpwTXQ==",
+      "path": "wpf-ui.abstractions/4.0.3",
+      "hashPath": "wpf-ui.abstractions.4.0.3.nupkg.sha512"
+    },
+    "WPF-UI.DependencyInjection/4.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-A2kWlJaBnCbutqEvGtjhokAVIPxu60I25wM/E7yhXSy3+wu9qdCUXoRGhmR2k2HLGAxeYLGV3iYkmzZllahrtg==",
+      "path": "wpf-ui.dependencyinjection/4.0.3",
+      "hashPath": "wpf-ui.dependencyinjection.4.0.3.nupkg.sha512"
+    },
+    "WPF-UI.Tray/4.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-BP9Kib42U/K7CcLFbswSbLjEOu96I+6x2/al8FfI8panAbHh6QPmJqu6F9P7S3H6ZpoU1QpGig0LzjE32FTNRQ==",
+      "path": "wpf-ui.tray/4.0.3",
+      "hashPath": "wpf-ui.tray.4.0.3.nupkg.sha512"
+    },
+    "WPF-UI.Violeta/4.0.3.6": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-SYpAJzrzzbQN4NuTb8dJle6m6qqaAgc+jngMZ0qGWr7O8PLijibh0GJogTPWZQHTC1M0UdGIS2ZrJjrYF1Qw7w==",
+      "path": "wpf-ui.violeta/4.0.3.6",
+      "hashPath": "wpf-ui.violeta.4.0.3.6.nupkg.sha512"
+    }
+  }
+}

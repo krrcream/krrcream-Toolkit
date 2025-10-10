@@ -1,9 +1,8 @@
 using Xunit;
-using Moq;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
-using krrTools.Data;
+using krrTools.Beatmaps;
 
 namespace krrTools.Tests;
 

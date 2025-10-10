@@ -1,6 +1,5 @@
 #nullable enable
 using System;
-using System.Threading;
 using System.Windows.Controls;
 using krrTools.Configuration;
 using krrTools.Core;

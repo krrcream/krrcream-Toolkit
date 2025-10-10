@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
-using krrTools.Data;
+using krrTools.Beatmaps;
 using krrTools.UI;
 
 namespace krrTools.Tools.KRRLVAnalysis
