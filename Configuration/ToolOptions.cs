@@ -27,6 +27,7 @@ namespace krrTools.Configuration
         protected bool IsValidating { get; set; }
 
         /// <summary>
+        /// <summary>
         /// Validate and normalize option values (called by UI or callers before use)
         /// Default implementation clamps numeric properties based on OptionAttribute Min/Max.
         /// Supports both direct properties and Bindable<T> properties.
@@ -41,70 +42,68 @@ namespace krrTools.Configuration
                 foreach (var prop in properties)
                 {
                     var attr = prop.GetCustomAttribute<OptionAttribute>();
-                    if (attr == null) continue;
+                    if (attr == null || attr.Min == null || attr.Max == null) continue;
 
-                    // Handle Bindable<T> properties
-                    if (prop.PropertyType.IsGenericType &&
-                        prop.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
-                    {
-                        var bindable = prop.GetValue(this);
-                        if (bindable == null) continue;
-
-                        var valueProp = prop.PropertyType.GetProperty("Value");
-                        var value = valueProp?.GetValue(bindable);
-
-                        if (value is int intValue && attr.Min != null && attr.Max != null)
-                        {
-                            var min = Convert.ToInt32(attr.Min);
-                            var max = Convert.ToInt32(attr.Max);
-                            var clamped = Math.Clamp(intValue, min, max);
-                            if (clamped != intValue && valueProp != null)
-                            {
-                                valueProp.SetValue(bindable, clamped);
-                            }
-                        }
-                        else if (value is double doubleValue && attr.Min != null && attr.Max != null)
-                        {
-                            var min = Convert.ToDouble(attr.Min);
-                            var max = Convert.ToDouble(attr.Max);
-                            var clamped = Math.Clamp(doubleValue, min, max);
-                            if (Math.Abs(clamped - doubleValue) > 1e-9 && valueProp != null)
-                            {
-                                valueProp.SetValue(bindable, clamped);
-                            }
-                        }
-                    }
-                    // Handle direct properties for backward compatibility
-                    else if (attr.Min != null && attr.Max != null)
-                    {
-                        if (prop.PropertyType == typeof(int))
-                        {
-                            var value = (int)prop.GetValue(this)!;
-                            var min = Convert.ToInt32(attr.Min);
-                            var max = Convert.ToInt32(attr.Max);
-                            var clamped = Math.Clamp(value, min, max);
-                            if (clamped != value)
-                            {
-                                prop.SetValue(this, clamped);
-                            }
-                        }
-                        else if (prop.PropertyType == typeof(double))
-                        {
-                            var value = (double)prop.GetValue(this)!;
-                            var min = Convert.ToDouble(attr.Min);
-                            var max = Convert.ToDouble(attr.Max);
-                            var clamped = Math.Clamp(value, min, max);
-                            if (Math.Abs(clamped - value) > 1e-9)
-                            {
-                                prop.SetValue(this, clamped);
-                            }
-                        }
-                    }
+                    object value = GetPropertyValue(prop);
+                    ClampNumericValue(prop, value, attr);
                 }
             }
             finally
             {
                 IsValidating = false;
+            }
+        }
+
+        private object GetPropertyValue(PropertyInfo prop)
+        {
+            if (prop.PropertyType.IsGenericType &&
+                prop.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
+            {
+                var bindable = prop.GetValue(this);
+                if (bindable == null) return null!;
+                var valueProp = prop.PropertyType.GetProperty("Value");
+                return valueProp?.GetValue(bindable) ?? null!;
+            }
+            return prop.GetValue(this) ?? null!;
+        }
+
+        private void SetPropertyValue(PropertyInfo prop, object value)
+        {
+            if (prop.PropertyType.IsGenericType &&
+                prop.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
+            {
+                var bindable = prop.GetValue(this);
+                if (bindable == null) return;
+                var valueProp = prop.PropertyType.GetProperty("Value");
+                valueProp?.SetValue(bindable, value);
+            }
+            else
+            {
+                prop.SetValue(this, value);
+            }
+        }
+
+        private void ClampNumericValue(PropertyInfo prop, object value, OptionAttribute attr)
+        {
+            if (value is int intValue)
+            {
+                var min = Convert.ToInt32(attr.Min);
+                var max = Convert.ToInt32(attr.Max);
+                var clamped = Math.Clamp(intValue, min, max);
+                if (clamped != intValue)
+                {
+                    SetPropertyValue(prop, clamped);
+                }
+            }
+            else if (value is double doubleValue)
+            {
+                var min = Convert.ToDouble(attr.Min);
+                var max = Convert.ToDouble(attr.Max);
+                var clamped = Math.Clamp(doubleValue, min, max);
+                if (Math.Abs(clamped - doubleValue) > 1e-9)
+                {
+                    SetPropertyValue(prop, clamped);
+                }
             }
         }
 
@@ -114,7 +113,7 @@ namespace krrTools.Configuration
         protected Bindable<T> CreateBindable<T>(T defaultValue, Action<T>? onValueChanged = null)
         {
             var bindable = new Bindable<T>(defaultValue);
-            bindable.PropertyChanged += (sender, args) =>
+            bindable.PropertyChanged += (_, args) =>
             {
                 if (args.PropertyName == nameof(Bindable<T>.Value))
                 {
