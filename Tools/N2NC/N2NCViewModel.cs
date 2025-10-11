@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using krrTools.Configuration;
+using krrTools.Core;
 using krrTools.Localization;
 
 namespace krrTools.Tools.N2NC;
@@ -66,6 +67,8 @@ public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProv
     // private Bindable<int?> _seed = null!;
     // private Bindable<PresetKind> _selectedPreset = null!;
 
+    private bool _isUpdatingOptions;
+
     public N2NCViewModel(N2NCOptions options) : base(ConverterEnum.N2NC, true, options)
     {
         InitializeLocalized();
@@ -83,45 +86,56 @@ public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProv
     /// </summary>
     private void OnOptionsPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        switch (e.PropertyName)
+        if (_isUpdatingOptions) return;
+        _isUpdatingOptions = true;
+
+        try
         {
-            case nameof(Options.TargetKeys):
-                // 智能约束: TargetKeys变更时自动调整MaxKeys
-                if (Options.MaxKeys.Value > Options.TargetKeys.Value)
-                {
-                    Options.MaxKeys.Value = Options.TargetKeys.Value;
-                }
-                // 确保MinKeys不超过TargetKeys
-                if (Options.MinKeys.Value > Options.TargetKeys.Value)
-                {
-                    Options.MinKeys.Value = Options.TargetKeys.Value;
-                }
-                OnPropertyChanged(nameof(MaxKeysMaximum)); // 通知计算属性更新
-                break;
-            case nameof(Options.MaxKeys):
-                // 确保MaxKeys不超过TargetKeys
-                if (Options.MaxKeys.Value > Options.TargetKeys.Value)
-                {
-                    Options.MaxKeys.Value = Options.TargetKeys.Value;
-                }
-                // 确保MaxKeys >= MinKeys
-                if (Options.MaxKeys.Value < Options.MinKeys.Value)
-                {
-                    Options.MaxKeys.Value = Options.MinKeys.Value;
-                }
-                OnPropertyChanged(nameof(MinKeysMaximum)); // 通知计算属性更新
-                break;
-            case nameof(Options.MinKeys):
-                // 确保MinKeys <= MaxKeys
-                if (Options.MinKeys.Value > Options.MaxKeys.Value)
-                {
-                    Options.MinKeys.Value = Options.MaxKeys.Value;
-                }
-                break;
-            case nameof(Options.TransformSpeed):
-                OnPropertyChanged(nameof(TransformSpeedDisplay));
-                OnPropertyChanged(nameof(TransformSpeedSlot));
-                break;
+            switch (e.PropertyName)
+            {
+                case nameof(Options.TargetKeys):
+                    // 智能约束: TargetKeys变更时自动调整MaxKeys
+                    if (Options.MaxKeys.Value > Options.TargetKeys.Value)
+                    {
+                        Options.MaxKeys.Value = Options.TargetKeys.Value;
+                    }
+                    // 确保MinKeys不超过TargetKeys
+                    if (Options.MinKeys.Value > Options.TargetKeys.Value)
+                    {
+                        Options.MinKeys.Value = Options.TargetKeys.Value;
+                    }
+                    OnPropertyChanged(nameof(MaxKeysMaximum)); // 通知计算属性更新
+                    break;
+                case nameof(Options.MaxKeys):
+                    // 确保MaxKeys不超过TargetKeys
+                    if (Options.MaxKeys.Value > Options.TargetKeys.Value)
+                    {
+                        Options.MaxKeys.Value = Options.TargetKeys.Value;
+                    }
+                    // 确保MaxKeys >= MinKeys
+                    if (Options.MaxKeys.Value < Options.MinKeys.Value)
+                    {
+                        Options.MaxKeys.Value = Options.MinKeys.Value;
+                    }
+                    OnPropertyChanged(nameof(MinKeysMaximum)); // 通知计算属性更新
+                    break;
+                case nameof(Options.MinKeys):
+                    // 确保MinKeys <= MaxKeys
+                    if (Options.MinKeys.Value > Options.MaxKeys.Value)
+                    {
+                        Options.MinKeys.Value = Options.MaxKeys.Value;
+                    }
+                    OnPropertyChanged(nameof(MinKeysMaximum)); // 通知计算属性更新
+                    break;
+                case nameof(Options.TransformSpeed):
+                    OnPropertyChanged(nameof(TransformSpeedDisplay));
+                    OnPropertyChanged(nameof(TransformSpeedSlot));
+                    break;
+            }
+        }
+        finally
+        {
+            _isUpdatingOptions = false;
         }
     }
 

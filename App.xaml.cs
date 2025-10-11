@@ -42,10 +42,10 @@ namespace krrTools
                 // 注册事件总线
                 services.AddSingleton<IEventBus, EventBus>();
 
-                // 注册选项服务 - 使用事件驱动的选项
-                services.AddSingleton(sp => new ObservableOptions<N2NCOptions>(ConverterEnum.N2NC, sp.GetRequiredService<IEventBus>()));
-                services.AddSingleton(sp => new ObservableOptions<DPToolOptions>(ConverterEnum.DP, sp.GetRequiredService<IEventBus>()));
-                services.AddSingleton(sp => new ObservableOptions<KRRLNTransformerOptions>(ConverterEnum.KRRLN, sp.GetRequiredService<IEventBus>()));
+                // 注册选项服务 - 已迁移到 ReactiveOptions
+                services.AddSingleton(sp => new ReactiveOptions<N2NCOptions>(ConverterEnum.N2NC, sp.GetRequiredService<IEventBus>()));
+                services.AddSingleton(sp => new ReactiveOptions<DPToolOptions>(ConverterEnum.DP, sp.GetRequiredService<IEventBus>()));
+                services.AddSingleton(sp => new ReactiveOptions<KRRLNTransformerOptions>(ConverterEnum.KRRLN, sp.GetRequiredService<IEventBus>()));
 
                 // 注册模块管理器
                 services.AddSingleton<IModuleManager>(sp => new ModuleManager(ModuleManager.DiscoverModules(sp), sp));

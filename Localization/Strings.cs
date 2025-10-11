@@ -80,6 +80,7 @@ namespace krrTools.Localization
         public const string KRRLongLimitLabel = "Long Limit {0}|长面限制 {0}";
         public const string KRRLongRandomLabel = "Long Random {0}|长面随机 {0}";
         public const string KRRAlignLabel = "Align {0}|对齐 {0}";
+         public const string ProcessOriginalLabel = "Process Original|处理原始谱面";
 
         public const string LengthThresholdLabel = "Length Threshold {0}|长度阈值 {0}";
         public const string KRRLNAlignLabel = "Long&Short Align {0}|LN长短对齐 {0}";

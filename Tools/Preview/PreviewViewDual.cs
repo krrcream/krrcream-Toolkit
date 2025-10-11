@@ -241,7 +241,10 @@ namespace krrTools.Tools.Preview
             if ((DateTime.UtcNow - _lastSettingsChange).TotalMilliseconds < SettingsChangeThrottleMs) return;
             _lastSettingsChange = DateTime.UtcNow;
 
-            if (_isProcessing || changedConverter != _currentTool) return;
+            if (_isProcessing || changedConverter != _currentTool) 
+            {
+                return;
+            }
             _isProcessing = true;
             try
             {

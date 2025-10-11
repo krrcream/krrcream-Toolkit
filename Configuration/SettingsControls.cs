@@ -407,8 +407,28 @@ namespace krrTools.Configuration
                         var finalProperty = currentObject.GetType().GetProperty(propertyNames[^1]);
                         if (finalProperty != null)
                         {
+                            Type targetType;
+                            object? targetObject;
+                            
+                            // Check if the property is Bindable<T>
+                            if (finalProperty.PropertyType.IsGenericType && finalProperty.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
+                            {
+                                // For Bindable<T>, target is the Value property
+                                targetType = finalProperty.PropertyType.GetGenericArguments()[0];
+                                var bindableInstance = finalProperty.GetValue(currentObject);
+                                if (bindableInstance == null) return;
+                                targetObject = bindableInstance;
+                                finalProperty = bindableInstance.GetType().GetProperty("Value");
+                                if (finalProperty == null) return;
+                            }
+                            else
+                            {
+                                targetType = finalProperty.PropertyType;
+                                targetObject = currentObject;
+                            }
+                            
                             // 根据属性类型转换值
-                            object? convertedValue = finalProperty.PropertyType switch
+                            object? convertedValue = targetType switch
                             {
                                 { } t when t == typeof(int) => (int)_pendingValue,
                                 { } t when t == typeof(float) => (float)_pendingValue,
@@ -420,34 +440,30 @@ namespace krrTools.Configuration
                                 { } t when t == typeof(double?) => (double?)_pendingValue,
                                 _ => _pendingValue
                             };
-                            finalProperty.SetValue(currentObject, convertedValue);
+                            
+                            finalProperty.SetValue(targetObject, convertedValue);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                Logger.WriteLine(LogLevel.Error, "[SettingsControls] SettingsSlider debounce writeback error: {0}",
-                    ex.Message);
-            }
-        }
-
-        private void SettingsSlider_IsEnabledChanged(object sender, DependencyPropertyChangedEventArgs e)
-        {
-            if (CheckBox != null)
-            {
-                CheckBox.IsEnabled = IsEnabled;
-                InnerSlider.IsEnabled = IsEnabled && (CheckBox.IsChecked ?? false);
-            }
-            else
-            {
-                InnerSlider.IsEnabled = IsEnabled;
+                Logger.WriteLine(LogLevel.Error, "[SettingsControls] OnDebounceTimerTick error: {0}", ex.Message);
             }
         }
 
         private void SettingsSlider_Unloaded(object? sender, RoutedEventArgs e)
         {
-            _debounceTimer?.Stop();
+            LocalizationService.LanguageChanged -= OnLanguageChanged;
+        }
+
+        private void SettingsSlider_IsEnabledChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.NewValue is bool isEnabled)
+            {
+                Opacity = isEnabled ? 1.0 : 0.5;
+                IsHitTestVisible = isEnabled;
+            }
         }
 
         private void OnLanguageChanged()

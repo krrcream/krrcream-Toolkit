@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Reflection;
 using krrTools.Beatmaps;
 using krrTools.Bindable;
 using krrTools.Configuration;
@@ -144,6 +145,12 @@ namespace krrTools.Tools.Preview
                                 if (property != null)
                                 {
                                     var value = property.GetValue(sender);
+                                    // If the value is a Bindable<T>, get its Value
+                                    if (value != null && value.GetType().IsGenericType && value.GetType().GetGenericTypeDefinition() == typeof(Bindable<>))
+                                    {
+                                        var valueProp = value.GetType().GetProperty("Value");
+                                        value = valueProp?.GetValue(value);
+                                    }
                                     _changedSettings[e.PropertyName] = value;
                                 }
                             }
@@ -187,9 +194,12 @@ namespace krrTools.Tools.Preview
         /// </summary>
         private void OnSettingsChanged(SettingsChangedEvent settingsEvent)
         {
-            if (_isRefreshing) return; // 防止递归刷新
-        
-            Console.WriteLine($"[PreviewViewModel] 收到设置变更: {settingsEvent.PropertyName} in {settingsEvent.SettingsType?.Name}");
+            // 对于设置变更，我们总是处理，即使在刷新中，因为设置变更应该触发新的刷新
+            // 检查此设置是否会触发预览刷新
+            if (!ShouldTriggerRefresh(settingsEvent))
+            {
+                return;
+            }
         
             // 记录设置变化
             if (!string.IsNullOrEmpty(settingsEvent.PropertyName) && settingsEvent.NewValue != null)
@@ -197,21 +207,29 @@ namespace krrTools.Tools.Preview
                 _changedSettings[settingsEvent.PropertyName] = settingsEvent.NewValue;
             }
         
-            // 只有影响预览的设置变更才刷新
-            if (IsRelevantSettingChange(settingsEvent))
+            // 直接调用TriggerRefresh，在测试环境中Dispatcher可能不可用
+            TriggerRefresh();
+        }
+
+        /// <summary>
+        /// 检查设置变化是否应该触发预览刷新
+        /// </summary>
+        private bool ShouldTriggerRefresh(SettingsChangedEvent settingsEvent)
+        {
+            if (settingsEvent.SettingsType == null || string.IsNullOrEmpty(settingsEvent.PropertyName))
             {
-                Console.WriteLine("[PreviewViewModel] 设置变更影响预览，触发刷新");
-            
-                // 确保在UI线程中执行刷新操作
-                if (Application.Current?.Dispatcher.CheckAccess() == true)
-                {
-                    TriggerRefresh();
-                }
-                else
-                {
-                    Application.Current?.Dispatcher.Invoke(TriggerRefresh);
-                }
+                return false;
             }
+        
+            // 使用反射检查属性是否有IsRefresher特性
+            var property = settingsEvent.SettingsType.GetProperty(settingsEvent.PropertyName);
+            if (property == null)
+            {
+                return false;
+            }
+        
+            var optionAttribute = property.GetCustomAttribute<OptionAttribute>();
+            return optionAttribute?.IsRefresher == true;
         }
     
         /// <summary>
@@ -279,23 +297,7 @@ namespace krrTools.Tools.Preview
                 });
             }
         }
-    
-        /// <summary>
-        /// 判断设置变更是否影响预览显示
-        /// </summary>
-        private bool IsRelevantSettingChange(SettingsChangedEvent settingsEvent)
-        {
-            // 主要的预览相关设置
-            var relevantProperties = new[]
-            {
-                "TargetKeys", "MaxKeys", "MinKeys", 
-                "TransformSpeed", "Seed",
-                "Pattern", "Density", "Style"
-            };
-        
-            return Array.Exists(relevantProperties, prop => 
-                settingsEvent.PropertyName?.Contains(prop) == true);
-        }
+
 
         public void LoadFromPath(string path)
         {
@@ -316,11 +318,12 @@ namespace krrTools.Tools.Preview
 
             if (oldProcessor != processor) 
             {
+                OnPropertyChanged(nameof(Processor));
                 ExecuteRefresh();
             }
         }
 
-        public void TriggerRefresh()
+        public virtual void TriggerRefresh()
         {
             ExecuteRefresh();
         }

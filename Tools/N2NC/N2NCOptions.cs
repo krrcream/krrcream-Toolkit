@@ -11,17 +11,17 @@ namespace krrTools.Tools.N2NC
     /// </summary>
     public class N2NCOptions : ToolOptionsBase
     {
-        [Option(LabelKey = nameof(KeysSliderLabel), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double))]
+        [Option(LabelKey = nameof(KeysSliderLabel), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double), IsRefresher = true)]
         public Bindable<double> TargetKeys { get; } = new Bindable<double>();
 
         // 动态最大值将由ViewModel的约束管理处理
-        [Option(LabelKey = nameof(N2NCMaxKeysTemplate), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double))]
+        [Option(LabelKey = nameof(N2NCMaxKeysTemplate), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double), IsRefresher = true)]
         public Bindable<double> MaxKeys { get; } = new Bindable<double>();
 
-        [Option(LabelKey = nameof(N2NCMinKeysTemplate), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double))]
+        [Option(LabelKey = nameof(N2NCMinKeysTemplate), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double), IsRefresher = true)]
         public Bindable<double> MinKeys { get; } = new Bindable<double>();
 
-        [Option(LabelKey = nameof(N2NCTransformSpeedTemplate), Min = 1, Max = 8, UIType = UIType.Slider, DisplayMapField = nameof(TransformSpeedDict), DataType = typeof(double))]
+        [Option(LabelKey = nameof(N2NCTransformSpeedTemplate), Min = 1, Max = 8, UIType = UIType.Slider, DisplayMapField = nameof(TransformSpeedDict), DataType = typeof(double), IsRefresher = true)]
         public Bindable<double> TransformSpeed { get; } = new Bindable<double>();
 
         /// <summary>
@@ -54,7 +54,7 @@ namespace krrTools.Tools.N2NC
             { 8, "8" }
         };
 
-        [Option(LabelKey = nameof(SeedButtonLabel), UIType = UIType.NumberBox, DataType = typeof(int?))]
+        [Option(LabelKey = nameof(SeedButtonLabel), UIType = UIType.NumberBox, DataType = typeof(int?), IsRefresher = true)]
         public int? Seed
         {
             get => _seed;

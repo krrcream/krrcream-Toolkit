@@ -1,8 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using krrTools.Bindable;
 using krrTools.Configuration;
+using krrTools.Core;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace krrTools.Tools.KRRLNTransformer
@@ -56,7 +56,6 @@ namespace krrTools.Tools.KRRLNTransformer
 
         private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            // Forward property changes to trigger SettingsChangedEvent
             OnPropertyChanged(e.PropertyName);
         }
 

@@ -16,12 +16,8 @@ using TextBlock = Wpf.Ui.Controls.TextBlock;
 
 namespace krrTools.Configuration
 {
-
-
     public static class SettingsBinder
     {
-
-
         private static string GetLocalizedString(string? key)
         {
             if (string.IsNullOrEmpty(key)) return "";

@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using krrTools.Configuration;
+using krrTools.Core;
 using krrTools.Localization;
 using krrTools.UI;
 

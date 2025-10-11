@@ -10,12 +10,12 @@ namespace krrTools.Bindable
     /// Inspired by osu! framework's Bindable system.
     /// </summary>
     /// <typeparam name="T">The type of the value.</typeparam>
-    public class Bindable<T> : INotifyPropertyChanged
+    public class Bindable<T>(T defaultValue = default!) : INotifyPropertyChanged
     {
-        private T _value;
+        private T _value = defaultValue;
         private bool _disabled;
-        private Func<T, T> _mapping;
-        private Action<T> _onValueChanged;
+        private Func<T, T>? _mapping;
+        private Action<T>? _onValueChanged;
 
         public T Value
         {
@@ -36,14 +36,9 @@ namespace krrTools.Bindable
             }
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
-        public Bindable(T defaultValue = default)
-        {
-            _value = defaultValue;
-        }
-
-        protected virtual void Set(T value, [CallerMemberName] string propertyName = null)
+        protected virtual void Set(T value, [CallerMemberName] string? propertyName = null)
         {
             if (_disabled) return;
             if (EqualityComparer<T>.Default.Equals(_value, value)) return;
@@ -55,7 +50,7 @@ namespace krrTools.Bindable
             OnPropertyChanged(propertyName ?? nameof(Value));
         }
 
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }

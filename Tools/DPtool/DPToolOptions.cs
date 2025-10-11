@@ -9,50 +9,50 @@ namespace krrTools.Tools.DPtool
     /// </summary>
     public class DPToolOptions : ToolOptionsBase
     {
-        [Option(LabelKey = nameof(DPModifyKeysCheckbox), TooltipKey = nameof(DPModifyKeysTooltip), UIType = UIType.Toggle)]
+        [Option(LabelKey = nameof(DPModifyKeysCheckbox), TooltipKey = nameof(DPModifyKeysTooltip), UIType = UIType.Toggle, IsRefresher = true)]
         public Bindable<bool> ModifySingleSideKeyCount { get; } = new Bindable<bool>();
 
-        [Option(LabelKey = nameof(KeysSliderLabel), Min = 1, Max = 12, UIType = UIType.Slider, DataType = typeof(double))]
+        [Option(LabelKey = nameof(KeysSliderLabel), Min = 1, Max = 12, UIType = UIType.Slider, DataType = typeof(double), IsRefresher = true)]
         public Bindable<double> SingleSideKeyCount { get; } = new Bindable<double>();
 
         #region 左手区
 
-        [Option(LabelKey = nameof(DPMirrorLabel), TooltipKey = nameof(DPMirrorTooltipLeft), UIType = UIType.Toggle)]
+        [Option(LabelKey = nameof(DPMirrorLabel), TooltipKey = nameof(DPMirrorTooltipLeft), UIType = UIType.Toggle, IsRefresher = true)]
         public Bindable<bool> LMirror { get; } = new Bindable<bool>();
 
-        [Option(LabelKey = nameof(DPDensityLabel), TooltipKey = nameof(DPDensityTooltipLeft), UIType = UIType.Toggle)]
+        [Option(LabelKey = nameof(DPDensityLabel), TooltipKey = nameof(DPDensityTooltipLeft), UIType = UIType.Toggle, IsRefresher = true)]
         public Bindable<bool> LDensity { get; } = new Bindable<bool>();
 
-        [Option(LabelKey = nameof(RemoveLabel), TooltipKey = nameof(RemoveTooltip), UIType = UIType.Toggle)]
+        [Option(LabelKey = nameof(RemoveLabel), TooltipKey = nameof(RemoveTooltip), UIType = UIType.Toggle, IsRefresher = true)]
         public Bindable<bool> LRemove { get; } = new Bindable<bool>();
 
         [Option(LabelKey = nameof(DPLeftMaxKeysTemplate), Min = 1, Max = 5, UIType = UIType.Slider,
-            DataType = typeof(double))]
+            DataType = typeof(double), IsRefresher = true)]
         public Bindable<double> LMaxKeys { get; } = new Bindable<double>();
 
         [Option(LabelKey = nameof(DPLeftMinKeysTemplate), Min = 1, Max = 5, UIType = UIType.Slider,
-            DataType = typeof(double))]
+            DataType = typeof(double), IsRefresher = true)]
         public Bindable<double> LMinKeys { get; } = new Bindable<double>();
 
         #endregion
 
         #region 右手区
 
-        [Option(LabelKey = nameof(DPMirrorLabel), TooltipKey = nameof(DPMirrorTooltipRight), UIType = UIType.Toggle)]
+        [Option(LabelKey = nameof(DPMirrorLabel), TooltipKey = nameof(DPMirrorTooltipRight), UIType = UIType.Toggle, IsRefresher = true)]
         public Bindable<bool> RMirror { get; } = new Bindable<bool>();
 
-        [Option(LabelKey = nameof(DPDensityLabel), TooltipKey = nameof(DPDensityTooltipRight), UIType = UIType.Toggle)]
+        [Option(LabelKey = nameof(DPDensityLabel), TooltipKey = nameof(DPDensityTooltipRight), UIType = UIType.Toggle, IsRefresher = true)]
         public Bindable<bool> RDensity { get; } = new Bindable<bool>();
 
-        [Option(LabelKey = nameof(RemoveLabel), TooltipKey = nameof(RemoveTooltip), UIType = UIType.Toggle)]
+        [Option(LabelKey = nameof(RemoveLabel), TooltipKey = nameof(RemoveTooltip), UIType = UIType.Toggle, IsRefresher = true)]
         public Bindable<bool> RRemove { get; } = new Bindable<bool>();
 
         [Option(LabelKey = nameof(DPRightMaxKeysTemplate), Min = 1, Max = 5, UIType = UIType.Slider,
-            DataType = typeof(double))]
+            DataType = typeof(double), IsRefresher = true)]
         public Bindable<double> RMaxKeys { get; } = new Bindable<double>();
 
         [Option(LabelKey = nameof(DPRightMinKeysTemplate), Min = 1, Max = 5, UIType = UIType.Slider,
-            DataType = typeof(double))]
+            DataType = typeof(double), IsRefresher = true)]
         public Bindable<double> RMinKeys { get; } = new Bindable<double>();
 
         #endregion

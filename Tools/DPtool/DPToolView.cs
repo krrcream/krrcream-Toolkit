@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
 using krrTools.Configuration;
+using krrTools.Core;
 using krrTools.Localization;
 using krrTools.UI;
 
