@@ -1,5 +1,5 @@
-﻿using System;
-using krrTools.Configuration;
+﻿using krrTools.Configuration;
+using krrTools.Bindable;
 using static krrTools.Localization.Strings;
 
 namespace krrTools.Tools.DPtool
@@ -10,131 +10,76 @@ namespace krrTools.Tools.DPtool
     public class DPToolOptions : UnifiedToolOptions
     {
         [Option(LabelKey = nameof(DPModifyKeysCheckbox), TooltipKey = nameof(DPModifyKeysTooltip), UIType = UIType.Toggle)]
-        public bool ModifySingleSideKeyCount
-        {
-            get => _modifySingleSideKeyCount;
-            set => SetProperty(ref _modifySingleSideKeyCount, value);
-        }
+        public Bindable<bool> ModifySingleSideKeyCount { get; } = new Bindable<bool>();
 
         [Option(LabelKey = nameof(KeysSliderLabel), Min = 1, Max = 12, UIType = UIType.Slider, DataType = typeof(double))]
-        public double SingleSideKeyCount
-        {
-            get => _singleSideKeyCount;
-            set => SetProperty(ref _singleSideKeyCount, value);
-        }
-
-        private double _singleSideKeyCount = 10;
-        private bool _modifySingleSideKeyCount;
+        public Bindable<double> SingleSideKeyCount { get; } = new Bindable<double>();
 
         #region 左手区
 
         [Option(LabelKey = nameof(DPMirrorLabel), TooltipKey = nameof(DPMirrorTooltipLeft), UIType = UIType.Toggle)]
-        public bool LMirror
-        {
-            get => _lMirror;
-            set
-            {
-                Console.WriteLine($"[DP数据流] DPToolOptions.LMirror设置: {_lMirror} → {value}");
-                SetProperty(ref _lMirror, value);
-            }
-        }
-
-        private bool _lMirror;
+        public Bindable<bool> LMirror { get; } = new Bindable<bool>();
 
         [Option(LabelKey = nameof(DPDensityLabel), TooltipKey = nameof(DPDensityTooltipLeft), UIType = UIType.Toggle)]
-        public bool LDensity
-        {
-            get => _lDensity;
-            set => SetProperty(ref _lDensity, value);
-        }
-
-        private bool _lDensity;
+        public Bindable<bool> LDensity { get; } = new Bindable<bool>();
 
         [Option(LabelKey = nameof(RemoveLabel), TooltipKey = nameof(RemoveTooltip), UIType = UIType.Toggle)]
-        public bool LRemove
-        {
-            get => _lRemove;
-            set => SetProperty(ref _lRemove, value);
-        }
-
-        private bool _lRemove;
+        public Bindable<bool> LRemove { get; } = new Bindable<bool>();
 
         [Option(LabelKey = nameof(DPLeftMaxKeysTemplate), Min = 1, Max = 5, UIType = UIType.Slider,
             DataType = typeof(double))]
-        public double LMaxKeys
-        {
-            get => _lMaxKeys;
-            set => SetProperty(ref _lMaxKeys, value);
-        }
-
-        private double _lMaxKeys = 5;
+        public Bindable<double> LMaxKeys { get; } = new Bindable<double>();
 
         [Option(LabelKey = nameof(DPLeftMinKeysTemplate), Min = 1, Max = 5, UIType = UIType.Slider,
             DataType = typeof(double))]
-        public double LMinKeys
-        {
-            get => _lMinKeys;
-            set => SetProperty(ref _lMinKeys, value);
-        }
-
-        private double _lMinKeys = 1;
+        public Bindable<double> LMinKeys { get; } = new Bindable<double>();
 
         #endregion
 
         #region 右手区
 
         [Option(LabelKey = nameof(DPMirrorLabel), TooltipKey = nameof(DPMirrorTooltipRight), UIType = UIType.Toggle)]
-        public bool RMirror
-        {
-            get => _rMirror;
-            set
-            {
-                Console.WriteLine($"[DP数据流] DPToolOptions.RMirror设置: {_rMirror} → {value}");
-                SetProperty(ref _rMirror, value);
-            }
-        }
-
-        private bool _rMirror;
+        public Bindable<bool> RMirror { get; } = new Bindable<bool>();
 
         [Option(LabelKey = nameof(DPDensityLabel), TooltipKey = nameof(DPDensityTooltipRight), UIType = UIType.Toggle)]
-        public bool RDensity
-        {
-            get => _rDensity;
-            set => SetProperty(ref _rDensity, value);
-        }
-
-        private bool _rDensity;
+        public Bindable<bool> RDensity { get; } = new Bindable<bool>();
 
         [Option(LabelKey = nameof(RemoveLabel), TooltipKey = nameof(RemoveTooltip), UIType = UIType.Toggle)]
-        public bool RRemove
-        {
-            get => _rRemove;
-            set => SetProperty(ref _rRemove, value);
-        }
-
-        private bool _rRemove;
+        public Bindable<bool> RRemove { get; } = new Bindable<bool>();
 
         [Option(LabelKey = nameof(DPRightMaxKeysTemplate), Min = 1, Max = 5, UIType = UIType.Slider,
             DataType = typeof(double))]
-        public double RMaxKeys
-        {
-            get => _rMaxKeys;
-            set => SetProperty(ref _rMaxKeys, value);
-        }
-
-        private double _rMaxKeys = 5;
+        public Bindable<double> RMaxKeys { get; } = new Bindable<double>();
 
         [Option(LabelKey = nameof(DPRightMinKeysTemplate), Min = 1, Max = 5, UIType = UIType.Slider,
             DataType = typeof(double))]
-        public double RMinKeys
-        {
-            get => _rMinKeys;
-            set => SetProperty(ref _rMinKeys, value);
-        }
-
-        private double _rMinKeys = 1;
+        public Bindable<double> RMinKeys { get; } = new Bindable<double>();
 
         #endregion
+
+        public DPToolOptions()
+        {
+            // Set default values
+            SingleSideKeyCount.Value = 10;
+            LMaxKeys.Value = 5;
+            LMinKeys.Value = 1;
+            RMaxKeys.Value = 5;
+            RMinKeys.Value = 1;
+
+            // Wire up property changed events for Bindable<T> properties
+            ModifySingleSideKeyCount.PropertyChanged += (_, _) => OnPropertyChanged(nameof(ModifySingleSideKeyCount));
+            SingleSideKeyCount.PropertyChanged += (_, _) => OnPropertyChanged(nameof(SingleSideKeyCount));
+            LMirror.PropertyChanged += (_, _) => OnPropertyChanged(nameof(LMirror));
+            LDensity.PropertyChanged += (_, _) => OnPropertyChanged(nameof(LDensity));
+            LRemove.PropertyChanged += (_, _) => OnPropertyChanged(nameof(LRemove));
+            LMaxKeys.PropertyChanged += (_, _) => OnPropertyChanged(nameof(LMaxKeys));
+            LMinKeys.PropertyChanged += (_, _) => OnPropertyChanged(nameof(LMinKeys));
+            RMirror.PropertyChanged += (_, _) => OnPropertyChanged(nameof(RMirror));
+            RDensity.PropertyChanged += (_, _) => OnPropertyChanged(nameof(RDensity));
+            RRemove.PropertyChanged += (_, _) => OnPropertyChanged(nameof(RRemove));
+            RMaxKeys.PropertyChanged += (_, _) => OnPropertyChanged(nameof(RMaxKeys));
+            RMinKeys.PropertyChanged += (_, _) => OnPropertyChanged(nameof(RMinKeys));
+        }
 
         // 设置约束, 以后走接口实现
         public override void Validate()
@@ -143,14 +88,14 @@ namespace krrTools.Tools.DPtool
             IsValidating = true;
 
             // 左手键数约束
-            if (LMinKeys < 1) LMinKeys = 1;
-            if (LMaxKeys > 5) LMaxKeys = 5;
-            if (LMinKeys > LMaxKeys) LMinKeys = LMaxKeys;
+            if (LMinKeys.Value < 1) LMinKeys.Value = 1;
+            if (LMaxKeys.Value > 5) LMaxKeys.Value = 5;
+            if (LMinKeys.Value > LMaxKeys.Value) LMinKeys.Value = LMaxKeys.Value;
 
             // 右手键数约束
-            if (RMinKeys < 1) RMinKeys = 1;
-            if (RMaxKeys > 5) RMaxKeys = 5;
-            if (RMinKeys > RMaxKeys) RMinKeys = RMaxKeys;
+            if (RMinKeys.Value < 1) RMinKeys.Value = 1;
+            if (RMaxKeys.Value > 5) RMaxKeys.Value = 5;
+            if (RMinKeys.Value > RMaxKeys.Value) RMinKeys.Value = RMaxKeys.Value;
 
             IsValidating = false;
         }

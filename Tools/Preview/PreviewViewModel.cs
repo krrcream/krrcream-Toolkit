@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Threading.Tasks;
 using System.Windows;
 using krrTools.Beatmaps;
 using krrTools.Bindable;
+using krrTools.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
@@ -33,6 +36,10 @@ namespace krrTools.Tools.Preview
     
         private string? _beatmapPath;
         private bool _isRefreshing;
+        private ConverterEnum? _currentTool;
+        private Dictionary<string, object?> _changedSettings = new();
+        private object? _currentViewModel;
+        private PropertyChangedEventHandler? _optionsPropertyChangedHandler;
 
         public PreviewViewModel(IEventBus? eventBus = null)
         {
@@ -97,6 +104,83 @@ namespace krrTools.Tools.Preview
         }
 
         public IPreviewProcessor? Processor { get; private set; }
+
+        /// <summary>
+        /// 设置当前工具类型，用于统一日志输出
+        /// </summary>
+        public void SetCurrentTool(ConverterEnum? tool)
+        {
+            _currentTool = tool;
+        }
+
+        /// <summary>
+        /// 设置当前ViewModel，用于监听设置变化
+        /// </summary>
+        public void SetCurrentViewModel(object? viewModel)
+        {
+            // 取消之前ViewModel的监听
+            if (_currentViewModel is INotifyPropertyChanged oldNotify && _optionsPropertyChangedHandler != null)
+            {
+                oldNotify.PropertyChanged -= _optionsPropertyChangedHandler;
+            }
+
+            _currentViewModel = viewModel;
+
+            // 如果新ViewModel有Options属性，监听其变化
+            if (viewModel != null)
+            {
+                var optionsProperty = viewModel.GetType().GetProperty("Options");
+                if (optionsProperty != null)
+                {
+                    var options = optionsProperty.GetValue(viewModel);
+                    if (options is INotifyPropertyChanged notifyOptions)
+                    {
+                        _optionsPropertyChangedHandler = (sender, e) =>
+                        {
+                            if (e.PropertyName != null && sender != null)
+                            {
+                                // 获取属性的值
+                                var property = sender.GetType().GetProperty(e.PropertyName);
+                                if (property != null)
+                                {
+                                    var value = property.GetValue(sender);
+                                    _changedSettings[e.PropertyName] = value;
+                                }
+                            }
+                        };
+                        notifyOptions.PropertyChanged += _optionsPropertyChangedHandler;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 输出当前工具的设置变化日志 - 统一格式：模块-设置-值
+        /// </summary>
+        private void LogCurrentSettings()
+        {
+            if (_currentTool == null || _changedSettings.Count == 0) return;
+
+            var moduleName = _currentTool.Value switch
+            {
+                ConverterEnum.N2NC => "N2N",
+                ConverterEnum.DP => "DP",
+                ConverterEnum.KRRLN => "KRRLN",
+                _ => "未知"
+            };
+
+            // 只输出发生变化的设置
+            foreach (var (propertyName, value) in _changedSettings)
+            {
+                if (value != null)
+                {
+                    Console.WriteLine($"[{moduleName}模块]-{propertyName}-变更为{value}");
+                }
+            }
+
+            // 打印后清除变化记录
+            _changedSettings.Clear();
+        }
     
         /// <summary>
         /// 响应设置变更事件 - 智能刷新逻辑
@@ -106,6 +190,12 @@ namespace krrTools.Tools.Preview
             if (_isRefreshing) return; // 防止递归刷新
         
             Console.WriteLine($"[PreviewViewModel] 收到设置变更: {settingsEvent.PropertyName} in {settingsEvent.SettingsType?.Name}");
+        
+            // 记录设置变化
+            if (!string.IsNullOrEmpty(settingsEvent.PropertyName) && settingsEvent.NewValue != null)
+            {
+                _changedSettings[settingsEvent.PropertyName] = settingsEvent.NewValue;
+            }
         
             // 只有影响预览的设置变更才刷新
             if (IsRelevantSettingChange(settingsEvent))
@@ -247,6 +337,9 @@ namespace krrTools.Tools.Preview
             }
         
             _isRefreshing = true;
+
+            // 在刷新开始时输出当前设置信息
+            LogCurrentSettings();
         
             try
             {

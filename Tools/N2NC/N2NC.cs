@@ -40,10 +40,10 @@ namespace krrTools.Tools.N2NC
 
             // 修改元数据
             var originalCS = (int)beatmap.DifficultySection.CircleSize;
-            var tag = $"[{originalCS}to{options.TargetKeys}C]";
+            var tag = $"[{originalCS}to{options.TargetKeys.Value}C]";
             if (!beatmap.MetadataSection.Version.Contains(tag))
             {
-                beatmap.DifficultySection.CircleSize = (float)options.TargetKeys;
+                beatmap.DifficultySection.CircleSize = (float)options.TargetKeys.Value;
                 beatmap.MetadataSection.Version = tag + " " + beatmap.MetadataSection.Version;
             }
 
@@ -53,7 +53,7 @@ namespace krrTools.Tools.N2NC
         private NoteMatrix ConvertMatrix(NoteMatrix matrix, List<int> timeAxis, Beatmap beatmap, N2NCOptions options)
         {
             var CS = (int)beatmap.DifficultySection.CircleSize;
-            var targetKeys = (int)options.TargetKeys;
+            var targetKeys = (int)options.TargetKeys.Value;
             var turn = targetKeys - CS;
             var P = options.SelectedKeyTypes;
             // 创建带种子的随机数生成器
@@ -67,7 +67,7 @@ namespace krrTools.Tools.N2NC
                 return matrix;
             }
 
-            if (CS == targetKeys && (int)options.TargetKeys == targetKeys)
+            if (CS == targetKeys && (int)options.TargetKeys.Value == targetKeys)
             {
                 return matrix;
             }
@@ -76,7 +76,7 @@ namespace krrTools.Tools.N2NC
             // _logger.LogDebug($"BPM：{BPM}");
             var beatLength = 60000 / BPM * 4;
             // Logger.WriteLine("BPM：" + BPM);
-            var convertTime = Math.Max(1, options.TransformSpeed * beatLength - 10);
+            var convertTime = Math.Max(1, options.TransformSpeed.Value * beatLength - 10);
 
             var newMatrix = turn >= 0
                 ? DoAddKeys(matrix, timeAxis, turn, convertTime, CS, targetKeys, beatLength, RG, options)
@@ -91,7 +91,7 @@ namespace krrTools.Tools.N2NC
             // 生成转换矩阵
             var (oldMTX, insertMTX) = convertMTX(turn, timeAxis, convertTime, CS, random);
             var newMatrix = convert(matrix, oldMTX, insertMTX, timeAxis, targetKeys, beatLength, random);
-            DensityReducer(newMatrix, (int)options.TargetKeys - 18, 1, (int)options.TargetKeys, random);
+            DensityReducer(newMatrix, (int)options.TargetKeys.Value - 18, 1, (int)options.TargetKeys.Value, random);
             return newMatrix;
         }
 
@@ -99,7 +99,7 @@ namespace krrTools.Tools.N2NC
             double beatLength, Random random, int originalCS, N2NCOptions options)
         {
             var newMatrix = SmartReduceColumns(matrix, timeAxis, -turn, convertTime, beatLength);
-            DensityReducer(newMatrix, (int)options.TargetKeys - 18, 1, (int)options.TargetKeys, random);
+            DensityReducer(newMatrix, (int)options.TargetKeys.Value - 18, 1, (int)options.TargetKeys.Value, random);
             return newMatrix;
         }
 
@@ -385,7 +385,7 @@ namespace krrTools.Tools.N2NC
                 var oldIndex = newMatrix[i, j];
                 if (oldIndex >= 0)
                     newObjects.Add(BeatmapExtensions.CopyHitObjectByPositionX(beatmap.HitObjects[oldIndex],
-                        ColumnPositionMapper.ColumnToPositionX((int)options.TargetKeys, j)
+                        ColumnPositionMapper.ColumnToPositionX((int)options.TargetKeys.Value, j)
                     ));
             }
 

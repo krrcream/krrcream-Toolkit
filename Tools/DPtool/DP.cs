@@ -43,16 +43,14 @@ namespace krrTools.Tools.DPtool
             var random = new Random(RANDOM_SEED);
             NoteMatrix orgMTX;
             var CS = (int)beatmap.DifficultySection.CircleSize;
-            var convOptions = new N2NCOptions
-            {
-                TargetKeys = options.SingleSideKeyCount,
-                TransformSpeed = TRANSFORM_SPEED
-            };
+            var convOptions = new N2NCOptions();
+            convOptions.TargetKeys.Value = options.SingleSideKeyCount.Value;
+            convOptions.TransformSpeed.Value = TRANSFORM_SPEED;
             var BPM = beatmap.MainBPM;
             var beatLength = 60000 / BPM * BEAT_LENGTH_MULTIPLIER;
-            var convertTime = Math.Max(1, convOptions.TransformSpeed * beatLength - 10);
+            var convertTime = Math.Max(1, convOptions.TransformSpeed.Value * beatLength - 10);
 
-            var targetKeys = (int)options.SingleSideKeyCount;
+            var targetKeys = (int)options.SingleSideKeyCount.Value;
             if (targetKeys > beatmap.DifficultySection.CircleSize)
             {
             
@@ -86,7 +84,7 @@ namespace krrTools.Tools.DPtool
             // 修改元数据
             if (beatmap.DifficultySection == null)
                 throw new InvalidOperationException("Beatmap.DifficultySection cannot be null");
-            beatmap.DifficultySection.CircleSize = (int)options.SingleSideKeyCount * 2;
+            beatmap.DifficultySection.CircleSize = (int)options.SingleSideKeyCount.Value * 2;
 
             // 避免重复拼接 Creator
             if (beatmap.MetadataSection == null)
@@ -123,22 +121,22 @@ namespace krrTools.Tools.DPtool
         
             // 分别处理左侧和右侧矩阵
             // 左侧处理：镜像 -> 密度限制 -> 去除
-            if (options.LMirror) orgL = Mirror(orgL);
-            if (options.LDensity)
+            if (options.LMirror.Value) orgL = Mirror(orgL);
+            if (options.LDensity.Value)
             {
                 var randomL = new Random(RANDOM_SEED);
-                LimitDensity(orgL, (int)options.LMaxKeys, randomL);
+                LimitDensity(orgL, (int)options.LMaxKeys.Value, randomL);
             }
-            if (options.LRemove) ClearMatrix(orgL); // 去除左侧结果：清空整个左侧矩阵
+            if (options.LRemove.Value) ClearMatrix(orgL); // 去除左侧结果：清空整个左侧矩阵
 
             // 右侧处理：镜像 -> 密度限制 -> 去除 
-            if (options.RMirror) orgR = Mirror(orgR);
-            if (options.RDensity)
+            if (options.RMirror.Value) orgR = Mirror(orgR);
+            if (options.RDensity.Value)
             {
                 var randomR = new Random(RANDOM_SEED + 1000); // 使用完全不同的种子确保左右两侧独立
-                LimitDensity(orgR, (int)options.RMaxKeys, randomR);
+                LimitDensity(orgR, (int)options.RMaxKeys.Value, randomR);
             }
-            if (options.RRemove) ClearMatrix(orgR); // 去除右侧结果：清空整个右侧矩阵
+            if (options.RRemove.Value) ClearMatrix(orgR); // 去除右侧结果：清空整个右侧矩阵
 
             // 合并两个矩阵
             var result = ConcatenateMatrices(orgL, orgR);

@@ -36,13 +36,13 @@ namespace krrTools.Tools.N2NC
 
             var rowMargin = new Thickness(0, 6, 0, 6);
 
-            // 创建模板化控件 - 绑定到Options，但通过事件触发ViewModel约束
+            // 创建模板化控件 - 绑定到Options的Bindable属性
             TargetKeysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.TargetKeys);
             MaxKeysSlider = SettingsBinder.CreateTemplatedSliderWithDynamicMax(_viewModel.Options, o => o.MaxKeys, 
                 _viewModel, nameof(_viewModel.MaxKeysMaximum));
             MinKeysSlider = SettingsBinder.CreateTemplatedSliderWithDynamicMax(_viewModel.Options, o => o.MinKeys, 
                 _viewModel, nameof(_viewModel.MinKeysMaximum));
-            TransformSpeedSlider = SettingsBinder.CreateTemplatedSlider(_viewModel, o => o.TransformSpeedSlot, null,
+            TransformSpeedSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.TransformSpeed, null,
                 N2NCViewModel.TransformSpeedSlotDict);
 
             grid.Children.Add(TargetKeysSlider);
@@ -156,8 +156,8 @@ namespace krrTools.Tools.N2NC
                 (opt) =>
                 {
                     if (opt == null) return;
-                    _viewModel.TargetKeys = opt.TargetKeys;
-                    _viewModel.TransformSpeed = opt.TransformSpeed;
+                    _viewModel.TargetKeys = opt.TargetKeys.Value;
+                    _viewModel.TransformSpeed = opt.TransformSpeed.Value;
                     _viewModel.Seed = opt.Seed;
                     if (opt.SelectedKeyFlags.HasValue)
                     {

@@ -130,20 +130,20 @@ namespace krrTools.Tools.DPtool
                 {
                     if (opt == null) return;
                     var target = _viewModel.Options;
-                    target.ModifySingleSideKeyCount = opt.ModifySingleSideKeyCount;
-                    target.SingleSideKeyCount = opt.SingleSideKeyCount;
+                    target.ModifySingleSideKeyCount.Value = opt.ModifySingleSideKeyCount.Value;
+                    target.SingleSideKeyCount.Value = opt.SingleSideKeyCount.Value;
 
-                    target.LMirror = opt.LMirror;
-                    target.LDensity = opt.LDensity;
-                    target.LMaxKeys = opt.LMaxKeys;
-                    target.LMinKeys = opt.LMinKeys;
-                    target.LRemove = opt.LRemove;
+                    target.LMirror.Value = opt.LMirror.Value;
+                    target.LDensity.Value = opt.LDensity.Value;
+                    target.LMaxKeys.Value = opt.LMaxKeys.Value;
+                    target.LMinKeys.Value = opt.LMinKeys.Value;
+                    target.LRemove.Value = opt.LRemove.Value;
 
-                    target.RMirror = opt.RMirror;
-                    target.RDensity = opt.RDensity;
-                    target.RMaxKeys = opt.RMaxKeys;
-                    target.RMinKeys = opt.RMinKeys;
-                    target.RRemove = opt.RRemove;
+                    target.RMirror.Value = opt.RMirror.Value;
+                    target.RDensity.Value = opt.RDensity.Value;
+                    target.RMaxKeys.Value = opt.RMaxKeys.Value;
+                    target.RMinKeys.Value = opt.RMinKeys.Value;
+                    target.RRemove.Value = opt.RRemove.Value;
                 });
 
             var presetsPanel =

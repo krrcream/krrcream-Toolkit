@@ -67,7 +67,10 @@ namespace krrTools.Tests
             {
                 // Arrange
                 var seed = 12345;
-                var options = new N2NCOptions { TargetKeys = 7, TransformSpeed = 2.0, Seed = seed };
+                var options = new N2NCOptions();
+                options.TargetKeys.Value = 7;
+                options.TransformSpeed.Value = 2.0;
+                options.Seed = seed;
                 var transformer = new N2NC();
                 var signatures = new List<string>();
 
@@ -102,7 +105,10 @@ namespace krrTools.Tests
                 foreach (var seed in seeds)
                 {
                     var beatmap = CreateSimpleBeatmap(4, 15);
-                    var options = new N2NCOptions { TargetKeys = 7, TransformSpeed = 2.0, Seed = seed };
+                    var options = new N2NCOptions();
+                    options.TargetKeys.Value = 7;
+                    options.TransformSpeed.Value = 2.0;
+                    options.Seed = seed;
                     transformer.TransformBeatmap(beatmap, options);
                     results.Add(GetBeatmapSignature(beatmap));
                 }
@@ -121,7 +127,10 @@ namespace krrTools.Tests
             STATestHelper.RunInSTA(() =>
             {
                 // Arrange
-                var options = new N2NCOptions { TargetKeys = 8, TransformSpeed = 3.0, Seed = 99999 };
+                var options = new N2NCOptions();
+                options.TargetKeys.Value = 8;
+                options.TransformSpeed.Value = 3.0;
+                options.Seed = 99999;
                 var transformer = new N2NC();
 
                 // Act - 对不同输入键数的谱面使用相同设置
@@ -147,8 +156,14 @@ namespace krrTools.Tests
             STATestHelper.RunInSTA(() =>
             {
                 // Arrange
-                var options1 = new N2NCOptions { TargetKeys = 6, TransformSpeed = 1.0, Seed = null };
-                var options2 = new N2NCOptions { TargetKeys = 6, TransformSpeed = 1.0, Seed = null };
+                var options1 = new N2NCOptions();
+                options1.TargetKeys.Value = 6;
+                options1.TransformSpeed.Value = 1.0;
+                options1.Seed = null;
+                var options2 = new N2NCOptions();
+                options2.TargetKeys.Value = 6;
+                options2.TransformSpeed.Value = 1.0;
+                options2.Seed = null;
                 var transformer = new N2NC();
 
                 // Act
@@ -175,7 +190,10 @@ namespace krrTools.Tests
             STATestHelper.RunInSTA(() =>
             {
                 // Arrange
-                var options = new N2NCOptions { TargetKeys = 7, TransformSpeed = transformSpeed, Seed = seed };
+                var options = new N2NCOptions();
+                options.TargetKeys.Value = 7;
+                options.TransformSpeed.Value = transformSpeed;
+                options.Seed = seed;
                 var transformer = new N2NC();
 
                 // Act
@@ -198,7 +216,10 @@ namespace krrTools.Tests
             STATestHelper.RunInSTA(() =>
             {
                 // Arrange - 目标键数与原键数相同
-                var options = new N2NCOptions { TargetKeys = 4, TransformSpeed = 2.0, Seed = 12345 };
+                var options = new N2NCOptions();
+                options.TargetKeys.Value = 4;
+                options.TransformSpeed.Value = 2.0;
+                options.Seed = 12345;
                 var transformer = new N2NC();
                 var beatmap = CreateSimpleBeatmap(4, 10);
                 // var originalVersion = beatmap.MetadataSection.Version;
@@ -219,7 +240,10 @@ namespace krrTools.Tests
             STATestHelper.RunInSTA(() =>
             {
                 // Arrange
-                var options = new N2NCOptions { TargetKeys = 6, TransformSpeed = 2.0, Seed = 55555 };
+                var options = new N2NCOptions();
+                options.TargetKeys.Value = 6;
+                options.TransformSpeed.Value = 2.0;
+                options.Seed = 55555;
                 var transformer = new N2NC();
                 
                 // 第一次转换
@@ -228,8 +252,8 @@ namespace krrTools.Tests
                 var result1 = GetBeatmapSignature(beatmap1);
                 
                 // 修改设置然后改回来
-                options.TargetKeys = 8; // 临时修改
-                options.TargetKeys = 6; // 改回原值
+                options.TargetKeys.Value = 8; // 临时修改
+                options.TargetKeys.Value = 6; // 改回原值
                 options.Seed = 77777;   // 修改种子
                 options.Seed = 55555;   // 改回原种子
 

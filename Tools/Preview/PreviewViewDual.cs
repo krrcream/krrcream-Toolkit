@@ -36,6 +36,12 @@ namespace krrTools.Tools.Preview
         public void SetCurrentTool(ConverterEnum? tool)
         {
             _currentTool = tool;
+            ViewModel?.SetCurrentTool(tool);
+        }
+
+        public void SetCurrentViewModel(object? viewModel)
+        {
+            ViewModel?.SetCurrentViewModel(viewModel);
         }
         private DateTime _lastSettingsChange = DateTime.MinValue;
         private const int SettingsChangeThrottleMs = 50;

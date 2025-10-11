@@ -27,11 +27,6 @@ namespace krrTools.Tools.KRRLNTransformer
             var root = CreateRootScrollViewer();
             var stack = CreateMainStackPanel();
 
-            // 长度阈值设置 - 使用模板化控件
-            var lengthThresholdPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options,
-                o => o.LengthThreshold.Value, null, KRRLNTransformerViewModel.LengthThresholdDict);
-            stack.Children.Add(lengthThresholdPanel);
-
             // 短面条设置区域标题
             var shortHeader = new TextBlock { FontSize = UIConstants.HeaderFontSize, FontWeight = FontWeights.Bold };
             shortHeader.SetBinding(TextBlock.TextProperty,
@@ -39,16 +34,16 @@ namespace krrTools.Tools.KRRLNTransformer
             stack.Children.Add(shortHeader);
 
             // 短面条设置 - 使用模板化控件
-            var shortPercPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.Short.PercentageValue);
+            var shortPercPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortPercentage);
             stack.Children.Add(shortPercPanel);
 
-            var shortLevelPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.Short.LevelValue);
+            var shortLevelPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortLevel);
             stack.Children.Add(shortLevelPanel);
 
-            var shortLimitPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.Short.LimitValue);
+            var shortLimitPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortLimit);
             stack.Children.Add(shortLimitPanel);
 
-            var shortRandomPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.Short.RandomValue);
+            var shortRandomPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortRandom);
             stack.Children.Add(shortRandomPanel);
 
             // 分隔线
@@ -65,40 +60,41 @@ namespace krrTools.Tools.KRRLNTransformer
             stack.Children.Add(longHeader);
 
             // 长面条设置 - 使用模板化控件
-            var longPercPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.Long.PercentageValue);
+            var longPercPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LongPercentage);
             stack.Children.Add(longPercPanel);
 
-            var longLevelPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.Long.LevelValue);
+            var longLevelPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LongLevel);
             stack.Children.Add(longLevelPanel);
 
-            var longLimitPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.Long.LimitValue);
+            var longLimitPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LongLimit);
             stack.Children.Add(longLimitPanel);
 
-            var longRandomPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.Long.RandomValue);
+            var longRandomPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LongRandom);
             stack.Children.Add(longRandomPanel);
 
             // 分隔线
             var separator2 = new Separator { Margin = new Thickness(0, 10, 0, 10) };
             stack.Children.Add(separator2);
 
-            // 对齐设置 - 使用模板化控件
-            var alignPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.Alignment.Value,
-                o => o.Alignment.IsChecked, KRRLNTransformerViewModel.AlignValuesDict);
+            // 长度阈值设置 - 可空滑条自动带勾选框
+            var lengthThresholdPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LengthThreshold);
+            stack.Children.Add(lengthThresholdPanel);
+
+            // 对齐设置 - 可空滑条自动带勾选框
+            var alignPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.Alignment);
             stack.Children.Add(alignPanel);
 
-            // 处理原始面条复选框 - 使用模板化控件
-            var processOriginalPanel =
-                SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.General.ProcessOriginalIsChecked);
+            // LN对齐设置 - 可空滑条自动带勾选框
+            var lnAlignPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LNAlignment);
+            stack.Children.Add(lnAlignPanel);
+
+            // 处理原始面条复选框
+            var processOriginalPanel = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.ProcessOriginalIsChecked);
             stack.Children.Add(processOriginalPanel);
 
-            // OD设置 - 使用模板化控件
-            var odPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.General.ODValue);
+            // OD设置 - 带勾选的滑条
+            var odPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ODValue);
             stack.Children.Add(odPanel);
-
-            // LN对齐设置 - 使用模板化控件
-            var lnAlignPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LNAlignment.Value,
-                o => o.LNAlignment.IsChecked, KRRLNTransformerViewModel.AlignValuesDict);
-            stack.Children.Add(lnAlignPanel);
 
             stack.Children.Add(seedPanel);
 

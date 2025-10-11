@@ -18,11 +18,20 @@ namespace krrTools.Tools.N2NC
         private static readonly IReadOnlyDictionary<PresetKind, (string Name, N2NCOptions Options)> PresetTemplates
             = new Dictionary<PresetKind, (string, N2NCOptions)>
             {
-                [PresetKind.Default] = ("Default", new N2NCOptions { TargetKeys = 10, TransformSpeed = 1.0, Seed = 114514 }),
-                [PresetKind.TenK] = ("10K Preset", new N2NCOptions { TargetKeys = 10, TransformSpeed = 2.0, Seed = 0 }),
-                [PresetKind.EightK] = ("8K Preset", new N2NCOptions { TargetKeys = 8, TransformSpeed = 1.0, Seed = 0 }),
-                [PresetKind.SevenK] = ("7K Preset", new N2NCOptions { TargetKeys = 7, TransformSpeed = 1.0, Seed = 0 })
+                [PresetKind.Default] = ("Default", CreatePreset(10, 1.0, 114514)),
+                [PresetKind.TenK] = ("10K Preset", CreatePreset(10, 2.0, 0)),
+                [PresetKind.EightK] = ("8K Preset", CreatePreset(8, 1.0, 0)),
+                [PresetKind.SevenK] = ("7K Preset", CreatePreset(7, 1.0, 0))
             };
+
+        private static N2NCOptions CreatePreset(double targetKeys, double transformSpeed, int seed)
+        {
+            var options = new N2NCOptions();
+            options.TargetKeys.Value = targetKeys;
+            options.TransformSpeed.Value = transformSpeed;
+            options.Seed = seed;
+            return options;
+        }
 
         protected PresetBottom(N2NCViewModel viewModel)
         {
@@ -88,7 +97,7 @@ namespace krrTools.Tools.N2NC
         {
             if (PresetTemplates.TryGetValue(kind, out var entry))
                 return entry.Options;
-            return new N2NCOptions { TargetKeys = 10, TransformSpeed = 1.0, Seed = 114514 };
+            return CreatePreset(10, 1.0, 114514);
         }
 
         public static IEnumerable<(PresetKind Kind, string Name, N2NCOptions Options)> GetPresetTemplates()
@@ -106,8 +115,8 @@ namespace krrTools.Tools.N2NC
 
         private static void ApplyPresetToViewModel(N2NCViewModel viewModel, N2NCOptions preset)
         {
-            viewModel.TargetKeys = Convert.ToInt32(preset.TargetKeys);
-            viewModel.TransformSpeed = preset.TransformSpeed;
+            viewModel.TargetKeys = Convert.ToInt32(preset.TargetKeys.Value);
+            viewModel.TransformSpeed = preset.TransformSpeed.Value;
             viewModel.Seed = preset.Seed;
 
             if (preset.SelectedKeyFlags.HasValue)

@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using krrTools.Bindable;
 using krrTools.Localization;
 using krrTools.UI;
 using Microsoft.Extensions.Logging;
@@ -33,7 +34,20 @@ namespace krrTools.Configuration
 
         private static bool IsNumericType(Type type)
         {
-            return type == typeof(int) || type == typeof(double) || type == typeof(float) || type == typeof(decimal);
+            // 检查基本数值类型
+            if (type == typeof(int) || type == typeof(double) || type == typeof(float) || type == typeof(decimal) ||
+                type == typeof(int?) || type == typeof(double?) || type == typeof(float?) || type == typeof(decimal?))
+                return true;
+
+            // 检查 Bindable<T> 类型
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Bindable<>))
+            {
+                var genericArg = type.GetGenericArguments()[0];
+                return genericArg == typeof(int) || genericArg == typeof(double) || genericArg == typeof(float) || genericArg == typeof(decimal) ||
+                       genericArg == typeof(int?) || genericArg == typeof(double?) || genericArg == typeof(float?) || genericArg == typeof(decimal?);
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -58,11 +72,16 @@ namespace krrTools.Configuration
             switch (attr.UIType)
             {
                 case UIType.Toggle:
-                    if (effectiveType == typeof(bool))
+                    if (effectiveType == typeof(bool) || (effectiveType.IsGenericType && effectiveType.GetGenericTypeDefinition() == typeof(Bindable<>)))
                     {
                         var checkBox = SharedUIComponents.CreateStandardCheckBox(label, tooltip);
                         // 使用标准WPF绑定替代QuickBind
                         var path = GetPropertyPathFromExpression(propertySelector);
+                        // 检查是否是 Bindable<T> 类型，如果是则添加 .Value
+                        if (effectiveType.IsGenericType && effectiveType.GetGenericTypeDefinition() == typeof(Bindable<>))
+                        {
+                            path += ".Value";
+                        }
                         var binding = new Binding(path)
                         {
                             Source = options,
@@ -76,10 +95,7 @@ namespace krrTools.Configuration
                 case UIType.Slider:
                     if (IsNumericType(effectiveType))
                     {
-                        // 转换propertySelector为double类型
-                        var doublePropertySelector = Expression.Lambda<Func<T, double>>(
-                            Expression.Convert(propertySelector.Body, typeof(double)), propertySelector.Parameters);
-                        return (FrameworkElement)CreateEnhancedTemplatedSlider(options, doublePropertySelector, propertyInfo);
+                        return (FrameworkElement)CreateEnhancedTemplatedSlider(options, propertySelector, propertyInfo);
                     }
                     break;
                 case UIType.NumberBox:
@@ -87,6 +103,11 @@ namespace krrTools.Configuration
                     var numberBox = SharedUIComponents.CreateStandardTextBox();
                     // 使用标准WPF绑定
                     var numberPath = GetPropertyPathFromExpression(propertySelector);
+                    // 检查是否是 Bindable<T> 类型，如果是则添加 .Value
+                    if (effectiveType.IsGenericType && effectiveType.GetGenericTypeDefinition() == typeof(Bindable<>))
+                    {
+                        numberPath += ".Value";
+                    }
                     var numberBinding = new Binding(numberPath)
                     {
                         Source = options,
@@ -137,7 +158,7 @@ namespace krrTools.Configuration
         /// <summary>
         /// 创建模板化的滑块控件（使用表达式，可选勾选框，可选字典映射）
         /// </summary>
-        public static UIElement CreateTemplatedSlider<T>(T options, Expression<Func<T, double>> propertySelector,
+        public static UIElement CreateTemplatedSlider<T>(T options, Expression<Func<T, object>> propertySelector,
             Expression<Func<T, object>>? checkPropertySelector = null, Dictionary<double, string>? valueDisplayMap = null) where T : class
         {
             var propertyInfo = GetPropertyInfoFromExpression(propertySelector);
@@ -147,20 +168,55 @@ namespace krrTools.Configuration
                 checkPropertySelector != null ? GetPropertyInfoFromExpression(checkPropertySelector) : null;
             var checkEnabled = checkPropertyInfo != null;
 
+            // 如果没有显式指定checkPropertySelector，但属性是可空的Bindable<T>，则自动启用勾选框
+            if (!checkEnabled && propertyInfo.PropertyType.IsGenericType && 
+                propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
+            {
+                var genericArg = propertyInfo.PropertyType.GetGenericArguments()[0];
+                checkEnabled = Nullable.GetUnderlyingType(genericArg) != null;
+            }
+
             var attr = propertyInfo.GetCustomAttribute<OptionAttribute>();
             if (attr == null) return new TextBlock { Text = $"No OptionAttribute for {propertyInfo.Name}" };
 
             var label = GetLocalizedString(attr.LabelKey);
             var tooltip = string.IsNullOrEmpty(attr.TooltipKey) ? null : GetLocalizedString(attr.TooltipKey);
 
+            // 如果没有提供 valueDisplayMap，但属性有 DisplayMapField，则尝试获取
+            if (valueDisplayMap == null && !string.IsNullOrEmpty(attr.DisplayMapField))
+            {
+                var optionsType = options.GetType();
+                var mapField = optionsType.GetField(attr.DisplayMapField, BindingFlags.Public | BindingFlags.Static);
+                if (mapField != null && mapField.FieldType.IsGenericType && 
+                    mapField.FieldType.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+                {
+                    valueDisplayMap = mapField.GetValue(null) as Dictionary<double, string>;
+                }
+            }
+
             if (IsNumericType(propertyInfo.PropertyType))
             {
+                // 处理 Bindable<T> 类型
+                double min, max;
+                if (propertyInfo.PropertyType.IsGenericType && propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
+                {
+                    // 对于 Bindable<T>，使用属性定义的 Min/Max
+                    min = Convert.ToDouble(attr.Min ?? 0);
+                    max = Convert.ToDouble(attr.Max ?? 100);
+                }
+                else
+                {
+                    // 对于基本数值类型，使用属性定义的 Min/Max
+                    min = Convert.ToDouble(attr.Min ?? 0);
+                    max = Convert.ToDouble(attr.Max ?? 100);
+                }
+
                 var slider = new SettingsSlider<T>
                 {
                     LabelText = label,
                     TooltipText = tooltip ?? "",
-                    Min = Convert.ToDouble(attr.Min ?? 0),
-                    Max = Convert.ToDouble(attr.Max ?? 100),
+                    Min = min,
+                    Max = max,
                     TickFrequency = attr.TickFrequency ?? 1,
                     KeyboardStep = attr.KeyboardStep ?? 1,
                     Source = options,
@@ -237,6 +293,11 @@ namespace krrTools.Configuration
 
             // 绑定 Seed 属性
             var seedPath = GetPropertyPathFromExpression(seedProperty);
+            var propertyInfo = GetPropertyInfoFromExpression(seedProperty);
+            if (propertyInfo != null && propertyInfo.PropertyType.IsGenericType && propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
+            {
+                seedPath += ".Value";
+            }
             var binding = new Binding(seedPath)
             {
                 Source = dataContext,
@@ -267,7 +328,7 @@ namespace krrTools.Configuration
         /// </summary>
         public static UIElement CreateTemplatedSliderWithDynamicMax<T>(
             T options, 
-            Expression<Func<T, double>> propertySelector,
+            Expression<Func<T, object>> propertySelector,
             object dynamicMaxSource,
             string dynamicMaxPath,
             Expression<Func<T, object>>? checkPropertySelector = null, 
@@ -288,20 +349,31 @@ namespace krrTools.Configuration
 
             if (IsNumericType(propertyInfo.PropertyType))
             {
-                // 转换propertySelector为double类型
-                var doublePropertySelector = Expression.Lambda<Func<T, double>>(
-                    Expression.Convert(propertySelector.Body, typeof(double)), propertySelector.Parameters);
+                // 处理 Bindable<T> 类型
+                double min, max;
+                if (propertyInfo.PropertyType.IsGenericType && propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
+                {
+                    // 对于 Bindable<T>，使用属性定义的 Min/Max
+                    min = Convert.ToDouble(attr.Min ?? 0);
+                    max = Convert.ToDouble(attr.Max ?? 100);
+                }
+                else
+                {
+                    // 对于基本数值类型，使用属性定义的 Min/Max
+                    min = Convert.ToDouble(attr.Min ?? 0);
+                    max = Convert.ToDouble(attr.Max ?? 100);
+                }
 
                 var slider = new SettingsSlider<T>
                 {
                     LabelText = label,
                     TooltipText = tooltip ?? "",
-                    Min = Convert.ToDouble(attr.Min ?? 0),
-                    Max = Convert.ToDouble(attr.Max ?? 100), // 初始最大值，会被动态绑定覆盖
+                    Min = min,
+                    Max = max, // 初始最大值，会被动态绑定覆盖
                     TickFrequency = attr.TickFrequency ?? 1,
                     KeyboardStep = attr.KeyboardStep ?? 1,
                     Source = options,
-                    PropertySelector = doublePropertySelector,
+                    PropertySelector = propertySelector,
                     CheckEnabled = checkEnabled,
                     ValueDisplayMap = valueDisplayMap,
                     // 设置动态绑定
@@ -317,7 +389,7 @@ namespace krrTools.Configuration
         /// <summary>
         /// 增强版滑条创建方法 - 自动从OptionAttribute读取配置
         /// </summary>
-        private static UIElement CreateEnhancedTemplatedSlider<T>(T options, Expression<Func<T, double>> propertySelector, PropertyInfo propertyInfo) where T : class
+        private static UIElement CreateEnhancedTemplatedSlider<T>(T options, Expression<Func<T, object>> propertySelector, PropertyInfo propertyInfo) where T : class
         {
             var attr = propertyInfo.GetCustomAttribute<OptionAttribute>();
             if (attr == null) return new TextBlock { Text = $"No OptionAttribute for {propertyInfo.Name}" };

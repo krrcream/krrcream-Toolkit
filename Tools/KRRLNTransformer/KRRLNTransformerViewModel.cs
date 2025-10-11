@@ -44,108 +44,45 @@ namespace krrTools.Tools.KRRLNTransformer
         {
             _eventBus = App.Services.GetRequiredService<IEventBus>();
             
-            // 订阅嵌套设置对象的属性变更事件，转发为SettingsChangedEvent
-            SubscribeToNestedOptionsChanges();
+            // Subscribe to all Bindable<T> property changes
+            SubscribeToPropertyChanges();
         }
 
-        /// <summary>
-        /// 订阅嵌套设置对象的属性变更事件
-        /// </summary>
-        private void SubscribeToNestedOptionsChanges()
+        private void SubscribeToPropertyChanges()
         {
-            ManageNestedOptionsSubscriptions((options, handler) => options.PropertyChanged += handler);
+            // Bindable<T> properties automatically handle change notifications
+            // No manual subscription needed for UI updates
         }
 
-        /// <summary>
-        /// 取消订阅嵌套设置对象的属性变更事件
-        /// </summary>
-        private void UnsubscribeFromNestedOptionsChanges()
+        private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            ManageNestedOptionsSubscriptions((options, handler) => options.PropertyChanged -= handler);
-        }
-
-        /// <summary>
-        /// 统一管理嵌套选项的事件订阅/取消订阅
-        /// </summary>
-        private void ManageNestedOptionsSubscriptions(Action<INotifyPropertyChanged, PropertyChangedEventHandler> action)
-        {
-            if (Options.Short is INotifyPropertyChanged shortOptions)
-                action(shortOptions, OnNestedPropertyChanged);
-            if (Options.Long is INotifyPropertyChanged longOptions)
-                action(longOptions, OnNestedPropertyChanged);
-            if (Options.LengthThreshold is INotifyPropertyChanged lengthOptions)
-                action(lengthOptions, OnNestedPropertyChanged);
-            if (Options.Alignment is INotifyPropertyChanged alignOptions)
-                action(alignOptions, OnNestedPropertyChanged);
-            if (Options.LNAlignment is INotifyPropertyChanged lnAlignOptions)
-                action(lnAlignOptions, OnNestedPropertyChanged);
-            if (Options.General is INotifyPropertyChanged generalOptions)
-                action(generalOptions, OnNestedPropertyChanged);
-        }
-
-        /// <summary>
-        /// 处理嵌套设置对象的属性变更，转发为SettingsChangedEvent
-        /// </summary>
-        private void OnNestedPropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName != null)
-            {
-                _eventBus.Publish(new SettingsChangedEvent
-                {
-                    PropertyName = e.PropertyName,
-                    NewValue = sender,
-                    SettingsType = typeof(KRRLNTransformerOptions)
-                });
-            }
-        }
-
-        /// <summary>
-        /// 释放资源，取消所有事件订阅
-        /// </summary>
-        public new void Dispose()
-        {
-            UnsubscribeFromNestedOptionsChanges();
-            base.Dispose();
+            // Forward property changes to trigger SettingsChangedEvent
+            OnPropertyChanged(e.PropertyName);
         }
 
         public IToolOptions GetPreviewOptions()
         {
-            return new KRRLNTransformerOptions
-            {
-                Short = new KRRLNTransformerOptions.ShortSettings
-                {
-                    PercentageValue = Options.Short.PercentageValue,
-                    LevelValue = Options.Short.LevelValue,
-                    LimitValue = Options.Short.LimitValue,
-                    RandomValue = Options.Short.RandomValue
-                },
-                Long = new KRRLNTransformerOptions.LongSettings
-                {
-                    PercentageValue = Options.Long.PercentageValue,
-                    LevelValue = Options.Long.LevelValue,
-                    LimitValue = Options.Long.LimitValue,
-                    RandomValue = Options.Long.RandomValue
-                },
-                LengthThreshold = new KRRLNTransformerOptions.LengthThresholdSettings
-                {
-                    Value = Options.LengthThreshold.Value
-                },
-                Alignment = new KRRLNTransformerOptions.AlignmentSettings
-                {
-                    Value = Options.Alignment.Value
-                },
-                LNAlignment = new KRRLNTransformerOptions.LNAlignmentSettings
-                {
-                    Value = Options.LNAlignment.Value
-                },
-                General = new KRRLNTransformerOptions.GeneralSettings
-                {
-                    ProcessOriginalIsChecked = Options.General.ProcessOriginalIsChecked,
-                    ODValue = Options.General.ODValue
-                },
-                Seed = Options.Seed
-            };
+            var previewOptions = new KRRLNTransformerOptions();
+            previewOptions.ShortPercentage.Value = Options.ShortPercentage.Value;
+            previewOptions.ShortLevel.Value = Options.ShortLevel.Value;
+            previewOptions.ShortLimit.Value = Options.ShortLimit.Value;
+            previewOptions.ShortRandom.Value = Options.ShortRandom.Value;
+
+            previewOptions.LongPercentage.Value = Options.LongPercentage.Value;
+            previewOptions.LongLevel.Value = Options.LongLevel.Value;
+            previewOptions.LongLimit.Value = Options.LongLimit.Value;
+            previewOptions.LongRandom.Value = Options.LongRandom.Value;
+
+            previewOptions.LengthThreshold.Value = Options.LengthThreshold.Value;
+            previewOptions.Alignment.Value = Options.Alignment.Value;
+            previewOptions.LNAlignment.Value = Options.LNAlignment.Value;
+
+            previewOptions.ProcessOriginalIsChecked.Value = Options.ProcessOriginalIsChecked.Value;
+            previewOptions.ODValue.Value = Options.ODValue.Value;
+
+            previewOptions.Seed.Value = Options.Seed.Value;
+
+            return previewOptions;
         }
     }
-
 }

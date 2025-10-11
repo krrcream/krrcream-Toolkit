@@ -25,8 +25,8 @@ public class BeatmapTransformationSettingsTests
         options.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
 
         // Act
-        options.TargetKeys = 8;
-        options.TransformSpeed = 3.0;
+        options.TargetKeys.Value = 8;
+        options.TransformSpeed.Value = 3.0;
         options.Seed = 66666;
 
         // Assert
@@ -35,8 +35,8 @@ public class BeatmapTransformationSettingsTests
         Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(options.Seed));
 
         // 验证值确实已更新
-        Assert.Equal(8, options.TargetKeys);
-        Assert.Equal(3.0, options.TransformSpeed);
+        Assert.Equal(8, options.TargetKeys.Value);
+        Assert.Equal(3.0, options.TransformSpeed.Value);
         Assert.Equal(66666, options.Seed);
     }
 
@@ -74,25 +74,23 @@ public class BeatmapTransformationSettingsTests
         var options = new KRRLNTransformerOptions();
         var propertyChangedEvents = new List<PropertyChangedEventArgs>();
 
-        // 监听主选项和子选项的事件
+        // 监听主选项的事件
         options.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
-        options.Short.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
-        options.Long.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
 
         // Act
-        options.Short.PercentageValue = 75.0;
-        options.Long.LevelValue = 8.0;
-        options.Short.RandomValue = 25.0;
+        options.ShortPercentage.Value = 75.0;
+        options.LongLevel.Value = 8.0;
+        options.ShortRandom.Value = 25.0;
 
         // Assert
-        Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(options.Short.PercentageValue));
-        Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(options.Long.LevelValue));
-        Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(options.Short.RandomValue));
+        Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(options.ShortPercentage));
+        Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(options.LongLevel));
+        Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(options.ShortRandom));
 
         // 验证值确实已更新
-        Assert.Equal(75.0, options.Short.PercentageValue);
-        Assert.Equal(8.0, options.Long.LevelValue);
-        Assert.Equal(25.0, options.Short.RandomValue);
+        Assert.Equal(75.0, options.ShortPercentage.Value);
+        Assert.Equal(8.0, options.LongLevel.Value);
+        Assert.Equal(25.0, options.ShortRandom.Value);
     }
 
     [Fact]
@@ -105,10 +103,10 @@ public class BeatmapTransformationSettingsTests
         options.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
 
         // Act
-        options.ModifySingleSideKeyCount = true;
-        options.SingleSideKeyCount = 8;
-        options.LMirror = true;
-        options.LDensity = true; // 从默认false改为true才会触发事件
+        options.ModifySingleSideKeyCount.Value = true;
+        options.SingleSideKeyCount.Value = 8;
+        options.LMirror.Value = true;
+        options.LDensity.Value = true; // 从默认false改为true才会触发事件
 
         // Assert
         Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(options.ModifySingleSideKeyCount));
@@ -117,10 +115,10 @@ public class BeatmapTransformationSettingsTests
         Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(options.LDensity));
 
         // 验证值确实已更新
-        Assert.True(options.ModifySingleSideKeyCount);
-        Assert.Equal(8, options.SingleSideKeyCount);
-        Assert.True(options.LMirror);
-        Assert.True(options.LDensity);
+        Assert.True(options.ModifySingleSideKeyCount.Value);
+        Assert.Equal(8, options.SingleSideKeyCount.Value);
+        Assert.True(options.LMirror.Value);
+        Assert.True(options.LDensity.Value);
     }
 
     [Fact]
@@ -129,7 +127,10 @@ public class BeatmapTransformationSettingsTests
         STATestHelper.RunInSTA(() =>
         {
             // Arrange
-            var options = new N2NCOptions { TargetKeys = 7, TransformSpeed = 2.0, Seed = 12345 };
+            var options = new N2NCOptions();
+            options.TargetKeys.Value = 7;
+            options.TransformSpeed.Value = 2.0;
+            options.Seed = 12345;
             // var viewModel = new UnifiedN2NCViewModel(options);
             var propertyChangedEvents = new List<PropertyChangedEventArgs>();
 
@@ -141,7 +142,7 @@ public class BeatmapTransformationSettingsTests
             // Assert
             // Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(viewModel.TargetKeys));
             // Assert.Equal(10, viewModel.TargetKeys); // 设置应该已更新
-            Assert.Equal(7, options.TargetKeys); // 底层选项应该是设置的值
+            Assert.Equal(7, options.TargetKeys.Value); // 底层选项应该是设置的值
         });
     }
 
@@ -151,7 +152,8 @@ public class BeatmapTransformationSettingsTests
         STATestHelper.RunInSTA(() =>
         {
             // Arrange
-            var options = new N2NCOptions { TransformSpeed = 2.0 };
+            var options = new N2NCOptions();
+            options.TransformSpeed.Value = 2.0;
             // var viewModel = new UnifiedN2NCViewModel(options);
             var propertyChangedEvents = new List<PropertyChangedEventArgs>();
 
@@ -166,7 +168,7 @@ public class BeatmapTransformationSettingsTests
             Assert.Contains(propertyChangedEvents, e => e.PropertyName == "TransformSpeedSlot");
 
             // Assert.Equal(4.0, viewModel.TransformSpeed);
-            Assert.Equal(4.0, options.TransformSpeed);
+            Assert.Equal(4.0, options.TransformSpeed.Value);
         });
     }
 
@@ -177,13 +179,13 @@ public class BeatmapTransformationSettingsTests
         var options = new N2NCOptions();
 
         // 测试键位范围限制（通过Option特性定义的Min/Max）
-        Assert.InRange(options.TargetKeys, 1, 18);
+        Assert.InRange(options.TargetKeys.Value, 1, 18);
 
-        options.TargetKeys = 5;
-        Assert.Equal(5, options.TargetKeys);
+        options.TargetKeys.Value = 5;
+        Assert.Equal(5, options.TargetKeys.Value);
 
         // 测试转换速度范围限制  
-        Assert.InRange(options.TransformSpeed, 1, 8);
+        Assert.InRange(options.TransformSpeed.Value, 1, 8);
 
         // 种子值可以为null或任意整数
         options.Seed = null;
@@ -197,8 +199,12 @@ public class BeatmapTransformationSettingsTests
     public void OptionsClasses_MultipleInstancesWithSameSettings_ShouldBeIndependent()
     {
         // Arrange
-        var options1 = new N2NCOptions { TargetKeys = 7, Seed = 12345 };
-        var options2 = new N2NCOptions { TargetKeys = 7, Seed = 12345 };
+        var options1 = new N2NCOptions();
+        options1.TargetKeys.Value = 7;
+        options1.Seed = 12345;
+        var options2 = new N2NCOptions();
+        options2.TargetKeys.Value = 7;
+        options2.Seed = 12345;
 
         var events1 = new List<PropertyChangedEventArgs>();
         var events2 = new List<PropertyChangedEventArgs>();
@@ -207,11 +213,11 @@ public class BeatmapTransformationSettingsTests
         options2.PropertyChanged += (_, e) => events2.Add(e);
 
         // Act
-        options1.TargetKeys = 10; // 只修改options1
+        options1.TargetKeys.Value = 10; // 只修改options1
 
         // Assert
-        Assert.Equal(10, options1.TargetKeys); // options1已更新
-        Assert.Equal(7, options2.TargetKeys); // options2保持不变
+        Assert.Equal(10, options1.TargetKeys.Value); // options1已更新
+        Assert.Equal(7, options2.TargetKeys.Value); // options2保持不变
 
         Assert.Single(events1); // options1触发了一个事件
         Assert.Empty(events2); // options2没有事件
@@ -224,16 +230,12 @@ public class BeatmapTransformationSettingsTests
     public void N2NCOptions_ParameterizedSettings_ShouldRetainValues(int originalKeys, int targetKeys, int seed)
     {
         // Arrange & Act
-        var options = new N2NCOptions
-        {
-            TargetKeys = targetKeys,
-            TransformSpeed = 2.0,
-            Seed = seed
-        };
-
-        // Assert
-        Assert.Equal(targetKeys, options.TargetKeys);
-        Assert.Equal(2.0, options.TransformSpeed);
+            var options = new N2NCOptions();
+            options.TargetKeys.Value = targetKeys;
+            options.TransformSpeed.Value = 2.0;
+            options.Seed = seed;        // Assert
+        Assert.Equal(targetKeys, options.TargetKeys.Value);
+        Assert.Equal(2.0, options.TransformSpeed.Value);
         Assert.Equal(seed, options.Seed);
     }
 
@@ -269,13 +271,13 @@ public class BeatmapTransformationSettingsTests
         Assert.IsAssignableFrom<INotifyPropertyChanged>(new KRRLNTransformerOptions());
         Assert.IsAssignableFrom<INotifyPropertyChanged>(new DPToolOptions());
 
-        // 测试嵌套选项类
+        // 测试直接的 Bindable<T> 属性
         var krrOptions = new KRRLNTransformerOptions();
-        Assert.IsAssignableFrom<INotifyPropertyChanged>(krrOptions.Short);
-        Assert.IsAssignableFrom<INotifyPropertyChanged>(krrOptions.Long);
+        Assert.IsAssignableFrom<INotifyPropertyChanged>(krrOptions.ShortPercentage);
+        Assert.IsAssignableFrom<INotifyPropertyChanged>(krrOptions.LongLevel);
         Assert.IsAssignableFrom<INotifyPropertyChanged>(krrOptions.LengthThreshold);
         Assert.IsAssignableFrom<INotifyPropertyChanged>(krrOptions.Alignment);
         Assert.IsAssignableFrom<INotifyPropertyChanged>(krrOptions.LNAlignment);
-        Assert.IsAssignableFrom<INotifyPropertyChanged>(krrOptions.General);
+        Assert.IsAssignableFrom<INotifyPropertyChanged>(krrOptions.ProcessOriginalIsChecked);
     }
 }

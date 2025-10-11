@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Threading;
+using krrTools.Bindable;
 using krrTools.Localization;
 using krrTools.UI;
 using Microsoft.Extensions.Logging;
@@ -40,7 +42,7 @@ namespace krrTools.Configuration
 
         public string TooltipText { get; init; } = string.Empty;
         public TDataContext? Source { get; init; }
-        public Expression<Func<TDataContext, double>>? PropertySelector { get; init; }
+        public Expression<Func<TDataContext, object>>? PropertySelector { get; init; }
         public bool CheckEnabled { get; init; }
 
         public Dictionary<double, string>? ValueDisplayMap { get; init; }
@@ -113,16 +115,70 @@ namespace krrTools.Configuration
                 CheckBox = new CheckBox { Margin = new Thickness(0, 0, 5, 0), IsChecked = false };
                 InnerSlider.IsEnabled = false;
 
+                // 检查属性是否是可空类型
+                bool isNullableType = false;
+                if (PropertySelector != null)
+                {
+                    var propInfo = GetPropertyInfoFromExpression(PropertySelector);
+                    isNullableType = propInfo != null && 
+                        propInfo.PropertyType.IsGenericType && 
+                        propInfo.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>) &&
+                        Nullable.GetUnderlyingType(propInfo.PropertyType.GetGenericArguments()[0]) != null;
+                }
+
                 CheckBox.Checked += (_, _) =>
                 {
-                    // Console.WriteLine("[SettingsControls] CheckBox checked, enabling slider");
                     InnerSlider.IsEnabled = true;
+                    if (isNullableType && Source != null && PropertySelector != null)
+                    {
+                        // 对于可空类型，勾选时设置为默认值
+                        SetNullableValue(true);
+                    }
+                    UpdateLabelWithValue(InnerSlider.Value);
                 };
                 CheckBox.Unchecked += (_, _) =>
                 {
-                    // Console.WriteLine("[SettingsControls] CheckBox unchecked, disabling slider");
                     InnerSlider.IsEnabled = false;
+                    if (isNullableType && Source != null && PropertySelector != null)
+                    {
+                        // 对于可空类型，未勾选时设置为null
+                        SetNullableValue(false);
+                    }
+                    UpdateLabelWithValue(InnerSlider.Value);
                 };
+            }
+        }
+
+        private void SetNullableValue(bool isChecked)
+        {
+            if (Source == null || PropertySelector == null) return;
+
+            try
+            {
+                var propertyInfo = GetPropertyInfoFromExpression(PropertySelector);
+                if (propertyInfo == null) return;
+
+                var bindableProperty = propertyInfo.GetValue(Source);
+                if (bindableProperty == null) return;
+
+                var valueProperty = bindableProperty.GetType().GetProperty("Value");
+                if (valueProperty == null) return;
+
+                if (isChecked)
+                {
+                    // 勾选时设置为滑条的当前值或默认值
+                    var defaultValue = InnerSlider.Value;
+                    valueProperty.SetValue(bindableProperty, defaultValue);
+                }
+                else
+                {
+                    // 未勾选时设置为null
+                    valueProperty.SetValue(bindableProperty, null);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.WriteLine(LogLevel.Error, "[SettingsControls] SetNullableValue error: {0}", ex.Message);
             }
         }
 
@@ -234,6 +290,18 @@ namespace krrTools.Configuration
             return Max;
         }
 
+        private PropertyInfo? GetPropertyInfoFromExpression<T, TResult>(Expression<Func<T, TResult>> propertySelector)
+        {
+            var current = propertySelector.Body;
+
+            // 处理可能的转换 (如 int -> double)
+            if (current is UnaryExpression { NodeType: ExpressionType.Convert } unary) current = unary.Operand;
+
+            if (current is MemberExpression { Member: PropertyInfo propertyInfo }) return propertyInfo;
+
+            return null;
+        }
+
         private double GetDynamicMinValue()
         {
             if (DynamicMinSource != null && !string.IsNullOrEmpty(DynamicMinPath))
@@ -276,6 +344,18 @@ namespace krrTools.Configuration
             try
             {
                 var path = GetPropertyPathFromExpression(PropertySelector!);
+                
+                // 检查属性是否是 Bindable<T> 类型，如果是则添加 .Value
+                if (Source != null && PropertySelector != null)
+                {
+                    var propertyInfo = GetPropertyInfoFromExpression(PropertySelector);
+                    if (propertyInfo != null && propertyInfo.PropertyType.IsGenericType && 
+                        propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
+                    {
+                        path += ".Value";
+                    }
+                }
+                
                 // Console.WriteLine($"[SettingsControls] Binding to path: {path}, Source: {Source}");
                 var binding = new Binding
                 {
@@ -296,7 +376,7 @@ namespace krrTools.Configuration
             }
             catch (Exception ex)
             {
-                Logger.WriteLine(LogLevel.Error, "[SettingsControls] SettingsSlider binding error: {0}", ex.Message);
+                Logger.WriteLine(LogLevel.Error, "[SettingsControls] SettingsSlider QuickBind error: {0}", ex.Message);
             }
         }
 
@@ -343,11 +423,20 @@ namespace krrTools.Configuration
         {
             if (!string.IsNullOrEmpty(_labelText))
             {
+                bool isEnabled = !CheckEnabled || (CheckBox?.IsChecked ?? false);
                 string displayValue;
-                if (ValueDisplayMap != null && ValueDisplayMap.TryGetValue(value, out var mappedValue))
+                if (!isEnabled)
+                {
+                    displayValue = "off";
+                }
+                else if (ValueDisplayMap != null && ValueDisplayMap.TryGetValue(value, out var mappedValue))
+                {
                     displayValue = mappedValue;
+                }
                 else
+                {
                     displayValue = ((int)value).ToString();
+                }
 
                 if (_labelText.Contains("{0}"))
                 {
@@ -391,11 +480,16 @@ namespace krrTools.Configuration
                         if (finalProperty != null)
                         {
                             // 根据属性类型转换值
-                            object convertedValue = finalProperty.PropertyType switch
+                            object? convertedValue = finalProperty.PropertyType switch
                             {
                                 { } t when t == typeof(int) => (int)_pendingValue,
                                 { } t when t == typeof(float) => (float)_pendingValue,
                                 { } t when t == typeof(decimal) => (decimal)_pendingValue,
+                                { } t when t == typeof(double) => _pendingValue,
+                                { } t when t == typeof(int?) => (int?)_pendingValue,
+                                { } t when t == typeof(float?) => (float?)_pendingValue,
+                                { } t when t == typeof(decimal?) => (decimal?)_pendingValue,
+                                { } t when t == typeof(double?) => (double?)_pendingValue,
                                 _ => _pendingValue
                             };
                             finalProperty.SetValue(currentObject, convertedValue);

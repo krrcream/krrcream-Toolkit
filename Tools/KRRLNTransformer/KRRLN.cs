@@ -28,8 +28,8 @@ namespace krrTools.Tools.KRRLNTransformer
             KRRLNTransformerOptions parameters)
         {
             // 创建带种子的随机数生成器
-            var RG = parameters.Seed.HasValue
-                ? new Random(parameters.Seed.Value)
+            var RG = parameters.Seed.Value.HasValue
+                ? new Random(parameters.Seed.Value.Value)
                 : new Random();
 
             var ManiaObjects = beatmap.HitObjects.OfType<ManiaNote>().ToList();
@@ -100,14 +100,14 @@ namespace krrTools.Tools.KRRLNTransformer
                 }
 
             //是否处理原始面条初步判定
-            if (!parameters.General.ProcessOriginalIsChecked)
+            if (!parameters.ProcessOriginalIsChecked.Value)
                 for (var i = 0; i < matrix1.Rows; i++)
                 for (var j = 0; j < matrix1.Cols; j++)
                     if (orgIsLN[i, j])
                         matrix1[i, j] = -1;
 
             //通过百分比标记处理位置
-            var borderKey = (int)parameters.LengthThreshold.Value;
+            var borderKey = parameters.LengthThreshold.Value.HasValue ? (int)parameters.LengthThreshold.Value.Value : 4; // 默认值4
             if (!borderlist.ContainsKey(borderKey)) borderKey = 0; // 默认值
 
             var shortLNFlag = new bool[matrix1.Rows, matrix1.Cols];
@@ -123,10 +123,10 @@ namespace krrTools.Tools.KRRLNTransformer
                         shortLNFlag[i, j] = true;
                 }
 
-            longLNFlag = MarkByPercentage(longLNFlag, parameters.Long.PercentageValue, RG);
-            shortLNFlag = MarkByPercentage(shortLNFlag, parameters.Short.PercentageValue, RG);
-            longLNFlag = LimitTruePerRow(longLNFlag, (int)parameters.Long.LimitValue, RG);
-            shortLNFlag = LimitTruePerRow(shortLNFlag, (int)parameters.Short.LimitValue, RG);
+            longLNFlag = MarkByPercentage(longLNFlag, parameters.LongPercentage.Value, RG);
+            shortLNFlag = MarkByPercentage(shortLNFlag, parameters.ShortPercentage.Value, RG);
+            longLNFlag = LimitTruePerRow(longLNFlag, (int)parameters.LongLimit.Value, RG);
+            shortLNFlag = LimitTruePerRow(shortLNFlag, (int)parameters.ShortLimit.Value, RG);
 
             //正式生成longLN矩阵
             for (var i = 0; i < matrix1.Rows; i++)
@@ -137,8 +137,8 @@ namespace krrTools.Tools.KRRLNTransformer
                     var NewLength = GenerateTriangularRandom(
                         borderlist[borderKey] * ManiaObjects[indexObj].BeatLengthOfThisNote,
                         availableTimeMtx[i, j] - 600000 / MainBPM / 8,
-                        availableTimeMtx[i, j] * parameters.Long.PercentageValue / 100,
-                        parameters.Long.RandomValue, RG
+                        availableTimeMtx[i, j] * parameters.LongPercentage.Value / 100,
+                        (int)parameters.LongRandom.Value, RG
                     );
                     longLnWaitModify[i, j] = NewLength;
                 }
@@ -152,8 +152,8 @@ namespace krrTools.Tools.KRRLNTransformer
                     var NewLength = GenerateTriangularRandom(
                         600000 / MainBPM / 8,
                         borderlist[borderKey] * ManiaObjects[indexObj].BeatLengthOfThisNote,
-                        availableTimeMtx[i, j] * parameters.Short.PercentageValue / 100,
-                        parameters.Long.RandomValue, RG
+                        availableTimeMtx[i, j] * parameters.ShortPercentage.Value / 100,
+                        (int)parameters.ShortRandom.Value, RG
                     );
                     shortLnWaitModify[i, j] = NewLength;
                 }

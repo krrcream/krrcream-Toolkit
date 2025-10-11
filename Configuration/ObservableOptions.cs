@@ -5,6 +5,7 @@ using krrTools.Bindable;
 
 namespace krrTools.Configuration
 {
+    [Obsolete("Use ReactiveOptions<T> instead. This class will be removed after testing.")]
     public class ObservableOptions<TOptions> : INotifyPropertyChanged, IDisposable where TOptions : ToolOptionsBase, new()
     {
         private TOptions _options;

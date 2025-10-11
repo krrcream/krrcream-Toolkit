@@ -1,6 +1,7 @@
 using System;
 using krrTools.Beatmaps;
 using krrTools.Configuration;
+using krrTools.Bindable;
 using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
@@ -29,11 +30,14 @@ namespace krrTools.Core
         where TControl : ToolViewBase<TOptions>
     {
         protected TOptions _currentOptions = new();
+        [Obsolete("Use _reactiveOptions instead. This will be removed after testing.")]
         protected ObservableOptions<TOptions>? _observableOptions;
+        protected ReactiveOptions<TOptions>? _reactiveOptions;
 
-        protected ToolModuleBase(ObservableOptions<TOptions>? observableOptions = null)
+        protected ToolModuleBase(ReactiveOptions<TOptions>? reactiveOptions = null)
         {
-            _observableOptions = observableOptions;
+            _reactiveOptions = reactiveOptions;
+            _observableOptions = reactiveOptions as ObservableOptions<TOptions>; // Backward compatibility
             LoadCurrentOptions();
             // 订阅设置变化事件
             BaseOptionsManager.SettingsChanged += OnSettingsChanged;
@@ -86,29 +90,46 @@ namespace krrTools.Core
         }
 
         /// <summary>
-        /// 获取最新的选项设置 - 优先使用注入的ObservableOptions，其次从DI容器获取
+        /// 获取最新的选项设置 - 优先使用注入的ReactiveOptions，其次ObservableOptions，然后从DI容器获取
         /// 解决响应式架构中_currentOptions不会实时更新的问题
         /// </summary>
         protected TOptions GetLatestOptions()
         {
             try
             {
-                // 优先使用注入的ObservableOptions
+                // 优先使用注入的ReactiveOptions
+                if (_reactiveOptions != null)
+                {
+                    Console.WriteLine($"[{ModuleType}Module] 使用注入的ReactiveOptions中的最新设置进行转换");
+                    return _reactiveOptions.Options;
+                }
+
+                // 回退到ObservableOptions (backward compatibility)
+#pragma warning disable CS0618 // Type or member is obsolete
                 if (_observableOptions != null)
                 {
                     Console.WriteLine($"[{ModuleType}Module] 使用注入的ObservableOptions中的最新设置进行转换");
                     return _observableOptions.Options;
                 }
+#pragma warning restore CS0618
 
                 // 回退到从DI容器获取
                 var services = App.Services;
+                if (services.GetService(typeof(ReactiveOptions<TOptions>)) is ReactiveOptions<TOptions> reactOptions)
+                {
+                    Console.WriteLine($"[{ModuleType}Module] 使用ReactiveOptions中的最新设置进行转换");
+                    return reactOptions.Options;
+                }
+
+#pragma warning disable CS0618 // Type or member is obsolete
                 if (services.GetService(typeof(ObservableOptions<TOptions>)) is ObservableOptions<TOptions> obsOptions)
                 {
                     Console.WriteLine($"[{ModuleType}Module] 使用ObservableOptions中的最新设置进行转换");
                     return obsOptions.Options;
                 }
+#pragma warning restore CS0618
             
-                Console.WriteLine($"[{ModuleType}Module] 无法获取ObservableOptions，使用默认设置");
+                Console.WriteLine($"[{ModuleType}Module] 无法获取ReactiveOptions，使用默认设置");
                 return _currentOptions;
             }
             catch (Exception ex)

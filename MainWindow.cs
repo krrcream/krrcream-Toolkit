@@ -164,7 +164,7 @@ namespace krrTools
             BuildNoPreViewTabs();
 
             // 全局预览器
-            var previewViewModel = new PreviewViewModel(_eventBus);
+            var previewViewModel = new PreviewViewModel();
             _previewDual = new PreviewViewDual(previewViewModel);
 
             // 创建 FileDropZoneViewModel
@@ -622,7 +622,7 @@ namespace krrTools
             {
                 if (_listenerVM == null)
                 {
-                    _listenerVM = new ListenerViewModel(_eventBus);
+                    _listenerVM = new ListenerViewModel();
                     _listenerVM.BeatmapSelected += OnBeatmapSelected;
                 }
 
@@ -659,8 +659,8 @@ namespace krrTools
             }
             catch (Exception ex)
             {
-                Logger.WriteLine(LogLevel.Error,
-                    $"Error loading beatmap in real-time preview: {ex.Source}{ex.Message}{ex.StackTrace}");
+            LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("MainWindow")
+                .LogError($"Error loading beatmap in real-time preview: {ex.Source}{ex.Message}{ex.StackTrace}");
             }
         }
 
@@ -693,6 +693,7 @@ namespace krrTools
                         // 通过ViewModel设置处理器，它会处理刷新
                         _previewDual.ViewModel!.SetProcessor(processor);
                         _previewDual.SetCurrentTool(converterEnum);
+                        _previewDual.SetCurrentViewModel(viewModel);
                     }
                 }
                 else

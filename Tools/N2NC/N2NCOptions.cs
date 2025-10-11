@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using krrTools.Configuration;
+using krrTools.Bindable;
 using static krrTools.Localization.Strings;
 
 namespace krrTools.Tools.N2NC
@@ -10,37 +12,63 @@ namespace krrTools.Tools.N2NC
     public class N2NCOptions : UnifiedToolOptions
     {
         [Option(LabelKey = nameof(KeysSliderLabel), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double))]
-        public double TargetKeys
-        {
-            get => _targetKeys;
-            set => SetProperty(ref _targetKeys, value);
-        }
-        private double _targetKeys = 10;
+        public Bindable<double> TargetKeys { get; } = new Bindable<double>();
 
         // 动态最大值将由ViewModel的约束管理处理
         [Option(LabelKey = nameof(N2NCMaxKeysTemplate), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double))]
-        public double MaxKeys
-        {
-            get => _maxKeys;
-            set => SetProperty(ref _maxKeys, value);
-        }
-        private double _maxKeys = 10;
+        public Bindable<double> MaxKeys { get; } = new Bindable<double>();
 
         [Option(LabelKey = nameof(N2NCMinKeysTemplate), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double))]
-        public double MinKeys
-        {
-            get => _minKeys;
-            set => SetProperty(ref _minKeys, value);
-        }
-        private double _minKeys = 2;
+        public Bindable<double> MinKeys { get; } = new Bindable<double>();
 
         [Option(LabelKey = nameof(N2NCTransformSpeedTemplate), Min = 1, Max = 8, UIType = UIType.Slider, DisplayMapField = "TransformSpeedDict", DataType = typeof(double))]
-        public double TransformSpeed
+        public Bindable<double> TransformSpeed { get; } = new Bindable<double>();
+
+        // 向后兼容属性
+        [Obsolete("Use TargetKeys.Value instead")]
+        public double TargetKeysValue
         {
-            get => _transformSpeed;
-            set => SetProperty(ref _transformSpeed, value);
+            get => TargetKeys.Value;
+            set => TargetKeys.Value = value;
         }
-        private double _transformSpeed = 4.0;
+
+        [Obsolete("Use MaxKeys.Value instead")]
+        public double MaxKeysValue
+        {
+            get => MaxKeys.Value;
+            set => MaxKeys.Value = value;
+        }
+
+        [Obsolete("Use MinKeys.Value instead")]
+        public double MinKeysValue
+        {
+            get => MinKeys.Value;
+            set => MinKeys.Value = value;
+        }
+
+        [Obsolete("Use TransformSpeed.Value instead")]
+        public double TransformSpeedValue
+        {
+            get => TransformSpeed.Value;
+            set => TransformSpeed.Value = value;
+        }
+
+        /// <summary>
+        /// 默认构造函数，使用默认值
+        /// </summary>
+        public N2NCOptions()
+        {
+            TargetKeys.Value = 10;
+            MaxKeys.Value = 10;
+            MinKeys.Value = 2;
+            TransformSpeed.Value = 4.0;
+
+            // Wire up property changed events for Bindable<T> properties
+            TargetKeys.PropertyChanged += (_, _) => OnPropertyChanged(nameof(TargetKeys));
+            MaxKeys.PropertyChanged += (_, _) => OnPropertyChanged(nameof(MaxKeys));
+            MinKeys.PropertyChanged += (_, _) => OnPropertyChanged(nameof(MinKeys));
+            TransformSpeed.PropertyChanged += (_, _) => OnPropertyChanged(nameof(TransformSpeed));
+        }
 
         // N2NC 的 TransformSpeed 显示映射
         public static readonly Dictionary<double, string> TransformSpeedDict = new Dictionary<double, string>
@@ -72,20 +100,20 @@ namespace krrTools.Tools.N2NC
             base.Validate(); // First clamp to Min/Max
             
             // 确保 TargetKeys 在合理范围内
-            if (TargetKeys < 1) TargetKeys = 1;
-            if (TargetKeys > 18) TargetKeys = 18;
+            if (TargetKeys.Value < 1) TargetKeys.Value = 1;
+            if (TargetKeys.Value > 18) TargetKeys.Value = 18;
 
             // 确保 TransformSpeed 在有效范围内
-            if (TransformSpeed < 1) TransformSpeed = 1;
-            if (TransformSpeed > 8) TransformSpeed = 8;
+            if (TransformSpeed.Value < 1) TransformSpeed.Value = 1;
+            if (TransformSpeed.Value > 8) TransformSpeed.Value = 8;
 
             // 确保 MinKeys 和 MaxKeys 在合理范围内
-            if (MinKeys < 1) MinKeys = 1;
-            if (MaxKeys > 18) MaxKeys = 18;
+            if (MinKeys.Value < 1) MinKeys.Value = 1;
+            if (MaxKeys.Value > 18) MaxKeys.Value = 18;
 
-            if (MaxKeys > TargetKeys) MaxKeys = TargetKeys;
-            if (MaxKeys < MinKeys) MaxKeys = MinKeys;
-            if (MinKeys > MaxKeys) MinKeys = MaxKeys;
+            if (MaxKeys.Value > TargetKeys.Value) MaxKeys.Value = TargetKeys.Value;
+            if (MaxKeys.Value < MinKeys.Value) MaxKeys.Value = MinKeys.Value;
+            if (MinKeys.Value > MaxKeys.Value) MinKeys.Value = MaxKeys.Value;
         }
     }
 }
