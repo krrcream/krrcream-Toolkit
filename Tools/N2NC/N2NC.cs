@@ -91,7 +91,7 @@ namespace krrTools.Tools.N2NC
             // 生成转换矩阵
             var (oldMTX, insertMTX) = convertMTX(turn, timeAxis, convertTime, CS, random);
             var newMatrix = convert(matrix, oldMTX, insertMTX, timeAxis, targetKeys, beatLength, random);
-            DensityReducer(newMatrix, (int)options.TargetKeys.Value - 18, 1, (int)options.TargetKeys.Value, random);
+            DensityReducer(newMatrix, (int)options.TargetKeys.Value - (int)options.MaxKeys.Value, (int)options.MinKeys.Value, (int)options.TargetKeys.Value, random);
             return newMatrix;
         }
 
@@ -99,7 +99,7 @@ namespace krrTools.Tools.N2NC
             double beatLength, Random random, int originalCS, N2NCOptions options)
         {
             var newMatrix = SmartReduceColumns(matrix, timeAxis, -turn, convertTime, beatLength);
-            DensityReducer(newMatrix, (int)options.TargetKeys.Value - 18, 1, (int)options.TargetKeys.Value, random);
+            DensityReducer(newMatrix, (int)options.TargetKeys.Value - (int)options.MaxKeys.Value, (int)options.MinKeys.Value, (int)options.TargetKeys.Value, random);
             return newMatrix;
         }
 

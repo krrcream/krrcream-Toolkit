@@ -32,7 +32,7 @@ namespace krrTools.Tools.N2NC
             TargetKeys.Value = 10;
             MaxKeys.Value = 10;
             MinKeys.Value = 2;
-            TransformSpeed.Value = 4.0;
+            TransformSpeed.Value = 5.0;
 
             // Wire up property changed events for Bindable<T> properties
             TargetKeys.PropertyChanged += (_, _) => OnPropertyChanged(nameof(TargetKeys));

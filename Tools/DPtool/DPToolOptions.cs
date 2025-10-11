@@ -10,10 +10,10 @@ namespace krrTools.Tools.DPtool
     public class DPToolOptions : ToolOptionsBase
     {
         [Option(LabelKey = nameof(DPModifyKeysCheckbox), TooltipKey = nameof(DPModifyKeysTooltip), UIType = UIType.Toggle, IsRefresher = true)]
-        public Bindable<bool> ModifySingleSideKeyCount { get; } = new Bindable<bool>();
+        public Bindable<bool> ModifySingleSideKeyCount { get; } = new Bindable<bool>(true);
 
         [Option(LabelKey = nameof(KeysSliderLabel), Min = 1, Max = 12, UIType = UIType.Slider, DataType = typeof(double), IsRefresher = true)]
-        public Bindable<double> SingleSideKeyCount { get; } = new Bindable<double>();
+        public Bindable<double> SingleSideKeyCount { get; } = new Bindable<double>(5);
 
         #region 左手区
 
