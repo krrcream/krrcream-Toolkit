@@ -9,7 +9,7 @@ namespace krrTools.Tools.N2NC
     /// <summary>
     /// 转换选项类，用于封装所有转换参数
     /// </summary>
-    public class N2NCOptions : UnifiedToolOptions
+    public class N2NCOptions : ToolOptionsBase
     {
         [Option(LabelKey = nameof(KeysSliderLabel), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double))]
         public Bindable<double> TargetKeys { get; } = new Bindable<double>();

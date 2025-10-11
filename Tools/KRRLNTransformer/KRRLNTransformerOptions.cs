@@ -5,7 +5,7 @@ using static krrTools.Localization.Strings;
 
 namespace krrTools.Tools.KRRLNTransformer
 {
-    public class KRRLNTransformerOptions : UnifiedToolOptions
+    public class KRRLNTransformerOptions : ToolOptionsBase
     {
         // Short LN settings
         [Option(LabelKey = nameof(KRRShortPercentageLabel), Min = 0, Max = 100, UIType = UIType.Slider)]

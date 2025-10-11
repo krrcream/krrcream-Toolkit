@@ -8,7 +8,7 @@ namespace krrTools.Tools.ModuleName
     /// ModuleName转换选项类
     /// 继承自UnifiedToolOptions，包含模块特定的设置
     /// </summary>
-    public class ModuleNameOptions : UnifiedToolOptions
+    public class ModuleNameOptions : ToolOptionsBase
     {
         // TODO: 添加你的模块特定设置属性
         // 示例：

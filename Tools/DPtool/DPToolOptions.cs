@@ -7,7 +7,7 @@ namespace krrTools.Tools.DPtool
     /// <summary>
     /// DP工具选项类，用于封装所有DP参数
     /// </summary>
-    public class DPToolOptions : UnifiedToolOptions
+    public class DPToolOptions : ToolOptionsBase
     {
         [Option(LabelKey = nameof(DPModifyKeysCheckbox), TooltipKey = nameof(DPModifyKeysTooltip), UIType = UIType.Toggle)]
         public Bindable<bool> ModifySingleSideKeyCount { get; } = new Bindable<bool>();

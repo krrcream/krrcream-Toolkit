@@ -22,7 +22,6 @@ namespace krrTools.Configuration
     public interface IPreviewOptionsProvider;
 
     // 基类，实现了基本的选项加载和保存逻辑
-    [Obsolete("Use Bindable<T> in derived classes instead of SetProperty. This base class will be removed after testing.")]
     public abstract class ToolOptionsBase : ObservableObject, IToolOptions
     {
         protected bool IsValidating { get; set; }
@@ -30,69 +29,9 @@ namespace krrTools.Configuration
         /// <summary>
         /// Validate and normalize option values (called by UI or callers before use)
         /// Default implementation clamps numeric properties based on OptionAttribute Min/Max.
+        /// Supports both direct properties and Bindable<T> properties.
         /// </summary>
         public virtual void Validate()
-        {
-            if (IsValidating) return;
-            IsValidating = true;
-            try
-            {
-                var properties = GetType().GetProperties();
-                foreach (var prop in properties)
-                {
-                    var attr = prop.GetCustomAttribute<OptionAttribute>();
-                    if (attr is { Min: not null, Max: not null } && prop.PropertyType == typeof(int))
-                    {
-                        var value = (int)prop.GetValue(this)!;
-                        var min = Convert.ToInt32(attr.Min);
-                        var max = Convert.ToInt32(attr.Max);
-                        var clamped = Math.Clamp(value, min, max);
-                        if (clamped != value)
-                        {
-                            prop.SetValue(this, clamped);
-                        }
-                    }
-                    else if (attr is { Min: not null, Max: not null } && prop.PropertyType == typeof(double))
-                    {
-                        var value = (double)prop.GetValue(this)!;
-                        var min = Convert.ToDouble(attr.Min);
-                        var max = Convert.ToDouble(attr.Max);
-                        var clamped = Math.Clamp(value, min, max);
-                        if (Math.Abs(clamped - value) > 1e-9)
-                        {
-                            prop.SetValue(this, clamped);
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                IsValidating = false;
-            }
-        }
-
-        protected override void OnPropertyChanged(PropertyChangedEventArgs e)
-        {
-            base.OnPropertyChanged(e);
-            // 设置变化时，通过UI或其他方式触发BaseOptionsManager.SaveOptions
-            Console.WriteLine(!IsValidating
-                ? $"[ToolOptions] Property changed: {e.PropertyName}"
-                : $"[ToolOptions] Property changed during validation, not sending message");
-        }
-    }
-
-    /// <summary>
-    /// 现代化的工具选项基类，使用 Bindable<T> 提供类型安全的属性绑定
-    /// 替代过时的 ToolOptionsBase，提供更好的性能和响应性
-    /// </summary>
-    public abstract class ModernToolOptionsBase : ToolOptionsBase
-    {
-        new protected bool IsValidating { get; set; }
-
-        /// <summary>
-        /// Override Validate to support Bindable<T> properties
-        /// </summary>
-        public override void Validate()
         {
             if (IsValidating) return;
             IsValidating = true;
@@ -185,13 +124,16 @@ namespace krrTools.Configuration
             };
             return bindable;
         }
-    }
 
-    /// <summary>
-    /// 统一的工具选项基类，包含通用设置
-    /// </summary>
-    public abstract class UnifiedToolOptions : ModernToolOptionsBase
-    {
+        protected override void OnPropertyChanged(PropertyChangedEventArgs e)
+        {
+            base.OnPropertyChanged(e);
+            // 设置变化时，通过UI或其他方式触发BaseOptionsManager.SaveOptions
+            Console.WriteLine(!IsValidating
+                ? $"[ToolOptions] Property changed: {e.PropertyName}"
+                : $"[ToolOptions] Property changed during validation, not sending message");
+        }
+
         public PresetKind SelectedPreset { get; init; } = PresetKind.Default;
     }
 
