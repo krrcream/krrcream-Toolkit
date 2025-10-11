@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Windows;
@@ -47,8 +46,6 @@ namespace krrTools.Configuration
 
         public Dictionary<double, string>? ValueDisplayMap { get; init; }
 
-        public IEnumSettingsProvider? EnumProvider { get; set; }
-        public Enum? EnumKey { get; set; }
         public double Min { get; init; } = 1;
         public double Max { get; init; } = 100;
         public double TickFrequency { get; init; } = double.NaN;
@@ -103,9 +100,7 @@ namespace krrTools.Configuration
             InitializeSliderProperties();
             SetupDynamicBindings(); // 动态绑定必须在最后设置，以覆盖静态属性
 
-            if (EnumProvider != null && EnumKey != null)
-                SetupEnumBinding();
-            else if (Source != null && PropertySelector != null) SetupSourceBinding();
+            if (Source != null && PropertySelector != null) SetupSourceBinding();
         }
 
         private void InitializeCheckBox()
@@ -313,31 +308,6 @@ namespace krrTools.Configuration
             return Min;
         }
 
-        private void SetupEnumBinding()
-        {
-            try
-            {
-                var value = EnumProvider!.GetValue(EnumKey!);
-                if (value != null)
-                {
-                    var dv = Convert.ToDouble(value, CultureInfo.InvariantCulture);
-                    SetInitialValue(dv);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.WriteLine(LogLevel.Error, "[SettingsControls] SettingsSlider enum init error: {0}", ex.Message);
-            }
-
-            AddValueChangedListener();
-
-            EnumProvider!.PropertyChanged += (_, ev) =>
-            {
-                if (ev.PropertyName == EnumKey!.ToString())
-                    UpdateFromProvider();
-            };
-        }
-
         private void SetupSourceBinding()
         {
             // 使用单向绑定显示值，debounce设置值
@@ -380,44 +350,6 @@ namespace krrTools.Configuration
             }
         }
 
-        private void SetInitialValue(double value)
-        {
-            InnerSlider.Value = value;
-            UpdateLabelWithValue(value);
-        }
-
-        private void AddValueChangedListener()
-        {
-            InnerSlider.ValueChanged += (_, ev) =>
-            {
-                _pendingValue = ev.NewValue;
-                _debounceTimer!.Stop();
-                _debounceTimer.Start();
-                UpdateLabelWithValue(ev.NewValue);
-            };
-        }
-
-        private void UpdateFromProvider()
-        {
-            try
-            {
-                var v = EnumProvider!.GetValue(EnumKey!);
-                if (v != null)
-                {
-                    var dv = Convert.ToDouble(v, CultureInfo.InvariantCulture);
-                    if (Math.Abs(InnerSlider.Value - dv) > 1e-6)
-                    {
-                        InnerSlider.Dispatcher.Invoke(() => InnerSlider.Value = dv);
-                        UpdateLabelWithValue(dv);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.WriteLine(LogLevel.Error, "[SettingsControls] SettingsSlider enum notify error: {0}", ex.Message);
-            }
-        }
-
 
         private void UpdateLabelWithValue(double value)
         {
@@ -455,11 +387,7 @@ namespace krrTools.Configuration
             _debounceTimer!.Stop();
             try
             {
-                if (EnumProvider != null && EnumKey != null)
-                {
-                    EnumProvider.SetValue(EnumKey, _pendingValue);
-                }
-                else if (Source != null && PropertySelector != null)
+                if (Source != null && PropertySelector != null)
                 {
                     // 直接设置属性值 - WPF绑定应该已经处理了双向同步
                     // 如果绑定不工作，可能是因为属性路径问题
