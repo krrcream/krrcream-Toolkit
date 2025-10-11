@@ -21,37 +21,8 @@ namespace krrTools.Tools.N2NC
         [Option(LabelKey = nameof(N2NCMinKeysTemplate), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double))]
         public Bindable<double> MinKeys { get; } = new Bindable<double>();
 
-        [Option(LabelKey = nameof(N2NCTransformSpeedTemplate), Min = 1, Max = 8, UIType = UIType.Slider, DisplayMapField = "TransformSpeedDict", DataType = typeof(double))]
+        [Option(LabelKey = nameof(N2NCTransformSpeedTemplate), Min = 1, Max = 8, UIType = UIType.Slider, DisplayMapField = nameof(TransformSpeedDict), DataType = typeof(double))]
         public Bindable<double> TransformSpeed { get; } = new Bindable<double>();
-
-        // 向后兼容属性
-        [Obsolete("Use TargetKeys.Value instead")]
-        public double TargetKeysValue
-        {
-            get => TargetKeys.Value;
-            set => TargetKeys.Value = value;
-        }
-
-        [Obsolete("Use MaxKeys.Value instead")]
-        public double MaxKeysValue
-        {
-            get => MaxKeys.Value;
-            set => MaxKeys.Value = value;
-        }
-
-        [Obsolete("Use MinKeys.Value instead")]
-        public double MinKeysValue
-        {
-            get => MinKeys.Value;
-            set => MinKeys.Value = value;
-        }
-
-        [Obsolete("Use TransformSpeed.Value instead")]
-        public double TransformSpeedValue
-        {
-            get => TransformSpeed.Value;
-            set => TransformSpeed.Value = value;
-        }
 
         /// <summary>
         /// 默认构造函数，使用默认值
