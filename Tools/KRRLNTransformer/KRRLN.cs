@@ -82,6 +82,23 @@ namespace krrTools.Tools.KRRLNTransformer
 
             var result = MergeMatrices(longLnWaitModify, shortLnWaitModify);
             
+            if (parameters.Alignment.Value.HasValue)
+            {
+                double denominator = 0; 
+                double alignValue = alignList[(int)parameters.Alignment.Value.Value];
+                var resultSpan = result.AsSpan();
+                var beatLengthMtxSpan = beatLengthMtx.AsSpan();
+                for (int i = 0; i < resultSpan.Length; i++)
+                {
+                    if (resultSpan[i] > 0) ;
+                    {
+                        denominator = beatLengthMtxSpan[i] * alignValue;
+                        resultSpan[i] = (int)((int)(resultSpan[i] / denominator) * denominator);
+                    }
+                }
+            }
+            
+            
             return result;
         }
         
@@ -102,7 +119,7 @@ namespace krrTools.Tools.KRRLNTransformer
             var shortLNSpan = shortLNFlag.AsSpan();
             var longLNSpan = longLNFlag.AsSpan();
             
-            double borderValue = borderlist[borderKey];
+            double borderValue = borderList[borderKey];
 
             for (int i = 0; i < matrixSpan.Length; i++)
             {
@@ -171,7 +188,7 @@ namespace krrTools.Tools.KRRLNTransformer
             var beatLengthSpan = beatLengthMtx.AsSpan();
             var resultSpan = longLnWaitModify.AsSpan();
             
-            double borderValue = borderlist[borderKey];
+            double borderValue = borderList[borderKey];
             
             for (int i = 0; i < matrixSpan.Length; i++)
             {
@@ -200,7 +217,7 @@ namespace krrTools.Tools.KRRLNTransformer
             var beatLengthSpan = beatLengthMtx.AsSpan();
             var resultSpan = shortLnWaitModify.AsSpan();
             
-            double borderValue = borderlist[borderKey];
+            double borderValue = borderList[borderKey];
             
             for (int i = 0; i < matrixSpan.Length; i++)
             {
@@ -498,7 +515,7 @@ namespace krrTools.Tools.KRRLNTransformer
             return result;
         }
 
-        private Dictionary<int, double> borderlist = new()
+        private Dictionary<int, double> borderList = new()
         {
             /*
             { 0, "AllIsLongLN" },
@@ -534,7 +551,29 @@ namespace krrTools.Tools.KRRLNTransformer
             { 13, 4.0 / 1},
             { 14, 999 }
         };
-
+        
+        private Dictionary<int, double> alignList = new()
+        {
+            /*
+            { 1, "1/8" },
+            { 2, "1/7" },
+            { 3, "1/6" },
+            { 4, "1/5" },
+            { 5, "1/4" },
+            { 6, "1/3" },
+            { 7, "1/2" },
+            { 8, "1/1" }
+            */
+            { 1, 1.0 / 8 },
+            { 2, 1.0 / 7 },
+            { 3, 1.0 / 6 },
+            { 4, 1.0 / 5 },
+            { 5, 1.0 / 4 },
+            { 6, 2.0 / 3 },
+            { 7, 3.0 / 2 },
+            { 8, 1.0 },
+        };
+        
         //修改难度名，tag，和标签等
         private void changeMeta(Beatmap beatmap)
         {

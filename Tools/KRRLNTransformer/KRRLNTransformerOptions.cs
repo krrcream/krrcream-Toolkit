@@ -37,11 +37,11 @@ namespace krrTools.Tools.KRRLNTransformer
         [Option(LabelKey = nameof(LengthThresholdLabel), Min = 0, Max = 14, UIType = UIType.Slider, DisplayMapField = nameof(LengthThresholdDict), IsRefresher = true)]
         public Bindable<int> LengthThreshold { get; } = new(5);
 
-        [Option(LabelKey = nameof(KRRAlignLabel), Min = 1, Max = 9, UIType = UIType.Slider, DisplayMapField = nameof(AlignValuesDict), IsRefresher = true)]
-        public Bindable<double?> Alignment { get; } = new(4);
+        [Option(LabelKey = nameof(KRRAlignLabel), Min = 1, Max = 8, UIType = UIType.Slider, DisplayMapField = nameof(AlignValuesDict), IsRefresher = true)]
+        public Bindable<double?> Alignment { get; } = new(5);
 
-        [Option(LabelKey = nameof(KRRLNAlignLabel), Min = 1, Max = 9, UIType = UIType.Slider, DisplayMapField = nameof(AlignValuesDict), IsRefresher = true)]
-        public Bindable<double?> LNAlignment { get; } = new(4);
+        [Option(LabelKey = nameof(KRRLNAlignLabel), Min = 1, Max = 8, UIType = UIType.Slider, DisplayMapField = nameof(AlignValuesDict), IsRefresher = true)]
+        public Bindable<double?> LNAlignment { get; } = new(6);
 
         // General settings
         [Option(LabelKey = nameof(ProcessOriginalLabel), UIType = UIType.Toggle, IsRefresher = true)]
@@ -79,15 +79,14 @@ namespace krrTools.Tools.KRRLNTransformer
         // KRRLN 工具的映射字典定义
         public static Dictionary<double, string> AlignValuesDict = new()
         {
-            { 1, "1/16" },
-            { 2, "1/8" },
-            { 3, "1/7" },
-            { 4, "1/6" },
-            { 5, "1/5" },
-            { 6, "1/4" },
-            { 7, "1/3" },
-            { 8, "1/2" },
-            { 9, "1/1" }
+            { 1, "1/8" },
+            { 2, "1/7" },
+            { 3, "1/6" },
+            { 4, "1/5" },
+            { 5, "1/4" },
+            { 6, "1/3" },
+            { 7, "1/2" },
+            { 8, "1/1" }
         };
 
         public static Dictionary<double, string> LengthThresholdDict = new()
