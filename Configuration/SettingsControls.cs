@@ -107,9 +107,6 @@ namespace krrTools.Configuration
         {
             if (CheckEnabled)
             {
-                CheckBox = new CheckBox { Margin = new Thickness(0, 0, 5, 0), IsChecked = false };
-                InnerSlider.IsEnabled = false;
-
                 // 检查属性是否是可空类型
                 bool isNullableType = false;
                 if (PropertySelector != null)
@@ -120,6 +117,26 @@ namespace krrTools.Configuration
                         propInfo.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>) &&
                         Nullable.GetUnderlyingType(propInfo.PropertyType.GetGenericArguments()[0]) != null;
                 }
+
+                bool initialChecked = false;
+                if (isNullableType && Source != null && PropertySelector != null)
+                {
+                    // 对于可空类型，根据当前值设置初始勾选状态
+                    var propInfo = GetPropertyInfoFromExpression(PropertySelector);
+                    if (propInfo != null)
+                    {
+                        var bindableValue = propInfo.GetValue(Source);
+                        if (bindableValue != null)
+                        {
+                            var valueProperty = bindableValue.GetType().GetProperty("Value");
+                            var currentValue = valueProperty?.GetValue(bindableValue);
+                            initialChecked = currentValue != null;
+                        }
+                    }
+                }
+
+                CheckBox = new CheckBox { Margin = new Thickness(0, 0, 5, 0), IsChecked = initialChecked };
+                InnerSlider.IsEnabled = initialChecked;
 
                 CheckBox.Checked += (_, _) =>
                 {
@@ -215,8 +232,6 @@ namespace krrTools.Configuration
             // 设置动态最大值绑定
             if (DynamicMaxSource != null && !string.IsNullOrEmpty(DynamicMaxPath))
             {
-                Console.WriteLine(
-                    $"[SettingsControls] Setting up dynamic max binding: {DynamicMaxPath}, Source: {DynamicMaxSource}");
                 var maxBinding = new Binding(DynamicMaxPath)
                 {
                     Source = DynamicMaxSource,
@@ -241,15 +256,15 @@ namespace krrTools.Configuration
             }
             else
             {
-                Console.WriteLine(
-                    $"[SettingsControls] No dynamic max binding - Source: {DynamicMaxSource}, Path: {DynamicMaxPath}");
+                // 仅在调试时输出日志，避免生产环境日志污染，检查是否正确设置了动态绑定，没有定义动态绑定时不输出
+                if (!string.IsNullOrEmpty(DynamicMaxPath))
+                    Console.WriteLine(
+                        $"[SettingsControls] No dynamic max binding - Source: {DynamicMaxSource}, Path: {DynamicMaxPath}");
             }
 
             // 设置动态最小值绑定
             if (DynamicMinSource != null && !string.IsNullOrEmpty(DynamicMinPath))
             {
-                Console.WriteLine(
-                    $"[SettingsControls] Setting up dynamic min binding: {DynamicMinPath}, Source: {DynamicMinSource}");
                 var minBinding = new Binding(DynamicMinPath)
                 {
                     Source = DynamicMinSource,
