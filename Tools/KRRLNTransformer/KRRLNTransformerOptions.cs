@@ -9,33 +9,33 @@ namespace krrTools.Tools.KRRLNTransformer
     {
         // Short LN settings
         [Option(LabelKey = nameof(KRRShortPercentageLabel), Min = 0, Max = 100, UIType = UIType.Slider, IsRefresher = true)]
-        public Bindable<double> ShortPercentage { get; } = new(50);
+        public Bindable<double> ShortPercentage { get; } = new(100);
 
-        [Option(LabelKey = nameof(KRRShortLevelLabel), Min = 0, Max = 10, UIType = UIType.Slider, IsRefresher = true)]
-        public Bindable<double> ShortLevel { get; } = new(5);
+        [Option(LabelKey = nameof(KRRShortLevelLabel), Min = 0, Max = 100, UIType = UIType.Slider, IsRefresher = true)]
+        public Bindable<double> ShortLevel { get; } = new(50);
 
-        [Option(LabelKey = nameof(KRRShortLimitLabel), Min = 0, Max = 50, UIType = UIType.Slider, IsRefresher = true)]
-        public Bindable<double> ShortLimit { get; } = new(20);
+        [Option(LabelKey = nameof(KRRShortLimitLabel), Min = 0, Max = 10, UIType = UIType.Slider, IsRefresher = true)]
+        public Bindable<double> ShortLimit { get; } = new(10);
 
         [Option(LabelKey = nameof(KRRShortRandomLabel), Min = 0, Max = 100, UIType = UIType.Slider, IsRefresher = true)]
-        public Bindable<double> ShortRandom { get; } = new(50);
+        public Bindable<double> ShortRandom { get; } = new(0);
 
         // Long LN settings
         [Option(LabelKey = nameof(KRRLongPercentageLabel), Min = 0, Max = 100, UIType = UIType.Slider, IsRefresher = true)]
         public Bindable<double> LongPercentage { get; } = new(50);
 
-        [Option(LabelKey = nameof(KRRLongLevelLabel), Min = 0, Max = 10, UIType = UIType.Slider, IsRefresher = true)]
-        public Bindable<double> LongLevel { get; } = new(5);
+        [Option(LabelKey = nameof(KRRLongLevelLabel), Min = 0, Max = 100, UIType = UIType.Slider, IsRefresher = true)]
+        public Bindable<double> LongLevel { get; } = new(50);
 
-        [Option(LabelKey = nameof(KRRLongLimitLabel), Min = 0, Max = 50, UIType = UIType.Slider, IsRefresher = true)]
-        public Bindable<double> LongLimit { get; } = new(20);
+        [Option(LabelKey = nameof(KRRLongLimitLabel), Min = 0, Max = 10, UIType = UIType.Slider, IsRefresher = true)]
+        public Bindable<double> LongLimit { get; } = new(10);
 
         [Option(LabelKey = nameof(KRRLongRandomLabel), Min = 0, Max = 100, UIType = UIType.Slider, IsRefresher = true)]
         public Bindable<double> LongRandom { get; } = new(50);
 
         // Threshold and alignment settings (nullable for toggle behavior)
-        [Option(LabelKey = nameof(LengthThresholdLabel), Min = 0, Max = 10, UIType = UIType.Slider, DisplayMapField = nameof(LengthThresholdDict), IsRefresher = true)]
-        public Bindable<double?> LengthThreshold { get; } = new(4);
+        [Option(LabelKey = nameof(LengthThresholdLabel), Min = 0, Max = 14, UIType = UIType.Slider, DisplayMapField = nameof(LengthThresholdDict), IsRefresher = true)]
+        public Bindable<int> LengthThreshold { get; } = new(5);
 
         [Option(LabelKey = nameof(KRRAlignLabel), Min = 1, Max = 9, UIType = UIType.Slider, DisplayMapField = nameof(AlignValuesDict), IsRefresher = true)]
         public Bindable<double?> Alignment { get; } = new(4);
@@ -92,7 +92,7 @@ namespace krrTools.Tools.KRRLNTransformer
 
         public static Dictionary<double, string> LengthThresholdDict = new()
         {
-            { 0, "Off" },
+            { 0, "AllIsLongLN" },
             { 1, "1/8" },
             { 2, "1/6" },
             { 3, "1/4" },
@@ -102,7 +102,11 @@ namespace krrTools.Tools.KRRLNTransformer
             { 7, "3/4" },
             { 8, "1" },
             { 9, "4/3" },
-            { 10, "3/2" }
+            { 10, "3/2" },
+            { 11, "2/1"},
+            { 12, "3/1" },
+            { 13, "4/1"},
+            { 14, "AllIsShortLN"}
         };
     }
 }

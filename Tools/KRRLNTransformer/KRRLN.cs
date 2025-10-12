@@ -43,7 +43,6 @@ namespace krrTools.Tools.KRRLNTransformer
             (Matrix matrix1 , List<int> timeAxis1) = beatmap.getMTXandTimeAxis();
             
             //初始化各种矩阵,减少对象访问提高速度（注意不要调整初始化的顺序，有先后顺序之分)
-            Matrix lnLength = new Matrix(rows, cs);
             Matrix availableTimeMtx = GenerateAvailableTimeMatrix(matrix1, timeAxis1);
             Matrix longLnWaitModify = new Matrix(rows, cs);
             Matrix shortLnWaitModify = new Matrix(rows, cs);
@@ -64,7 +63,7 @@ namespace krrTools.Tools.KRRLNTransformer
             }
             
             //生成长短面标记
-            var borderKey = parameters.LengthThreshold.Value.HasValue ? (int)parameters.LengthThreshold.Value.Value : 4; // 默认值4
+            var borderKey = parameters.LengthThreshold.Value;
             var (shortLNFlag, longLNFlag) = GenerateLNFlags(matrix1, ManiaObjects, availableTimeMtx, beatLengthMtx, borderKey);
             
             longLNFlag = MarkByPercentage(longLNFlag, parameters.LongPercentage.Value, RG);
@@ -265,7 +264,7 @@ namespace krrTools.Tools.KRRLNTransformer
         private Beatmap ApplyChangesToHitObjects(Beatmap beatmap, Matrix mergeMTX , List<int> timeAxis,
             KRRLNTransformerOptions options)
         {
-            var (matrix2, timeAxis2) = beatmap.getMTXandTimeAxis();
+            (Matrix matrix2, List<int> timeAxis2) = beatmap.getMTXandTimeAxis();
             int cs = (int)beatmap.DifficultySection.CircleSize;
             int rows = beatmap.Rows;
             var ManiaObjects = beatmap.HitObjects.AsManiaNotes();
@@ -275,13 +274,13 @@ namespace krrTools.Tools.KRRLNTransformer
 
             for (int i = 0; i < mergeMTXspan.Length; i++)
             {
-                var index = matrix2Span[i];
-                if (index >= 0 && index < ManiaObjects.Count && mergeMTXspan[i] > 0)
+                if (mergeMTXspan[i] >= 0) 
                 {
+                    int index = matrix2Span[i];
                     //使用更新法修改endtime，不能直接赋值，会导致note无法变成LN
                     beatmap.HitObjects.UpdateHitObject(index, beatmap.HitObjects[index].AsManiaNote()
                         .CloneNote(EndTime: mergeMTXspan[i] + beatmap.HitObjects[index].StartTime));
-                }
+                }   
             }
             // 修改元数据
             // 避免重复添加 Version 前缀
@@ -462,7 +461,7 @@ namespace krrTools.Tools.KRRLNTransformer
 
             return (int)result;
         }
-
+        
         private Matrix MergeMatrices(Matrix matrix1, Matrix matrix2)
         {
             // 确保矩阵维度一致
@@ -501,17 +500,39 @@ namespace krrTools.Tools.KRRLNTransformer
 
         private Dictionary<int, double> borderlist = new()
         {
+            /*
+            { 0, "AllIsLongLN" },
+            { 1, "1/8" },
+            { 2, "1/6" },
+            { 3, "1/4" },
+            { 4, "1/3" },
+            { 5, "1/2" },
+            { 6, "2/3" },
+            { 7, "3/4" },
+            { 8, "1" },
+            { 9, "4/3" },
+            { 10, "3/2" },
+            { 11, "2/1"},
+            { 12, "3/1" },
+            { 13, "4/1"},
+            { 14, "AllIsShortLN"}
+            */
+            
             { 0, 0 },
             { 1, 1.0 / 8 },
             { 2, 1.0 / 6 },
             { 3, 1.0 / 4 },
             { 4, 1.0 / 3 },
             { 5, 1.0 / 2 },
-            { 6, 1.0 / 1 },
-            { 7, 3.0 / 2 },
-            { 8, 2.0 / 1 },
-            { 9, 4.0 / 1 },
-            { 10, 999 }
+            { 6, 2.0 / 3 },
+            { 7, 3.0 / 4 },
+            { 8, 1.0 },
+            { 9, 4.0 / 3 },
+            { 10, 3.0 / 2},
+            { 11, 2.0 / 1},
+            { 12, 3.0 / 1},
+            { 13, 4.0 / 1},
+            { 14, 999 }
         };
 
         //修改难度名，tag，和标签等

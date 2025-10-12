@@ -28,6 +28,10 @@ namespace krrTools.Tools.KRRLNTransformer
             var root = CreateRootScrollViewer();
             var stack = CreateMainStackPanel();
 
+            // 长度阈值设置 - 可空滑条自动带勾选框
+            var lengthThresholdPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LengthThreshold);
+            stack.Children.Add(lengthThresholdPanel);
+            
             // 短面条设置区域标题
             var shortHeader = new TextBlock { FontSize = UIConstants.HeaderFontSize, FontWeight = FontWeights.Bold };
             shortHeader.SetBinding(TextBlock.TextProperty,
@@ -76,11 +80,7 @@ namespace krrTools.Tools.KRRLNTransformer
             // 分隔线
             var separator2 = new Separator { Margin = new Thickness(0, 10, 0, 10) };
             stack.Children.Add(separator2);
-
-            // 长度阈值设置 - 可空滑条自动带勾选框
-            var lengthThresholdPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LengthThreshold);
-            stack.Children.Add(lengthThresholdPanel);
-
+            
             // 对齐设置 - 可空滑条自动带勾选框
             var alignPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.Alignment);
             stack.Children.Add(alignPanel);
