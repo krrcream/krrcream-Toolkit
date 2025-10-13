@@ -18,7 +18,7 @@
     <ItemGroup>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
         <PackageReference Include="DataGridExtensions" Version="2.7.0" />
-        <PackageReference Include="krrcream.OsuParsers" Version="1.8.2.2" />
+        <PackageReference Include="krrcream.OsuParsers" Version="1.8.2.5" />
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.0.0-1.25277.114">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

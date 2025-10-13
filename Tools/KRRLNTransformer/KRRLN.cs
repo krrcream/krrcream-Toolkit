@@ -42,6 +42,7 @@ namespace krrTools.Tools.KRRLNTransformer
             //初始化坐标矩阵以及时间轴
             (Matrix matrix1 , List<int> timeAxis1) = beatmap.getMTXandTimeAxis();
             
+          
             //初始化各种矩阵,减少对象访问提高速度（注意不要调整初始化的顺序，有先后顺序之分)
             Matrix availableTimeMtx = GenerateAvailableTimeMatrix(matrix1, timeAxis1);
             Matrix longLnWaitModify = new Matrix(rows, cs);
@@ -49,17 +50,16 @@ namespace krrTools.Tools.KRRLNTransformer
             DoubleMatrix beatLengthMtx = GenerateBeatLengthMatrix(matrix1, ManiaObjects);
             BoolMatrix orgIsLNMatrix = GenerateOrgIsLN(matrix1, ManiaObjects);
             
+            if (parameters.Alignment.Value.HasValue)
+            {
+                PrintMatrices(5, matrix1, orgIsLNMatrix);
+                Console.WriteLine("+++++++++++++++++++++++++++++++分割线+++++++++++++++++++++++++++++++");
+            }
+            
             //将原始LN标记为-1,跳过处理
             if (!parameters.ProcessOriginalIsChecked.Value)
             {
-                var matrixSpan = matrix1.AsSpan();
-                var orgIsLNSpan = orgIsLNMatrix.AsSpan();
-    
-                for (var i = 0; i < matrixSpan.Length; i++)
-                {
-                    if (orgIsLNSpan[i] && matrixSpan[i] >= 0)
-                        matrixSpan[i] = -1;
-                }
+                MarkOriginalLNAsSkipped(matrix1, orgIsLNMatrix);
             }
             
             //生成长短面标记
@@ -74,32 +74,80 @@ namespace krrTools.Tools.KRRLNTransformer
             //正式生成longLN矩阵
             GenerateLongLNMatrix(matrix1, longLnWaitModify, longLNFlag, ManiaObjects, 
                 availableTimeMtx, beatLengthMtx, borderKey, 
-                parameters.LongPercentage.Value, (int)parameters.LongRandom.Value, RG);
+                parameters.LongLevel.Value, (int)parameters.LongRandom.Value, RG);
 
             GenerateShortLNMatrix(matrix1, shortLnWaitModify, shortLNFlag, ManiaObjects,
                 availableTimeMtx, beatLengthMtx, borderKey,
-                parameters.ShortPercentage.Value, (int)parameters.ShortRandom.Value, RG);
+                parameters.ShortLevel.Value, (int)parameters.ShortRandom.Value, RG);
 
             var result = MergeMatrices(longLnWaitModify, shortLnWaitModify);
             
             if (parameters.Alignment.Value.HasValue)
             {
-                double denominator = 0; 
-                double alignValue = alignList[(int)parameters.Alignment.Value.Value];
-                var resultSpan = result.AsSpan();
-                var beatLengthMtxSpan = beatLengthMtx.AsSpan();
-                for (int i = 0; i < resultSpan.Length; i++)
-                {
-                    if (resultSpan[i] > 0) ;
-                    {
-                        denominator = beatLengthMtxSpan[i] * alignValue;
-                        resultSpan[i] = (int)((int)(resultSpan[i] / denominator) * denominator);
-                    }
-                }
+                PrintMatrices(5, matrix1, orgIsLNMatrix);
+                Console.WriteLine("+++++++++++++++++++++++++++++++分割线+++++++++++++++++++++++++++++++");
             }
             
-            
             return result;
+        }
+        
+        //检查用临时代码，未来无用可以删掉,应该不用整合进工具里，是console打印的方法。
+        public void PrintMatrices(int i, params object[] matrices)
+        {
+            if (matrices == null || matrices.Length == 0)
+                return;
+
+            // 确定实际要打印的行数
+            int maxRows = 0;
+            foreach (var matrix in matrices)
+            {
+                int rows = matrix switch
+                {
+                    Matrix m => m.Rows,
+                    DoubleMatrix dm => dm.Rows,
+                    BoolMatrix bm => bm.Rows,
+                    _ => 0
+                };
+                maxRows = Math.Max(maxRows, rows);
+            }
+
+            // 只打印前i行（倒序）
+            int rowsToPrint = Math.Min(i, maxRows);
+
+            // 倒序打印前i行
+            for (int row = rowsToPrint - 1; row >= 0; row--)
+            {
+                for (int m = 0; m < matrices.Length; m++)
+                {
+                    var matrix = matrices[m];
+                    string cellValue = matrix switch
+                    {
+                        Matrix mtx => (row < mtx.Rows && row >= 0) ? string.Join(" ", Enumerable.Range(0, mtx.Cols).Select(col => mtx[row, col])) : "",
+                        DoubleMatrix dmtx => (row < dmtx.Rows && row >= 0) ? string.Join(" ", Enumerable.Range(0, dmtx.Cols).Select(col => dmtx[row, col].ToString("F2"))) : "",
+                        BoolMatrix bmtx => (row < bmtx.Rows && row >= 0) ? string.Join(" ", Enumerable.Range(0, bmtx.Cols).Select(col => bmtx[row, col] ? "T" : "F")) : "",
+                        _ => ""
+                    };
+
+                    Console.Write(cellValue);
+        
+                    // 如果不是最后一个矩阵，添加分隔符
+                    if (m < matrices.Length - 1)
+                        Console.Write(" | ");
+                }
+                Console.WriteLine(); // 换行
+            }
+        }
+        
+        // 生成是否是原始LN矩阵
+        private void MarkOriginalLNAsSkipped(Matrix matrix, BoolMatrix orgIsLNMatrix)
+        {
+            var matrixSpan = matrix.AsSpan();
+            var orgIsLNSpan = orgIsLNMatrix.AsSpan();
+            for (var i = 0; i < matrixSpan.Length; i++)
+            {
+                if (orgIsLNSpan[i] && matrixSpan[i] >= 0)
+                    matrixSpan[i] = -1;
+            }
         }
         
         //生成长短面标记
@@ -138,9 +186,10 @@ namespace krrTools.Tools.KRRLNTransformer
         //是否是原始LN生成
         private BoolMatrix GenerateOrgIsLN(Matrix matrix1, List<ManiaNote> maniaObjects)
         {
-            var orgIsLN = new BoolMatrix(matrix1.Rows, matrix1.Cols);
-            var orgIsLNSpan = orgIsLN.AsSpan();
             int cols = matrix1.Cols;
+            var orgIsLN = new BoolMatrix(matrix1.Rows, cols);
+            var orgIsLNSpan = orgIsLN.AsSpan();
+            
     
             foreach (var obj in maniaObjects)
             {
@@ -151,7 +200,8 @@ namespace krrTools.Tools.KRRLNTransformer
                     colIndex.Value >= 0 && colIndex.Value < cols)
                 {
                     // 直接通过 Span 设置值，避免索引器开销
-                    orgIsLNSpan[rowIndex.Value * cols + colIndex.Value] = true;
+                    if (obj.EndTime > obj.StartTime)
+                        orgIsLNSpan[rowIndex.Value * cols + colIndex.Value] = true;
                 }
             }
     
@@ -180,7 +230,7 @@ namespace krrTools.Tools.KRRLNTransformer
         // 正式生成longLN矩阵 - 优化版本
         private void GenerateLongLNMatrix(Matrix matrix1, Matrix longLnWaitModify, BoolMatrix longLNFlag, 
             List<ManiaNote> maniaObjects, Matrix availableTimeMtx, DoubleMatrix beatLengthMtx,
-            int borderKey, double longPercentage, int longRandom, Random random)
+            int borderKey, double LNLevel, int longRandom, Random random)
         {
             var matrixSpan = matrix1.AsSpan();
             var longFlagSpan = longLNFlag.AsSpan();
@@ -198,7 +248,7 @@ namespace krrTools.Tools.KRRLNTransformer
                     var newLength = GenerateRandom(
                         borderValue * maniaObjects[indexObj].BeatLengthOfThisNote,
                         availableTimeSpan[i] - beatLengthSpan[i] / 8,
-                        availableTimeSpan[i] * longPercentage / 100,
+                        availableTimeSpan[i] * LNLevel / 100,
                         longRandom, random
                     );
                     resultSpan[i] = newLength;
@@ -209,7 +259,7 @@ namespace krrTools.Tools.KRRLNTransformer
         // 正式生成shortLN矩阵 - 优化版本
         private void GenerateShortLNMatrix(Matrix matrix1, Matrix shortLnWaitModify, BoolMatrix shortLNFlag,
             List<ManiaNote> maniaObjects, Matrix availableTimeMtx, DoubleMatrix beatLengthMtx,
-            int borderKey, double shortPercentage, int shortRandom, Random random)
+            int borderKey, double LNLevel, int shortRandom, Random random)
         {
             var matrixSpan = matrix1.AsSpan();
             var shortFlagSpan = shortLNFlag.AsSpan();
@@ -227,7 +277,7 @@ namespace krrTools.Tools.KRRLNTransformer
                     var newLength = GenerateRandom(
                         Math.Max(beatLengthSpan[i] / 4, 50),
                         borderValue * maniaObjects[indexObj].BeatLengthOfThisNote,
-                        availableTimeSpan[i] * shortPercentage / 100,
+                        availableTimeSpan[i] * LNLevel / 100,
                         shortRandom, random
                     );
                     resultSpan[i] = newLength;
