@@ -39,8 +39,11 @@ namespace krrTools.Tools.KRRLNTransformer
 
         [Option(LabelKey = nameof(KRRAlignLabel), Min = 1, Max = 8, UIType = UIType.Slider, DisplayMapField = nameof(AlignValuesDict), IsRefresher = true)]
         public Bindable<double?> Alignment { get; } = new(5);
-
+        
+        /*
+        // 暂时隐藏长短面对齐选项
         [Option(LabelKey = nameof(KRRLNAlignLabel), Min = 1, Max = 8, UIType = UIType.Slider, DisplayMapField = nameof(AlignValuesDict), IsRefresher = true)]
+        */
         public Bindable<double?> LNAlignment { get; } = new(6);
 
         // General settings

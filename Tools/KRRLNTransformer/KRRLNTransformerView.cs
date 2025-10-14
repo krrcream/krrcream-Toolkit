@@ -92,9 +92,9 @@ namespace krrTools.Tools.KRRLNTransformer
             var alignPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.Alignment);
             stack.Children.Add(alignPanel);
 
-            // LN对齐设置 - 可空滑条自动带勾选框
-            var lnAlignPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LNAlignment);
-            stack.Children.Add(lnAlignPanel);
+            // LN对齐设置 - 可空滑条自动带勾选框 暂时隐藏
+            /*var lnAlignPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LNAlignment);
+            stack.Children.Add(lnAlignPanel);*/
 
             // 处理原始面条复选框
             var processOriginalPanel = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.ProcessOriginalIsChecked);

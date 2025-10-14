@@ -26,7 +26,7 @@ namespace krrTools.Tools.KRRLNTransformer
             ApplyChangesToHitObjects(beatmap, processedMatrix, timeAxis, options);
         }
 
-        private Matrix BuildAndProcessMatrix(NoteMatrix matrix, List<int> timeAxis, Beatmap beatmap,
+        private Matrix BuildAndProcessMatrix(NoteMatrix matrix , List<int> timeAxis, Beatmap beatmap,
             KRRLNTransformerOptions parameters)
         {
             // 创建带种子的随机数生成器
@@ -49,11 +49,6 @@ namespace krrTools.Tools.KRRLNTransformer
             Matrix shortLnWaitModify = new Matrix(rows, cs);
             DoubleMatrix beatLengthMtx = GenerateBeatLengthMatrix(matrix1, ManiaObjects);
             BoolMatrix orgIsLNMatrix = GenerateOrgIsLN(matrix1, ManiaObjects);
-            
-            if (parameters.Alignment.Value.HasValue)
-            {
-
-            }
             
             //将原始LN标记为-1,跳过处理
             if (!parameters.ProcessOriginalIsChecked.Value)
@@ -80,14 +75,129 @@ namespace krrTools.Tools.KRRLNTransformer
                 parameters.ShortLevel.Value, (int)parameters.ShortRandom.Value, RG);
 
             var result = MergeMatrices(longLnWaitModify, shortLnWaitModify);
-            
+            var resultSpan = result.AsSpan();
             if (parameters.Alignment.Value.HasValue)
             {
-
+                PerformLengthAlignment(result, beatLengthMtx, parameters);
             }
-            
             return result;
         }
+        
+        // 面尾对齐作废，但是代码暂时留着万一哪天想出来了
+        private Matrix AlignEndTimesByColumnAndGetHoldLengths(List<ManiaNote> maniaObjects, Matrix matrix, Matrix endTimeMtx, Matrix availableTimeMtx, List<int> timeAxis1, int timeX = 150)
+        {
+            int rows = matrix.Rows;
+            int cols = matrix.Cols;
+            
+            var matrixSpan = matrix.AsSpan();
+            var endTimeSpan = endTimeMtx.AsSpan();
+            var availableTimeSpan = availableTimeMtx.AsSpan();
+            
+            // 创建结果矩阵存储hold lengths
+            var holdLengths = new Matrix(rows, cols);
+            var holdLengthsSpan = holdLengths.AsSpan();
+            
+            // 初始化为-1（表示不处理）
+            for (int i = 0; i < holdLengthsSpan.Length; i++) 
+                holdLengthsSpan[i] = -1;
+            
+            // 按列处理
+            for (int col = 0; col < cols; col++)
+            {
+                // 收集当前列的所有有效endtimes及其位置
+                var endTimesInColumn = new List<(int row, int endTime, int availableTime, int index)>();
+                
+                for (int row = 0; row < rows; row++)
+                {
+                    int index = row * cols + col;
+                    if (matrixSpan[index] >= 0 && endTimeSpan[index] > 0)
+                    {
+                        endTimesInColumn.Add((row, endTimeSpan[index], availableTimeSpan[index], index));
+                    }
+                }
+                
+                if (endTimesInColumn.Count <= 1) continue; // 只有一个或没有元素则无需对齐
+                
+                // 按endTime排序找到最大的endTime
+                var sortedEndTimes = endTimesInColumn.OrderByDescending(et => et.endTime).ToList();
+                int maxEndTime = sortedEndTimes.First().endTime;
+                
+                // 对每个需要调整的元素进行处理
+                foreach (var item in sortedEndTimes)
+                {
+                    int diff = Math.Abs(maxEndTime - item.endTime);
+                    
+                    // 如果差异小于阈值，则尝试对齐
+                    if (diff <= timeX)
+                    {
+                        int newEndTime = maxEndTime;
+                        
+                        // 获取该行的起始时间
+                        int startTime = timeAxis1[item.row];
+                        
+                        // 检查是否会超过availableTime限制
+                        if (newEndTime - startTime > item.availableTime)
+                        {
+                            // 如果超出，则调整为目标时间减去一定缓冲值
+                            newEndTime = maxEndTime - timeX;
+                            
+                            // 再次检查是否仍然超出限制
+                            if (newEndTime - startTime > item.availableTime)
+                            {
+                                // 如果还是超出，则使用availableTime内的最大值
+                                newEndTime = startTime + item.availableTime;
+                            }
+                        }
+                        
+                        // 计算并存储hold length
+                        int newHoldLength = newEndTime - startTime;
+                        if (newHoldLength > 0)
+                        {
+                            holdLengthsSpan[item.index] = newHoldLength;
+                        }
+                    }
+                }
+            }
+            return holdLengths;
+        }
+        
+        // 长度对齐
+        private void PerformLengthAlignment(Matrix result, DoubleMatrix beatLengthMtx, KRRLNTransformerOptions parameters)
+        {
+            double denominator = 0;
+            double aligValue = alignList[(int)parameters.Alignment.Value.Value];
+            var resultSpan = result.AsSpan();
+            var beatLengthMtxSpan = beatLengthMtx.AsSpan();
+            for (int i = 0; i < resultSpan.Length; i++)
+            {
+                if (resultSpan[i] > 0)
+                {
+                    denominator = beatLengthMtxSpan[i] * aligValue;
+                    resultSpan[i] =
+                        (int)((int)(resultSpan[i] / denominator) * denominator); //请AI不要优化这一行,这个就是最精度最快的写法，这是能够放几个分母的意思
+                }
+            }
+        }
+        
+        // 生成EndTime矩阵
+        private Matrix BuildEndTimeMatrix(Matrix matrix1, List<ManiaNote> maniaObjects, int rows, int cols)
+        {
+            Matrix endTimeMtx = new Matrix(rows, cols);
+            
+            var matrix1Span = matrix1.AsSpan();
+            var entTimeMtxSpan = endTimeMtx.AsSpan();
+            for (int i = 0; i < matrix1Span.Length; i++)
+            {
+                if (matrix1Span[i] < 0) continue;
+                int ET = maniaObjects[matrix1Span[i]].EndTime;
+                if (ET > 0)
+                {
+                    entTimeMtxSpan[i] = ET;
+                }
+            }
+            return endTimeMtx;
+        }
+        
         
         // 生成是否是原始LN矩阵
         private void MarkOriginalLNAsSkipped(Matrix matrix, BoolMatrix orgIsLNMatrix)
