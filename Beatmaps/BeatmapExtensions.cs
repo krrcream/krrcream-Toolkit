@@ -224,10 +224,5 @@ namespace krrTools.Beatmaps
                     return a.StartTime.CompareTo(b.StartTime);
             });
         }
-
-        public static (NoteMatrix, List<int>) getMTXandTimeAxis(this Beatmap beatmap)
-        {
-            return beatmap.BuildMatrix();
-        }
     }
 }

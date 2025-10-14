@@ -96,7 +96,7 @@ public class ConverterProcessorTests
         STATestHelper.RunInSTA(() =>
         {
             // Arrange
-            _mockModuleManager.Setup(m => m.GetToolByName("N2NC")).Returns((ITool?)null);
+            _mockModuleManager.Setup(m => m.GetToolByName("N2NC")).Returns((IToolModule?)null);
             var processor = new ConverterProcessor(_mockModuleManager.Object)
             {
                 ModuleTool = ConverterEnum.N2NC

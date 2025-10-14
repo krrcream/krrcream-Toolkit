@@ -48,7 +48,7 @@ namespace krrTools.Tools.KRRLNTransformer
         public Bindable<bool> ProcessOriginalIsChecked { get; } = new();
 
         [Option(LabelKey = nameof(ODSliderLabel), Min = 0, Max = 10, UIType = UIType.Slider, IsRefresher = true)]
-        public Bindable<double?> ODValue { get; } = new();
+        public Bindable<double?> ODValue { get; } = new(0);
 
         [Option(LabelKey = nameof(SeedButtonLabel), UIType = UIType.NumberBox, IsRefresher = true)]
         public Bindable<int?> Seed { get; } = new(114514);

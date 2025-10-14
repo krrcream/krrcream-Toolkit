@@ -13,7 +13,7 @@ namespace krrTools.Core;
     /// 基类，提供选项加载和保存功能
     /// </summary>
     /// <typeparam name="TOptions">The options type for this tool</typeparam>
-    public abstract class   ToolViewModelBase<TOptions> : ObservableObject, IDisposable, IToolViewModel where TOptions : class, IToolOptions, new()
+    public abstract class   ToolViewModelBase<TOptions> : ObservableObject, IDisposable where TOptions : class, IToolOptions, new()
     {
         private TOptions _options;
         private readonly ConverterEnum _toolEnum;

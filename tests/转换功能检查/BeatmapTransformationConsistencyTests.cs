@@ -323,13 +323,13 @@ public class BeatmapTransformationConsistencyTests
             var seed = 99999;
             var options1 = new N2NCOptions();
             options1.TargetKeys.Value = 6;
-            options1.MaxKeys.Value = 6; // 设置为等于TargetKeys以禁用密度减少
+            options1.MaxKeys.Value = 6;
             options1.MinKeys.Value = 1;
             options1.TransformSpeed.Value = 1.0;
             options1.Seed = seed;
             var options2 = new N2NCOptions();
             options2.TargetKeys.Value = 6;
-            options2.MaxKeys.Value = 6; // 设置为等于TargetKeys以禁用密度减少
+            options2.MaxKeys.Value = 6;
             options2.MinKeys.Value = 1;
             options2.TransformSpeed.Value = 1.0;
             options2.Seed = seed;

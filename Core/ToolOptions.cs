@@ -86,8 +86,7 @@ namespace krrTools.Core
                     SetPropertyValue(prop, clamped);
                 }
             }
-            // 移除double的自动Clamp，避免浮点精度误差触发PropertyChanged
-            // 子类可在Validate中手动处理double属性的Clamp
+            // 子类可在Validate中手动处理Clamp
         }
 
         /// <summary>
@@ -113,10 +112,6 @@ namespace krrTools.Core
             if (IsLoading) return; // 加载时避免触发PropertyChanged
             base.OnPropertyChanged(e);
             // 设置变化时，通过UI或其他方式触发BaseOptionsManager.SaveOptions
-            // 注释掉日志输出，避免没交互时的误触发
-            // Console.WriteLine(!IsValidating
-            //     ? $"[ToolOptions] Property changed: {e.PropertyName}, consider saving options."
-            //     : $"[ToolOptions] Property changed during validation, not sending message");
         }
 
         public PresetKind SelectedPreset { get; init; } = PresetKind.Default;
@@ -166,7 +161,7 @@ namespace krrTools.Core
         /// 此设置变化是否会触发预览刷新
         /// 默认false，只有明确标记为true的设置变化才会发布SettingsChangedEvent
         /// </summary>
-        public bool IsRefresher { get; set; } = false;
+        public bool IsRefresher { get; set; }
     }
 
     /// <summary>

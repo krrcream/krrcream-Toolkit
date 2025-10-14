@@ -185,6 +185,25 @@ namespace krrTools.Tools.N2NC
                 }
             );
 
+            // Add built-in presets to the presets panel
+            if (presetsBorder is StackPanel outerPanel)
+            {
+                var builtinPresetsPanel = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
+                foreach (var (kind, _, options) in PresetBottom.GetPresetTemplates())
+                {
+                    var btn = SharedUIComponents.CreateStandardButton(PresetBottom.GetEnumDescription(kind));
+                    btn.Width = 100;
+                    btn.Click += (_, _) =>
+                    {
+                        _viewModel.TargetKeys = (int)options.TargetKeys.Value;
+                        _viewModel.TransformSpeed = options.TransformSpeed.Value;
+                        _viewModel.Seed = options.Seed;
+                    };
+                    builtinPresetsPanel.Children.Add(btn);
+                }
+                outerPanel.Children.Insert(0, builtinPresetsPanel);
+            }
+
             var presetsPanel = SharedUIComponents.CreateLabeledRow(Strings.PresetsLabel, presetsBorder, rowMargin);
             grid.Children.Add(presetsPanel);
 
