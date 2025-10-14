@@ -5,7 +5,7 @@ namespace krrTools.Localization
     /// </summary>
     public static class Strings
     {
-        public const string WindowTitle = "krrcream's Toolkit V2.3.1";
+        public const string WindowTitle = "krrcream's Toolkit V3.0.0";
 
         // Tab headers
         public const string TabN2NC = "NtoN Converter|NtoN转换器";
