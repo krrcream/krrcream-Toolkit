@@ -125,7 +125,7 @@ namespace krrTools.Beatmaps
             // 清理最终文件名中的非法字符
             FileName = Regex.Replace(FileName, invalidCharsPattern, "");
 
-            return FileName;
+            return FileName + ".osu";
         }
 
         public static Dictionary<double, double> GetBeatLengthList(this Beatmap beatmap)
