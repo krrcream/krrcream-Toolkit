@@ -113,8 +113,8 @@ namespace krrTools.Tools.DPtool
             // 避免重复拼接 Version
             if (beatmap.MetadataSection.Version == null)
                 beatmap.MetadataSection.Version = "[DP]";
-            else if (!beatmap.MetadataSection.Version.StartsWith("[DP]"))
-                beatmap.MetadataSection.Version = "[DP] " + beatmap.MetadataSection.Version;
+            /*else if (!beatmap.MetadataSection.Version.StartsWith("[DP]"))
+                beatmap.MetadataSection.Version = "[DP] " + beatmap.MetadataSection.Version;*/
         }
 
         // 静态方法：处理矩阵，应用DP转换选项

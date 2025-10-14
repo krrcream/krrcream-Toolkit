@@ -150,6 +150,7 @@ namespace krrTools.Utilities
                 cloned.MetadataSection.Version = input.MetadataSection.Version;
                 cloned.MetadataSection.Source = input.MetadataSection.Source;
                 cloned.MetadataSection.Tags = input.MetadataSection.Tags;
+                cloned.MetadataSection.BeatmapSetID = input.MetadataSection.BeatmapSetID;
             }
             // 克隆DifficultySection以避免修改CircleSize
             cloned.DifficultySection = Activator.CreateInstance(input.DifficultySection.GetType()) as dynamic;

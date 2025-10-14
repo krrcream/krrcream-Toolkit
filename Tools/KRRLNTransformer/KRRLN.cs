@@ -26,7 +26,7 @@ namespace krrTools.Tools.KRRLNTransformer
             ApplyChangesToHitObjects(beatmap, processedMatrix, timeAxis, options);
         }
 
-        private Matrix BuildAndProcessMatrix(NoteMatrix matrix, List<int> timeAxis, Beatmap beatmap,
+        private Matrix BuildAndProcessMatrix(NoteMatrix matrix , List<int> timeAxis, Beatmap beatmap,
             KRRLNTransformerOptions parameters)
         {
             // 创建带种子的随机数生成器
@@ -80,7 +80,6 @@ namespace krrTools.Tools.KRRLNTransformer
             {
                 PerformLengthAlignment(result, beatLengthMtx, parameters);
             }
-            
             return result;
         }
         
@@ -122,7 +121,7 @@ namespace krrTools.Tools.KRRLNTransformer
                 var newTags = currentTags.Concat([tagToAdd]).ToArray();
                 beatmap.MetadataSection.Tags = newTags;
             }
-
+            
             return beatmap;
         }
 
@@ -692,8 +691,10 @@ namespace krrTools.Tools.KRRLNTransformer
         {
             if (beatmap.MetadataSection.Version != null)
                 beatmap.MetadataSection.Version = $"[KRR LN.]{beatmap.MetadataSection.Version}";
-            if (beatmap.MetadataSection.Creator != null)
-                beatmap.MetadataSection.Creator = "Krr LN. & " + beatmap.MetadataSection.Creator;
+            if (beatmap.MetadataSection.Creator == null)
+                beatmap.MetadataSection.Creator = "KRR LN.";
+            else if (!beatmap.MetadataSection.Creator.StartsWith("KRR LN. &"))
+                beatmap.MetadataSection.Creator = "KRR LN. & " + beatmap.MetadataSection.Creator;
             var currentTags = beatmap.MetadataSection.Tags ?? [];
             var tagToAdd = BaseOptionsManager.KRRLNDefaultTag;
             if (!currentTags.Contains(tagToAdd))
@@ -714,34 +715,6 @@ namespace krrTools.Tools.KRRLNTransformer
                 destination[i, j] = source[i, j];
 
             return destination;
-        }
-
-        private static ManiaHoldNote ConvertToHoldNote(ManiaNote note, int newEndTime) //临时使用，深拷贝
-        {
-            // 创建新的 ManiaHoldNote 实例
-            var holdNote = new ManiaHoldNote(
-                new Vector2(note.Position.X, note.Position.Y),
-                note.StartTime,
-                newEndTime,
-                note.HitSound,
-                note.Extras,
-                note.IsNewCombo,
-                note.ComboOffset
-            )
-            {
-                // 复制 ManiaNote 特有的属性
-                BeatLengthOfThisNote = note.BeatLengthOfThisNote,
-                RowIndex = note.RowIndex
-            };
-
-            // 如果 NoteCircleSize 已设置，则复制它（这会自动处理 ColIndex）
-            if (note.NoteCircleSize.HasValue)
-                holdNote.NoteCircleSize = note.NoteCircleSize;
-            else if (note.ColIndex.HasValue)
-                // 如果只有 ColIndex，则手动设置
-                holdNote.ColIndex = note.ColIndex;
-
-            return holdNote;
         }
     }
 }
