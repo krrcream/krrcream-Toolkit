@@ -83,6 +83,49 @@ namespace krrTools.Tools.KRRLNTransformer
             return result;
         }
         
+        private Beatmap ApplyChangesToHitObjects(Beatmap beatmap, Matrix mergeMTX , List<int> timeAxis,
+            KRRLNTransformerOptions options)
+        {
+            (Matrix matrix2, List<int> timeAxis2) = beatmap.getMTXandTimeAxis();
+            int cs = (int)beatmap.DifficultySection.CircleSize;
+            int rows = beatmap.Rows;
+            var ManiaObjects = beatmap.HitObjects.AsManiaNotes();
+
+            var mergeMTXspan = mergeMTX.AsSpan();
+            var matrix2Span = matrix2.AsSpan();
+
+            for (int i = 0; i < mergeMTXspan.Length; i++)
+            {
+                if (mergeMTXspan[i] >= 0) 
+                {
+                    int index = matrix2Span[i];
+                    //使用更新法修改endtime，不能直接赋值，会导致note无法变成LN
+                    beatmap.HitObjects.UpdateHitObject(index, beatmap.HitObjects[index].AsManiaNote()
+                        .CloneNote(EndTime: mergeMTXspan[i] + beatmap.HitObjects[index].StartTime));
+                }   
+            }
+            // 修改元数据
+            // 避免重复添加 Version 前缀
+            if (beatmap.MetadataSection.Version != null && !beatmap.MetadataSection.Version.Contains("[KRR LN.]"))
+                beatmap.MetadataSection.Version = $"[KRR LN.]{beatmap.MetadataSection.Version}";
+
+            // 避免重复拼接 Creator
+            if (beatmap.MetadataSection.Creator != null && !beatmap.MetadataSection.Creator.Contains("Krr LN."))
+                beatmap.MetadataSection.Creator = "Krr LN. & " + beatmap.MetadataSection.Creator;
+
+            // 避免重复添加 Tag
+            var currentTags = beatmap.MetadataSection.Tags ?? [];
+            var tagToAdd = "krrcream's transformer LN";
+            if (!currentTags.Contains(tagToAdd))
+            {
+                var newTags = currentTags.Concat([tagToAdd]).ToArray();
+                beatmap.MetadataSection.Tags = newTags;
+            }
+
+            return beatmap;
+        }
+
+        
         // 面尾对齐作废，但是代码暂时留着万一哪天想出来了
         private Matrix AlignEndTimesByColumnAndGetHoldLengths(List<ManiaNote> maniaObjects, Matrix matrix, Matrix endTimeMtx, Matrix availableTimeMtx, List<int> timeAxis1, int timeX = 150)
         {
@@ -387,48 +430,6 @@ namespace krrTools.Tools.KRRLNTransformer
             }
             
             return availableTimeMtx;
-        }
-        
-        private Beatmap ApplyChangesToHitObjects(Beatmap beatmap, Matrix mergeMTX , List<int> timeAxis,
-            KRRLNTransformerOptions options)
-        {
-            (Matrix matrix2, List<int> timeAxis2) = beatmap.getMTXandTimeAxis();
-            int cs = (int)beatmap.DifficultySection.CircleSize;
-            int rows = beatmap.Rows;
-            var ManiaObjects = beatmap.HitObjects.AsManiaNotes();
-
-            var mergeMTXspan = mergeMTX.AsSpan();
-            var matrix2Span = matrix2.AsSpan();
-
-            for (int i = 0; i < mergeMTXspan.Length; i++)
-            {
-                if (mergeMTXspan[i] >= 0) 
-                {
-                    int index = matrix2Span[i];
-                    //使用更新法修改endtime，不能直接赋值，会导致note无法变成LN
-                    beatmap.HitObjects.UpdateHitObject(index, beatmap.HitObjects[index].AsManiaNote()
-                        .CloneNote(EndTime: mergeMTXspan[i] + beatmap.HitObjects[index].StartTime));
-                }   
-            }
-            // 修改元数据
-            // 避免重复添加 Version 前缀
-            if (beatmap.MetadataSection.Version != null && !beatmap.MetadataSection.Version.Contains("[KRR LN.]"))
-                beatmap.MetadataSection.Version = $"[KRR LN.]{beatmap.MetadataSection.Version}";
-
-            // 避免重复拼接 Creator
-            if (beatmap.MetadataSection.Creator != null && !beatmap.MetadataSection.Creator.Contains("Krr LN."))
-                beatmap.MetadataSection.Creator = "Krr LN. & " + beatmap.MetadataSection.Creator;
-
-            // 避免重复添加 Tag
-            var currentTags = beatmap.MetadataSection.Tags ?? [];
-            var tagToAdd = "krrcream's transformer LN";
-            if (!currentTags.Contains(tagToAdd))
-            {
-                var newTags = currentTags.Concat([tagToAdd]).ToArray();
-                beatmap.MetadataSection.Tags = newTags;
-            }
-
-            return beatmap;
         }
         
         // 百分比标记方法
