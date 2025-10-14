@@ -378,9 +378,10 @@ namespace krrTools.Tools.KRRLNTransformer
                 if (shortFlagSpan[i])
                 {
                     var indexObj = matrixSpan[i];
+                    double up = Math.Min((borderValue * maniaObjects[indexObj].BeatLengthOfThisNote * 4),availableTimeSpan[i]);
                     var newLength = GenerateRandom(
                         Math.Max(beatLengthSpan[i] / 4, 50),
-                        borderValue * maniaObjects[indexObj].BeatLengthOfThisNote * 4,
+                        up,
                         borderValue,
                         shortRandom, random
                     );
