@@ -69,7 +69,7 @@ public class PreviewRefreshTests
             viewModel.SetProcessor(processor);
 
             // Load a sample beatmap
-            viewModel.LoadBuiltInSample();
+            viewModel.ResetPreview();
 
             // Wait for initial refresh
             await Task.Delay(100); // Simple wait, in real test might need better synchronization

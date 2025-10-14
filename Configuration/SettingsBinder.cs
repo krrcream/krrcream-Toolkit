@@ -72,7 +72,7 @@ namespace krrTools.Configuration
                     if (effectiveType == typeof(bool) || (effectiveType.IsGenericType && effectiveType.GetGenericTypeDefinition() == typeof(Bindable<>)))
                     {
                         var checkBox = SharedUIComponents.CreateStandardCheckBox(label, tooltip);
-                        // 使用标准WPF绑定替代QuickBind
+
                         var path = GetPropertyPathFromExpression(propertySelector);
                         // 检查是否是 Bindable<T> 类型，如果是则添加 .Value
                         if (effectiveType.IsGenericType && effectiveType.GetGenericTypeDefinition() == typeof(Bindable<>))

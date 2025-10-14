@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Media;
+using krrTools.Beatmaps;
 using krrTools.Bindable;
 using krrTools.Configuration;
 using krrTools.Localization;
@@ -20,6 +21,7 @@ namespace krrTools.Utilities
         private string[]? _stagedPaths;
         private string? _backgroundPath;
         private string? _lastLoadedFile;
+        private bool _isSingleFile;
 
         private readonly FileDispatcher _fileDispatcher;
 
@@ -52,6 +54,11 @@ namespace krrTools.Utilities
                     IsProcessing = false;
                     ProgressValue = 0;
                     ProgressMaximum = 100;
+                    // 转换完成后清除拖拽状态，除单文件外
+                    if (!_isSingleFile)
+                    {
+                        SetFiles(null);
+                    }
                 }
                 else
                 {
@@ -59,6 +66,9 @@ namespace krrTools.Utilities
                     ProgressMaximum = total;
                 }
             };
+
+            // 初始化显示文字
+            UpdateDisplayText();
         }
 
         // UI 相关属性
@@ -153,6 +163,7 @@ namespace krrTools.Utilities
             // TODO: 需要梳理
             var oldSource = _currentSource;
             _stagedPaths = files;
+            _isSingleFile = files?.Length == 1;
             _backgroundPath = null; // Will be determined later
             _currentSource = files is { Length: > 0 } ? source : FileSource.None;
             
@@ -200,16 +211,24 @@ namespace krrTools.Utilities
             Console.WriteLine($"[DEBUG] ConvertFiles called. _stagedPaths: {_stagedPaths?.Length ?? 0}, GetActiveTabTag: {GetActiveTabTag}");
             if (_stagedPaths is { Length: > 0 } && GetActiveTabTag != null)
             {
+                // 在UI层过滤非Mania谱面
+                var filteredPaths = _stagedPaths.Where(BeatmapAnalyzer.IsManiaBeatmap).ToArray();
+                var skippedCount = _stagedPaths.Length - filteredPaths.Length;
+                if (skippedCount > 0)
+                {
+                    Console.WriteLine($"[INFO] UI层过滤跳过 {skippedCount} 个非Mania文件");
+                }
+
                 var activeTab = GetActiveTabTag();
                 Console.WriteLine($"[DEBUG] ActiveTabTag: {activeTab}");
 
                 // 开始处理
                 IsProcessing = true;
                 ProgressValue = 0;
-                ProgressMaximum = _stagedPaths.Length;
+                ProgressMaximum = filteredPaths.Length;
 
                 _fileDispatcher.ActiveTabTag = activeTab;
-                _fileDispatcher.ConvertFiles(_stagedPaths);
+                _fileDispatcher.ConvertFiles(filteredPaths);
             }
             else
             {
@@ -306,14 +325,10 @@ namespace krrTools.Utilities
                 return;
             }
             
-            // 如果当前是监听状态且路径匹配，发布预览刷新事件
-            if (e.FilePath == _stagedPaths?.FirstOrDefault())
+            EventBus.Publish(new ConvPrevRefreshOnlyEvent
             {
-                EventBus.Publish(new PreviewRefreshEvent
-                {
-
-                });
-            }
+                NewValue = false
+            });
         }
 
         private void OnMonitoringEnabledChanged(MonitoringEnabledChangedEvent e)
@@ -321,6 +336,14 @@ namespace krrTools.Utilities
             if (e.NewValue && _stagedPaths is { Length: > 0 })
             {
                 SetSource(FileSource.Listened);
+                EventBus.Publish(new ConvPrevRefreshOnlyEvent
+                {
+                    NewValue = e.NewValue
+                });
+            }
+            else if (!e.NewValue)
+            {
+                SetSource(FileSource.None);
             }
         }
     }

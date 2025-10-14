@@ -50,7 +50,7 @@ namespace krrTools.Tools.Preview
         private DateTime _lastSettingsChange = DateTime.MinValue;
         private const int SettingsChangeThrottleMs = 50;
 
-        private bool _autoLoadedSample;
+
         private Bindable<string> BGPath { get; } = new(string.Empty);
         private Bindable<bool> IsProcessing { get; } = new();
 
@@ -210,14 +210,9 @@ namespace krrTools.Tools.Preview
             ViewModel?.TriggerRefresh();
         }
 
-        public void Refresh()
-        {
-            ViewModel?.TriggerRefresh();
-        }
-
         public void LoadPreview(string input)
         {
-            ViewModel?.LoadFromPath(input);
+            ViewModel?.LoadPreviewPath(input);
         }
         
         private void OnLanguageChanged()
@@ -228,9 +223,8 @@ namespace krrTools.Tools.Preview
 
         private void TryAutoLoadSample()
         {
-            if (_autoLoadedSample || ViewModel?.OriginalVisual != null) return;
-            ViewModel?.LoadBuiltInSample();
-            _autoLoadedSample = true;
+            // if (ViewModel?.OriginalVisual != null) return;
+            ViewModel?.ResetPreview();
         }
 
         // 加载谱面背景图的方法，统一在项目中使用
@@ -246,7 +240,7 @@ namespace krrTools.Tools.Preview
             }
             else
             {
-                Application.Current?.Dispatcher.Invoke(() => LoadBackgroundBrushInternal());
+                Application.Current?.Dispatcher.Invoke(LoadBackgroundBrushInternal);
             }
         }
 
@@ -276,13 +270,6 @@ namespace krrTools.Tools.Preview
 
         private void ResetButton_Click(object sender, RoutedEventArgs e)
         {
-            ViewModel?.Reset();
-        }
-
-        public void ResetPreview()
-        {
-            ViewModel?.Reset();
-            _autoLoadedSample = false; // 允许重新加载内置样本
             TryAutoLoadSample();
         }
 

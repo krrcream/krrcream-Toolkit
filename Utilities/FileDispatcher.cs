@@ -54,8 +54,10 @@ namespace krrTools.Utilities
 
             int processedCount = 0;
 
-            // 并行处理每个文件，记录数量
-            Parallel.ForEach(paths.Where(p => !string.IsNullOrEmpty(p)), p =>
+            // 并行处理每个文件，记录数量，限制并行度，保留2核心
+            Parallel.ForEach(paths, 
+                new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount - 2 }, 
+                p =>
             {
                 try
                 {
@@ -119,15 +121,20 @@ namespace krrTools.Utilities
                 {
                     var sb = new System.Text.StringBuilder();
                     sb.AppendLine($"成功转换 {created.Count} 个文件：");
-                    foreach (var file in created)
-                        sb.AppendLine($"• {Path.GetFileName(file)}");
+                    int maxShow = 5;
+                    for (int i = 0; i < Math.Min(created.Count, maxShow); i++)
+                        sb.AppendLine($"• {Path.GetFileName(created[i])}");
+                    if (created.Count > maxShow)
+                        sb.AppendLine($"... 等 {created.Count - maxShow} 个文件");
 
                     if (failed.Count > 0)
                     {
                         sb.AppendLine();
                         sb.AppendLine($"失败 {failed.Count} 个文件：");
-                        foreach (var file in failed)
-                            sb.AppendLine($"• {Path.GetFileName(file)}");
+                        for (int i = 0; i < Math.Min(failed.Count, maxShow); i++)
+                            sb.AppendLine($"• {Path.GetFileName(failed[i])}");
+                        if (failed.Count > maxShow)
+                            sb.AppendLine($"... 等 {failed.Count - maxShow} 个文件");
                     }
 
                     message = sb.ToString();

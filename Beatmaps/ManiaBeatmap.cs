@@ -29,6 +29,9 @@ namespace krrTools.Beatmaps
                 MetadataSection = beatmap.MetadataSection,
                 DifficultySection = beatmap.DifficultySection,
                 GeneralSection = beatmap.GeneralSection,
+                EditorSection = beatmap.EditorSection,
+                EventsSection = beatmap.EventsSection,
+                ColoursSection = beatmap.ColoursSection,
                 TimingPoints = beatmap.TimingPoints,
                 HitObjects = beatmap.HitObjects, // 直接使用原始HitObjects
                 ManiaHitObjects = beatmap.HitObjects
@@ -87,6 +90,14 @@ namespace krrTools.Beatmaps
         public IReadOnlyList<ManiaHitObject>? ManiaHitObjects { get; private set; }
         public BeatmapMetadataSection? Metadata { get; private set; }
         public BeatmapDifficultySection? Difficulty { get; private set; }
+
+        public BeatmapGeneralSection? General { get; private set; }
+
+        public BeatmapEditorSection? Editor { get; private set; }
+
+        public BeatmapEventsSection? Events { get; private set; }
+
+        public BeatmapColoursSection? Colours { get; private set; }
         // public List<HitObject>? HitObjects
         // {
         //     get { return base.HitObjects; }

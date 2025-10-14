@@ -22,6 +22,10 @@ namespace krrTools.Beatmaps
         // 参考 osu.Game.Beatmaps.IBeatmap，添加兼容属性
         BeatmapMetadataSection? Metadata { get; }
         BeatmapDifficultySection? Difficulty { get; }
+        BeatmapGeneralSection? General { get; }
+        BeatmapEditorSection? Editor { get; }
+        BeatmapEventsSection? Events { get; }
+        BeatmapColoursSection? Colours { get; }
         List<HitObject>? HitObjects { get; }
         double AudioLeadIn { get; }
         float StackLeniency { get; }

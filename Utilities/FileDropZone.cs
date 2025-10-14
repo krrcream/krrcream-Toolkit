@@ -53,8 +53,8 @@ namespace krrTools.Utilities
             SetBinding(BorderBrushProperty, borderBrushBinding);
 
             var mainGrid = new Grid();
-            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 提示文本
-            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 按钮和进度条
+            mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // 文本居中
+            mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // 按钮右侧
 
             var dropHint = new TextBlock
             {
@@ -62,13 +62,10 @@ namespace krrTools.Utilities
                 Foreground = new SolidColorBrush(Color.FromRgb(0x33, 0x67, 0xB5)),
                 TextAlignment = TextAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
                 Margin = new Thickness(0, 0, 0, 5)
             };
             dropHint.SetBinding(TextBlock.TextProperty, new Binding("DisplayText"));
-
-            // 按钮容器
-            var bottomPanel = new Grid();
-            bottomPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // 按钮
 
             StartConversionButton = new Button
             {
@@ -82,13 +79,10 @@ namespace krrTools.Utilities
             StartConversionButton.SetBinding(ContentControl.ContentProperty, new Binding("Value") { Source = _startButtonTextLocalized });
             StartConversionButton.SetBinding(VisibilityProperty, new Binding("IsConversionEnabled") { Converter = new BooleanToVisibilityConverter() });
 
-            Grid.SetColumn(StartConversionButton, 0);
-            bottomPanel.Children.Add(StartConversionButton);
-
-            Grid.SetRow(dropHint, 0);
-            Grid.SetRow(bottomPanel, 1);
+            Grid.SetColumn(dropHint, 0);
+            Grid.SetColumn(StartConversionButton, 1);
             mainGrid.Children.Add(dropHint);
-            mainGrid.Children.Add(bottomPanel);
+            mainGrid.Children.Add(StartConversionButton);
 
             Child = mainGrid;
 

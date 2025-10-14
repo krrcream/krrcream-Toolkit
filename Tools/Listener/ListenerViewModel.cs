@@ -182,7 +182,7 @@ public class ListenerViewModel : ReactiveViewModelBase
             _monitorService.DetectOsuProcess();
 
             var monitorFilePath = _monitorService.ReadMemoryData();
-            var isMania = _analysisService.IsManiaBeatmapQuickCheck(monitorFilePath);
+            var isMania = BeatmapAnalyzer.IsManiaBeatmap(monitorFilePath);
 
             if (!isMania)
             {
@@ -195,6 +195,8 @@ public class ListenerViewModel : ReactiveViewModelBase
             var globalSettings = BaseOptionsManager.GetGlobalSettings();
             if (monitorFilePath != globalSettings.LastPreviewPath.Value)
             {
+                BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = monitorFilePath);
+                
                 // 足够条件确认为新谱面，文件正确，路径安全，发布事件
                 EventBus.Publish(new BeatmapChangedEvent
                 {

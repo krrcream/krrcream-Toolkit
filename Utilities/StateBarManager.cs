@@ -29,7 +29,6 @@ namespace krrTools.Utilities
 
             // 设置状态绑定和响应逻辑
             SetupStateBindings();
-            EventBus.Subscribe<BeatmapChangedEvent>(OnBeatmapDetected);
             EventBus.Subscribe<MonitoringEnabledChangedEvent>(OnMonitoringEnabledChanged);
         }
 
@@ -74,26 +73,26 @@ namespace krrTools.Utilities
                 OnPropertyChanged(nameof(IsOsuRunning));
             });
 
-            // 当前谱面路径变化时，发布事件
-            CurrentBeatmapPath.OnValueChanged(path =>
-            {
-                // 检查路径是否与全局设置中的最后预览路径不同
-                var globalSettings = BaseOptionsManager.GetGlobalSettings();
-                if (!string.IsNullOrEmpty(path) && path != globalSettings.LastPreviewPath.Value)
-                {
-                    // 保存到全局设置
-                    BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = path);
-
-                    // 发布事件
-                    EventBus.Publish(new BeatmapChangedEvent
-                    {
-                        FilePath = path,
-                        FileName = System.IO.Path.GetFileName(path),
-                        ChangeType = BeatmapChangeType.FromMonitoring,
-                    });
-                }
-
-            });
+            // // 当前谱面路径变化时，发布事件
+            // CurrentBeatmapPath.OnValueChanged(path =>
+            // {
+            //     // 检查路径是否与全局设置中的最后预览路径不同
+            //     var globalSettings = BaseOptionsManager.GetGlobalSettings();
+            //     if (!string.IsNullOrEmpty(path) && path != globalSettings.LastPreviewPath.Value)
+            //     {
+            //         // 保存到全局设置
+            //         BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = path);
+            //
+            //         // 发布事件
+            //         EventBus.Publish(new BeatmapChangedEvent
+            //         {
+            //             FilePath = path,
+            //             FileName = System.IO.Path.GetFileName(path),
+            //             ChangeType = BeatmapChangeType.FromMonitoring,
+            //         });
+            //     }
+            //
+            // });
 
             // 监听器状态变化时，触发属性变更通知
             ListenerState.OnValueChanged(_ => { OnPropertyChanged(nameof(ListenerState)); });
@@ -102,12 +101,6 @@ namespace krrTools.Utilities
         #endregion
 
         #region 事件订阅
-        private void OnBeatmapDetected(BeatmapChangedEvent evt)
-        {
-            // 更新全局设置中的最后预览路径
-            BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = evt.FilePath);
-        }
-
         private void OnMonitoringEnabledChanged(MonitoringEnabledChangedEvent evt)
         {
             // 当监控启用状态改变时，根据当前 osu! 运行状态更新监听器状态
@@ -119,7 +112,7 @@ namespace krrTools.Utilities
             {
                 ListenerState.Value = 0;
                 // 监听关闭时，重置预览到内置样本
-                EventBus.Publish(new PreviewRefreshEvent { NewValue = false });
+                EventBus.Publish(new ConvPrevRefreshOnlyEvent { NewValue = false });
             }
         }
 

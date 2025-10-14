@@ -247,7 +247,7 @@ namespace krrTools.Bindable
     /// <summary>
     /// Event raised when preview refresh is requested
     /// </summary>
-    public class PreviewRefreshEvent : ValueChangedEvent<bool> { }
+    public class ConvPrevRefreshOnlyEvent : ValueChangedEvent<bool> { }
 
     /// <summary>
     /// Event raised when file source changes in FileDropZone

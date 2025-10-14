@@ -33,16 +33,17 @@ namespace krrTools.Utilities
 
             try
             {
-                // 克隆谱面以避免修改原对象
-                var clonedBeatmap = CloneBeatmap(input);
-                var maniaBeatmap = clonedBeatmap as IBeatmap ?? ManiaBeatmap.FromBeatmap(clonedBeatmap);
+                // 克隆谱面以避免修改原对象, ManiaBeatmap.FromBeatmap也已经是新对象了，防御式编程
+                // IBeatmap 是为了兼容谱面转换和未来拓展
+                // var clonedBeatmap = CloneBeatmap(input);
+                var maniaBeatmap = input as IBeatmap ?? ManiaBeatmap.FromBeatmap(input);
 
                 // 获取工具并应用转换
                 var tool = _moduleManager.GetToolByName(converter.ToString());
                 if (tool is IApplyToBeatmap applier)
                 {
                     applier.ApplyToBeatmap(maniaBeatmap);
-                    return maniaBeatmap as Beatmap ?? clonedBeatmap;
+                    return maniaBeatmap as Beatmap; // ?? clonedBeatmap;
                 }
                 else
                 {
@@ -81,12 +82,36 @@ namespace krrTools.Utilities
                     return null;
                 }
 
-                // 保存转换后谱面
+                // 保存转换后谱面，如果文件存在则删除旧的再保存
                 var outputPath = transformedBeatmap.GetOutputOsuFileName();
                 var outputDir = Path.GetDirectoryName(inputPath);
                 var fullOutputPath = Path.Combine(outputDir!, outputPath);
-                transformedBeatmap.Save(fullOutputPath);
-                return fullOutputPath;
+
+                // 检查输出路径是否已存在，记录冲突
+                if (File.Exists(fullOutputPath))
+                {
+                    // Console.WriteLine($"[WARN] 输出路径冲突，已存在，将覆盖: {fullOutputPath}");
+                    try
+                    {
+                        File.Delete(fullOutputPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[ERROR] 删除旧文件失败: {fullOutputPath}\n{ex}");
+                        return null;
+                    }
+                }
+
+                try
+                {
+                    transformedBeatmap.Save(fullOutputPath);
+                    return fullOutputPath;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] 保存失败: {fullOutputPath}\n{ex}");
+                    return null;
+                }
             }
             catch (Exception ex)
             {
@@ -105,6 +130,12 @@ namespace krrTools.Utilities
             {
                 // 复制所有属性
                 GeneralSection = input.GeneralSection,
+                EventsSection = input.EventsSection,
+                ColoursSection = input.ColoursSection,
+                EditorSection = input.EditorSection,
+                // 手动克隆MetadataSection
+                // 以避免修改Version\CircleSize
+                // 其他部分直接引用即可
                 // 克隆MetadataSection以避免修改Version
                 MetadataSection = Activator.CreateInstance(input.MetadataSection.GetType()) as dynamic
             };

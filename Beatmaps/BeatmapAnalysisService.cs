@@ -71,19 +71,8 @@ namespace krrTools.Beatmaps
         {
             // 只处理路径变化事件
             if (e.ChangeType != BeatmapChangeType.FromMonitoring) return;
-            
-            BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = e.FilePath);
-            
             // 异步处理新谱面
             _ = ProcessBeatmapAsync(e.FilePath);
-        }
-
-        /// <summary>
-        /// 快速检查是否为有效的Mania谱面文件 (兼容性方法)
-        /// </summary>
-        public bool IsManiaBeatmapQuickCheck(string? filePath)
-        {
-            return BeatmapAnalyzer.IsManiaBeatmap(filePath);
         }
     }
 }

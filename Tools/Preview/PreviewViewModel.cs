@@ -38,7 +38,7 @@ public class PreviewViewModel : ReactiveViewModelBase
         var beatmapChangedSubscription = EventBus.Subscribe<BeatmapChangedEvent>(OnBeatmapChanged);
         Disposables.Add(beatmapChangedSubscription);
 
-        var refreshSubscription = EventBus.Subscribe<PreviewRefreshEvent>(OnPreviewRefreshRequested);
+        var refreshSubscription = EventBus.Subscribe<ConvPrevRefreshOnlyEvent>(OnPreviewRefreshRequested);
         Disposables.Add(refreshSubscription);
     }
 
@@ -72,9 +72,14 @@ public class PreviewViewModel : ReactiveViewModelBase
     /// </summary>
     private void OnSettingsChanged(SettingsChangedEvent settingsEvent)
     {
+        // 只处理当前工具的设置变化
+        if (_currentTool == null || settingsEvent.SettingsType == null) return;
+        ConverterEnum current = _currentTool.Value;
+        string toolName = current.ToString();
+        if (!settingsEvent.SettingsType.Name.Contains(toolName)) return;
+
         // 检查此设置是否会触发预览刷新
         if (!ShouldTriggerRefresh(settingsEvent)) return;
-
 
         if (Equals(settingsEvent.OldValue, settingsEvent.NewValue))
             return; // 值没有变化，不刷新
@@ -116,8 +121,7 @@ public class PreviewViewModel : ReactiveViewModelBase
     /// </summary>
     private void OnBeatmapChanged(BeatmapChangedEvent e)
     {
-        // 更新全局设置中的最后预览路径
-        BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = e.FilePath);
+        LoadPreviewPath(e.FilePath);
 
         switch (e.ChangeType)
         {
@@ -138,7 +142,7 @@ public class PreviewViewModel : ReactiveViewModelBase
     /// <summary>
     /// 响应预览刷新请求事件
     /// </summary>
-    private void OnPreviewRefreshRequested(PreviewRefreshEvent e)
+    private void OnPreviewRefreshRequested(ConvPrevRefreshOnlyEvent e)
     {
         if (e.NewValue)
         {
@@ -146,24 +150,29 @@ public class PreviewViewModel : ReactiveViewModelBase
         }
         else
         {
-            LoadBuiltInSample();
+            ResetPreview();
+            RefreshOriginal();
         }
     }
 
-
-    public void LoadFromPath(string path)
+    public void LoadPreviewPath(string path)
     {
         // 更新全局最后预览路径
         BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = path);
-
+        
+        RefreshOriginal();
+        RefreshConverted();
     }
 
-    public void LoadBuiltInSample()
+    public void ResetPreview()
     {
         // 清空全局最后预览路径以使用内置样本
         BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = string.Empty);
+        
         RefreshOriginal();
         RefreshConverted();
+        
+        // TODO: 重置触发，拖拽区也要重置。
     }
 
     public void SetProcessor(IPreviewProcessor? processor)
@@ -203,11 +212,9 @@ public class PreviewViewModel : ReactiveViewModelBase
             if (Application.Current != null)
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    // 只刷新原始预览
                     OriginalVisual = Processor.BuildOriginalVisual(beatmap);
                 });
             else
-                // For testing without WPF Application
                 OriginalVisual = Processor.BuildOriginalVisual(beatmap);
 
             var duration = DateTime.Now - decodeStartTime;
@@ -243,11 +250,9 @@ public class PreviewViewModel : ReactiveViewModelBase
             if (Application.Current != null)
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    // 只刷新转换后预览
                     ConvertedVisual = Processor.BuildConvertedVisual(beatmap);
                 });
             else
-                // For testing without WPF Application
                 ConvertedVisual = Processor.BuildConvertedVisual(beatmap);
 
             var duration = DateTime.Now - decodeStartTime;
@@ -257,12 +262,5 @@ public class PreviewViewModel : ReactiveViewModelBase
         {
             Console.WriteLine($"[PreviewViewModel] RefreshConverted failed: {ex.Message}");
         }
-    }
-
-    public void Reset()
-    {
-        OriginalVisual = null;
-        ConvertedVisual = null;
-        Title = string.Empty;
     }
 }
