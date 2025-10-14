@@ -19,4 +19,14 @@ namespace krrTools.Configuration
         FilesManager,
         Listener
     }
+
+    /// <summary>
+    /// 文件来源状态枚举
+    /// </summary>
+    public enum FileSource
+    {
+        None,
+        Dropped,
+        Listened
+    }
 }

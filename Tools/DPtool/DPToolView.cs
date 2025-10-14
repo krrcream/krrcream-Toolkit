@@ -14,13 +14,6 @@ namespace krrTools.Tools.DPtool
     {
         private readonly DPToolViewModel _viewModel;
 
-        // UI控件引用，用于属性变更时的启用/禁用逻辑
-        private UIElement? _keysSlider;
-        private UIElement? _lMaxKeysSlider;
-        private UIElement? _lMinKeysSlider;
-        private UIElement? _rMaxKeysSlider;
-        private UIElement? _rMinKeysSlider;
-
         public event EventHandler? SettingsChanged;
 
         public DPToolView() : base(ConverterEnum.DP)
@@ -28,30 +21,26 @@ namespace krrTools.Tools.DPtool
             _viewModel = new DPToolViewModel(Options);
             DataContext = _viewModel;
             BuildUI();
-
-            // 注意：DP工具没有特殊UI更新需求，事件通信通过EventBus处理
-            // 因此不需要订阅PropertyChanged事件
         }
 
         private void BuildUI()
         {
             // 创建模板化控件，但保持自定义布局
             // var modifyKeysCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.ModifySingleSideKeyCount);
-            _keysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.SingleSideKeyCount,
-                o => o.ModifySingleSideKeyCount);
+            var keysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.SingleSideKeyCount);
 
             var lMirrorCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.LMirror);
             var lDensityCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.LDensity);
             var lRemoveCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.LRemove);
-            _lMaxKeysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LMaxKeys);
-            _lMinKeysSlider = SettingsBinder.CreateTemplatedSliderWithDynamicMax(_viewModel.Options, o => o.LMinKeys, 
+            var lMaxKeysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LMaxKeys);
+            var lMinKeysSlider = SettingsBinder.CreateTemplatedSliderWithDynamicMax(_viewModel.Options, o => o.LMinKeys, 
                 _viewModel, nameof(_viewModel.LMinKeysMaximum));
 
             var rMirrorCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.RMirror);
             var rDensityCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.RDensity);
             var rRemoveCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.RRemove);
-            _rMaxKeysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.RMaxKeys);
-            _rMinKeysSlider = SettingsBinder.CreateTemplatedSliderWithDynamicMax(_viewModel.Options, o => o.RMinKeys, 
+            var rMaxKeysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.RMaxKeys);
+            var rMinKeysSlider = SettingsBinder.CreateTemplatedSliderWithDynamicMax(_viewModel.Options, o => o.RMinKeys, 
                 _viewModel, nameof(_viewModel.RMinKeysMaximum));
 
             // Placeholder keys panel
@@ -81,8 +70,8 @@ namespace krrTools.Tools.DPtool
                 { Margin = new Thickness(0, 0, 10, 0), HorizontalAlignment = HorizontalAlignment.Stretch };
             leftPanel.Children.Add(leftLabel);
             leftPanel.Children.Add(leftChecks);
-            leftPanel.Children.Add(_lMaxKeysSlider);
-            leftPanel.Children.Add(_lMinKeysSlider);
+            leftPanel.Children.Add(lMaxKeysSlider);
+            leftPanel.Children.Add(lMinKeysSlider);
 
             // Right
             var rightLabel = new TextBlock { FontSize = UIConstants.HeaderFontSize, FontWeight = FontWeights.Bold };
@@ -105,8 +94,8 @@ namespace krrTools.Tools.DPtool
                 { Margin = new Thickness(10, 0, 0, 0), HorizontalAlignment = HorizontalAlignment.Stretch };
             rightPanel.Children.Add(rightLabel);
             rightPanel.Children.Add(rightChecks);
-            rightPanel.Children.Add(_rMaxKeysSlider);
-            rightPanel.Children.Add(_rMinKeysSlider);
+            rightPanel.Children.Add(rMaxKeysSlider);
+            rightPanel.Children.Add(rMinKeysSlider);
 
             // Separator and grid
             var separator = new Border
@@ -131,7 +120,6 @@ namespace krrTools.Tools.DPtool
                 {
                     if (opt == null) return;
                     var target = _viewModel.Options;
-                    target.ModifySingleSideKeyCount.Value = opt.ModifySingleSideKeyCount.Value;
                     target.SingleSideKeyCount.Value = opt.SingleSideKeyCount.Value;
 
                     target.LMirror.Value = opt.LMirror.Value;
@@ -156,7 +144,7 @@ namespace krrTools.Tools.DPtool
                 Margin = new Thickness(15), HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch
             };
-            stackPanel.Children.Add(_keysSlider);
+            stackPanel.Children.Add(keysSlider);
             // stackPanel.Children.Add(keysPanel);
             stackPanel.Children.Add(grid);
             stackPanel.Children.Add(presetsPanel);

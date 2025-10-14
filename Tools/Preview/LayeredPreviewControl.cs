@@ -64,18 +64,12 @@ namespace krrTools.Tools.Preview
         private double _totalTimeRange;
         private bool _initialScrollSet;
 
-        // 防抖控制
-        private DispatcherTimer? _debounceTimer;
-        private bool _pendingRedrawBarlines;
-
         // 常量
         private const double LaneSpacing = 4.0;
-        private const int DebounceDelayMs = 1; // 极短防抖延迟，确保快速响应
 
         public LayeredPreviewControl()
         {
             InitializeComponents();
-            InitializeDebounceTimer();
         }
 
         private void InitializeComponents()
@@ -113,22 +107,7 @@ namespace krrTools.Tools.Preview
             Loaded += OnLoaded;
         }
 
-        private void InitializeDebounceTimer()
-        {
-            _debounceTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(DebounceDelayMs)
-            };
-            _debounceTimer.Tick += OnDebounceTimerTick;
-        }
 
-        private void OnDebounceTimerTick(object? sender, EventArgs e)
-        {
-            _debounceTimer?.Stop();
-
-            RefreshDisplay(_pendingRedrawBarlines);
-            _pendingRedrawBarlines = false;
-        }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
@@ -158,12 +137,8 @@ namespace krrTools.Tools.Preview
             // Console.WriteLine($"[LayeredPreview] Update queued: notes={_notes.Count}, columns={_columns}, " +
             //                   $"needRedrawBarlines={needRedrawBarlines}");
 
-            // 更新待处理状态
-            _pendingRedrawBarlines = _pendingRedrawBarlines || needRedrawBarlines;
-
-            // 启动或重启防抖定时器
-            _debounceTimer?.Stop();
-            _debounceTimer?.Start();
+            // 直接刷新显示
+            RefreshDisplay(needRedrawBarlines);
         }
 
         private void RefreshDisplay(bool redrawBarlines = true)

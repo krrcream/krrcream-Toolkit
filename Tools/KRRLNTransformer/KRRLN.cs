@@ -50,7 +50,7 @@ namespace krrTools.Tools.KRRLNTransformer
             DoubleMatrix beatLengthMtx = GenerateBeatLengthMatrix(matrix1, ManiaObjects);
             BoolMatrix orgIsLNMatrix = GenerateOrgIsLN(matrix1, ManiaObjects);
             
-            if (parameters.Alignment.Value.HasValue)//临时代码，用于刷新查看矩阵
+            if (parameters.Alignment.Value.HasValue)
             {
                 PrintMatrices(5, matrix1, orgIsLNMatrix);
                 Console.WriteLine("+++++++++++++++++++++++++++++++分割线+++++++++++++++++++++++++++++++");
@@ -63,7 +63,7 @@ namespace krrTools.Tools.KRRLNTransformer
             }
             
             //生成长短面标记
-            var borderKey = parameters.LengthThreshold.Value;
+            var borderKey = (int)parameters.LengthThreshold.Value;
             var (shortLNFlag, longLNFlag) = GenerateLNFlags(matrix1, ManiaObjects, availableTimeMtx, beatLengthMtx, borderKey);
             
             longLNFlag = MarkByPercentage(longLNFlag, parameters.LongPercentage.Value, RG);
@@ -82,27 +82,10 @@ namespace krrTools.Tools.KRRLNTransformer
 
             var result = MergeMatrices(longLnWaitModify, shortLnWaitModify);
             
-            if (parameters.Alignment.Value.HasValue)//临时代码，用于刷新查看矩阵
+            if (parameters.Alignment.Value.HasValue)
             {
                 PrintMatrices(5, matrix1, orgIsLNMatrix);
                 Console.WriteLine("+++++++++++++++++++++++++++++++分割线+++++++++++++++++++++++++++++++");
-            }
-            
-            if (parameters.Alignment.Value.HasValue)
-            {
-                double denominator = 0;
-                double aligValue = alignList[(int)parameters.Alignment.Value.Value];
-                var resultSpan = result.AsSpan();
-                var beatLengthMtxSpan = beatLengthMtx.AsSpan();
-                for (int i = 0; i < resultSpan.Length; i++)
-                 {
-                     if (resultSpan[i] > 0)
-                     {
-                         denominator = beatLengthMtxSpan[i] * aligValue;
-                         resultSpan[i] =
-                             (int)((int)(resultSpan[i] / denominator) * denominator); //请AI不要优化这一行,这个就是最精度最快的写法，这是能够放几个分母的意思
-                     }
-                 }
             }
             
             return result;

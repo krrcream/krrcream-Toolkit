@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.ComponentModel;
 using krrTools.Bindable;
 using krrTools.Configuration;
 using krrTools.Core;
@@ -9,11 +7,11 @@ namespace krrTools.Tools.KRRLNTransformer
 {
     public class KRRLNTransformerViewModel : ToolViewModelBase<KRRLNTransformerOptions>, IPreviewOptionsProvider
     {
-        private readonly IEventBus _eventBus;
+        // private readonly IEventBus _eventBus;
         
         public KRRLNTransformerViewModel(KRRLNTransformerOptions options) : base(ConverterEnum.KRRLN, true, options)
         {
-            _eventBus = App.Services.GetRequiredService<IEventBus>();
+            App.Services.GetRequiredService<IEventBus>();
             
             // Subscribe to all Bindable<T> property changes
             SubscribeToPropertyChanges();
@@ -23,11 +21,6 @@ namespace krrTools.Tools.KRRLNTransformer
         {
             // Bindable<T> properties automatically handle change notifications
             // No manual subscription needed for UI updates
-        }
-
-        private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            OnPropertyChanged(e.PropertyName);
         }
 
         public IToolOptions GetPreviewOptions()

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using krrTools.Configuration;
@@ -15,9 +16,32 @@ namespace krrTools.Utilities
 {
     public class FileDispatcher
     {
-        public void ConvertFiles(string[] paths, ConverterEnum activeTabTag)
+        private readonly BeatmapTransformationService _transformationService;
+
+        // 进度更新委托
+        public Action<int, int, string>? UpdateProgress { get; set; }
+
+        // 消息显示委托
+        public Action<string, string>? ShowMessage { get; set; }
+
+        public FileDispatcher()
         {
-            ConvertWithResults(paths, activeTabTag);
+            // 初始化转换服务，传入活动模块接口
+            if (App.Services.GetService(typeof(IModuleManager)) is IModuleManager moduleManager)
+            {
+                _transformationService = new BeatmapTransformationService(moduleManager);
+            }
+            else
+            {
+                throw new InvalidOperationException("IModuleManager not found");
+            }
+        }
+
+        public ConverterEnum ActiveTabTag { get; set; }
+
+        public void ConvertFiles(string[] paths)
+        {
+            ConvertWithResults(paths, ActiveTabTag);
         }
 
         private void ConvertWithResults(string[] paths, ConverterEnum activeTabTag)
@@ -25,31 +49,18 @@ namespace krrTools.Utilities
             var startTime = DateTime.Now;
             Console.WriteLine($"[INFO] 开始转换 - 调用模块: {activeTabTag}, 使用活动设置, 文件数量: {paths.Length}");
 
-            // 使用ModuleManager获取工具实例
-            var moduleManager = App.Services.GetService(typeof(IModuleManager)) as IModuleManager;
-            if (moduleManager == null)
-            {
-                Console.WriteLine($"[ERROR] ModuleManager未找到");
-                return;
-            }
-
-            var tool = moduleManager.GetToolName(nameof(activeTabTag));
-            if (tool == null)
-            {
-                Console.WriteLine($"[ERROR] 未找到工具: {activeTabTag}");
-                return;
-            }
-
             var created = new ConcurrentBag<string>();
             var failed = new ConcurrentBag<string>();
 
-            // 并行处理每个文件
+            int processedCount = 0;
+
+            // 并行处理每个文件，记录数量
             Parallel.ForEach(paths.Where(p => !string.IsNullOrEmpty(p)), p =>
             {
                 try
                 {
-                    var outputPath = tool.ProcessFileSave(p);
-                    if (!string.IsNullOrEmpty(outputPath))
+                    var outputPath = _transformationService.TransformAndSaveBeatmap(p, activeTabTag);
+                    if (outputPath != null)
                     {
                         created.Add(outputPath);
                     }
@@ -63,13 +74,20 @@ namespace krrTools.Utilities
                     Console.WriteLine($"[ERROR] 并行转换文件失败: {p}\n{ex}");
                     failed.Add(p);
                 }
+                finally
+                {
+                    // 更新进度
+                    int current = Interlocked.Increment(ref processedCount);
+                    UpdateProgress?.Invoke(current, paths.Length, string.Empty);
+                }
             });
 
             if (created.Count > 0)
             {
                 try
                 {
-                    // DualPreviewControl.BroadcastStagedPaths(null);
+                    Console.WriteLine($"[INFO] 转换器: {activeTabTag}, 生成文件数量: {created.Count}");
+
                 }
                 catch (Exception ex)
                 {
@@ -77,7 +95,6 @@ namespace krrTools.Utilities
                 }
             }
 
-            Console.WriteLine($"[INFO] 转换器: {activeTabTag}, 生成文件数量: {created.Count}");
             var duration = DateTime.Now - startTime;
             Console.WriteLine($"[INFO] 转换器: {activeTabTag}, 成功: {created.Count}, 失败: {failed.Count}, 用时: {duration.TotalSeconds:F4}s");
 
@@ -88,13 +105,11 @@ namespace krrTools.Utilities
         {
             string message;
             string title;
-            MessageBoxImage icon;
 
             if (created.Count > 0)
             {
                 // 转换成功
                 title = "转换成功";
-                icon = MessageBoxImage.Information;
 
                 if (created.Count == 1)
                 {
@@ -121,13 +136,24 @@ namespace krrTools.Utilities
             else
             {
                 title = "转换失败";
-                icon = MessageBoxImage.Warning;
                 message = failed.Count > 0
                     ? Strings.ConversionFailedAllFiles.Localize()
                     : Strings.ConversionNoOutput.Localize();
             }
 
-            MessageBox.Show(message, title, MessageBoxButton.OK, icon);
+            // 使用Snackbar显示消息
+            if (ShowMessage != null)
+            {
+                ShowMessage(title, message);
+            }
+            else
+            {
+                // 降级到MessageBox
+                MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+
+            // 重置进度状态
+            UpdateProgress?.Invoke(0, 100, string.Empty);
         }
     }
 }

@@ -8,7 +8,6 @@ using krrTools.Configuration;
 using krrTools.Core;
 using krrTools.Tools.Preview;
 using OsuParsers.Beatmaps;
-using OsuParsers.Beatmaps.Sections;
 
 namespace krrTools.Utilities
 {
@@ -22,6 +21,8 @@ namespace krrTools.Utilities
 
         public Func<IToolOptions>? OptionsProvider { get; init; } // 选项提供器，从主程序传入模块设置
 
+        private readonly BeatmapTransformationService _transformationService;
+
         // 注意：转换预览必须实时生成，不可缓存。因为预览需要反映最新的选项变化和谱面状态。
         // 每次调用BuildConvertedVisual时，都应重新执行转换以确保准确性。
         // 不可添加任何形式的缓存机制，禁止深克隆！
@@ -30,6 +31,7 @@ namespace krrTools.Utilities
         {
             ModuleScheduler = moduleManager;
             OptionsProvider = optionsProvider;
+            _transformationService = new BeatmapTransformationService(moduleManager);
         }
 
         /// <summary>
@@ -53,35 +55,19 @@ namespace krrTools.Utilities
             if (ModuleTool == null)
                 return new TextBlock { Text = "ModuleTool == null" };
 
-            if (ModuleScheduler == null)
-                return new TextBlock { Text = "ModuleScheduler == null" };
-
-            var tool = ModuleScheduler.GetToolName(ModuleTool.Value.ToString());
-            if (tool == null)
-                return new TextBlock { Text = "Tool not found" };
-
-            // 使用IApplyToBeatmap进行转换（如果工具支持）
-            if (tool is IApplyToBeatmap applier)
+            try
             {
-                try
-                {
-                    // 克隆beatmap以避免修改原始对象导致无限循环
-                    var clonedBeatmap = CloneBeatmap(input);
-                    var maniaBeatmap = clonedBeatmap as IBeatmap ?? ManiaBeatmap.FromBeatmap(clonedBeatmap);
+                // 使用转换服务应用转换
+                var transformedBeatmap = _transformationService.TransformBeatmap(input, ModuleTool.Value);
+                if (transformedBeatmap == null)
+                    return new TextBlock { Text = "Transformation failed" };
 
-                    applier.ApplyToBeatmap(maniaBeatmap);
-
-                    return BuildManiaTimeRowsFromNotes(maniaBeatmap as Beatmap ?? clonedBeatmap);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[ConverterProcessor] Transformation failed: {ex.Message}");
-                    return new TextBlock { Text = $"转换失败: {ex.Message}" };
-                }
+                return BuildManiaTimeRowsFromNotes(transformedBeatmap);
             }
-            else
+            catch (Exception ex)
             {
-                return new TextBlock { Text = "Tool does not support Beatmap conversion" };
+                Console.WriteLine($"[ConverterProcessor] Transformation failed: {ex.Message}");
+                return new TextBlock { Text = $"转换失败: {ex.Message}" };
             }
         } // 通过方法获得转换结果，传递绘制
 
@@ -169,11 +155,11 @@ namespace krrTools.Utilities
         private string GetBeatmapPath(Beatmap beatmap)
         {
             // 如果是内置样本，返回固定标识
-            if (beatmap?.MetadataSection?.Title == "Built-in Sample")
+            if (beatmap.MetadataSection?.Title == "Built-in Sample")
                 return "builtin-sample";
             
             // 使用Title作为唯一标识（简化版本，避免复杂判断）
-            var title = beatmap?.MetadataSection?.Title;
+            var title = beatmap.MetadataSection?.Title;
             return string.IsNullOrEmpty(title) ? "unknown" : title;
         }
     }

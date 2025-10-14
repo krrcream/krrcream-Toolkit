@@ -105,6 +105,14 @@ namespace krrTools.Beatmaps
         }
 
         /// <summary>
+        /// 获取整个矩阵作为 Span
+        /// </summary>
+        public Span<int> AsSpan()
+        {
+            return MemoryMarshal.CreateSpan(ref _data[0, 0], _data.Length);
+        }
+
+        /// <summary>
         /// 克隆矩阵
         /// </summary>
         public NoteMatrix Clone()

@@ -27,9 +27,9 @@ namespace krrTools.Tools.Listener
         {
             UnregisterAllHotkeys();
 
-            RegisterHotkey(ConverterEnum.N2NC, settings.N2NCHotkey);
-            RegisterHotkey(ConverterEnum.DP, settings.DPHotkey);
-            RegisterHotkey(ConverterEnum.KRRLN, settings.KRRLNHotkey);
+            RegisterHotkey(ConverterEnum.N2NC, settings.N2NCHotkey.Value);
+            RegisterHotkey(ConverterEnum.DP, settings.DPHotkey.Value);
+            RegisterHotkey(ConverterEnum.KRRLN, settings.KRRLNHotkey.Value);
         }
 
         private void RegisterHotkey(ConverterEnum converter, string? hotkey)

@@ -124,7 +124,7 @@ namespace krrTools.Tools.KRRLVAnalysis
             var selected = FilesHelper.ShowFolderBrowserDialog("选择文件夹", owner);
             if (!string.IsNullOrEmpty(selected))
             {
-                _analysisViewModel.PathInput = selected;
+                _analysisViewModel.PathInput.Value = selected;
                 _analysisViewModel.ProcessDroppedFiles([selected]);
             }
         }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using krrTools.Core;
 
 namespace krrTools.Configuration
 {

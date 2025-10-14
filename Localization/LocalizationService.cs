@@ -234,7 +234,7 @@ namespace krrTools.Localization
         /// <summary>
         /// 本地化字符串的键（原始文本）
         /// </summary>
-        private string Key { get; }
+        public string Key { get; }
 
         /// <summary>
         /// 当前语言对应的本地化值

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace krrTools.Bindable
 {
@@ -16,6 +17,8 @@ namespace krrTools.Bindable
         private bool _disabled;
         private Func<T, T>? _mapping;
         private Action<T>? _onValueChanged;
+        private Func<T, Task>? _onValueChangedAsync;
+        private bool _isNotifying; // 防递归标志
 
         public T Value
         {
@@ -40,14 +43,34 @@ namespace krrTools.Bindable
 
         protected virtual void Set(T value, [CallerMemberName] string? propertyName = null)
         {
-            if (_disabled) return;
+            if (_disabled || _isNotifying) return; // 防递归
             if (EqualityComparer<T>.Default.Equals(_value, value)) return;
 
-            var oldValue = _value;
             _value = value;
 
-            _onValueChanged?.Invoke(_value);
+            // 异步通知，避免阻塞
+            _ = NotifyValueChangedAsync(_value);
             OnPropertyChanged(propertyName ?? nameof(Value));
+        }
+
+        private async Task NotifyValueChangedAsync(T value)
+        {
+            _isNotifying = true;
+            try
+            {
+                // 同步回调（保持兼容性，但不推荐）
+                _onValueChanged?.Invoke(value);
+                
+                // 异步回调
+                if (_onValueChangedAsync != null)
+                {
+                    await _onValueChangedAsync(value);
+                }
+            }
+            finally
+            {
+                _isNotifying = false;
+            }
         }
 
         protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -84,11 +107,20 @@ namespace krrTools.Bindable
         }
 
         /// <summary>
-        /// Set a callback for value changes.
+        /// Set a callback for value changes (synchronous, may block).
         /// </summary>
         public Bindable<T> OnValueChanged(Action<T> callback)
         {
             _onValueChanged = callback;
+            return this;
+        }
+
+        /// <summary>
+        /// Set an async callback for value changes (recommended).
+        /// </summary>
+        public Bindable<T> OnValueChangedAsync(Func<T, Task> callback)
+        {
+            _onValueChangedAsync = callback;
             return this;
         }
 

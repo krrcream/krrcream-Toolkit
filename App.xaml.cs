@@ -8,6 +8,7 @@ using krrTools.Core;
 using krrTools.Tools.DPtool;
 using krrTools.Tools.KRRLNTransformer;
 using krrTools.Tools.N2NC;
+using krrTools.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -42,13 +43,16 @@ namespace krrTools
                 // 注册事件总线
                 services.AddSingleton<IEventBus, EventBus>();
 
+                // 注册状态栏管理器
+                services.AddSingleton<StateBarManager>();
+
                 // 注册选项服务 - 已迁移到 ReactiveOptions
                 services.AddSingleton(sp => new ReactiveOptions<N2NCOptions>(ConverterEnum.N2NC, sp.GetRequiredService<IEventBus>()));
                 services.AddSingleton(sp => new ReactiveOptions<DPToolOptions>(ConverterEnum.DP, sp.GetRequiredService<IEventBus>()));
                 services.AddSingleton(sp => new ReactiveOptions<KRRLNTransformerOptions>(ConverterEnum.KRRLN, sp.GetRequiredService<IEventBus>()));
 
                 // 注册模块管理器
-                services.AddSingleton<IModuleManager>(sp => new ModuleManager(ModuleManager.DiscoverModules(sp), sp));
+                services.AddSingleton<IModuleManager, ModuleManager>();
 
                 // 注册模块
                 services.AddSingleton<IToolModule, N2NCModule>();
@@ -56,13 +60,17 @@ namespace krrTools
                 services.AddSingleton<IToolModule, KRRLNTransformerModule>();
 
                 // 注册主窗口
-                services.AddTransient(sp => new MainWindow(sp.GetRequiredService<IModuleManager>(), sp.GetRequiredService<IEventBus>()));
+                services.AddTransient(sp => new MainWindow(sp.GetRequiredService<IModuleManager>()));
 
                 Services = services.BuildServiceProvider();
 
                 // 初始化全局Logger
                 var logger = Services.GetRequiredService<ILogger<App>>();
                 Logger.Initialize(logger);
+
+                // 设置BaseOptionsManager的EventBus引用
+                var eventBus = Services.GetRequiredService<IEventBus>();
+                BaseOptionsManager.SetEventBus(eventBus);
 
                 base.OnStartup(e);
 

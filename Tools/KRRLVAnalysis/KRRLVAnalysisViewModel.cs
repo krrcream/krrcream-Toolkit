@@ -22,8 +22,8 @@ namespace krrTools.Tools.KRRLVAnalysis
 
     public partial class KRRLVAnalysisViewModel : ReactiveViewModelBase
     {
-        private readonly Bindable<string> _pathInput = new(string.Empty);
-        private readonly Bindable<ObservableCollection<KRRLVAnalysisItem>> _osuFiles = new(new ObservableCollection<KRRLVAnalysisItem>());
+        public Bindable<string> PathInput { get; set; } = new(string.Empty);
+        public Bindable<ObservableCollection<KRRLVAnalysisItem>> OsuFiles { get; set; } = new(new ObservableCollection<KRRLVAnalysisItem>());
 
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(4, 4); // 最多4个并发线程
         private readonly DispatcherTimer _updateTimer;
@@ -33,39 +33,9 @@ namespace krrTools.Tools.KRRLVAnalysis
 
         private int _currentProcessedCount;
 
-        private readonly Bindable<int> _totalCount = new();
-        private readonly Bindable<double> _progressValue = new();
-        private readonly Bindable<bool> _isProgressVisible = new();
-
-        public string PathInput
-        {
-            get => _pathInput.Value;
-            set => _pathInput.Value = value;
-        }
-
-        public ObservableCollection<KRRLVAnalysisItem> OsuFiles
-        {
-            get => _osuFiles.Value;
-            set => _osuFiles.Value = value;
-        }
-
-        public int TotalCount
-        {
-            get => _totalCount.Value;
-            set => _totalCount.Value = value;
-        }
-
-        public double ProgressValue
-        {
-            get => _progressValue.Value;
-            set => _progressValue.Value = value;
-        }
-
-        public bool IsProgressVisible
-        {
-            get => _isProgressVisible.Value;
-            set => _isProgressVisible.Value = value;
-        }
+        public Bindable<int> TotalCount { get; set; } = new();
+        public Bindable<double> ProgressValue { get; set; } = new();
+        public Bindable<bool> IsProgressVisible { get; set; } = new();
         
         public int ProcessedCount { get; set; }
 
@@ -78,12 +48,8 @@ namespace krrTools.Tools.KRRLVAnalysis
             };
             _updateTimer.Tick += UpdateTimer_Tick;
 
-            // 连接Bindable属性的PropertyChanged事件到ViewModel的PropertyChanged事件
-            _pathInput.PropertyChanged += (_, _) => OnPropertyChanged(nameof(PathInput));
-            _osuFiles.PropertyChanged += (_, _) => OnPropertyChanged(nameof(OsuFiles));
-            _totalCount.PropertyChanged += (_, _) => OnPropertyChanged(nameof(TotalCount));
-            _progressValue.PropertyChanged += (_, _) => OnPropertyChanged(nameof(ProgressValue));
-            _isProgressVisible.PropertyChanged += (_, _) => OnPropertyChanged(nameof(IsProgressVisible));
+            // 设置自动绑定通知
+            SetupAutoBindableNotifications();
         }
 
         private void UpdateTimer_Tick(object? sender, EventArgs e)
@@ -98,7 +64,7 @@ namespace krrTools.Tools.KRRLVAnalysis
 
             foreach (var item in itemsToAdd)
             {
-                OsuFiles.Add(item);
+                OsuFiles.Value.Add(item);
             }
         }
 
@@ -117,7 +83,7 @@ namespace krrTools.Tools.KRRLVAnalysis
                     // 更新UI进度
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        ProgressValue = (double)_currentProcessedCount / TotalCount * 100;
+                        ProgressValue.Value = (double)_currentProcessedCount / TotalCount.Value * 100;
                     });
                 });
         }
@@ -142,7 +108,7 @@ namespace krrTools.Tools.KRRLVAnalysis
                 item.BeatmapSetID = result.BeatmapSetID;
                 item.XxySR = result.XXY_SR;
                 item.KrrLV = result.KRR_LV;
-                item.YlsLV = CalculateLevel(result.XXY_SR);
+                item.YlsLV = OsuAnalyzer.CalculateYlsLevel(result.XXY_SR);
                 item.NotesCount = result.NotesCount;
                 item.MaxKPS = result.MaxKPS;
                 item.AvgKPS = result.AvgKPS;
@@ -156,7 +122,7 @@ namespace krrTools.Tools.KRRLVAnalysis
             var selected = FilesHelper.ShowFolderBrowserDialog("选择文件夹");
             if (!string.IsNullOrEmpty(selected))
             {
-                PathInput = selected;
+                PathInput.Value = selected;
                 ProcessDroppedFiles([selected]);
             }
         }
@@ -164,13 +130,13 @@ namespace krrTools.Tools.KRRLVAnalysis
         [RelayCommand]
         private void OpenPath()
         {
-            if (!string.IsNullOrEmpty(PathInput))
+            if (!string.IsNullOrEmpty(PathInput.Value))
             {
                 try
                 {
                     Process.Start(new ProcessStartInfo
                     {
-                        FileName = PathInput,
+                        FileName = PathInput.Value,
                         UseShellExecute = true
                     });
                 }
@@ -195,7 +161,7 @@ namespace krrTools.Tools.KRRLVAnalysis
                     csv.AppendLine("KRR_LV,YLS_LV,XXY_SR,Title,Diff,Artist,Creator,Keys,Notes,MaxKPS,AvgKPS,BPM,OD,HP,LN%,beatmapID,beatmapSetId,filePath");
 
                     // 添加数据行
-                    foreach (var file in OsuFiles)
+                    foreach (var file in OsuFiles.Value)
                     {
                         var line = $"\"{file.KrrLV:F2}\",\"{file.YlsLV:F2}\",\"{file.XxySR:F2}\",\"{file.Title}\",\"{file.Diff}\",\"{file.Artist}\",\"{file.Creator}\",{file.Keys},{file.NotesCount},\"{file.MaxKPS:F2}\",\"{file.AvgKPS:F2}\",\"{file.BPM}\",{file.OD},{file.HP},\"{file.LNPercent:F2}\",{file.BeatmapID},{file.BeatmapSetID},\"{file.FilePath}\"";
                         csv.AppendLine(line);
@@ -221,7 +187,7 @@ namespace krrTools.Tools.KRRLVAnalysis
             try
             {
                 // 计算总文件数（包括.osz中的.osu文件）
-                TotalCount = BeatmapFileHelper.GetOsuFilesCount(files);
+                TotalCount.Value = BeatmapFileHelper.GetOsuFilesCount(files);
                 _currentProcessedCount = 0;
 
                 // 显示进度窗口,处理前
@@ -229,8 +195,8 @@ namespace krrTools.Tools.KRRLVAnalysis
                 {
                     // _processingWindow = new ProcessingWindow();
                     // _processingWindow.Show();
-                    IsProgressVisible = true;
-                    ProgressValue = 0;
+                    IsProgressVisible.Value = true;
+                    ProgressValue.Value = 0;
                 });
 
                 _updateTimer.Start();
@@ -294,7 +260,7 @@ namespace krrTools.Tools.KRRLVAnalysis
                 {
                     // _processingWindow?.Close();
                     // _processingWindow = null;
-                    IsProgressVisible = false;
+                    IsProgressVisible.Value = false;
                 });
             }
             catch (Exception ex)
@@ -311,7 +277,7 @@ namespace krrTools.Tools.KRRLVAnalysis
                 string uniqueId = $"{oszFilePath}|{entry.FullName}";
 
                 // 检查是否已存在于列表中
-                if (OsuFiles.Any(f => f.FilePath != null && f.FilePath.Equals(uniqueId, StringComparison.OrdinalIgnoreCase)))
+                if (OsuFiles.Value.Any(f => f.FilePath != null && f.FilePath.Equals(uniqueId, StringComparison.OrdinalIgnoreCase)))
                     return;
 
                 var item = new KRRLVAnalysisItem
@@ -356,9 +322,16 @@ namespace krrTools.Tools.KRRLVAnalysis
                         memoryStream.WriteTo(fileStream);
                     }
 
-                    // 使用 Analyzer 分析临时文件
-                    var analyzer = new OsuAnalyzer();
-                    var result = analyzer.Analyze(tempFilePath); // 调用已存在的方法
+                    // 使用 BeatmapAnalyzer 分析临时文件
+                    var result = BeatmapAnalyzer.Analyze(tempFilePath);
+                    if (result == null)
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            item.Status = "分析失败";
+                        });
+                        return;
+                    }
 
                     // 使用通用方法更新UI
                     UpdateAnalysisResult(item, result);
@@ -376,9 +349,9 @@ namespace krrTools.Tools.KRRLVAnalysis
             {
                 Application.Current.Dispatcher.Invoke((Action)(() =>
                 {
-                    var itemToRemove = OsuFiles.FirstOrDefault(f => f.FilePath == item.FilePath);
+                    var itemToRemove = OsuFiles.Value.FirstOrDefault(f => f.FilePath == item.FilePath);
                     if (itemToRemove != null)
-                        OsuFiles.Remove(itemToRemove);
+                        OsuFiles.Value.Remove(itemToRemove);
                 }));
             }
             catch (Exception ex)
@@ -399,7 +372,7 @@ namespace krrTools.Tools.KRRLVAnalysis
         private void ProcessOsuFile(string filePath)
         {
             // 检查文件是否已存在于列表中
-            if (OsuFiles.Any(f => f.FilePath != null && f.FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase)))
+            if (OsuFiles.Value.Any(f => f.FilePath != null && f.FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase)))
                 return;
 
             var item = new KRRLVAnalysisItem
@@ -424,8 +397,15 @@ namespace krrTools.Tools.KRRLVAnalysis
         {
             try
             {
-                var analyzer = new OsuAnalyzer();
-                var result = analyzer.Analyze(item.FilePath);
+                var result = BeatmapAnalyzer.Analyze(item.FilePath);
+                if (result == null)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        item.Status = "分析失败";
+                    });
+                    return;
+                }
 
                 // 使用通用方法更新UI
                 UpdateAnalysisResult(item, result);
@@ -447,35 +427,7 @@ namespace krrTools.Tools.KRRLVAnalysis
             }
         }
 
-        private static double CalculateLevel(double xxyStarRating)
-        {
-            const double LOWER_BOUND = 2.76257856739498;
-            const double UPPER_BOUND = 10.5541834716376;
 
-            if (xxyStarRating is >= LOWER_BOUND and <= UPPER_BOUND)
-            {
-                return FittingFormula(xxyStarRating);
-            }
-
-            if (xxyStarRating is < LOWER_BOUND and > 0)
-            {
-                return 3.6198 * xxyStarRating;
-            }
-
-            if (xxyStarRating is > UPPER_BOUND and < 12.3456789)
-            {
-                return (2.791 * xxyStarRating) + 0.5436;
-            }
-
-            return double.NaN;
-        }
-
-        private static double FittingFormula(double x)
-        {
-            // TODO: 实现正确的拟合公式
-            // For now, returning a placeholder value
-            return x * 1.5; // Replace with actual formula
-        }
 
         public new void Dispose()
         {

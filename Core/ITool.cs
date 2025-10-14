@@ -1,5 +1,3 @@
-using krrTools.Configuration;
-
 namespace krrTools.Core
 {
     /// <summary>

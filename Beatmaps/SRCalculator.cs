@@ -44,9 +44,17 @@ namespace krrTools.Beatmaps
             [0.225, 0.35, 0.25, 0.225, 0.225, 0.25, 0.35, 0.225],
             [0.275, 0.45, 0.35, 0.25, 0.05, 0.25, 0.35, 0.45, 0.275],
             [0.275, 0.45, 0.35, 0.25, 0.275, 0.275, 0.25, 0.35, 0.45, 0.275],
-            [0.625, 0.55, 0.45, 0.35, 0.25, 0.05, 0.25, 0.35, 0.45, 0.55, 0.625]
+            [0.625, 0.55, 0.45, 0.35, 0.25, 0.05, 0.25, 0.35, 0.45, 0.55, 0.625],
+            // Inferred matrices for K=11 to 18 based on user-specified patterns
+            [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], // K=11 (odd, unsupported)
+            [0.8, 0.8, 0.8, 0.6, 0.4, 0.2, 0.05, 0.2, 0.4, 0.6, 0.8, 0.8, 0.8], // K=12 (even, sides 3 columns higher)
+            [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], // K=13 (odd, unsupported)
+            [0.4, 0.4, 0.2, 0.2, 0.3, 0.3, 0.1, 0.1, 0.3, 0.3, 0.2, 0.2, 0.4, 0.4, 0.4], // K=14 (wave: low-low-high-high-low-low-high-high)
+            [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], // K=15 (odd, unsupported)
+            [0.4, 0.4, 0.2, 0.2, 0.4, 0.4, 0.2, 0.1, 0.1, 0.2, 0.4, 0.4, 0.2, 0.2, 0.4, 0.4, 0.4], // K=16 (wave: low-low-high-high-low-low-high-high-low-low-high-high)
+            [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], // K=17 (odd, unsupported)
+            [0.4, 0.4, 0.2, 0.4, 0.2, 0.4, 0.2, 0.3, 0.1, 0.1, 0.3, 0.2, 0.4, 0.2, 0.4, 0.2, 0.4, 0.4, 0.4] // K=18 (wave: low-low-high-low-high-low-high-low-low-high-low-high-low-high)
         ];
-
 
         private int T;
         private int K;
@@ -55,12 +63,21 @@ namespace krrTools.Beatmaps
         private Note[] LNSeq = [];
         private Note[] tailSeq = [];
 
-        public double Calculate(List<Note> noteSequence, int keyCount, double od)
+        public double Calculate(List<Note> noteSequence, int keyCount, double od, out Dictionary<string, long> times)
         {
+            times = new Dictionary<string, long>();
             var totalStopwatch = Stopwatch.StartNew(); // 总时间计时开始
 
             // Initialize data structures
             K = keyCount;
+            
+            // Check if key count is supported (max 18 keys, even numbers only for K>10)
+            if (K > 18 || K < 1 || (K > 10 && K % 2 == 1))
+            {
+                // Logger.WriteLine(LogLevel.Warning, $"[SRCalculator] Unsupported key count: {K} (supported: 1-10, 12,14,16,18)");
+                totalStopwatch.Stop();
+                return -1; // Return invalid SR
+            }
             // 优化：避免多次LINQ排序，使用Array.Sort
             noteSeq = noteSequence.ToArray();
             Array.Sort(noteSeq, (a, b) =>
@@ -112,38 +129,38 @@ namespace krrTools.Beatmaps
                 var task23 = Task.Run(() =>
                 {
                     var sectionStopwatch = Stopwatch.StartNew();
-                    var (jbar, deltaKsResult) = CalculateSection23();
+                    var (jBar, deltaKsResult) = CalculateSection23();
                     sectionStopwatch.Stop();
-                    return (jbar, deltaKsResult);
+                    return (jBar, deltaKsResult);
                 });
 
                 var task24 = Task.Run(() =>
                 {
                     var sectionStopwatch = Stopwatch.StartNew();
-                    var Xbar = CalculateSection24();
+                    var XBar = CalculateSection24();
                     sectionStopwatch.Stop();
-                    return Xbar;
+                    return XBar;
                 });
 
                 var task25 = Task.Run(() =>
                 {
                     var sectionStopwatch = Stopwatch.StartNew();
-                    var Pbar = CalculateSection25();
+                    var PBar = CalculateSection25();
                     sectionStopwatch.Stop();
-                    return Pbar;
+                    return PBar;
                 });
 
                 // Wait for all tasks to complete
                 Task.WaitAll(task23, task24, task25);
 
                 // Retrieve results
-                var (Jbar, deltaKs) = task23.Result;
-                var Xbar = task24.Result;
-                var Pbar = task25.Result;
+                var (JBar, deltaKs) = task23.Result;
+                var XBar = task24.Result;
+                var PBar = task25.Result;
 
                 stopwatch.Stop();
-                Logger.WriteLine(LogLevel.Debug,
-                    $"[SRCalculator]Section 23/24/25 Time: {stopwatch.ElapsedMilliseconds}ms");
+                // Logger.WriteLine(LogLevel.Debug, $"[SRCalculator]Section 23/24/25 Time: {stopwatch.ElapsedMilliseconds}ms");
+                times["Section232425"] = stopwatch.ElapsedMilliseconds;
 
                 stopwatch.Restart();
                 var task26 = Task.Run(() => CalculateSection26(deltaKs));
@@ -153,22 +170,23 @@ namespace krrTools.Beatmaps
                 Task.WaitAll(task26, task27);
 
                 // Retrieve results
-                var (Abar, KS) = task26.Result;
-                var (Rbar, _) = task27.Result;
+                var (ABar, KS) = task26.Result;
+                var (RBar, _) = task27.Result;
 
                 stopwatch.Stop();
-                Logger.WriteLine(LogLevel.Debug,
-                    $"[SRCalculator]Section 26/27 Time: {stopwatch.ElapsedMilliseconds}ms");
+                // Logger.WriteLine(LogLevel.Debug, $"[SRCalculator]Section 26/27 Time: {stopwatch.ElapsedMilliseconds}ms");
+                times["Section2627"] = stopwatch.ElapsedMilliseconds;
 
                 // Final calculation
                 stopwatch.Restart();
-                var result = CalculateSection3(Jbar, Xbar, Pbar, Abar, Rbar, KS);
+                var result = CalculateSection3(JBar, XBar, PBar, ABar, RBar, KS);
                 stopwatch.Stop();
-                Logger.WriteLine(LogLevel.Debug, $"[SRCalculator]Section 3 Time: {stopwatch.ElapsedMilliseconds}ms");
+                // Logger.WriteLine(LogLevel.Debug, $"[SRCalculator]Section 3 Time: {stopwatch.ElapsedMilliseconds}ms");
+                times["Section3"] = stopwatch.ElapsedMilliseconds;
 
                 totalStopwatch.Stop(); // 总时间计时结束
-                Logger.WriteLine(LogLevel.Debug,
-                    $"[SRCalculator]Total Calculate Time: {totalStopwatch.ElapsedMilliseconds}ms");
+                // Logger.WriteLine(LogLevel.Debug, $"[SRCalculator]Total Calculate Time: {totalStopwatch.ElapsedMilliseconds}ms");
+                times["Total"] = totalStopwatch.ElapsedMilliseconds;
 
                 return result;
             }
@@ -176,13 +194,14 @@ namespace krrTools.Beatmaps
             {
                 Logger.WriteLine(LogLevel.Error, $"[SRCalculator] Exception: {ex.Message}");
                 Logger.WriteLine(LogLevel.Error, $"[SRCalculator] StackTrace: {ex.StackTrace}");
+                times["Error"] = -1;
                 return -1;
             }
         }
 
         // private double[] Smooth(double[] lst)
         // {
-        //     var lstbar = new double[T];
+        //     var lstBar = new double[T];
         //     var windowSum = 0.0;
 
         //     for (int i = 0; i < Math.Min(500, T); i += granularity)
@@ -190,13 +209,13 @@ namespace krrTools.Beatmaps
 
         //     for (int s = 0; s < T; s += granularity)
         //     {
-        //         lstbar[s] = 0.001 * windowSum * granularity;
+        //         lstBar[s] = 0.001 * windowSum * granularity;
         //         if (s + 500 < T)
         //             windowSum += lst[s + 500];
         //         if (s - 500 >= 0)
         //             windowSum -= lst[s - 500];
         //     }
-        //     return lstbar;
+        //     return lstBar;
         // }
         private double[] Smooth(double[] lst) // 优化方法：使用前缀和加速滑动窗口计算
         {
@@ -204,21 +223,21 @@ namespace krrTools.Beatmaps
             for (var i = 1; i <= T; i++)
                 prefixSum[i] = prefixSum[i - 1] + lst[i - 1];
 
-            var lstbar = new double[T];
+            var lstBar = new double[T];
             for (var s = 0; s < T; s += granularity)
             {
                 var left = Math.Max(0, s - 500);
                 var right = Math.Min(T, s + 500);
                 var sum = prefixSum[right] - prefixSum[left];
-                lstbar[s] = 0.001 * sum * granularity; // 匹配原滑动窗口逻辑
+                lstBar[s] = 0.001 * sum * granularity; // 匹配原滑动窗口逻辑
             }
 
-            return lstbar;
+            return lstBar;
         }
 
         private double[] Smooth2(double[] lst)
         {
-            var lstbar = new double[T];
+            var lstBar = new double[T];
             var windowSum = 0.0;
             var windowLen = Math.Min(500, T);
 
@@ -227,7 +246,7 @@ namespace krrTools.Beatmaps
 
             for (var s = 0; s < T; s += granularity)
             {
-                lstbar[s] = windowSum / windowLen * granularity;
+                lstBar[s] = windowSum / windowLen * granularity;
 
                 if (s + 500 < T)
                 {
@@ -242,7 +261,7 @@ namespace krrTools.Beatmaps
                 }
             }
 
-            return lstbar;
+            return lstBar;
         }
 
         private double JackNerfer(double delta)
@@ -250,7 +269,7 @@ namespace krrTools.Beatmaps
             return 1 - 7 * Math.Pow(10, -5) * Math.Pow(0.15 + Math.Abs(delta - 0.08), -4);
         }
 
-        private (double[] Jbar, double[][] deltaKs) CalculateSection23()
+        private (double[] JBar, double[][] deltaKs) CalculateSection23()
         {
             var JKs = new double[K][];
             var deltaKs = new double[K][];
@@ -286,11 +305,11 @@ namespace krrTools.Beatmaps
             });
 
             // Smooth the JKs array，优化：并行化Smooth调用
-            var JbarKs = new double[K][];
-            Parallel.For(0, K, k => JbarKs[k] = Smooth(JKs[k]));
+            var JBarKs = new double[K][];
+            Parallel.For(0, K, k => JBarKs[k] = Smooth(JKs[k]));
 
-            // Calculate Jbar
-            var Jbar = new double[T];
+            // Calculate JBar
+            var JBar = new double[T];
             for (var s = 0; s < T; s += granularity)
             {
                 double weightedSum = 0;
@@ -299,7 +318,7 @@ namespace krrTools.Beatmaps
                 // Replace list allocation with direct accumulation
                 for (var i = 0; i < K; i++)
                 {
-                    var val = JbarKs[i][s];
+                    var val = JBarKs[i][s];
                     var weight = 1.0 / deltaKs[i][s];
 
                     weightSum += weight;
@@ -307,10 +326,10 @@ namespace krrTools.Beatmaps
                 }
 
                 weightSum = Math.Max(1e-9, weightSum);
-                Jbar[s] = Math.Pow(weightedSum / weightSum, 1.0 / lambda_n);
+                JBar[s] = Math.Pow(weightedSum / weightSum, 1.0 / lambda_n);
             }
 
-            return (Jbar, deltaKs);
+            return (JBar, deltaKs);
         }
 
         private double[] CalculateSection24()
@@ -328,7 +347,7 @@ namespace krrTools.Beatmaps
                 }
                 else if (k == K)
                 {
-                    notesInPair = noteSeqByColumn.Length > 0 ? noteSeqByColumn[noteSeqByColumn.Length - 1] : [];
+                    notesInPair = noteSeqByColumn.Length > 0 ? noteSeqByColumn[^1] : [];
                 }
                 else
                 {
@@ -434,7 +453,7 @@ namespace krrTools.Beatmaps
             return Smooth(P);
         }
 
-        private (double[] Abar, int[] KS) CalculateSection26(double[][] deltaKs)
+        private (double[] ABar, int[] KS) CalculateSection26(double[][] deltaKs)
         {
             var KUKs = new bool[K][];
             for (var k = 0; k < K; k++) KUKs[k] = new bool[T];
@@ -498,7 +517,7 @@ namespace krrTools.Beatmaps
                 : new Note(0, (int)Math.Pow(10, 9), (int)Math.Pow(10, 9));
         }
 
-        private (double[] Rbar, double[] Is) CalculateSection27()
+        private (double[] RBar, double[] Is) CalculateSection27()
         {
             var I = new double[LNSeq.Length];
             Parallel.For(0, tailSeq.Length, i =>
@@ -542,8 +561,8 @@ namespace krrTools.Beatmaps
                     array[i] = lastValidValue; // Replace NaN or 0 with last valid value or initial value
         }
 
-        private double CalculateSection3(double[] Jbar, double[] Xbar, double[] Pbar,
-            double[] Abar, double[] Rbar, int[] KS)
+        private double CalculateSection3(double[] JBar, double[] XBar, double[] PBar,
+            double[] ABar, double[] RBar, int[] KS)
         {
             var C = new double[T];
             int start = 0, end = 0;
@@ -564,18 +583,18 @@ namespace krrTools.Beatmaps
             Parallel.For(0, T, t =>
             {
                 // Ensure all values are non-negative
-                Jbar[t] = Math.Max(0, Jbar[t]);
-                Xbar[t] = Math.Max(0, Xbar[t]);
-                Pbar[t] = Math.Max(0, Pbar[t]);
-                Abar[t] = Math.Max(0, Abar[t]);
-                Rbar[t] = Math.Max(0, Rbar[t]);
+                JBar[t] = Math.Max(0, JBar[t]);
+                XBar[t] = Math.Max(0, XBar[t]);
+                PBar[t] = Math.Max(0, PBar[t]);
+                ABar[t] = Math.Max(0, ABar[t]);
+                RBar[t] = Math.Max(0, RBar[t]);
 
-                var term1 = Math.Pow(w_0 * Math.Pow(Math.Pow(Abar[t], 3.0 / KS[t]) * Jbar[t], 1.5), 1);
-                var term2 = Math.Pow((1 - w_0) * Math.Pow(Math.Pow(Abar[t], 2.0 / 3) *
-                                                          (0.8 * Pbar[t] + Rbar[t]), 1.5), 1);
+                var term1 = Math.Pow(w_0 * Math.Pow(Math.Pow(ABar[t], 3.0 / KS[t]) * JBar[t], 1.5), 1);
+                var term2 = Math.Pow((1 - w_0) * Math.Pow(Math.Pow(ABar[t], 2.0 / 3) *
+                                                          (0.8 * PBar[t] + RBar[t]), 1.5), 1);
                 S[t] = Math.Pow(term1 + term2, 2.0 / 3);
 
-                var T_t = Math.Pow(Abar[t], 3.0 / KS[t]) * Xbar[t] / (Xbar[t] + S[t] + 1);
+                var T_t = Math.Pow(ABar[t], 3.0 / KS[t]) * XBar[t] / (XBar[t] + S[t] + 1);
                 D[t] = w_1 * Math.Pow(S[t], 1.0 / 2) * Math.Pow(T_t, p_1) + S[t] * w_2;
             });
 
@@ -601,11 +620,11 @@ namespace krrTools.Beatmaps
         {
             var notes = new List<Note>();
             double cs = beatmap.DifficultySection.CircleSize;
-            foreach (var hitobject in beatmap.HitObjects)
+            foreach (var hitObject in beatmap.HitObjects)
             {
-                var col = (int)Math.Floor(hitobject.Position.X * cs / 512.0);
-                var time = hitobject.StartTime;
-                var tail = hitobject.EndTime > hitobject.StartTime ? hitobject.EndTime : -1;
+                var col = (int)Math.Floor(hitObject.Position.X * cs / 512.0);
+                var time = hitObject.StartTime;
+                var tail = hitObject.EndTime > hitObject.StartTime ? hitObject.EndTime : -1;
                 notes.Add(new Note(col, time, tail));
             }
 

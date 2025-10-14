@@ -5,7 +5,6 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Windows;
 using krrTools.Localization;
 using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
@@ -15,144 +14,140 @@ namespace krrTools.Beatmaps
 {
     public class OsuAnalysisResult
     {
+        // File information
+        public string? FilePath { get; init; }
+        public string? FileName { get; init; }
+        
+        // Basic metadata
         public string? Diff { get; init; }
         public string? Title { get; init; }
         public string? Artist { get; init; }
         public string? Creator { get; init; }
         public string? BPMDisplay { get; init; }
-        // public double BPM_Main { get; init; }
+        
+        // Difficulty settings
         public double Keys { get; init; }
         public double OD { get; init; }
         public double HP { get; init; }
 
-        // Custom properties unique to OsuAnalyzer
+        // Analysis results
         public double XXY_SR { get; init; }
         public double KRR_LV { get; init; }
         public double LNPercent { get; init; }
 
+        // Performance metrics
         public int NotesCount { get; init; }
         public double MaxKPS { get; init; }
         public double AvgKPS { get; init; }
 
+        // Beatmap identifiers
         public double BeatmapID { get; init; }
         public double BeatmapSetID { get; init; }
+        
+        // Raw beatmap object (optional, for advanced usage)
+        public Beatmap? Beatmap { get; init; }
     }
 
-    public class OsuAnalyzer
+    public static class OsuAnalyzer
     {
-        private readonly SRCalculator calculator = new();
-
-        public OsuAnalysisResult Analyze(string? filePath)
+        public static OsuAnalysisResult Analyze(string filePath)
         {
             var beatmap = BeatmapDecoder.Decode(filePath);
 
-            // compute custom stats via SRCalculator
-            var Keys1 = (int)beatmap.DifficultySection.CircleSize;
-            var OD1 = beatmap.DifficultySection.OverallDifficulty;
-            var notes = calculator.getNotes(beatmap);
-            double xxySR = calculator.Calculate(notes, Keys1, OD1);
-            double krrLV = -1;
-            if (Keys1 <= 10)
-            {
-                var (a, b, c) = Keys1 == 10
-                    ? (-0.0773, 3.8651, -3.4979)
-                    : (-0.0644, 3.6139, -3.0677);
-
-                double LV = a * xxySR * xxySR + b * xxySR + c;
-                krrLV = LV > 0 ? LV : -1;
-            }
-
+            var (Keys1, OD1, xxySR, krrLV) = PerformAnalysis(beatmap);
+            int notesCount = beatmap.HitObjects.Count;
+            double maxKPS = beatmap.MaxBPM;
+            double avgKPS = beatmap.MainBPM;
+            
             // gather standard metadata with OsuParsers
-            var bpmDisplay = GetBPMDisplay(filePath);
-            // var bpm = GetMainBpm(filePath);
-
-            // Calculate notes count, max KPS, and average KPS
-            var (notesCount, maxKPS, avgKPS) = CalculateKPSMetrics(beatmap);
+            var bpmDisplay = GetBPMDisplay(beatmap);
 
             var result = new OsuAnalysisResult
             {
+                // File information
+                FilePath = filePath,
+                FileName = Path.GetFileName(filePath),
+                
+                // Basic metadata
                 Diff = beatmap.MetadataSection.Version,
                 Title = beatmap.MetadataSection.Title,
                 Artist = beatmap.MetadataSection.Artist,
                 Creator = beatmap.MetadataSection.Creator,
                 BPMDisplay = bpmDisplay,
-                // BPM_Main = bpm,
+                
+                // Difficulty settings
                 Keys = Keys1,
                 OD = OD1,
                 HP = beatmap.DifficultySection.HPDrainRate,
 
-                // Custom properties unique to OsuAnalyzer
+                // Analysis results
                 XXY_SR = xxySR,
                 KRR_LV = krrLV,
                 LNPercent = beatmap.GetLNPercent(),
 
+                // Performance metrics
                 NotesCount = notesCount,
                 MaxKPS = maxKPS,
                 AvgKPS = avgKPS,
 
+                // Beatmap identifiers
                 BeatmapID = beatmap.MetadataSection.BeatmapID,
-                BeatmapSetID = beatmap.MetadataSection.BeatmapSetID
+                BeatmapSetID = beatmap.MetadataSection.BeatmapSetID,
+                
+                // Raw beatmap object
+                Beatmap = beatmap
             };
 
             return result;
         }
 
-        private (int notesCount, double maxKPS, double avgKPS) CalculateKPSMetrics(Beatmap beatmap)
+        public static OsuAnalysisResult Analyze(string filePath, Beatmap beatmap)
         {
+            var (Keys1, OD1, xxySR, krrLV) = PerformAnalysis(beatmap);
             int notesCount = beatmap.HitObjects.Count;
-
-            // Get main BPM from first timing point
-            var firstTimingPoint = beatmap.TimingPoints.FirstOrDefault(tp => tp.BeatLength > 0);
-            if (firstTimingPoint == null)
+            double maxKPS = beatmap.MaxBPM;
+            double avgKPS = beatmap.MainBPM;
+            var bpmDisplay = GetBPMDisplay(beatmap);
+            var result = new OsuAnalysisResult
             {
-                return (notesCount, 0, 0);
-            }
+                FilePath = filePath,
+                FileName = Path.GetFileName(filePath),
 
-            double mainBPM = 60000.0 / firstTimingPoint.BeatLength;
-            double beatLength = 60000.0 / mainBPM; // Duration of one beat in ms
-            double measureLength = beatLength * 4; // Duration of 4/4 measure in ms
+                // Basic metadata
+                Diff = beatmap.MetadataSection.Version,
+                Title = beatmap.MetadataSection.Title,
+                Artist = beatmap.MetadataSection.Artist,
+                Creator = beatmap.MetadataSection.Creator,
+                BPMDisplay = bpmDisplay,
 
-            // Sort hit objects by time
-            var sortedHitObjects = beatmap.HitObjects.OrderBy(ho => ho.StartTime).ToList();
+                // Difficulty settings
+                Keys = Keys1,
+                OD = OD1,
+                HP = beatmap.DifficultySection.HPDrainRate,
 
-            if (sortedHitObjects.Count == 0)
-            {
-                return (notesCount, 0, 0);
-            }
+                // Analysis results
+                XXY_SR = xxySR,
+                KRR_LV = krrLV,
+                LNPercent = beatmap.GetLNPercent(),
 
-            // Start from first timing point
-            double startTime = firstTimingPoint.Offset;
-            double endTime = sortedHitObjects.Max(ho => Math.Max(ho.StartTime, ho.EndTime));
+                // Performance metrics
+                NotesCount = notesCount,
+                MaxKPS = maxKPS,
+                AvgKPS = avgKPS,
 
-            var kpsValues = new List<double>();
+                // Beatmap identifiers
+                BeatmapID = beatmap.MetadataSection.BeatmapID,
+                BeatmapSetID = beatmap.MetadataSection.BeatmapSetID,
 
-            // Divide into 4/4 measure regions
-            for (double currentTime = startTime; currentTime < endTime; currentTime += measureLength)
-            {
-                double regionEnd = currentTime + measureLength;
-                int notesInRegion = sortedHitObjects.Count(ho =>
-                    ho.StartTime >= currentTime && ho.StartTime < regionEnd);
+                // Raw beatmap object
+                Beatmap = beatmap
+            };
 
-                if (notesInRegion > 0)
-                {
-                    double regionDurationSeconds = measureLength / 1000.0;
-                    double kps = notesInRegion / regionDurationSeconds;
-                    kpsValues.Add(kps);
-                }
-            }
-
-            double maxKPS = kpsValues.Count > 0 ? kpsValues.Max() : 0;
-            double avgKPS = kpsValues.Count > 0 ? kpsValues.Average() : 0;
-
-            return (notesCount, maxKPS, avgKPS);
+            return result;
         }
-
-        private string GetBPMDisplay(string? filePath)
+        
+        private static string GetBPMDisplay(Beatmap beatmap)
         {
-            if (filePath == null || !File.Exists(filePath))
-                throw new ArgumentNullException(nameof(filePath));
-
-            var beatmap = BeatmapDecoder.Decode(filePath);
             var bpm = beatmap.MainBPM;
             var bpmMax = beatmap.MaxBPM;
             var bpmMin = beatmap.MinBPM;
@@ -162,13 +157,43 @@ namespace krrTools.Beatmaps
             return BPMFormat;
         }
 
+        private static (int keys, double od, double xxySr, double krrLv) PerformAnalysis(Beatmap beatmap)
+        {
+            // 创建新的SRCalculator实例，避免多线程竞争
+            var calculator = new SRCalculator();
+
+            var keys = (int)beatmap.DifficultySection.CircleSize;
+            var od = beatmap.DifficultySection.OverallDifficulty;
+            var notes = calculator.getNotes(beatmap);
+            double xxySr = calculator.Calculate(notes, keys, od, out _);
+            double krrLv = CalculateKrrLevel(keys, xxySr);
+
+            return (keys, od, xxySr, krrLv);
+        }
+
+        private static double CalculateKrrLevel(int keys, double xxySr)
+        {
+            double krrLv = -1;
+            if (keys <= 10)
+            {
+                var (a, b, c) = keys == 10
+                    ? (-0.0773, 3.8651, -3.4979)
+                    : (-0.0644, 3.6139, -3.0677);
+
+                double LV = a * xxySr * xxySr + b * xxySr + c;
+                krrLv = LV > 0 ? LV : -1;
+            }
+
+            return krrLv;
+        }
+
         public static string? AddNewBeatmapToSongFolder(string newBeatmapFile, bool openOsz = false)
         {
             // 获取.osu文件所在的目录作为歌曲文件夹
             string? songFolder = Path.GetDirectoryName(newBeatmapFile);
             if (string.IsNullOrEmpty(songFolder))
             {
-                MessageBox.Show(Strings.InvalidBeatmapFilePath.Localize() + ": " + newBeatmapFile, Strings.Error.Localize());
+                Logger.WriteLine(LogLevel.Error, Strings.InvalidBeatmapFilePath.Localize() + ": " + newBeatmapFile);
                 return null;
             }
 
@@ -179,7 +204,8 @@ namespace krrTools.Beatmaps
             string? parentDir = Path.GetDirectoryName(songFolder);
             if (string.IsNullOrEmpty(parentDir))
             {
-                MessageBox.Show(Strings.UnableToDetermineParentDirectory.Localize() + ": " + songFolder, Strings.Error.Localize());
+                // TODO: 路径为空时，改成自销毁通知
+                Logger.WriteLine(LogLevel.Error, Strings.UnableToDetermineParentDirectory.Localize() + ": " + songFolder);
                 return null;
             }
 
@@ -193,7 +219,7 @@ namespace krrTools.Beatmaps
                 // Ensure source directory exists before creating archive
                 if (!Directory.Exists(songFolder))
                 {
-                    MessageBox.Show(Strings.SourceSongFolderDoesNotExist.Localize() + ": " + songFolder, Strings.Error.Localize());
+                    Logger.WriteLine(LogLevel.Error, Strings.SourceSongFolderDoesNotExist.Localize() + ": " + songFolder);
                     return null;
                 }
 
@@ -201,7 +227,7 @@ namespace krrTools.Beatmaps
             }
             catch (Exception e)
             {
-                MessageBox.Show($"Failed to create {fullOutputPath} {Environment.NewLine}{Environment.NewLine}{e.Message}", "Error");
+                Logger.WriteLine(LogLevel.Error, $"Failed to create {fullOutputPath} {Environment.NewLine}{Environment.NewLine}{e.Message}");
                 return null;
             }
 
@@ -213,7 +239,7 @@ namespace krrTools.Beatmaps
             }
             catch (Exception e)
             {
-                MessageBox.Show(Strings.FailedToAddBeatmapToArchive.Localize() + ": " + Environment.NewLine + Environment.NewLine + e.Message, Strings.Error.Localize());
+                Logger.WriteLine(LogLevel.Error, Strings.FailedToAddBeatmapToArchive.Localize() + ": " + Environment.NewLine + Environment.NewLine + e.Message);
                 return null;
             }
 
@@ -227,7 +253,7 @@ namespace krrTools.Beatmaps
             }
             catch (Exception e)
             {
-                MessageBox.Show(Strings.FailedToDeleteTemporaryBeatmapFile.Localize() + ": " + newBeatmapFile + " " + Environment.NewLine + Environment.NewLine + e.Message, Strings.Warning.Localize());
+                Logger.WriteLine(LogLevel.Warning, Strings.FailedToDeleteTemporaryBeatmapFile.Localize() + ": " + newBeatmapFile + " " + Environment.NewLine + Environment.NewLine + e.Message);
             }
 
             // 4. 打开 .osz（仅当调用方请求时）
@@ -242,9 +268,9 @@ namespace krrTools.Beatmaps
                 }
                 catch
                 {
-                    MessageBox.Show("There was an error opening the generated .osz file. This is probably because .osz files have not been configured to open with osu!.exe on this system." + Environment.NewLine + Environment.NewLine +
+                    Logger.WriteLine(LogLevel.Error, "There was an error opening the generated .osz file. This is probably because .osz files have not been configured to open with osu!.exe on this system." + Environment.NewLine + Environment.NewLine +
                                     "To fix this, download any map from the website, right click the .osz file, click properties, beside Opens with... click Change..., and select osu!. " +
-                                    "You'll know the problem is fixed when you can double click .osz files to open them with osu!", "Error");
+                                    "You'll know the problem is fixed when you can double click .osz files to open them with osu!");
                 }
             }
 
@@ -252,7 +278,7 @@ namespace krrTools.Beatmaps
             return fullOutputPath;
         }
 
-        public List<double> GetBeatLengthAxis(Dictionary<double, double> beatLengthDict, double mainBPM,
+        public static List<double> GetBeatLengthAxis(Dictionary<double, double> beatLengthDict, double mainBPM,
             List<int> timeAxis)
         {
             double defaultLength = 60000 / mainBPM;
@@ -295,6 +321,39 @@ namespace krrTools.Beatmaps
             }
 
             return bLAxis;
+        }
+
+        /// <summary>
+        /// 计算 YLS LV (基于 XXY SR)
+        /// </summary>
+        public static double CalculateYlsLevel(double xxyStarRating)
+        {
+            const double LOWER_BOUND = 2.76257856739498;
+            const double UPPER_BOUND = 10.5541834716376;
+
+            if (xxyStarRating is >= LOWER_BOUND and <= UPPER_BOUND)
+            {
+                return FittingFormula(xxyStarRating);
+            }
+
+            if (xxyStarRating is < LOWER_BOUND and > 0)
+            {
+                return 3.6198 * xxyStarRating;
+            }
+
+            if (xxyStarRating is > UPPER_BOUND and < 12.3456789)
+            {
+                return (2.791 * xxyStarRating) + 0.5436;
+            }
+
+            return double.NaN;
+        }
+
+        private static double FittingFormula(double x)
+        {
+            // TODO: 实现正确的拟合公式
+            // For now, returning a placeholder value
+            return x * 1.5; // Replace with actual formula
         }
     }
 }

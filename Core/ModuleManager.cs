@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,17 +10,14 @@ namespace krrTools.Core
     /// </summary>
     public class ModuleManager : IModuleManager
     {
-        private readonly Dictionary<ToolModuleType, IToolModule> _modules = new();
-        private readonly Dictionary<string, ITool> _tools = new();
-
-        private readonly IServiceProvider _serviceProvider;
+        private readonly ConcurrentDictionary<ToolModuleType, IToolModule> _modules = new();
+        private readonly ConcurrentDictionary<string, ITool> _tools = new();
 
         /// <summary>
         /// 构造函数，通过 DI 注入所有模块
         /// </summary>
-        public ModuleManager(IEnumerable<IToolModule> modules, IServiceProvider serviceProvider)
+        public ModuleManager(IEnumerable<IToolModule> modules)
         {
-            _serviceProvider = serviceProvider;
             foreach (var module in modules) RegisterModule(module);
         }
 
@@ -37,20 +35,7 @@ namespace krrTools.Core
         public void RegisterModule(IToolModule module)
         {
             if (_modules.TryAdd(module.ModuleType, module))
-                // Console.WriteLine($"[INFO] 注册模块: {module.DisplayName}");
                 RegisterTool(module.CreateTool());
-        }
-
-        /// <summary>
-        /// 注销模块
-        /// </summary>
-        public void UnregisterModule(IToolModule module)
-        {
-            if (_modules.Remove(module.ModuleType))
-            {
-                Console.WriteLine($"[INFO] 注销模块: {module.DisplayName}");
-                _tools.Remove(module.CreateTool().Name);
-            }
         }
 
         /// <summary>
@@ -61,13 +46,24 @@ namespace krrTools.Core
         {
             _tools[tool.Name] = tool;
         }
-
+        
         /// <summary>
         /// 根据名称获取工具
         /// </summary>
-        public ITool? GetToolName(string toolName)
+        public ITool? GetToolByName(string toolName)
         {
             return _tools.GetValueOrDefault(toolName);
+        }
+        
+        /// <summary>
+        /// 注销模块
+        /// </summary>
+        public void UnregisterModule(IToolModule module)
+        {
+            if (_modules.TryRemove(module.ModuleType, out var dummy))
+            {
+                _tools.TryRemove(module.CreateTool().Name, out _);
+            }
         }
 
         /// <summary>

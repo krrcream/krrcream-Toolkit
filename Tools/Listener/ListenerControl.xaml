@@ -4,7 +4,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:ui="http://schemas.modernwpf.com/2019"
     Background="#FFBDC1C1"
     mc:Ignorable="d">
     <Grid>
@@ -42,7 +41,7 @@
                     VerticalAlignment="Center"
                     Background="LightGray"
                     IsReadOnly="True"
-                    Text="{Binding Config.N2NCHotkey, Mode=TwoWay}"
+                    Text="{Binding N2NCHotkey, Mode=TwoWay}"
                     ToolTip="Click here and press key combination to set N2NC hotkey" />
                 <TextBox
                     x:Name="DPHotkeyTextBox"
@@ -52,7 +51,7 @@
                     VerticalAlignment="Center"
                     Background="LightGray"
                     IsReadOnly="True"
-                    Text="{Binding Config.DPHotkey, Mode=TwoWay}"
+                    Text="{Binding DPHotkey, Mode=TwoWay}"
                     ToolTip="Click here and press key combination to set DP hotkey" />
                 <TextBox
                     x:Name="KRRLNHotkeyTextBox"
@@ -62,7 +61,7 @@
                     VerticalAlignment="Center"
                     Background="LightGray"
                     IsReadOnly="True"
-                    Text="{Binding Config.KRRLNHotkey, Mode=TwoWay}"
+                    Text="{Binding KRRLNHotkey, Mode=TwoWay}"
                     ToolTip="Click here and press key combination to set KRRLN hotkey" />
             </Grid>
         </Border>
@@ -92,12 +91,12 @@
                         Grid.Column="0"
                         Background="Transparent"
                         FontSize="18"
-                        Foreground="White"
-                        Text="{Binding Config.SongsPath, Mode=OneWay}" />
+                        Foreground="Black"
+                        Text="{Binding SongsPath, Mode=TwoWay}" />
                     <Button
                         Grid.Column="1"
                         Width="120"
-                        Height="38"
+                        Height="42"
                         Padding="10,2"
                         Command="{Binding BrowseCommand}"
                         Content="Browse Songs" />
@@ -115,11 +114,23 @@
                 Margin="0,10,0,0"
                 FontSize="18"
                 Header="Current Beatmap Info">
-                <Border
+                <ItemsControl
                     x:Name="FileInfoContainer"
                     Margin="0,5,0,0"
-                    BorderBrush="Gray"
-                    BorderThickness="1" />
+                    ItemsSource="{Binding FileInfoItems}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock FontSize="16">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0}: {1}">
+                                        <Binding Path="Key" />
+                                        <Binding Path="Value" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </GroupBox>
         </Grid>
     </Grid>

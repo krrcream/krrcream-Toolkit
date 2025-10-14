@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Bindable;
-using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 
@@ -26,8 +28,8 @@ namespace krrTools.Core
     /// </summary>
     public abstract class ToolModuleBase<TOptions, TViewModel, TControl> : IToolModule, IApplyToBeatmap
         where TOptions : ToolOptionsBase, new()
-        where TViewModel : ToolViewModelBase<TOptions>
-        where TControl : ToolViewBase<TOptions>
+        where TViewModel : ToolViewModelBase<TOptions>, IToolViewModel
+        where TControl : ToolViewBase<TOptions>, IToolControl
     {
         protected TOptions _currentOptions = new();
         protected ReactiveOptions<TOptions>? _reactiveOptions;
@@ -57,11 +59,6 @@ namespace krrTools.Core
         /// 模块类型
         /// </summary>
         public abstract ToolModuleType ModuleType { get; }
-
-        /// <summary>
-        /// 枚举值（实现 Configuration.IToolModule）
-        /// </summary>
-        public object EnumValue => ModuleType;
 
         /// <summary>
         /// 选项类型（实现 Configuration.IToolModule）
@@ -124,42 +121,12 @@ namespace krrTools.Core
         protected abstract void ApplyToBeatmapInternal(Beatmap beatmap);
 
         /// <summary>
-        /// 创建ViewModel
-        /// </summary>
-        public virtual TViewModel CreateViewModel()
-        {
-            // Try to get injected options from DI container
-            var services = App.Services;
-            if (services.GetService(typeof(ReactiveOptions<TOptions>)) is ReactiveOptions<TOptions> reactOptions)
-                // Use the DI constructor with options
-                return (TViewModel)Activator.CreateInstance(typeof(TViewModel), reactOptions.Options, true)!;
-            else
-                // Fallback to default constructor with tool enum
-                return (TViewModel)Activator.CreateInstance(typeof(TViewModel), ModuleType, true)!;
-        }
-
-        /// <summary>
-        /// 创建UI控件
-        /// </summary>
-        public virtual TControl CreateControl()
-        {
-            // Try to get injected options from DI container
-            var services = App.Services;
-            if (services.GetService(typeof(ReactiveOptions<TOptions>)) is ReactiveOptions<TOptions> reactOptions)
-                // Use the DI constructor with options
-                return (TControl)Activator.CreateInstance(typeof(TControl), reactOptions.Options)!;
-            else
-                // Fallback to default constructor with tool enum
-                return (TControl)Activator.CreateInstance(typeof(TControl), ModuleType)!;
-        }
-
-        /// <summary>
         /// 创建工具实例
         /// </summary>
         public virtual ITool CreateTool()
         {
-            var logger = App.Services.GetService(typeof(ILogger<GenericTool>)) as ILogger<GenericTool>;
-            return new GenericTool(this, this, logger); // 传入 module 和 applier
+            // var logger = App.Services.GetService(typeof(ILogger<GenericTool>)) as ILogger<GenericTool>;
+            return new GenericTool(this, this); // 传入 module 和 applier
         }
 
         /// <summary>
@@ -171,47 +138,10 @@ namespace krrTools.Core
             ApplyToBeatmapInternal(b);
         }
 
-        // ITool实现
-
-        // /// <summary>
-        // /// 处理单个文件
-        // /// </summary>
-        // public string? ProcessFileSave(string filePath, IToolOptions? opts = null)
-        // {
-        //     var options = opts ?? DefaultOptions;
-        //     try
-        //     {
-        //         var beatmap = BeatmapDecoder.Decode(filePath).GetManiaBeatmap();
-        //         var processedBeatmap = ProcessBeatmap(beatmap, options);
-        //
-        //         var outputPath = BeatmapFileHelper.GenerateOutputPath(filePath, ModuleName);
-        //
-        //         // 写入文件
-        //         if (BeatmapFileHelper.SaveBeatmapToFile(processedBeatmap, outputPath)) return outputPath;
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         Console.WriteLine($"[ERROR] 处理文件时出错，使用模块 {Name}: {ex.Message}");
-        //     }
-        //
-        //     return null;
-        // }
-
-        // /// <summary>
-        // /// 处理Beatmap对象
-        // /// </summary>
-        // private Beatmap ProcessBeatmap(Beatmap input, IToolOptions? options = null)
-        // {
-        //     var opts = options as TOptions ?? _currentOptions;
-        //     var maniaBeatmap = ManiaBeatmap.FromBeatmap(input);
-        //     ApplyToBeatmap(maniaBeatmap);
-        //     return maniaBeatmap;
-        // }
-
         /// <summary>
         /// 创建默认选项
         /// </summary>
-        IToolOptions IToolModuleInfo.CreateDefaultOptions()
+        IToolOptions IToolModule.CreateDefaultOptions()
         {
             return new TOptions();
         }
@@ -219,24 +149,24 @@ namespace krrTools.Core
         /// <summary>
         /// 创建UI控件
         /// </summary>
-        object IToolFactory.CreateControl()
+        IToolControl IToolModule.CreateControl()
         {
-            return Activator.CreateInstance(typeof(TControl), ModuleType)!;
+            return (IToolControl)Activator.CreateInstance(typeof(TControl), ModuleType)!;
         }
 
         /// <summary>
         /// 创建ViewModel
         /// </summary>
-        object IToolFactory.CreateViewModel()
+        IToolViewModel IToolModule.CreateViewModel()
         {
-            return Activator.CreateInstance(typeof(TViewModel), ModuleType)!;
+            return (IToolViewModel)Activator.CreateInstance(typeof(TViewModel), ModuleType)!;
         }
     }
 
     /// <summary>
     /// 通用工具实现 - 实现ITool和IApplyToBeatmap，职责分离
     /// </summary>
-    public class GenericTool(IToolModule module, IApplyToBeatmap applier, ILogger<GenericTool>? logger = null) : ITool, IApplyToBeatmap
+    public class GenericTool(IToolModule module, IApplyToBeatmap applier) : ITool, IApplyToBeatmap
     {
         public string Name => module.ModuleName;
 
@@ -245,28 +175,36 @@ namespace krrTools.Core
         /// <summary>
         /// 处理单个文件 - 内部使用IApplyToBeatmap进行Beatmap转换
         /// </summary>
-        public string? ProcessFileSave(string filePath, IToolOptions? opts = null)
+        public string? ProcessFileSave(string filePath, IToolOptions? options = null)
         {
             try
             {
+                // 解码谱面
                 var beatmap = BeatmapDecoder.Decode(filePath).GetManiaBeatmap();
-                var maniaBeatmap = beatmap as IBeatmap ?? ManiaBeatmap.FromBeatmap(beatmap);
-            
-                // 使用IApplyToBeatmap进行转换
+                if (beatmap == null) return null;
+
+                // 克隆谱面
+                var clonedBeatmap = CloneBeatmap(beatmap);
+                var maniaBeatmap = clonedBeatmap as IBeatmap ?? ManiaBeatmap.FromBeatmap(clonedBeatmap);
                 ApplyToBeatmap(maniaBeatmap);
 
-                var outputPath = BeatmapFileHelper.GenerateOutputPath(filePath, module.ModuleName);
-
-                // 写入文件
-                if (BeatmapFileHelper.SaveBeatmapToFile(maniaBeatmap as Beatmap ?? beatmap, outputPath)) return outputPath;
+                // 保存
+                var outputPath = (maniaBeatmap as Beatmap ?? clonedBeatmap).GetOutputOsuFileName();
+                var outputDir = Path.GetDirectoryName(filePath);
+                var fullOutputPath = Path.Combine(outputDir!, outputPath);
+                (maniaBeatmap as Beatmap ?? clonedBeatmap).Save(fullOutputPath);
+                return fullOutputPath;
             }
             catch (Exception ex)
             {
-                logger?.LogError(ex, "处理文件时出错，使用模块 {ModuleName}: {Message}", Name, ex.Message);
-                Console.WriteLine($"[ERROR] 处理文件时出错，使用模块 {Name}: {ex.Message}");
+                Console.WriteLine($"[ERROR] 处理文件失败: {filePath}\n{ex}");
+                return null;
             }
+        }
 
-            return null;
+        public async Task<string?> ProcessFileSaveAsync(string filePath, IToolOptions? options = null)
+        {
+            return await Task.Run(() => ProcessFileSave(filePath, options));
         }
 
         /// <summary>
@@ -275,6 +213,48 @@ namespace krrTools.Core
         public void ApplyToBeatmap(IBeatmap beatmap)
         {
             applier.ApplyToBeatmap(beatmap);
+        }
+
+        /// <summary>
+        /// 克隆Beatmap以避免修改原始对象
+        /// </summary>
+        private Beatmap CloneBeatmap(Beatmap input)
+        {
+            // 手动克隆以避免修改原始beatmap
+            var cloned = new Beatmap();
+
+            // 复制所有属性
+            cloned.GeneralSection = input.GeneralSection;
+            // 克隆MetadataSection以避免修改Version
+            cloned.MetadataSection = Activator.CreateInstance(input.MetadataSection.GetType()) as dynamic;
+            if (cloned.MetadataSection != null)
+            {
+                cloned.MetadataSection.Title = input.MetadataSection.Title;
+                cloned.MetadataSection.TitleUnicode = input.MetadataSection.TitleUnicode;
+                cloned.MetadataSection.Artist = input.MetadataSection.Artist;
+                cloned.MetadataSection.ArtistUnicode = input.MetadataSection.ArtistUnicode;
+                cloned.MetadataSection.Creator = input.MetadataSection.Creator;
+                cloned.MetadataSection.Version = input.MetadataSection.Version;
+                cloned.MetadataSection.Source = input.MetadataSection.Source;
+                cloned.MetadataSection.Tags = input.MetadataSection.Tags;
+            }
+            // 克隆DifficultySection以避免修改CircleSize
+            cloned.DifficultySection = Activator.CreateInstance(input.DifficultySection.GetType()) as dynamic;
+            if (cloned.DifficultySection != null)
+            {
+                cloned.DifficultySection.HPDrainRate = input.DifficultySection.HPDrainRate;
+                cloned.DifficultySection.CircleSize = input.DifficultySection.CircleSize;
+                cloned.DifficultySection.OverallDifficulty = input.DifficultySection.OverallDifficulty;
+                cloned.DifficultySection.ApproachRate = input.DifficultySection.ApproachRate;
+                cloned.DifficultySection.SliderMultiplier = input.DifficultySection.SliderMultiplier;
+                cloned.DifficultySection.SliderTickRate = input.DifficultySection.SliderTickRate;
+            }
+
+            cloned.TimingPoints = new List<OsuParsers.Beatmaps.Objects.TimingPoint>(input.TimingPoints);
+            cloned.HitObjects = new List<OsuParsers.Beatmaps.Objects.HitObject>(input.HitObjects);
+            cloned.OriginalFilePath = input.OriginalFilePath;
+
+            return cloned;
         }
     }
 }

@@ -17,7 +17,7 @@ namespace krrTools.Tools.DPtool
         private const double TRANSFORM_SPEED = 4.0;
         private const double BEAT_LENGTH_MULTIPLIER = 4.0;
 
-        private int _newKeyCount;
+        // private int _newKeyCount;
 
         public void ApplyToBeatmap(IBeatmap beatmap)
         {
@@ -29,9 +29,10 @@ namespace krrTools.Tools.DPtool
         /// </summary>
         public void TransformBeatmap(Beatmap beatmap, DPToolOptions options)
         {
+            var originalCircleSize = beatmap.DifficultySection.CircleSize;
             var (matrix, timeAxis) = beatmap.BuildMatrix();
             var processedMatrix = ProcessMatrix(matrix, timeAxis, beatmap, options);
-            ApplyChangesToHitObjects(beatmap, processedMatrix, options);
+            ApplyChangesToHitObjects(beatmap, processedMatrix, options, originalCircleSize);
         }
 
         /// <summary>
@@ -39,18 +40,24 @@ namespace krrTools.Tools.DPtool
         /// </summary>
         private NoteMatrix ProcessMatrix(NoteMatrix matrix, List<int> timeAxis, Beatmap beatmap, DPToolOptions options)
         {
+            // 如果 SingleSideKeyCount 为 null，不进行转换
+            if (!options.SingleSideKeyCount.Value.HasValue)
+            {
+                return matrix;
+            }
+
             var Conv = new N2NC.N2NC();
             var random = new Random(RANDOM_SEED);
             NoteMatrix orgMTX;
             var CS = (int)beatmap.DifficultySection.CircleSize;
             var convOptions = new N2NCOptions();
-            convOptions.TargetKeys.Value = options.SingleSideKeyCount.Value;
+            convOptions.TargetKeys.Value = options.SingleSideKeyCount.Value.Value;
             convOptions.TransformSpeed.Value = TRANSFORM_SPEED;
             var BPM = beatmap.MainBPM;
             var beatLength = 60000 / BPM * BEAT_LENGTH_MULTIPLIER;
             var convertTime = Math.Max(1, convOptions.TransformSpeed.Value * beatLength - 10);
 
-            var targetKeys = (int)options.SingleSideKeyCount.Value;
+            var targetKeys = (int)options.SingleSideKeyCount.Value.Value;
             if (targetKeys > beatmap.DifficultySection.CircleSize)
             {
             
@@ -60,7 +67,7 @@ namespace krrTools.Tools.DPtool
             }
             else if (targetKeys < beatmap.DifficultySection.CircleSize)
             {
-                var newMatrix = Conv.SmartReduceColumns(matrix, timeAxis, CS - targetKeys, convertTime, beatLength);
+                var newMatrix = Conv.SmartReduceColumns(matrix, timeAxis, CS - targetKeys, convertTime, beatLength, random);
                 orgMTX = newMatrix;
             }
             else
@@ -70,34 +77,43 @@ namespace krrTools.Tools.DPtool
 
             // Apply DP processing
             var processedData = ProcessMatrixStatic(orgMTX.GetData(), options);
-            _newKeyCount = processedData.GetLength(1);
+            // _newKeyCount = processedData.GetLength(1);
             return new NoteMatrix(processedData);
         }
 
         /// <summary>
         /// 将处理后的矩阵应用到谱面对象
         /// </summary>
-        private void ApplyChangesToHitObjects(Beatmap beatmap, NoteMatrix processedMatrix, DPToolOptions options)
+        private void ApplyChangesToHitObjects(Beatmap beatmap, NoteMatrix processedMatrix, DPToolOptions options, double originalCircleSize)
         {
             newHitObjects(beatmap, processedMatrix);
 
             // 修改元数据
             if (beatmap.DifficultySection == null)
                 throw new InvalidOperationException("Beatmap.DifficultySection cannot be null");
-            beatmap.DifficultySection.CircleSize = (int)options.SingleSideKeyCount.Value * 2;
+
+            // 只有当 SingleSideKeyCount 有值时，才修改 CircleSize
+            if (options.SingleSideKeyCount.Value.HasValue)
+            {
+                beatmap.DifficultySection.CircleSize = (int)options.SingleSideKeyCount.Value.Value * 2;
+            }
+            else
+            {
+                beatmap.DifficultySection.CircleSize = (float)(originalCircleSize * 2);
+            }
 
             // 避免重复拼接 Creator
             if (beatmap.MetadataSection == null)
                 throw new InvalidOperationException("Beatmap.MetadataSection cannot be null");
             if (beatmap.MetadataSection.Creator == null)
                 beatmap.MetadataSection.Creator = "DP Tool";
-            else if (!beatmap.MetadataSection.Creator.Contains("DP Tool & "))
+            else if (!beatmap.MetadataSection.Creator.StartsWith("DP Tool"))
                 beatmap.MetadataSection.Creator = "DP Tool & " + beatmap.MetadataSection.Creator;
 
             // 避免重复拼接 Version
             if (beatmap.MetadataSection.Version == null)
                 beatmap.MetadataSection.Version = "[DP]";
-            else if (!beatmap.MetadataSection.Version.Contains("[DP] "))
+            else if (!beatmap.MetadataSection.Version.StartsWith("[DP]"))
                 beatmap.MetadataSection.Version = "[DP] " + beatmap.MetadataSection.Version;
         }
 

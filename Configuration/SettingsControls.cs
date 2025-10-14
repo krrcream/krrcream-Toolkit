@@ -27,14 +27,19 @@ namespace krrTools.Configuration
         public string? DynamicMinPath { get; init; }
         private CheckBox? CheckBox { get; set; }
 
-        private readonly string _labelText = string.Empty;
+        private DynamicLocalizedString? _labelTemplate;
+        private double? _rememberedValue; // 记忆上一个有效值
 
-        public string LabelText
+        public Bindable<string> LabelText { get; set; } = new(string.Empty);
+
+        public string LabelKey
         {
-            get => _labelText;
+            get => _labelTemplate?.Key ?? "";
             init
             {
-                _labelText = value;
+                _labelTemplate = new DynamicLocalizedString(value);
+                _labelTemplate.PropertyChanged += (_, _) => UpdateLabelWithValue(InnerSlider.Value);
+                UpdateLabelWithValue(InnerSlider.Value);
                 if (_isInitialized) UpdateLabelWithValue(InnerSlider.Value);
             }
         }
@@ -178,13 +183,19 @@ namespace krrTools.Configuration
 
                 if (isChecked)
                 {
-                    // 勾选时设置为滑条的当前值或默认值
-                    var defaultValue = InnerSlider.Value;
-                    valueProperty.SetValue(bindableProperty, defaultValue);
+                    // 勾选时恢复记忆的值或设置为默认值
+                    double valueToSet = _rememberedValue ?? InnerSlider.Value;
+                    valueProperty.SetValue(bindableProperty, valueToSet);
+                    InnerSlider.Value = valueToSet; // 同步滑条
                 }
                 else
                 {
-                    // 未勾选时设置为null
+                    // 未勾选时记住当前值，然后设置为null
+                    var currentValue = valueProperty.GetValue(bindableProperty);
+                    if (currentValue is double currentDouble)
+                    {
+                        _rememberedValue = currentDouble;
+                    }
                     valueProperty.SetValue(bindableProperty, null);
                 }
             }
@@ -196,9 +207,12 @@ namespace krrTools.Configuration
 
         private void InitializeLabel()
         {
-            if (!string.IsNullOrEmpty(LabelText))
+            if (_labelTemplate != null && !string.IsNullOrEmpty(_labelTemplate.Value))
             {
                 Label = new TextBlock { FontSize = SharedUIComponents.HeaderFontSize, FontWeight = FontWeights.Bold };
+                // 直接绑定到LabelText而不是设置绑定
+                Label.DataContext = LabelText;
+                Label.SetBinding(TextBlock.TextProperty, new Binding("Value"));
                 SetRow(Label, 0);
                 SetColumn(Label, 0);
                 Children.Add(Label);
@@ -368,7 +382,7 @@ namespace krrTools.Configuration
 
         private void UpdateLabelWithValue(double value)
         {
-            if (!string.IsNullOrEmpty(_labelText))
+            if (_labelTemplate != null && !string.IsNullOrEmpty(_labelTemplate.Value))
             {
                 bool isEnabled = !CheckEnabled || (CheckBox?.IsChecked ?? false);
                 string displayValue;
@@ -385,14 +399,14 @@ namespace krrTools.Configuration
                     displayValue = ((int)value).ToString();
                 }
 
-                if (_labelText.Contains("{0}"))
+                if (_labelTemplate.Value.Contains("{0}"))
                 {
-                    Label.Text = Strings.FormatLocalized(_labelText, displayValue);
+                    LabelText.Value = Strings.FormatLocalized(_labelTemplate.Value, displayValue);
                 }
                 else
                 {
-                    var localizedLabel = Strings.Localize(_labelText);
-                    Label.Text = localizedLabel + ": " + displayValue;
+                    var localizedLabel = _labelTemplate.Value;
+                    LabelText.Value = localizedLabel + ": " + displayValue;
                 }
             }
         }
@@ -483,7 +497,10 @@ namespace krrTools.Configuration
 
         private void OnLanguageChanged()
         {
-            if (_isInitialized) UpdateLabelWithValue(InnerSlider.Value);
+            // DynamicLocalizedString will automatically update its Value when language changes
+            // This will trigger the PropertyChanged event which calls UpdateLabelText
+            if (_isInitialized) 
+                UpdateLabelWithValue(InnerSlider.Value);
         }
 
         /// <summary>

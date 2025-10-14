@@ -1,173 +1,87 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Reflection;
-using krrTools.Beatmaps;
 using krrTools.Bindable;
 using krrTools.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+using krrTools.Core;
+using krrTools.Localization;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 
-namespace krrTools.Tools.Preview
+namespace krrTools.Tools.Preview;
+
+/// <summary>
+/// 预览响应式ViewModel - 谱面预览的响应式管理
+/// 核心功能：设置变更监听 + 智能刷新 + 事件驱动更新
+/// </summary>
+public class PreviewViewModel : ReactiveViewModelBase
 {
-    /// <summary>
-    /// 预览响应式ViewModel - 谱面预览的响应式管理
-    /// 核心功能：设置变更监听 + 智能刷新 + 事件驱动更新
-    /// </summary>
-    public class PreviewViewModel : ReactiveViewModelBase
+    [Inject] protected IEventBus EventBus { get; set; } = null!;
+
+    // 响应式属性
+    private Bindable<FrameworkElement?> _originalVisual = new();
+    private Bindable<FrameworkElement?> _convertedVisual = new();
+    private Bindable<string> _title = new(string.Empty);
+
+    private ConverterEnum? _currentTool;
+
+    public PreviewViewModel()
     {
-        // Mock event bus for testing
-        private class MockEventBus : IEventBus
-        {
-            public void Publish<T>(T eventData) { }
-            public IDisposable Subscribe<T>(Action<T> handler) => new MockDisposable();
-            
-            private class MockDisposable : IDisposable
-            {
-                public void Dispose() { }
-            }
-        }
-        // 响应式属性
-        private Bindable<FrameworkElement?> _originalVisual = new Bindable<FrameworkElement?>();
-        private Bindable<FrameworkElement?> _convertedVisual = new Bindable<FrameworkElement?>();
-        private Bindable<string> _title = new Bindable<string>(string.Empty);
+        _originalVisual.PropertyChanged += (_, _) => OnPropertyChanged(nameof(OriginalVisual));
+        _convertedVisual.PropertyChanged += (_, _) => OnPropertyChanged(nameof(ConvertedVisual));
+        _title.PropertyChanged += (_, _) => OnPropertyChanged(nameof(Title));
+
+        var settingsSubscription = EventBus.Subscribe<SettingsChangedEvent>(OnSettingsChanged);
+        Disposables.Add(settingsSubscription);
+
+        var beatmapChangedSubscription = EventBus.Subscribe<BeatmapChangedEvent>(OnBeatmapChanged);
+        Disposables.Add(beatmapChangedSubscription);
+
+        var refreshSubscription = EventBus.Subscribe<PreviewRefreshEvent>(OnPreviewRefreshRequested);
+        Disposables.Add(refreshSubscription);
+    }
+
+    public FrameworkElement? OriginalVisual
+    {
+        get => _originalVisual.Value;
+        private set => _originalVisual.Value = value;
+    }
     
-        private string? _beatmapPath;
-        private bool _isRefreshing;
-        private ConverterEnum? _currentTool;
-        private Dictionary<string, object?> _changedSettings = new();
-        private object? _currentViewModel;
-        private PropertyChangedEventHandler? _optionsPropertyChangedHandler;
+    public FrameworkElement? ConvertedVisual
+    {
+        get => _convertedVisual.Value;
+        private set => _convertedVisual.Value = value;
+    }
+    
+    public string Title
+    {
+        get => _title.Value;
+        private set => _title.Value = value;
+    }
 
-        public PreviewViewModel(IEventBus? eventBus = null)
+    public IPreviewProcessor? Processor { get; private set; }
+    
+    public void SetCurrentTool(ConverterEnum? tool)
+    {
+        _currentTool = tool;
+    }
+
+    /// <summary>
+    /// 响应设置变更事件 - 智能刷新逻辑
+    /// </summary>
+    private void OnSettingsChanged(SettingsChangedEvent settingsEvent)
+    {
+        // 检查此设置是否会触发预览刷新
+        if (!ShouldTriggerRefresh(settingsEvent)) return;
+
+
+        if (Equals(settingsEvent.OldValue, settingsEvent.NewValue))
+            return; // 值没有变化，不刷新
+        
+        // 输出设置变化日志
+        if (_currentTool != null && !string.IsNullOrEmpty(settingsEvent.PropertyName) && settingsEvent.NewValue != null)
         {
-            IEventBus actualEventBus;
-            if (eventBus != null)
-            {
-                actualEventBus = eventBus;
-            }
-            else
-            {
-                try
-                {
-                    actualEventBus = App.Services.GetRequiredService<IEventBus>();
-                }
-                catch (Exception)
-                {
-                    // For testing purposes, create a mock event bus
-                    actualEventBus = new MockEventBus();
-                }
-            }
-            
-            // 连接Bindable属性的PropertyChanged事件到ViewModel的PropertyChanged事件
-            _originalVisual.PropertyChanged += (_, _) => OnPropertyChanged(nameof(OriginalVisual));
-            _convertedVisual.PropertyChanged += (_, _) => OnPropertyChanged(nameof(ConvertedVisual));
-            _title.PropertyChanged += (_, _) => OnPropertyChanged(nameof(Title));
-            
-            var settingsSubscription = actualEventBus.Subscribe<SettingsChangedEvent>(OnSettingsChanged);
-            Disposables.Add(settingsSubscription);
-            
-            var fileSubscription = actualEventBus.Subscribe<FileChangedEvent>(OnFileChanged);
-            Disposables.Add(fileSubscription);
-            
-            var refreshSubscription = actualEventBus.Subscribe<PreviewRefreshEvent>(OnPreviewRefreshRequested);
-            Disposables.Add(refreshSubscription);
-        }
-
-        // Parameterless constructor for testing
-        public PreviewViewModel() : this(null) { }
-
-        public FrameworkElement? OriginalVisual
-        {
-            get => _originalVisual.Value;
-            private set => _originalVisual.Value = value;
-        }
-
-        /// <summary>
-        /// 转换后谱面预览 - 响应式属性，线程安全
-        /// </summary>
-        public FrameworkElement? ConvertedVisual
-        {
-            get => _convertedVisual.Value;
-            private set => _convertedVisual.Value = value;
-        }
-
-        /// <summary>
-        /// 预览标题 - 响应式属性，线程安全
-        /// </summary>
-        public string Title
-        {
-            get => _title.Value;
-            private set => _title.Value = value;
-        }
-
-        public IPreviewProcessor? Processor { get; private set; }
-
-        /// <summary>
-        /// 设置当前工具类型，用于统一日志输出
-        /// </summary>
-        public void SetCurrentTool(ConverterEnum? tool)
-        {
-            _currentTool = tool;
-        }
-
-        /// <summary>
-        /// 设置当前ViewModel，用于监听设置变化
-        /// </summary>
-        public void SetCurrentViewModel(object? viewModel)
-        {
-            // 取消之前ViewModel的监听
-            if (_currentViewModel is INotifyPropertyChanged oldNotify && _optionsPropertyChangedHandler != null)
-            {
-                oldNotify.PropertyChanged -= _optionsPropertyChangedHandler;
-            }
-
-            _currentViewModel = viewModel;
-
-            // 如果新ViewModel有Options属性，监听其变化
-            if (viewModel != null)
-            {
-                var optionsProperty = viewModel.GetType().GetProperty("Options");
-                if (optionsProperty != null)
-                {
-                    var options = optionsProperty.GetValue(viewModel);
-                    if (options is INotifyPropertyChanged notifyOptions)
-                    {
-                        _optionsPropertyChangedHandler = (sender, e) =>
-                        {
-                            if (e.PropertyName != null && sender != null)
-                            {
-                                // 获取属性的值
-                                var property = sender.GetType().GetProperty(e.PropertyName);
-                                if (property != null)
-                                {
-                                    var value = property.GetValue(sender);
-                                    // If the value is a Bindable<T>, get its Value
-                                    if (value != null && value.GetType().IsGenericType && value.GetType().GetGenericTypeDefinition() == typeof(Bindable<>))
-                                    {
-                                        var valueProp = value.GetType().GetProperty("Value");
-                                        value = valueProp?.GetValue(value);
-                                    }
-                                    _changedSettings[e.PropertyName] = value;
-                                }
-                            }
-                        };
-                        notifyOptions.PropertyChanged += _optionsPropertyChangedHandler;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// 输出当前工具的设置变化日志 - 统一格式：模块-设置-值
-        /// </summary>
-        private void LogCurrentSettings()
-        {
-            if (_currentTool == null || _changedSettings.Count == 0) return;
-
             var moduleName = _currentTool.Value switch
             {
                 ConverterEnum.N2NC => "N2N",
@@ -175,255 +89,191 @@ namespace krrTools.Tools.Preview
                 ConverterEnum.KRRLN => "KRRLN",
                 _ => "未知"
             };
-
-            // 只输出发生变化的设置
-            foreach (var (propertyName, value) in _changedSettings)
-            {
-                if (value != null)
-                {
-                    Console.WriteLine($"[{moduleName}模块]-{propertyName}-变更为{value}");
-                }
-            }
-
-            // 打印后清除变化记录
-            _changedSettings.Clear();
-        }
-    
-        /// <summary>
-        /// 响应设置变更事件 - 智能刷新逻辑
-        /// </summary>
-        private void OnSettingsChanged(SettingsChangedEvent settingsEvent)
-        {
-            // 对于设置变更，我们总是处理，即使在刷新中，因为设置变更应该触发新的刷新
-            // 检查此设置是否会触发预览刷新
-            if (!ShouldTriggerRefresh(settingsEvent))
-            {
-                return;
-            }
-        
-            // 记录设置变化
-            if (!string.IsNullOrEmpty(settingsEvent.PropertyName) && settingsEvent.NewValue != null)
-            {
-                _changedSettings[settingsEvent.PropertyName] = settingsEvent.NewValue;
-            }
-        
-            // 直接调用TriggerRefresh，在测试环境中Dispatcher可能不可用
-            TriggerRefresh();
+            Console.WriteLine($"[{moduleName}模块]-{settingsEvent.PropertyName}-变更为{settingsEvent.NewValue}");
         }
 
-        /// <summary>
-        /// 检查设置变化是否应该触发预览刷新
-        /// </summary>
-        private bool ShouldTriggerRefresh(SettingsChangedEvent settingsEvent)
+        // 直接调用RefreshConverted，在测试环境中Dispatcher可能不可用
+        RefreshConverted();
+    }
+
+    /// <summary>
+    /// 检查设置变化是否应该触发预览刷新
+    /// </summary>
+    private bool ShouldTriggerRefresh(SettingsChangedEvent settingsEvent)
+    {
+        if (settingsEvent.SettingsType == null || string.IsNullOrEmpty(settingsEvent.PropertyName)) return false;
+
+        // 使用反射检查属性是否有IsRefresher特性
+        var property = settingsEvent.SettingsType.GetProperty(settingsEvent.PropertyName);
+        if (property == null) return false;
+
+        var optionAttribute = property.GetCustomAttribute<OptionAttribute>();
+        return optionAttribute?.IsRefresher == true;
+    }
+
+    /// <summary>
+    /// 响应谱面变化事件 - 路径变化时刷新所有预览
+    /// </summary>
+    private void OnBeatmapChanged(BeatmapChangedEvent e)
+    {
+        // 更新全局设置中的最后预览路径
+        BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = e.FilePath);
+
+        // 刷新所有预览（原始和转换后）
+        RefreshAll();
+
+        switch (e.ChangeType)
         {
-            if (settingsEvent.SettingsType == null || string.IsNullOrEmpty(settingsEvent.PropertyName))
-            {
-                return false;
-            }
-        
-            // 使用反射检查属性是否有IsRefresher特性
-            var property = settingsEvent.SettingsType.GetProperty(settingsEvent.PropertyName);
-            if (property == null)
-            {
-                return false;
-            }
-        
-            var optionAttribute = property.GetCustomAttribute<OptionAttribute>();
-            return optionAttribute?.IsRefresher == true;
+            case BeatmapChangeType.FromMonitoring:
+                Title = $"[监听] {e.FileName}";
+                break;
+
+            case BeatmapChangeType.FromDropZone:
+                Title = $"[拖入] {e.FileName}";
+                break;
+
+            default:
+                Title = Strings.DropHint.GetLocalizedString();
+                break;
         }
-    
-        /// <summary>
-        /// 响应文件变更事件 - 谱面分析完成后刷新
-        /// </summary>
-        private void OnFileChanged(FileChangedEvent fileEvent)
+    }
+
+    /// <summary>
+    /// 响应预览刷新请求事件
+    /// </summary>
+    private void OnPreviewRefreshRequested(PreviewRefreshEvent e)
+    {
+        if (e.NewValue)
         {
-            if (_isRefreshing) return;
-        
-            if (fileEvent.ChangeType == "BeatmapAnalyzed")
-            {
-                Console.WriteLine($"[PreviewViewModel] 收到谱面分析完成事件: {fileEvent.FileName}");
-            
-                // 如果是当前预览的文件，立即刷新 - 确保在UI线程执行
-                if (!string.IsNullOrEmpty(_beatmapPath) && fileEvent.FilePath == _beatmapPath)
-                {
-                    Console.WriteLine("[PreviewViewModel] 当前预览文件已更新，立即刷新");
-                
-                    // 确保在UI线程中执行刷新操作
-                    if (Application.Current?.Dispatcher.CheckAccess() == true)
-                    {
-                        ExecuteRefresh();
-                    }
-                    else
-                    {
-                        Application.Current?.Dispatcher.Invoke(ExecuteRefresh);
-                    }
-                }
-            }
+            RefreshConverted();
         }
-    
-        /// <summary>
-        /// 响应预览刷新请求事件
-        /// </summary>
-        private void OnPreviewRefreshRequested(PreviewRefreshEvent refreshEvent)
+        else
         {
-            if (_isRefreshing) return;
-        
-            Console.WriteLine($"[PreviewViewModel] 收到预览刷新请求: {refreshEvent.Reason}");
-        
-            // 确保在UI线程中执行刷新操作
-            if (Application.Current?.Dispatcher.CheckAccess() == true)
-            {
-                if (refreshEvent.ForceRedraw)
+            LoadBuiltInSample();
+        }
+    }
+
+
+    public void LoadFromPath(string path)
+    {
+        // 更新全局最后预览路径
+        BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = path);
+        RefreshAll();
+    }
+
+    public void LoadBuiltInSample()
+    {
+        // 清空全局最后预览路径以使用内置样本
+        BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = string.Empty);
+        RefreshAll();
+    }
+
+    public void SetProcessor(IPreviewProcessor? processor)
+    {
+        var oldProcessor = Processor;
+        Processor = processor;
+
+        if (oldProcessor != processor) OnPropertyChanged(nameof(Processor));
+    }
+
+    public virtual void TriggerRefresh()
+    {
+        RefreshConverted();
+    }
+
+    /// <summary>
+    /// 只刷新原始预览
+    /// </summary>
+    private void RefreshOriginal()
+    {
+        if (Processor == null) return;
+
+        try
+        {
+            var decodeStartTime = DateTime.Now;
+
+            // 从全局设置获取最后预览路径，如果为空则使用内置样本
+            var globalSettings = BaseOptionsManager.GetGlobalSettings();
+            var lastPreviewPath = globalSettings.LastPreviewPath.Value;
+
+            var beatmap = !string.IsNullOrEmpty(lastPreviewPath)
+                ? BeatmapDecoder.Decode(lastPreviewPath)
+                : PreviewManiaNote.BuiltInSampleStream();
+
+            if (beatmap == null) return;
+
+            if (Application.Current != null)
+                Application.Current.Dispatcher.Invoke(() =>
                 {
-                    ExecuteRefresh();
-                }
-                else
-                {
-                    TriggerRefresh();
-                }
-            }
+                    // 只刷新原始预览
+                    OriginalVisual = Processor.BuildOriginalVisual(beatmap);
+                });
             else
-            {
-                Application.Current?.Dispatcher.Invoke(() =>
+                // For testing without WPF Application
+                OriginalVisual = Processor.BuildOriginalVisual(beatmap);
+
+            var duration = DateTime.Now - decodeStartTime;
+            Console.WriteLine($"[PreviewViewModel] 原始预览刷新完成，耗时: {duration.TotalMilliseconds:F1}ms");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PreviewViewModel] RefreshOriginal failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// 只刷新转换后预览
+    /// </summary>
+    private void RefreshConverted()
+    {
+        if (Processor == null) return;
+
+        try
+        {
+            var decodeStartTime = DateTime.Now;
+
+            // 从全局设置获取最后预览路径，如果为空则使用内置样本
+            var globalSettings = BaseOptionsManager.GetGlobalSettings();
+            var lastPreviewPath = globalSettings.LastPreviewPath.Value;
+
+            var beatmap = !string.IsNullOrEmpty(lastPreviewPath)
+                ? BeatmapDecoder.Decode(lastPreviewPath)
+                : PreviewManiaNote.BuiltInSampleStream();
+
+            if (beatmap == null) return;
+
+            if (Application.Current != null)
+                Application.Current.Dispatcher.Invoke(() =>
                 {
-                    if (refreshEvent.ForceRedraw)
-                    {
-                        ExecuteRefresh();
-                    }
-                    else
-                    {
-                        TriggerRefresh();
-                    }
+                    // 只刷新转换后预览
+                    ConvertedVisual = Processor.BuildConvertedVisual(beatmap);
                 });
-            }
-        }
-
-
-        public void LoadFromPath(string path)
-        {
-            _beatmapPath = path;
-            ExecuteRefresh();
-        }
-
-        public void LoadBuiltInSample()
-        {
-            _beatmapPath = null;
-            ExecuteRefresh();
-        }
-
-        public void SetProcessor(IPreviewProcessor? processor)
-        {
-            var oldProcessor = Processor;
-            Processor = processor;
-
-            if (oldProcessor != processor) 
-            {
-                OnPropertyChanged(nameof(Processor));
-                ExecuteRefresh();
-            }
-        }
-
-        public virtual void TriggerRefresh()
-        {
-            ExecuteRefresh();
-        }
-
-        /// <summary>
-        /// 执行预览刷新 - 核心刷新逻辑，带防递归保护，异步执行避免阻塞UI
-        /// </summary>
-        internal async void ExecuteRefresh()
-        {
-            if (_isRefreshing) 
-            {
-                Console.WriteLine("[PreviewViewModel] 已在刷新中，跳过重复刷新");
-                return;
-            }
-        
-            _isRefreshing = true;
-
-            // 在刷新开始时输出当前设置信息
-            LogCurrentSettings();
-        
-            try
-            {
-                var startTime = DateTime.Now;
-            
-                // 在后台线程执行谱面解码
-                Beatmap? beatmap = null;
-            
-                await Task.Run(() =>
-                {
-                    if (!string.IsNullOrEmpty(_beatmapPath))
-                    {
-                        try
-                        {
-                            beatmap = BeatmapDecoder.Decode(_beatmapPath);
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"[PreviewViewModel] 谱面解码失败: {ex.Message}");
-                        }
-                    }
-
-                    beatmap ??= PreviewManiaNote.BuiltInSampleStream();
-                });
-            
-                // 在UI线程创建UI组件
-                FrameworkElement? originalVisual = null;
-                FrameworkElement? convertedVisual = null;
-            
-                await Application.Current.Dispatcher.InvokeAsync(() =>
-                {
-                    if (beatmap != null)
-                    {
-                        originalVisual = Processor?.BuildOriginalVisual(beatmap);
-
-                        if (Processor != null)
-                        {
-                            convertedVisual = Processor.BuildConvertedVisual(beatmap);
-                        }
-                    }
-                });
-            
-                // 在UI线程更新属性
-                await Application.Current.Dispatcher.InvokeAsync(() =>
-                {
-                    OriginalVisual = originalVisual;
-                    ConvertedVisual = convertedVisual;
-                    if (beatmap != null)
-                    {
-                        UpdateTitle(beatmap);
-                    }
-                });
-            
-                var duration = DateTime.Now - startTime;
-                Console.WriteLine($"[PreviewViewModel] 预览刷新完成，耗时: {duration.TotalMilliseconds:F1}ms");
-            }
-            finally
-            {
-                _isRefreshing = false;
-            }
-        }
-
-        public void Reset()
-        {
-            _beatmapPath = null;
-            OriginalVisual = null;
-            ConvertedVisual = null;
-            Title = string.Empty;
-        }
-
-        private void UpdateTitle(Beatmap beatmap)
-        {
-            if (beatmap.MetadataSection.Title == "Built-in Sample")
-            {
-                Title = "Built-in Sample";
-            }
             else
-            {
-                var name = beatmap.GetOutputOsuFileName(true);
-                Title = $"DIFF: {name}";
-            }
+                // For testing without WPF Application
+                ConvertedVisual = Processor.BuildConvertedVisual(beatmap);
+
+            var duration = DateTime.Now - decodeStartTime;
+            Console.WriteLine($"[PreviewViewModel] 转换后预览刷新完成，耗时: {duration.TotalMilliseconds:F1}ms");
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PreviewViewModel] RefreshConverted failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// 刷新所有预览（原始和转换后）
+    /// </summary>
+    private void RefreshAll()
+    {
+        RefreshOriginal();
+        RefreshConverted();
+    }
+
+    public void Reset()
+    {
+        OriginalVisual = null;
+        ConvertedVisual = null;
+        Title = string.Empty;
     }
 }

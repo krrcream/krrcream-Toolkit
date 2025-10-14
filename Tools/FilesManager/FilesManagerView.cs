@@ -319,7 +319,7 @@ namespace krrTools.Tools.FilesManager
                     if (File.Exists(file.FilePath.Value)) File.Delete(file.FilePath.Value);
 
                     // 从主列表和过滤视图中移除
-                    managerViewModel.OsuFiles.Remove(file);
+                    managerViewModel.OsuFiles.Value.Remove(file);
                 }
                 catch (Exception ex)
                 {
@@ -328,7 +328,7 @@ namespace krrTools.Tools.FilesManager
                 }
 
             // 刷新ICollectionView以更新UI
-            managerViewModel.FilteredOsuFiles.Refresh();
+            managerViewModel.FilteredOsuFiles.Value.Refresh();
 
             MessageBox.Show(string.Format(Strings.FilesDeletedSuccessfullyTemplate.Localize(), filesToDelete.Count),
                 Strings.Delete.Localize(), MessageBoxButton.OK, MessageBoxImage.Information);
@@ -350,7 +350,7 @@ namespace krrTools.Tools.FilesManager
         {
             if (e.Key == Key.Z && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
             {
-                foreach (var item in _viewModel.OsuFiles)
+                foreach (var item in _viewModel.OsuFiles.Value)
                 {
                     item.UndoAll();
                 }

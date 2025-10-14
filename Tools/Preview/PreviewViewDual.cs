@@ -1,10 +1,10 @@
 using System;
 using System.ComponentModel;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using krrTools.Bindable;
 using krrTools.Configuration;
 using krrTools.Localization;
 using Wpf.Ui.Controls;
@@ -38,43 +38,15 @@ namespace krrTools.Tools.Preview
             _currentTool = tool;
             ViewModel?.SetCurrentTool(tool);
         }
-
-        public void SetCurrentViewModel(object? viewModel)
-        {
-            ViewModel?.SetCurrentViewModel(viewModel);
-        }
+        
         private DateTime _lastSettingsChange = DateTime.MinValue;
         private const int SettingsChangeThrottleMs = 50;
 
         private bool _autoLoadedSample;
-        private string? _currentBackgroundPath;
-        private bool _isProcessing;
+        private Bindable<string> BGPath { get; } = new(string.Empty);
+        private Bindable<bool> IsProcessing { get; } = new();
 
         public PreviewViewModel? ViewModel { get; set; }
-
-        #region 回调属性刷新预览
-
-        // public static readonly DependencyProperty ColumnOverrideProperty = DependencyProperty.Register(
-        //     nameof(ColumnOverride), typeof(int?), typeof(PreviewViewDual),
-        //     new PropertyMetadata(null, OnAnyPropertyChanged));
-
-        // public int? ColumnOverride
-        // {
-        //     get => (int?)GetValue(ColumnOverrideProperty);
-        //     set => SetValue(ColumnOverrideProperty, value);
-        // }
-
-        public static readonly DependencyProperty AutoRefreshTokenProperty = DependencyProperty.Register(
-            nameof(AutoRefreshToken), typeof(object), typeof(PreviewViewDual),
-            new PropertyMetadata(null)); // 移除回调
-
-        public object? AutoRefreshToken
-        {
-            get => GetValue(AutoRefreshTokenProperty);
-            set => SetValue(AutoRefreshTokenProperty, value);
-        }
-
-        #endregion
 
         public void Refresh()
         {
@@ -238,22 +210,14 @@ namespace krrTools.Tools.Preview
 
         private void OnSettingsChanged(ConverterEnum changedConverter)
         {
-            if ((DateTime.UtcNow - _lastSettingsChange).TotalMilliseconds < SettingsChangeThrottleMs) return;
-            _lastSettingsChange = DateTime.UtcNow;
-
-            if (_isProcessing || changedConverter != _currentTool) 
-            {
+            if (IsProcessing.Value || changedConverter != _currentTool) 
                 return;
-            }
-            _isProcessing = true;
-            try
-            {
-                ViewModel?.TriggerRefresh();
-            }
-            finally
-            {
-                _isProcessing = false;
-            }
+            
+            if ((DateTime.UtcNow - _lastSettingsChange).TotalMilliseconds < SettingsChangeThrottleMs) return;
+            
+            _lastSettingsChange = DateTime.UtcNow;
+            
+            ViewModel?.TriggerRefresh();
         }
 
         private void OnLanguageChanged()
@@ -272,26 +236,27 @@ namespace krrTools.Tools.Preview
         // 加载谱面背景图的方法，统一在项目中使用
         public void LoadBackgroundBrush(string path)
         {
-            if (string.IsNullOrEmpty(path))
+            if (BGPath.Value == path) return;
+
+            BGPath.Value = path;
+            // 确保在UI线程执行
+            if (Application.Current?.Dispatcher.CheckAccess() == true)
             {
-                Console.WriteLine("[LoadBackgroundBrush] Empty path provided");
-                return;
+                LoadBackgroundBrushInternal();
             }
-
-            // 检查是否已经加载了相同的背景，避免重复加载
-            if (_currentBackgroundPath == path) return;
-
-            if (!File.Exists(path))
+            else
             {
-                Console.WriteLine("[LoadBackgroundBrush] No Find:" + path);
-                return;
+                Application.Current?.Dispatcher.Invoke(() => LoadBackgroundBrushInternal());
             }
+        }
 
+        private void LoadBackgroundBrushInternal()
+        {
             try
             {
                 var bgBitmap = new BitmapImage();
                 bgBitmap.BeginInit();
-                bgBitmap.UriSource = new Uri(path, UriKind.Absolute);
+                bgBitmap.UriSource = new Uri(BGPath.Value, UriKind.Absolute);
                 bgBitmap.CacheOption = BitmapCacheOption.OnLoad;
                 bgBitmap.EndInit();
                 Background = new ImageBrush
@@ -300,13 +265,12 @@ namespace krrTools.Tools.Preview
                     Stretch = Stretch.UniformToFill,
                     Opacity = 0.25
                 };
-                _currentBackgroundPath = path;
-                Console.WriteLine("[PreviewViewDual] Loaded BG from " + path);
+                Console.WriteLine("[PreviewViewDual] Loaded BG from " + BGPath.Value);
             }
             catch (Exception ex)
             {
                 Console.WriteLine("[PreviewViewDual] Failed to load background image from {0}: {1}",
-                    path, ex.Message);
+                    BGPath.Value, ex.Message);
             }
         }
 

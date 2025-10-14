@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
-using krrTools.Configuration;
 using krrTools.Bindable;
+using krrTools.Core;
 using static krrTools.Localization.Strings;
 
 namespace krrTools.Tools.KRRLNTransformer
@@ -18,7 +18,7 @@ namespace krrTools.Tools.KRRLNTransformer
         public Bindable<double> ShortLimit { get; } = new(10);
 
         [Option(LabelKey = nameof(KRRShortRandomLabel), Min = 0, Max = 100, UIType = UIType.Slider, IsRefresher = true)]
-        public Bindable<double> ShortRandom { get; } = new(0);
+        public Bindable<double> ShortRandom { get; } = new();
 
         // Long LN settings
         [Option(LabelKey = nameof(KRRLongPercentageLabel), Min = 0, Max = 100, UIType = UIType.Slider, IsRefresher = true)]
@@ -35,7 +35,7 @@ namespace krrTools.Tools.KRRLNTransformer
 
         // Threshold and alignment settings (nullable for toggle behavior)
         [Option(LabelKey = nameof(LengthThresholdLabel), Min = 0, Max = 14, UIType = UIType.Slider, DisplayMapField = nameof(LengthThresholdDict), IsRefresher = true)]
-        public Bindable<int> LengthThreshold { get; } = new(5);
+        public Bindable<double?> LengthThreshold { get; } = new(5);
 
         [Option(LabelKey = nameof(KRRAlignLabel), Min = 1, Max = 8, UIType = UIType.Slider, DisplayMapField = nameof(AlignValuesDict), IsRefresher = true)]
         public Bindable<double?> Alignment { get; } = new(5);

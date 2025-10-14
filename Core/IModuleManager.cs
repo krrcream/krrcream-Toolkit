@@ -26,7 +26,7 @@ namespace krrTools.Core
         /// 根据名称获取工具
         /// </summary>
         /// <param name="toolName">工具名称</param>
-        /// <returns>工具实例，失败返回null</returns>
-        ITool? GetToolName(string toolName);
+        /// <returns>工具实例，如果未找到则返回 null</returns>
+        ITool? GetToolByName(string toolName);
     }
 }

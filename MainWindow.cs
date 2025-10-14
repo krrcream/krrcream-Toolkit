@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,7 +20,7 @@ using krrTools.Tools.N2NC;
 using krrTools.Tools.Preview;
 using krrTools.UI;
 using krrTools.Utilities;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Grid = Wpf.Ui.Controls.Grid;
 using Point = System.Windows.Point;
 using Size = System.Windows.Size;
@@ -32,55 +30,25 @@ namespace krrTools
 {
     public class MainWindow : FluentWindow
     {
-        private readonly IEventBus _eventBus;
         private readonly Dictionary<object, ContentControl> _settingsHosts = new();
         private readonly Grid root;
         private readonly TabView MainTabControl;
         private readonly Grid _mainGrid;
 
-        private PreviewViewDual? _previewDual;
-        private ContentControl? _currentSettingsContainer;
-        private ListenerViewModel? _listenerVM;
+        private PreviewViewDual _previewDual = null!;
+        private ContentControl _currentSettingsContainer = null!;
+        private readonly StateBarManager _StateBarManager;
+
+        // Snackbar服务
+        private SnackbarPresenter _snackbarPresenter = null!;
 
         // 跟踪选项卡拖动/分离
         private Point _dragStartPoint;
         private DateTime _dragStartTime;
         private TabViewItem? _draggedTab;
-        public TabView TabControl => MainTabControl;
-
-        public PreviewViewDual? PreviewDualControl => _previewDual;
-
-        public FileDropZone? FileDropZone => _fileDropZone;
-
-        private FileDropZone? _fileDropZone;
 
         // 工具调度器
         private IModuleManager ModuleManager { get; }
-
-        // private object? _currentTool;
-        // private string? _internalOsuPath;
-        // private string? _lastProcessedBackgroundPath;
-        private bool _realTimePreview;
-        public bool RealTimePreviewEnabled => _realTimePreview;
-
-        private bool RealTimePreview
-        {
-            get => _realTimePreview;
-            set
-            {
-                if (_realTimePreview != value)
-                {
-                    _realTimePreview = value;
-                    BaseOptionsManager.SetRealTimePreview(_realTimePreview);
-                    OnRealTimePreviewChanged();
-                }
-            }
-        }
-
-        private void LoadRealTimePreview()
-        {
-            _realTimePreview = BaseOptionsManager.GetRealTimePreview();
-        }
 
         private N2NCView _convWindowInstance = null!;
         private DPToolView _dpToolWindowInstance = null!;
@@ -94,12 +62,15 @@ namespace krrTools
         private ContentControl? FilesManagerHost => _settingsHosts.GetValueOrDefault(ModuleEnum.FilesManager);
         private ContentControl? ListenerSettingsHost => _settingsHosts.GetValueOrDefault(ModuleEnum.Listener);
 
-        public FileDropZoneViewModel? FileDropZoneViewModel => null;
-
-        public MainWindow(IModuleManager moduleManager, IEventBus eventBus)
+        public MainWindow(IModuleManager moduleManager)
         {
-            _eventBus = eventBus;
             ModuleManager = moduleManager;
+
+            // 自动注入标记了 [Inject] 的属性
+            this.InjectServices();
+
+            // 从服务容器获取状态管理器
+            _StateBarManager = App.Services.GetRequiredService<StateBarManager>();
 
             Title = Strings.WindowTitle; // 初始化
             Width = 1000;
@@ -133,10 +104,7 @@ namespace krrTools
                 }
             };
 
-            LoadRealTimePreview();
             BuildUI();
-            OnRealTimePreviewChanged();
-
             LoadToolSettingsHosts();
 
             Loaded += ApplyToThemeLoaded;
@@ -167,13 +135,35 @@ namespace krrTools
             var previewViewModel = new PreviewViewModel();
             _previewDual = new PreviewViewDual(previewViewModel);
 
-            // 创建 FileDropZoneViewModel
-            var fileDispatcher = new FileDispatcher();
-            var fileDropZoneViewModel = new FileDropZoneViewModel(_previewDual, fileDispatcher, GetActiveTabTag);
-            var fileDropZone = new FileDropZone(fileDropZoneViewModel);
-            _fileDropZone = fileDropZone;
-            // fileDropZoneViewModel.FilesDropped += OnFilesDropped;
-            // fileDropZoneViewModel.StartConversionRequested += StartConversionRequested;
+            var fileDispatcher = new FileDispatcher
+            {
+                // 设置消息显示委托
+                ShowMessage = (title, message) =>
+                {
+                    var snackbar = new Snackbar(_snackbarPresenter)
+                    {
+                        Title = title,
+                        Content = message,
+                        Appearance = ControlAppearance.Success,
+                        Timeout = TimeSpan.FromSeconds(5)
+                    };
+                    snackbar.Show();
+                }
+            };
+            var unused = new FileDropZoneViewModel(fileDispatcher)
+            {
+                PreviewDual = _previewDual,
+                GetActiveTabTag = GetActiveTabTag
+            };
+            unused.InjectServices(); // 注入依赖项
+            var fileDropZone = new FileDropZone(fileDispatcher)
+            {
+                ViewModel =
+                {
+                    GetActiveTabTag = GetActiveTabTag,
+                    PreviewDual = _previewDual
+                }
+            };
 
             var previewGrid = new Grid();
             previewGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -184,16 +174,7 @@ namespace krrTools
             previewGrid.Children.Add(fileDropZone);
 
             // Footer
-            var statusBarControl = new StatusBarControl
-            {
-                RealTimeToggle =
-                {
-                    IsChecked = RealTimePreview
-                }
-            };
-
-            statusBarControl.RealTimeToggle.Checked += (_, _) => RealTimePreview = true;
-            statusBarControl.RealTimeToggle.Unchecked += (_, _) => RealTimePreview = false;
+            var statusBarControl = new StatusBarControl(_StateBarManager);
 
             var localizedRealTimeText = new DynamicLocalizedString(Strings.RealTimePreviewLabel);
             statusBarControl.RealTimeToggle.SetBinding(ContentProperty,
@@ -232,9 +213,13 @@ namespace krrTools
             root.Children.Add(_mainGrid);
             root.Children.Add(footer);
 
+            // 添加SnackbarPresenter
+            _snackbarPresenter = new SnackbarPresenter();
+            root.Children.Add(_snackbarPresenter);
+
             AllowDrop = true;
             // 设置初始选项卡内容
-            MainTabControl_SelectionChanged(null, null);
+            // MainTabControl_SelectionChanged(null, null);
         }
 
         private void ApplyToThemeLoaded(object sender, RoutedEventArgs e)
@@ -427,12 +412,11 @@ namespace krrTools
                 },
                 new ToolEmbeddingConfig
                 {
-                    ControlFactory = () => new ListenerControl(_eventBus),
+                    ControlFactory = () => new ListenerControl(),
                     HostGetter = () => ListenerSettingsHost,
                     InstanceSetter = control =>
                     {
                         _listenerControlInstance = (ListenerControl)control;
-                        _listenerControlInstance.ViewModel.PropertyChanged += ListenerViewModel_PropertyChanged;
                     }
                 }
             };
@@ -534,7 +518,7 @@ namespace krrTools
             var insertIndex = MainTabControl.Items.IndexOf(tab);
             MainTabControl.Items.Remove(tab);
 
-            var followTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+            var followTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(10) };
             followTimer.Tick += (_, _) =>
             {
                 var p = System.Windows.Forms.Cursor.Position;
@@ -616,60 +600,12 @@ namespace krrTools
             }
         }
 
-        private void OnRealTimePreviewChanged()
-        {
-            if (_realTimePreview)
-            {
-                if (_listenerVM == null)
-                {
-                    _listenerVM = new ListenerViewModel();
-                    _listenerVM.BeatmapSelected += OnBeatmapSelected;
-                }
-
-                // 立即触发一次检查，以加载当前选中的谱面
-                _ = _listenerVM.TriggerImmediateCheck();
-                // 移除直接调用SetSongsPath的逻辑，让ListenerViewModel自动检测osu!进程并获取Songs路径
-                // if (string.IsNullOrEmpty(_listenerVM.Config.SongsPath))
-                // {
-                //     _listenerVM.SetSongsPath();
-                // }
-            }
-            else
-            {
-                if (_listenerVM != null)
-                {
-                    _listenerVM.Cleanup();
-                    _listenerVM = null;
-                }
-
-                // 当关闭实时预览时，重置预览到默认内置样本
-                _previewDual?.ResetPreview();
-                // 清除拖入区的监听文件
-                _fileDropZone?.SetManualMode(null);
-            }
-        }
-
-        private void OnBeatmapSelected(object? sender, ListenerViewModel.BeatmapInfo e)
-        {
-            if (string.IsNullOrEmpty(e.FilePath) || !File.Exists(e.FilePath)) return;
-
-            try
-            {
-                _fileDropZone?.SetManualMode([e.FilePath], FileDropZoneViewModel.FileSource.Listened);
-            }
-            catch (Exception ex)
-            {
-            LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("MainWindow")
-                .LogError($"Error loading beatmap in real-time preview: {ex.Source}{ex.Message}{ex.StackTrace}");
-            }
-        }
-
         private void MainTabControl_SelectionChanged(object? sender, SelectionChangedEventArgs? e)
         {
             var selectedTag = (MainTabControl.SelectedItem as TabViewItem)?.Tag;
             var isConverter = selectedTag is ConverterEnum;
 
-            if (_previewDual != null && selectedTag != null)
+            if (selectedTag != null)
             {
                 _previewDual.Visibility = isConverter ? Visibility.Visible : Visibility.Collapsed;
                 if (isConverter)
@@ -693,7 +629,9 @@ namespace krrTools
                         // 通过ViewModel设置处理器，它会处理刷新
                         _previewDual.ViewModel!.SetProcessor(processor);
                         _previewDual.SetCurrentTool(converterEnum);
-                        _previewDual.SetCurrentViewModel(viewModel);
+
+                        // 选项卡切换时立即刷新预览
+                        _previewDual.ViewModel!.TriggerRefresh();
                     }
                 }
                 else
@@ -720,8 +658,6 @@ namespace krrTools
 
         private void UpdateSettingsContainer(object? selectedTag, bool isConverter)
         {
-            if (_currentSettingsContainer == null) return;
-
             _currentSettingsContainer.Content = null;
 
             if (selectedTag != null && _settingsHosts.TryGetValue(selectedTag, out var settingsHost))
@@ -736,17 +672,6 @@ namespace krrTools
                     if (_currentSettingsContainer != settingsHost)
                         _currentSettingsContainer.Content = settingsHost;
                 }
-            }
-        }
-
-        private void ListenerViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == "CurrentOsuFilePath")
-            {
-                if (sender is ListenerViewModel listenerVM && !string.IsNullOrEmpty(listenerVM.CurrentOsuFilePath))
-                    _fileDropZone?.SetManualMode([listenerVM.CurrentOsuFilePath]);
-                else
-                    _fileDropZone?.SetManualMode(null);
             }
         }
 
@@ -784,10 +709,10 @@ namespace krrTools
         private void MainWindow_Closed(object? sender, EventArgs e)
         {
             // 清理预览ViewModel的资源
-            if (_previewDual?.ViewModel is IDisposable disposableViewModel) disposableViewModel.Dispose();
+            if (_previewDual.ViewModel is IDisposable disposableViewModel) disposableViewModel.Dispose();
 
             // 清理ListenerViewModel的资源
-            if (_listenerVM is IDisposable listenerDisposable) listenerDisposable.Dispose();
+            if (_listenerControlInstance.ViewModel is IDisposable listenerDisposable) listenerDisposable.Dispose();
 
             // 清理工具ViewModel的资源
             if (_convWindowInstance.DataContext is IDisposable n2ncDisposable)

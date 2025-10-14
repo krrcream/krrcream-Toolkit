@@ -47,7 +47,7 @@ public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProv
     };
 
     // 实际值映射 - 滑条值转换为实际速度值
-    public static readonly Dictionary<double, double> TransformSpeedActualDict = new()
+    private static readonly Dictionary<double, double> TransformSpeedActualDict = new()
     {
         { 1, 0.0625 },
         { 2, 0.125 },

@@ -12,19 +12,15 @@ namespace krrTools.Tools.DPtool
     /// </summary>
     public class DPToolViewModel : ToolViewModelBase<DPToolOptions>, IPreviewOptionsProvider
     {
-        // 本地化事件处理器委托引用，用于Dispose时取消订阅
-        private PropertyChangedEventHandler? _optionsPropertyChangedHandler;
-
-
         public DPToolViewModel(DPToolOptions options) : base(ConverterEnum.DP, true, options)
         {
-            // 订阅Options属性变化事件，用于处理约束逻辑
-            _optionsPropertyChangedHandler = OnOptionsPropertyChanged;
-            Options.PropertyChanged += _optionsPropertyChangedHandler;
+            // 本地化事件处理器委托引用，用于Dispose时取消订阅
+            PropertyChangedEventHandler optionsPropertyChangedHandler =
+                // 订阅Options属性变化事件，用于处理约束逻辑
+                OnOptionsPropertyChanged;
+            Options.PropertyChanged += optionsPropertyChangedHandler;
         }
-
-
-    
+        
         /// <summary>
         /// Options属性变化事件处理器 - 处理约束逻辑
         /// </summary>
@@ -35,8 +31,11 @@ namespace krrTools.Tools.DPtool
             {
                 case nameof(Options.SingleSideKeyCount):
                     // 约束逻辑：确保SingleSideKeyCount在合理范围内
-                    if (Options.SingleSideKeyCount.Value < 1) Options.SingleSideKeyCount.Value = 1;
-                    if (Options.SingleSideKeyCount.Value > 18) Options.SingleSideKeyCount.Value = 18;
+                    if (Options.SingleSideKeyCount.Value.HasValue)
+                    {
+                        if (Options.SingleSideKeyCount.Value < 1) Options.SingleSideKeyCount.Value = 1;
+                        if (Options.SingleSideKeyCount.Value > 12) Options.SingleSideKeyCount.Value = 12;
+                    }
                     break;
 
                 case nameof(Options.LMinKeys):
@@ -65,19 +64,8 @@ namespace krrTools.Tools.DPtool
             }
         }
 
-
-
-
-
         // 公开属性 - 响应式架构，与N2NC保持一致
-
-        public bool ModifySingleSideKeyCount
-        {
-            get => Options.ModifySingleSideKeyCount.Value;
-            set => Options.ModifySingleSideKeyCount.Value = value;
-        }
-
-        public double SingleSideKeyCount
+        public double? SingleSideKeyCount
         {
             get => Options.SingleSideKeyCount.Value;
             set => Options.SingleSideKeyCount.Value = value;
@@ -126,7 +114,6 @@ namespace krrTools.Tools.DPtool
         public IToolOptions GetPreviewOptions()
         {
             var previewOptions = new DPToolOptions();
-            previewOptions.ModifySingleSideKeyCount.Value = Options.ModifySingleSideKeyCount.Value;
             previewOptions.SingleSideKeyCount.Value = Options.SingleSideKeyCount.Value;
             previewOptions.LMirror.Value = Options.LMirror.Value;
             previewOptions.LDensity.Value = Options.LDensity.Value;

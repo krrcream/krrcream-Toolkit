@@ -29,31 +29,9 @@ namespace krrTools.Beatmaps
         }
 
         /// <summary>
-        /// 弹出选择文件夹对话框
-        /// </summary>
-        public static string ShowFolderBrowserDialog(string description)
-        {
-            using var dialog = new FolderBrowserDialog();
-            dialog.Description = description;
-            dialog.RootFolder = Environment.SpecialFolder.MyComputer;
-            dialog.ShowNewFolderButton = true;
-            if (Application.Current?.MainWindow != null)
-            {
-                var hwnd = new WindowInteropHelper(Application.Current.MainWindow).Handle;
-                dialog.ShowDialog(new Win32Window(hwnd));
-            }
-            else
-            {
-                dialog.ShowDialog();
-            }
-
-            return dialog.SelectedPath;
-        }
-
-        /// <summary>
         /// 弹出选择文件夹对话框，使用指定的窗口作为父窗口
         /// </summary>
-        public static string ShowFolderBrowserDialog(string description, Window? owner)
+        public static string ShowFolderBrowserDialog(string description, Window? owner = null)
         {
             using var dialog = new FolderBrowserDialog();
             dialog.Description = description;

@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
+using krrTools.Bindable;
 using Microsoft.Extensions.Logging;
 
 namespace krrTools.Configuration
@@ -20,6 +21,12 @@ namespace krrTools.Configuration
         private static AppConfig? _cachedConfig;
         private static readonly Lock _configLock = new();
 
+        // 全局EventBus引用，用于发布配置变化事件
+        private static IEventBus? _eventBus;
+
+        // 跟踪上一次的监控启用状态，用于事件发布
+        private static bool _lastMonitoringEnable;
+
         /// <summary>
         /// 设置变化事件
         /// </summary>
@@ -31,17 +38,38 @@ namespace krrTools.Configuration
         public static event Action? GlobalSettingsChanged;
 
         /// <summary>
-        /// 获取源ID - 从枚举获取
+        /// 设置全局EventBus引用，用于发布配置变化事件
         /// </summary>
-        public static int GetSourceId(ConverterEnum converter)
+        public static void SetEventBus(IEventBus eventBus)
         {
-            return converter switch
+            _eventBus = eventBus;
+            
+            // 设置全局设置的回调
+            SetupGlobalSettingsCallbacks();
+        }
+
+        /// <summary>
+        /// 设置全局设置的回调
+        /// </summary>
+        private static void SetupGlobalSettingsCallbacks()
+        {
+            if (_eventBus == null) return;
+            
+            var globalSettings = GetGlobalSettings();
+            
+            // 初始化上一次的值
+            _lastMonitoringEnable = globalSettings.MonitoringEnable.Value;
+            
+            // 设置监控启用状态变化回调
+            globalSettings.MonitoringEnable.OnValueChanged(enabled =>
             {
-                ConverterEnum.N2NC => 1,
-                ConverterEnum.DP => 3,
-                ConverterEnum.KRRLN => 4,
-                _ => 0
-            };
+                _eventBus.Publish(new MonitoringEnabledChangedEvent
+                {
+                    OldValue = _lastMonitoringEnable,
+                    NewValue = enabled,
+                });
+                _lastMonitoringEnable = enabled;
+            });
         }
 
         /// <summary>
@@ -64,6 +92,7 @@ namespace krrTools.Configuration
                 {
                     var json = File.ReadAllText(path);
                     var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    opts.Converters.Add(new BindableJsonConverter<string>());
                     _cachedConfig = JsonSerializer.Deserialize<AppConfig>(json, opts) ?? new AppConfig();
 
                     return _cachedConfig;
@@ -93,6 +122,7 @@ namespace krrTools.Configuration
                 {
                     var opts = new JsonSerializerOptions
                         { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
+                    opts.Converters.Add(new BindableJsonConverter<string>());
                     var json = JsonSerializer.Serialize(_cachedConfig, opts);
                     File.WriteAllText(path, json);
                 }
@@ -228,12 +258,21 @@ namespace krrTools.Configuration
         }
 
         /// <summary>
-        /// 保存全局设置
+        /// 保存全局设置（不触发事件，避免循环）
         /// </summary>
         private static void SetGlobalSettings(GlobalSettings settings)
         {
             SetAppSetting(c => c.GlobalSettings = settings);
             GlobalSettingsChanged?.Invoke();
+        }
+
+        /// <summary>
+        /// 保存全局设置（静默保存，不触发事件）
+        /// </summary>
+        public static void SetGlobalSettingsSilent(GlobalSettings settings)
+        {
+            SetAppSetting(c => c.GlobalSettings = settings);
+            // 不触发事件，避免循环
         }
 
         /// <summary>
@@ -269,23 +308,23 @@ namespace krrTools.Configuration
         /// </summary>
         public static bool GetRealTimePreview()
         {
-            return GetGlobalSettings().RealTimePreview;
+            return GetGlobalSettings().MonitoringEnable.Value;
         }
 
         /// <summary>
         /// 保存实时预览设置
         /// </summary>
-        public static void SetRealTimePreview(bool value)
+        public static void SetMonitoring(bool value)
         {
-            UpdateGlobalSettings(s => s.RealTimePreview = value);
+            GetGlobalSettings().MonitoringEnable.Value = value;
         }
 
         /// <summary>
         /// 获取应用程序主题设置
         /// </summary>
-        public static string? GetApplicationTheme()
+        public static string GetApplicationTheme()
         {
-            return GetGlobalSettings().ApplicationTheme;
+            return GetGlobalSettings().ApplicationTheme.Value;
         }
 
         /// <summary>
@@ -293,15 +332,15 @@ namespace krrTools.Configuration
         /// </summary>
         public static void SetApplicationTheme(string? theme)
         {
-            UpdateGlobalSettings(s => s.ApplicationTheme = theme);
+            GetGlobalSettings().ApplicationTheme.Value = theme ?? string.Empty;
         }
 
         /// <summary>
         /// 获取窗口背景类型设置
         /// </summary>
-        public static string? GetWindowBackdropType()
+        public static string GetWindowBackdropType()
         {
-            return GetGlobalSettings().WindowBackdropType;
+            return GetGlobalSettings().WindowBackdropType.Value;
         }
 
         /// <summary>
@@ -309,7 +348,7 @@ namespace krrTools.Configuration
         /// </summary>
         public static void SetWindowBackdropType(string? backdropType)
         {
-            UpdateGlobalSettings(s => s.WindowBackdropType = backdropType);
+            GetGlobalSettings().WindowBackdropType.Value = backdropType ?? string.Empty;
         }
 
         /// <summary>
@@ -317,7 +356,7 @@ namespace krrTools.Configuration
         /// </summary>
         public static bool GetUpdateAccent()
         {
-            return GetGlobalSettings().UpdateAccent;
+            return GetGlobalSettings().UpdateAccent.Value;
         }
 
         /// <summary>
@@ -325,7 +364,7 @@ namespace krrTools.Configuration
         /// </summary>
         public static void SetUpdateAccent(bool updateAccent)
         {
-            UpdateGlobalSettings(s => s.UpdateAccent = updateAccent);
+            GetGlobalSettings().UpdateAccent.Value = updateAccent;
         }
 
         /// <summary>
@@ -333,7 +372,7 @@ namespace krrTools.Configuration
         /// </summary>
         public static bool GetForceChinese()
         {
-            return GetGlobalSettings().ForceChinese;
+            return GetGlobalSettings().ForceChinese.Value;
         }
 
         /// <summary>
@@ -341,7 +380,7 @@ namespace krrTools.Configuration
         /// </summary>
         public static void SetForceChinese(bool forceChinese)
         {
-            UpdateGlobalSettings(s => s.ForceChinese = forceChinese);
+            GetGlobalSettings().ForceChinese.Value = forceChinese;
         }
 
         // DP specific constants

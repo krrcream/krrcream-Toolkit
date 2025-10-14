@@ -7,7 +7,7 @@ namespace krrTools.Core;
 /// Unified base class for tool controls that need options management
 /// </summary>
 /// <typeparam name="TOptions">The options type for this tool</typeparam>
-public abstract class ToolViewBase<TOptions> : UserControl where TOptions : class, IToolOptions, new()
+public abstract class ToolViewBase<TOptions> : UserControl, IToolControl where TOptions : class, IToolOptions, new()
 {
     private readonly ConverterEnum _toolEnum;
 

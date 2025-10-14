@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
-using krrTools.Configuration;
+using krrTools.Core;
 using krrTools.Localization;
 using krrTools.UI;
 using Microsoft.Extensions.Logging;
