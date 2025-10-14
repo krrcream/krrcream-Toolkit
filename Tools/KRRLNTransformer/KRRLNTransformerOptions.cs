@@ -7,6 +7,10 @@ namespace krrTools.Tools.KRRLNTransformer
 {
     public class KRRLNTransformerOptions : ToolOptionsBase
     {
+        // Threshold and alignment settings (nullable for toggle behavior)
+        [Option(LabelKey = nameof(LengthThresholdLabel), Min = 0, Max = 65, UIType = UIType.Slider, DisplayMapField = nameof(LengthThresholdDict), IsRefresher = true)]
+        public Bindable<double?> LengthThreshold { get; } = new(16);
+        
         // Short LN settings
         [Option(LabelKey = nameof(KRRShortPercentageLabel), Min = 0, Max = 100, UIType = UIType.Slider, IsRefresher = true)]
         public Bindable<double> ShortPercentage { get; } = new(100);
@@ -32,10 +36,6 @@ namespace krrTools.Tools.KRRLNTransformer
 
         [Option(LabelKey = nameof(KRRLongRandomLabel), Min = 0, Max = 100, UIType = UIType.Slider, IsRefresher = true)]
         public Bindable<double> LongRandom { get; } = new(50);
-
-        // Threshold and alignment settings (nullable for toggle behavior)
-        [Option(LabelKey = nameof(LengthThresholdLabel), Min = 0, Max = 14, UIType = UIType.Slider, DisplayMapField = nameof(LengthThresholdDict), IsRefresher = true)]
-        public Bindable<double?> LengthThreshold { get; } = new(5);
 
         [Option(LabelKey = nameof(KRRAlignLabel), Min = 1, Max = 8, UIType = UIType.Slider, DisplayMapField = nameof(AlignValuesDict), IsRefresher = true)]
         public Bindable<double?> Alignment { get; } = new(5);
@@ -95,20 +95,71 @@ namespace krrTools.Tools.KRRLNTransformer
         public static Dictionary<double, string> LengthThresholdDict = new()
         {
             { 0, "AllIsLongLN" },
-            { 1, "1/8" },
-            { 2, "1/6" },
-            { 3, "1/4" },
-            { 4, "1/3" },
-            { 5, "1/2" },
-            { 6, "2/3" },
-            { 7, "3/4" },
-            { 8, "1" },
-            { 9, "4/3" },
-            { 10, "3/2" },
-            { 11, "2/1"},
-            { 12, "3/1" },
-            { 13, "4/1"},
-            { 14, "AllIsShortLN"}
+            { 1, "1/16"},
+            { 2, "2/16"},
+            { 3, "3/16"},
+            { 4, "4/16"},
+            { 5, "5/16"},
+            { 6, "6/16"},
+            { 7, "7/16"},
+            { 8, "8/16"},
+            { 9, "9/16"},
+            { 10, "10/16"},
+            { 11, "11/16"},
+            { 12, "12/16"},
+            { 13, "13/16"},
+            { 14, "14/16"},
+            { 15, "15/16"},
+            { 16, "16/16"},
+            { 17, "17/16"},
+            { 18, "18/16"},
+            { 19, "19/16"},
+            { 20, "20/16"},
+            { 21, "21/16"},
+            { 22, "22/16"},
+            { 23, "23/16"},
+            { 24, "24/16"},
+            { 25, "25/16"},
+            { 26, "26/16"},
+            { 27, "27/16"},
+            { 28, "28/16"},
+            { 29, "29/16"},
+            { 30, "30/16"},
+            { 31, "31/16"},
+            { 32, "32/16"},
+            { 33, "33/16"},
+            { 34, "34/16"},
+            { 35, "35/16"},
+            { 36, "36/16"},
+            { 37, "37/16"},
+            { 38, "38/16"},
+            { 39, "39/16"},
+            { 40, "40/16"},
+            { 41, "41/16"},
+            { 42, "42/16"},
+            { 43, "43/16"},
+            { 44, "44/16"},
+            { 45, "45/16"},
+            { 46, "46/16"},
+            { 47, "47/16"},
+            { 48, "48/16"},
+            { 49, "49/16"},
+            { 50, "50/16"},
+            { 51, "51/16"},
+            { 52, "52/16"},
+            { 53, "53/16"},
+            { 54, "54/16"},
+            { 55, "55/16"},
+            { 56, "56/16"},
+            { 57, "57/16"},
+            { 58, "58/16"},
+            { 59, "59/16"},
+            { 60, "60/16"},
+            { 61, "61/16"},
+            { 62, "62/16"},
+            { 63, "63/16"},
+            { 64, "64/16"},
+            { 65, "AllIsShortLN"}
         };
     }
 }
