@@ -47,7 +47,11 @@ namespace krrTools.Tools.KRRLNTransformer
             var shortPercPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortPercentage);
             stack.Children.Add(shortPercPanel);
 
-            var shortLevelPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortLevel);
+            var shortLevelPanel = SettingsBinder.CreateTemplatedSliderWithDynamicMax(
+                _viewModel.Options, 
+                o => o.ShortLevel, 
+                _viewModel, 
+                nameof(_viewModel.ShortLevelMax));
             stack.Children.Add(shortLevelPanel);
 
             var shortLimitPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortLimit);

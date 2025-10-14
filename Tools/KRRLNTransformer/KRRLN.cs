@@ -278,7 +278,7 @@ namespace krrTools.Tools.KRRLNTransformer
                 int index = matrixSpan[i];
                 if (index >= 0 && index < maniaObjects.Count)
                 {
-                    if (availableTimeSpan[i] > borderValue * beatLengthSpan[i])
+                    if (availableTimeSpan[i] > borderValue * beatLengthSpan[i] * 4)
                         longLNSpan[i] = true;
                     else
                         shortLNSpan[i] = true;
@@ -350,7 +350,7 @@ namespace krrTools.Tools.KRRLNTransformer
                 {
                     var indexObj = matrixSpan[i];
                     var newLength = GenerateRandom(
-                        borderValue * maniaObjects[indexObj].BeatLengthOfThisNote,
+                        borderValue * maniaObjects[indexObj].BeatLengthOfThisNote * 4,
                         availableTimeSpan[i] - beatLengthSpan[i] / 8,
                         availableTimeSpan[i] * LNLevel / 100,
                         longRandom, random
@@ -372,7 +372,7 @@ namespace krrTools.Tools.KRRLNTransformer
             var resultSpan = shortLnWaitModify.AsSpan();
             
             double borderValue = borderList[borderKey];
-            
+                
             for (int i = 0; i < matrixSpan.Length; i++)
             {
                 if (shortFlagSpan[i])
@@ -380,8 +380,8 @@ namespace krrTools.Tools.KRRLNTransformer
                     var indexObj = matrixSpan[i];
                     var newLength = GenerateRandom(
                         Math.Max(beatLengthSpan[i] / 4, 50),
-                        borderValue * maniaObjects[indexObj].BeatLengthOfThisNote,
-                        availableTimeSpan[i] * LNLevel / 100,
+                        borderValue * maniaObjects[indexObj].BeatLengthOfThisNote * 4,
+                        borderValue,
                         shortRandom, random
                     );
                     resultSpan[i] = newLength;
@@ -547,7 +547,7 @@ namespace krrTools.Tools.KRRLNTransformer
 
         private int GenerateRandom(double D, double U, double M, int P, Random r)
         {
-            if (P <= 0 || D >= U || M > U)
+            if (P <= 0 || D >= U || M >= U)
                 return M > U ? (int)U : (int)M;
             if (M < D)
                 return (int)D;
@@ -636,70 +636,70 @@ namespace krrTools.Tools.KRRLNTransformer
             */
             
             { 0, 0 },
-            { 1, 1/16},
-            { 2, 2/16},
-            { 3, 3/16},
-            { 4, 4/16},
-            { 5, 5/16},
-            { 6, 6/16},
-            { 7, 7/16},
-            { 8, 8/16},
-            { 9, 9/16},
-            { 10, 10/16},
-            { 11, 11/16},
-            { 12, 12/16},
-            { 13, 13/16},
-            { 14, 14/16},
-            { 15, 15/16},
-            { 16, 16/16},
-            { 17, 17/16},
-            { 18, 18/16},
-            { 19, 19/16},
-            { 20, 20/16},
-            { 21, 21/16},
-            { 22, 22/16},
-            { 23, 23/16},
-            { 24, 24/16},
-            { 25, 25/16},
-            { 26, 26/16},
-            { 27, 27/16},
-            { 28, 28/16},
-            { 29, 29/16},
-            { 30, 30/16},
-            { 31, 31/16},
-            { 32, 32/16},
-            { 33, 33/16},
-            { 34, 34/16},
-            { 35, 35/16},
-            { 36, 36/16},
-            { 37, 37/16},
-            { 38, 38/16},
-            { 39, 39/16},
-            { 40, 40/16},
-            { 41, 41/16},
-            { 42, 42/16},
-            { 43, 43/16},
-            { 44, 44/16},
-            { 45, 45/16},
-            { 46, 46/16},
-            { 47, 47/16},
-            { 48, 48/16},
-            { 49, 49/16},
-            { 50, 50/16},
-            { 51, 51/16},
-            { 52, 52/16},
-            { 53, 53/16},
-            { 54, 54/16},
-            { 55, 55/16},
-            { 56, 56/16},
-            { 57, 57/16},
-            { 58, 58/16},
-            { 59, 59/16},
-            { 60, 60/16},
-            { 61, 61/16},
-            { 62, 62/16},
-            { 63, 63/16},
-            { 64, 64/16},
+            { 1, 1.0/16},
+            { 2, 2.0/16},
+            { 3, 3.0/16},
+            { 4, 4.0/16},
+            { 5, 5.0/16},
+            { 6, 6.0/16},
+            { 7, 7.0/16},
+            { 8, 8.0/16},
+            { 9, 9.0/16},
+            { 10, 10.0/16},
+            { 11, 11.0/16},
+            { 12, 12.0/16},
+            { 13, 13.0/16},
+            { 14, 14.0/16},
+            { 15, 15.0/16},
+            { 16, 16.0/16},
+            { 17, 17.0/16},
+            { 18, 18.0/16},
+            { 19, 19.0/16},
+            { 20, 20.0/16},
+            { 21, 21.0/16},
+            { 22, 22.0/16},
+            { 23, 23.0/16},
+            { 24, 24.0/16},
+            { 25, 25.0/16},
+            { 26, 26.0/16},
+            { 27, 27.0/16},
+            { 28, 28.0/16},
+            { 29, 29.0/16},
+            { 30, 30.0/16},
+            { 31, 31.0/16},
+            { 32, 32.0/16},
+            { 33, 33.0/16},
+            { 34, 34.0/16},
+            { 35, 35.0/16},
+            { 36, 36.0/16},
+            { 37, 37.0/16},
+            { 38, 38.0/16},
+            { 39, 39.0/16},
+            { 40, 40.0/16},
+            { 41, 41.0/16},
+            { 42, 42.0/16},
+            { 43, 43.0/16},
+            { 44, 44.0/16},
+            { 45, 45.0/16},
+            { 46, 46.0/16},
+            { 47, 47.0/16},
+            { 48, 48.0/16},
+            { 49, 49.0/16},
+            { 50, 50.0/16},
+            { 51, 51.0/16},
+            { 52, 52.0/16},
+            { 53, 53.0/16},
+            { 54, 54.0/16},
+            { 55, 55.0/16},
+            { 56, 56.0/16},
+            { 57, 57.0/16},
+            { 58, 58.0/16},
+            { 59, 59.0/16},
+            { 60, 60.0/16},
+            { 61, 61.0/16},
+            { 62, 62.0/16},
+            { 63, 63.0/16},
+            { 64, 64.0/16},
             { 65, 999 }
         };
         

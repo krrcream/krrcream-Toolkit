@@ -1,7 +1,9 @@
+
 using krrTools.Bindable;
 using krrTools.Configuration;
 using krrTools.Core;
 using Microsoft.Extensions.DependencyInjection;
+using System.ComponentModel;
 
 namespace krrTools.Tools.KRRLNTransformer
 {
@@ -13,7 +15,27 @@ namespace krrTools.Tools.KRRLNTransformer
         {
             _eventBus = App.Services.GetRequiredService<IEventBus>();
             
+            // 监听 LengthThreshold 属性变化
+            options.LengthThreshold.PropertyChanged += OnLengthThresholdChanged;
         }
+
+        private void OnLengthThresholdChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(Bindable<double?>.Value))
+            {
+                // 通知 ShortLevelMax 属性更新
+                OnPropertyChanged(nameof(ShortLevelMax));
+                
+                // 如果 ShortLevel 的值超过了新的最大值，则调整为最大值
+                if (Options.ShortLevel.Value > ShortLevelMax)
+                {
+                    Options.ShortLevel.Value = ShortLevelMax;
+                }
+            }
+        }
+
+        // ShortLevel 的最大值绑定到 LengthThreshold 的值
+        public double ShortLevelMax => Options.LengthThreshold.Value >= 65 ? 64 : (Options.LengthThreshold.Value ?? 16);
 
         protected override void TriggerPreviewRefresh()
         {

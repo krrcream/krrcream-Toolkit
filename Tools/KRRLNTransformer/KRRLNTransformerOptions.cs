@@ -11,6 +11,10 @@ namespace krrTools.Tools.KRRLNTransformer
         [Option(LabelKey = nameof(LengthThresholdLabel), Min = 0, Max = 65, UIType = UIType.Slider, DisplayMapField = nameof(LengthThresholdDict), IsRefresher = true)]
         public Bindable<double?> LengthThreshold { get; } = new(16);
         
+        // 在绑定短面上限值
+        public double ShortLevelMax => LengthThreshold.Value >= 65 ? 64 : (LengthThreshold.Value ?? 16);
+
+        
         // Short LN settings
         [Option(LabelKey = nameof(KRRShortPercentageLabel), Min = 0, Max = 100, UIType = UIType.Slider, IsRefresher = true)]
         public Bindable<double> ShortPercentage { get; } = new(100);
