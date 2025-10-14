@@ -176,19 +176,13 @@ namespace krrTools.Utilities
                     
                     if (string.IsNullOrEmpty(_backgroundPath))
                     {
-                        try
+                        var beatmap = BeatmapDecoder.Decode(_stagedPaths[0]);
+                        if (beatmap != null && !string.IsNullOrWhiteSpace(beatmap.EventsSection.BackgroundImage))
                         {
-                            var beatmap = BeatmapDecoder.Decode(_stagedPaths[0]);
-                            if (beatmap != null && !string.IsNullOrWhiteSpace(beatmap.EventsSection.BackgroundImage))
-                            {
-                                _backgroundPath = Path.Combine(Path.GetDirectoryName(_stagedPaths[0])!, beatmap.EventsSection.BackgroundImage);
-                            }
-                        }
-                        catch
-                        {
-                            // Ignore decoding errors
+                            _backgroundPath = Path.Combine(Path.GetDirectoryName(_stagedPaths[0])!, beatmap.EventsSection.BackgroundImage);
                         }
                     }
+                    
                     if (!string.IsNullOrEmpty(_backgroundPath))
                     {
                         PreviewDual.LoadBackgroundBrush(_backgroundPath);

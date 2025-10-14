@@ -58,23 +58,6 @@ namespace krrTools.Tools.Listener
             };
             Unloaded += Window_Closing;
         }
-        
-        private void ExecuteConvert()
-        {
-            try
-            {
-                if (BaseOptionsManager.GetRealTimePreview() && !string.IsNullOrEmpty(_viewModel.MonitorOsuFilePath))
-                {
-                    _dropZoneViewModel.SetFiles([_viewModel.MonitorOsuFilePath],
-                        source: FileSource.Listened);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.WriteLine(LogLevel.Error,
-                    "[ListenerControl] Error while attempting to process current file: " + ex.Message);
-            }
-        }
 
         private void Window_Closing(object? sender, RoutedEventArgs e)
         {

@@ -158,7 +158,6 @@ namespace krrTools.Core;
             if (!_isInitializing && _autoSave) 
             {
                 StartDelayedSave();
-                TriggerPreviewRefresh();
             }
         }
     

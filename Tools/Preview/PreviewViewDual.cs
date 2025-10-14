@@ -33,6 +33,14 @@ namespace krrTools.Tools.Preview
         private TextBlock _startTimeDisplay = null!;
         private ConverterEnum? _currentTool;
 
+        public PreviewViewDual(PreviewViewModel viewModel)
+        {
+            ViewModel = viewModel;
+            ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+
+            InitializeUI();
+        }
+        
         public void SetCurrentTool(ConverterEnum? tool)
         {
             _currentTool = tool;
@@ -47,24 +55,6 @@ namespace krrTools.Tools.Preview
         private Bindable<bool> IsProcessing { get; } = new();
 
         public PreviewViewModel? ViewModel { get; set; }
-
-        public void Refresh()
-        {
-            ViewModel?.TriggerRefresh();
-        }
-
-        public void LoadPreview(string input)
-        {
-            ViewModel?.LoadFromPath(input);
-        }
-
-        public PreviewViewDual(PreviewViewModel viewModel)
-        {
-            ViewModel = viewModel;
-            ViewModel.PropertyChanged += ViewModel_PropertyChanged;
-
-            InitializeUI();
-        }
 
         private void InitializeUI()
         {
@@ -220,6 +210,16 @@ namespace krrTools.Tools.Preview
             ViewModel?.TriggerRefresh();
         }
 
+        public void Refresh()
+        {
+            ViewModel?.TriggerRefresh();
+        }
+
+        public void LoadPreview(string input)
+        {
+            ViewModel?.LoadFromPath(input);
+        }
+        
         private void OnLanguageChanged()
         {
             _originalHint.Text = Strings.OriginalHint.Localize();

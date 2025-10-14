@@ -102,6 +102,20 @@ namespace krrTools.Bindable
                 var toolOptions = (ToolOptionsBase)Options;
                 toolOptions.IsLoading = true;
                 Options = BaseOptionsManager.LoadOptions<TOptions>(changedConverter) ?? new TOptions();
+
+                // 暂时没用的
+                // // Unsubscribe from old options
+                // if (Options is INotifyPropertyChanged oldNotifyOptions)
+                // {
+                //     oldNotifyOptions.PropertyChanged -= OnOptionsPropertyChanged;
+                // }
+                
+                // // Subscribe to new options
+                // if (Options is INotifyPropertyChanged newNotifyOptions)
+                // {
+                //     newNotifyOptions.PropertyChanged += OnOptionsPropertyChanged;
+                // }
+                
                 toolOptions.IsLoading = false;
             }
         }

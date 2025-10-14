@@ -119,9 +119,6 @@ public class PreviewViewModel : ReactiveViewModelBase
         // 更新全局设置中的最后预览路径
         BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = e.FilePath);
 
-        // 刷新所有预览（原始和转换后）
-        RefreshAll();
-
         switch (e.ChangeType)
         {
             case BeatmapChangeType.FromMonitoring:
@@ -158,14 +155,15 @@ public class PreviewViewModel : ReactiveViewModelBase
     {
         // 更新全局最后预览路径
         BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = path);
-        RefreshAll();
+
     }
 
     public void LoadBuiltInSample()
     {
         // 清空全局最后预览路径以使用内置样本
         BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = string.Empty);
-        RefreshAll();
+        RefreshOriginal();
+        RefreshConverted();
     }
 
     public void SetProcessor(IPreviewProcessor? processor)
@@ -259,15 +257,6 @@ public class PreviewViewModel : ReactiveViewModelBase
         {
             Console.WriteLine($"[PreviewViewModel] RefreshConverted failed: {ex.Message}");
         }
-    }
-
-    /// <summary>
-    /// 刷新所有预览（原始和转换后）
-    /// </summary>
-    private void RefreshAll()
-    {
-        RefreshOriginal();
-        RefreshConverted();
     }
 
     public void Reset()

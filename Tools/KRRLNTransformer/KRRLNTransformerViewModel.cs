@@ -7,20 +7,20 @@ namespace krrTools.Tools.KRRLNTransformer
 {
     public class KRRLNTransformerViewModel : ToolViewModelBase<KRRLNTransformerOptions>, IPreviewOptionsProvider
     {
-        // private readonly IEventBus _eventBus;
-        
+        private readonly IEventBus _eventBus;
+
         public KRRLNTransformerViewModel(KRRLNTransformerOptions options) : base(ConverterEnum.KRRLN, true, options)
         {
-            App.Services.GetRequiredService<IEventBus>();
+            _eventBus = App.Services.GetRequiredService<IEventBus>();
             
-            // Subscribe to all Bindable<T> property changes
-            SubscribeToPropertyChanges();
         }
 
-        private void SubscribeToPropertyChanges()
+        protected override void TriggerPreviewRefresh()
         {
-            // Bindable<T> properties automatically handle change notifications
-            // No manual subscription needed for UI updates
+            // 取消注释可以启动高频刷新，实时看面尾尺寸变化
+            // （对影响无影响，但是暂时有频闪问题，尚未解决）
+            // 默认是防抖刷新
+            // _eventBus.Publish(new PreviewRefreshEvent { NewValue = true });
         }
 
         public IToolOptions GetPreviewOptions()

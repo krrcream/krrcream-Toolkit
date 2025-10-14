@@ -237,16 +237,5 @@ namespace krrTools.Tools.N2NC
             var currentSelection = _viewModel.KeySelection;
             _viewModel.KeySelection = currentSelection;
         }
-
-
-
-        // private void GenerateSeedButton_Click(object sender, RoutedEventArgs e)
-        // {
-        //     Random random = new Random();
-        //     int newSeed = random.Next();
-        //     // 更新ViewModel和绑定的TextBox（双向绑定将保持它们同步）
-        //     _viewModel.Seed = newSeed;
-        //     if (SeedTextBox != null) SeedTextBox.Text = newSeed.ToString();
-        // }
     }
 }

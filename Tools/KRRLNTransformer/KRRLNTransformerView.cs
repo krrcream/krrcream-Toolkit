@@ -25,15 +25,20 @@ namespace krrTools.Tools.KRRLNTransformer
 
         private void BuildUI()
         {
-            var root = CreateRootScrollViewer();
-            var stack = CreateMainStackPanel();
+            var root = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+            var stack = new StackPanel { Margin = new Thickness(15), HorizontalAlignment = HorizontalAlignment.Stretch };
 
             // 长度阈值设置 - 可空滑条自动带勾选框
             var lengthThresholdPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LengthThreshold);
             stack.Children.Add(lengthThresholdPanel);
             
             // 短面条设置区域标题
-            var shortHeader = new TextBlock { FontSize = UIConstants.HeaderFontSize, FontWeight = FontWeights.Bold };
+            var shortHeader = new TextBlock
+            {
+                FontSize = UIConstants.HeaderFontSize, 
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(0, 0, 0, 5)
+            };
             shortHeader.SetBinding(TextBlock.TextProperty,
                 new Binding("Value") { Source = Strings.KRRShortLNHeader.GetLocalizedString() });
             stack.Children.Add(shortHeader);
@@ -52,13 +57,15 @@ namespace krrTools.Tools.KRRLNTransformer
             stack.Children.Add(shortRandomPanel);
 
             // 分隔线
-            var separator1 = new Separator { Margin = new Thickness(0, 10, 0, 10) };
+            var separator1 = new Separator { Margin = new Thickness(0, 5, 0, 5) };
             stack.Children.Add(separator1);
 
             // 长面条设置区域标题
             var longHeader = new TextBlock
             {
-                FontSize = UIConstants.HeaderFontSize, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 15, 0, 0)
+                FontSize = UIConstants.HeaderFontSize, 
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(0, 0, 0, 5)
             };
             longHeader.SetBinding(TextBlock.TextProperty,
                 new Binding("Value") { Source = Strings.KRRLongLNHeader.GetLocalizedString() });
@@ -78,7 +85,7 @@ namespace krrTools.Tools.KRRLNTransformer
             stack.Children.Add(longRandomPanel);
 
             // 分隔线
-            var separator2 = new Separator { Margin = new Thickness(0, 10, 0, 10) };
+            var separator2 = new Separator { Margin = new Thickness(0, 5, 0, 5) };
             stack.Children.Add(separator2);
             
             // 对齐设置 - 可空滑条自动带勾选框
@@ -104,22 +111,5 @@ namespace krrTools.Tools.KRRLNTransformer
 
             _viewModel.PropertyChanged += (_, _) => { SettingsChanged?.Invoke(this, EventArgs.Empty); };
         }
-
-        private ScrollViewer CreateRootScrollViewer()
-        {
-            return new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
-        }
-
-        private StackPanel CreateMainStackPanel()
-        {
-            return new StackPanel { Margin = new Thickness(15), HorizontalAlignment = HorizontalAlignment.Stretch };
-        }
-
-        public KRRLNTransformerOptions GetOptions()
-        {
-            // 从ViewModel的Options获取值（所有控件都已模板化并自动绑定）
-            return _viewModel.Options;
-        }
     }
-
 }

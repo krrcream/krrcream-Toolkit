@@ -33,7 +33,6 @@ public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProv
     private PropertyChangedEventHandler? _maxKeysDisplayHandler;
     private PropertyChangedEventHandler? _minKeysDisplayHandler;
 
-    // Transform speed slot display mapping dictionary (for UI binding)
     public static readonly Dictionary<double, string> TransformSpeedSlotDict = new()
     {
         { 1, "1/16" },
@@ -58,14 +57,6 @@ public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProv
         { 7, 4.0 },
         { 8, 8.0 }
     };
-
-    // 响应式属性 - 核心配置项 (removed, now bind directly to Options)
-    // private Bindable<double> _targetKeys = null!;
-    // private Bindable<double> _maxKeys = null!;
-    // private Bindable<double> _minKeys = null!;
-    // private Bindable<double> _transformSpeed = null!;
-    // private Bindable<int?> _seed = null!;
-    // private Bindable<PresetKind> _selectedPreset = null!;
 
     private bool _isUpdatingOptions;
 
@@ -143,7 +134,6 @@ public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProv
 
     private void InitializeLocalized()
     {
-        // Listen to language changes for display updates
         _maxKeysDisplayHandler = (_, _) => OnPropertyChanged(nameof(MaxKeysDisplay));
         _minKeysDisplayHandler = (_, _) => OnPropertyChanged(nameof(MinKeysDisplay));
 
