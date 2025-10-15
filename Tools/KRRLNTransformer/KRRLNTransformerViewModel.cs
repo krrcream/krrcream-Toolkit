@@ -1,4 +1,3 @@
-
 using krrTools.Bindable;
 using krrTools.Configuration;
 using krrTools.Core;
@@ -30,7 +29,7 @@ namespace krrTools.Tools.KRRLNTransformer
                 if (Options.ShortLevel.Value > ShortLevelMax)
                 {
                     Options.ShortLevel.Value = ShortLevelMax;
-                }
+        }
             }
         }
 

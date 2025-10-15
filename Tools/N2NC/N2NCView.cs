@@ -31,7 +31,11 @@ namespace krrTools.Tools.N2NC
 
         private void BuildTemplatedUI()
         {
-            var scrollViewer = CreateScrollViewer();
+            var scrollViewer = new ScrollViewer
+            {
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+            };
 
             var grid = new StackPanel { Margin = new Thickness(15), HorizontalAlignment = HorizontalAlignment.Stretch };
 
@@ -150,7 +154,7 @@ namespace krrTools.Tools.N2NC
             var keysPanel = SharedUIComponents.CreateLabeledRow(filterLabel, keysMainPanel, rowMargin);
             grid.Children.Add(keysPanel);
 
-            // Presets panel
+            // 预设面板
             var presetsBorder = PresetPanelFactory.CreatePresetPanel(
                 "N2NC",
                 () => _viewModel.GetConversionOptions(),
@@ -185,7 +189,7 @@ namespace krrTools.Tools.N2NC
                 }
             );
 
-            // Add built-in presets to the presets panel
+            // 预设面板中插入内置预设按钮
             if (presetsBorder is StackPanel outerPanel)
             {
                 var builtinPresetsPanel = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
@@ -209,15 +213,6 @@ namespace krrTools.Tools.N2NC
 
             scrollViewer.Content = grid;
             Content = scrollViewer;
-        }
-
-        private ScrollViewer CreateScrollViewer()
-        {
-            return new ScrollViewer
-            {
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
-            };
         }
 
         // 添加获取键位选择标志的方法

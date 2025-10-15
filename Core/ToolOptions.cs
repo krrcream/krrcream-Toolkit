@@ -114,6 +114,32 @@ namespace krrTools.Core
             // 设置变化时，通过UI或其他方式触发BaseOptionsManager.SaveOptions
         }
 
+        /// <summary>
+        /// 从另一个选项对象复制所有Bindable属性的值
+        /// </summary>
+        public void CopyFrom(ToolOptionsBase other)
+        {
+            if (other == null || other.GetType() != GetType()) return;
+
+            foreach (var prop in GetType().GetProperties())
+            {
+                if (prop.PropertyType.IsGenericType && prop.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
+                {
+                    var sourceBindable = prop.GetValue(other);
+                    var targetBindable = prop.GetValue(this);
+                    if (sourceBindable != null && targetBindable != null)
+                    {
+                        var valueProp = prop.PropertyType.GetProperty("Value");
+                        if (valueProp != null)
+                        {
+                            var sourceValue = valueProp.GetValue(sourceBindable);
+                            valueProp.SetValue(targetBindable, sourceValue);
+                        }
+                    }
+                }
+            }
+        }
+
         public PresetKind SelectedPreset { get; init; } = PresetKind.Default;
     }
 

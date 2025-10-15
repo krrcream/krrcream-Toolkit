@@ -18,18 +18,32 @@ namespace krrTools.Tools.N2NC
         private static readonly IReadOnlyDictionary<PresetKind, (string Name, N2NCOptions Options)> PresetTemplates
             = new Dictionary<PresetKind, (string, N2NCOptions)>
             {
-                [PresetKind.Default] = ("Default", CreatePreset(10, 1.0, 114514)),
-                [PresetKind.TenK] = ("10K Preset", CreatePreset(10, 2.0, 0)),
-                [PresetKind.EightK] = ("8K Preset", CreatePreset(8, 1.0, 0)),
-                [PresetKind.SevenK] = ("7K Preset", CreatePreset(7, 1.0, 0))
+                [PresetKind.Default] = ("Default", CreatePreset(opts => {
+                    opts.TargetKeys.Value = 10;
+                    opts.TransformSpeed.Value = 1.0;
+                    opts.Seed = 114514;
+                })),
+                [PresetKind.TenK] = ("10K Preset", CreatePreset(opts => {
+                    opts.TargetKeys.Value = 10;
+                    opts.TransformSpeed.Value = 2.0;
+                    opts.Seed = 0;
+                })),
+                [PresetKind.EightK] = ("8K Preset", CreatePreset(opts => {
+                    opts.TargetKeys.Value = 8;
+                    opts.TransformSpeed.Value = 1.0;
+                    opts.Seed = 0;
+                })),
+                [PresetKind.SevenK] = ("7K Preset", CreatePreset(opts => {
+                    opts.TargetKeys.Value = 7;
+                    opts.TransformSpeed.Value = 1.0;
+                    opts.Seed = 0;
+                }))
             };
 
-        private static N2NCOptions CreatePreset(double targetKeys, double transformSpeed, int seed)
+        private static N2NCOptions CreatePreset(Action<N2NCOptions> modifier)
         {
             var options = new N2NCOptions();
-            options.TargetKeys.Value = targetKeys;
-            options.TransformSpeed.Value = transformSpeed;
-            options.Seed = seed;
+            modifier(options);
             return options;
         }
 
@@ -97,7 +111,11 @@ namespace krrTools.Tools.N2NC
         {
             if (PresetTemplates.TryGetValue(kind, out var entry))
                 return entry.Options;
-            return CreatePreset(10, 1.0, 114514);
+            return CreatePreset(opts => {
+                opts.TargetKeys.Value = 10;
+                opts.TransformSpeed.Value = 1.0;
+                opts.Seed = 114514;
+            });
         }
 
         public static IEnumerable<(PresetKind Kind, string Name, N2NCOptions Options)> GetPresetTemplates()

@@ -26,7 +26,7 @@ namespace krrTools.Tools.KRRLNTransformer
             ApplyChangesToHitObjects(beatmap, processedMatrix, timeAxis, options);
         }
 
-        private Matrix BuildAndProcessMatrix(NoteMatrix matrix , List<int> timeAxis, Beatmap beatmap,
+        private Matrix BuildAndProcessMatrix(NoteMatrix matrix, List<int> timeAxis, Beatmap beatmap,
             KRRLNTransformerOptions parameters)
         {
             // 创建带种子的随机数生成器
@@ -80,6 +80,7 @@ namespace krrTools.Tools.KRRLNTransformer
             {
                 PerformLengthAlignment(result, beatLengthMtx, parameters);
             }
+            
             return result;
         }
         
@@ -121,7 +122,7 @@ namespace krrTools.Tools.KRRLNTransformer
                 var newTags = currentTags.Concat([tagToAdd]).ToArray();
                 beatmap.MetadataSection.Tags = newTags;
             }
-            
+
             return beatmap;
         }
 
@@ -372,7 +373,7 @@ namespace krrTools.Tools.KRRLNTransformer
             var resultSpan = shortLnWaitModify.AsSpan();
             
             double borderValue = borderList[borderKey];
-                
+            
             for (int i = 0; i < matrixSpan.Length; i++)
             {
                 if (shortFlagSpan[i])
