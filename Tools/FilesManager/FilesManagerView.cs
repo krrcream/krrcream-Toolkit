@@ -34,6 +34,7 @@ namespace krrTools.Tools.FilesManager
             _viewModel = new FilesManagerViewModel();
             DataContext = _viewModel;
             AllowDrop = true;
+            Focusable = true;
         
             BuildUI();
 
@@ -94,7 +95,8 @@ namespace krrTools.Tools.FilesManager
             };
 
             // 启用 DataGridExtensions 高级功能
-            _fileDataGrid.SetValue(DataGridFilter.IsAutoFilterEnabledProperty, true);        _fileDataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("FilteredOsuFiles"));
+            _fileDataGrid.SetValue(DataGridFilter.IsAutoFilterEnabledProperty, true);                    
+            _fileDataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("FilteredOsuFiles.Value"));
 
             // 设置选中行样式 - 更明显的蓝色高亮
             var rowStyle = new Style(typeof(DataGridRow));
@@ -249,7 +251,8 @@ namespace krrTools.Tools.FilesManager
             loadBtn.Height = 40;
             loadBtn.Click += SetSongsBtn_Click;
 
-            loadBtn.SetBinding(IsEnabledProperty, new Binding("IsProcessing") { Converter = _inverseBoolBtn });
+            loadBtn.SetBinding(IsEnabledProperty, new Binding("IsProcessing.Value") 
+                { Converter = _inverseBoolBtn });
             bottomGrid.Children.Add(loadBtn);
             Grid.SetColumn(loadBtn, 2);
 

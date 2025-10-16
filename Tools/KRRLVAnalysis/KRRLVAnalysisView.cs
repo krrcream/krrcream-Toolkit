@@ -27,6 +27,7 @@ namespace krrTools.Tools.KRRLVAnalysis
         {
             // control layout only; host sets size and location
             AllowDrop = true;
+            Focusable = true;
 
             var root = new Grid();
             root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -40,7 +41,7 @@ namespace krrTools.Tools.KRRLVAnalysis
                 SelectionMode = DataGridSelectionMode.Single,
                 SelectionUnit = DataGridSelectionUnit.FullRow
             };
-            dataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("OsuFiles"));
+            dataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("OsuFiles.Value"));
 
             dataGrid.Columns.Add(new DataGridTextColumn { Header = "Title", Binding = new Binding("Title"), Width = 140 });
             dataGrid.Columns.Add(new DataGridTextColumn { Header = "Artist", Binding = new Binding("Artist"), Width = 140 });
@@ -80,8 +81,8 @@ namespace krrTools.Tools.KRRLVAnalysis
                 Minimum = 0,
                 Maximum = 100
             };
-            progressBar.SetBinding(RangeBase.ValueProperty, new Binding("ProgressValue"));
-            progressBar.SetBinding(VisibilityProperty, new Binding("IsProgressVisible")
+            progressBar.SetBinding(RangeBase.ValueProperty, new Binding("ProgressValue.Value"));
+            progressBar.SetBinding(VisibilityProperty, new Binding("IsProgressVisible.Value")
             {
                 Converter = new BooleanToVisibilityConverter()
             });

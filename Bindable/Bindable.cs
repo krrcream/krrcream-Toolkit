@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -11,14 +12,26 @@ namespace krrTools.Bindable
     /// Inspired by osu! framework's Bindable system.
     /// </summary>
     /// <typeparam name="T">The type of the value.</typeparam>
-    public class Bindable<T>(T defaultValue = default!) : INotifyPropertyChanged
+    public class Bindable<T> : INotifyPropertyChanged
     {
-        private T _value = defaultValue;
+        private T _value;
         private bool _disabled;
         private Func<T, T>? _mapping;
         private Action<T>? _onValueChanged;
         private Func<T, Task>? _onValueChangedAsync;
         private bool _isNotifying; // 防递归标志
+        private INotifyCollectionChanged? _collectionChanged;
+
+        public Bindable(T defaultValue = default!)
+        {
+            _value = defaultValue;
+            // 如果默认值是集合，监听其改变
+            if (_value is INotifyCollectionChanged collection)
+            {
+                _collectionChanged = collection;
+                _collectionChanged.CollectionChanged += OnCollectionChanged;
+            }
+        }
 
         public T Value
         {
@@ -46,11 +59,31 @@ namespace krrTools.Bindable
             if (_disabled || _isNotifying) return; // 防递归
             if (EqualityComparer<T>.Default.Equals(_value, value)) return;
 
+            // 移除旧值的监听
+            if (_collectionChanged != null)
+            {
+                _collectionChanged.CollectionChanged -= OnCollectionChanged;
+                _collectionChanged = null;
+            }
+
             _value = value;
+
+            // 如果新值是集合，监听其改变
+            if (_value is INotifyCollectionChanged newCollection)
+            {
+                _collectionChanged = newCollection;
+                _collectionChanged.CollectionChanged += OnCollectionChanged;
+            }
 
             // 异步通知，避免阻塞
             _ = NotifyValueChangedAsync(_value);
             OnPropertyChanged(propertyName ?? nameof(Value));
+        }
+
+        private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            // 当集合内容改变时，触发 PropertyChanged 以更新 UI
+            OnPropertyChanged(nameof(Value));
         }
 
         private async Task NotifyValueChangedAsync(T value)
