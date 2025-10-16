@@ -18,54 +18,86 @@ namespace krrTools.Tools.KRRLNTransformer
             = new Dictionary<PresetKind, (string, KRRLNTransformerOptions)>
             {
                 [PresetKind.Default] = ("Default", CreatePreset(opts => { /* 默认设置 */ })),
-                [PresetKind.TenK] = ("10K Preset", CreatePreset(opts => {
-                    opts.ShortPercentage.Value = 80;
-                    opts.ShortLevel.Value = 60;
-                    opts.ShortLimit.Value = 8;
-                    opts.ShortRandom.Value = 20;
-                    opts.LongPercentage.Value = 60;
-                    opts.LongLevel.Value = 60;
-                    opts.LongLimit.Value = 8;
-                    opts.LongRandom.Value = 40;
-                    opts.LengthThreshold.Value = 4;
-                    opts.Alignment.Value = 4;
+                [PresetKind.Inverse4] = ("Inverse Space=1/4", CreatePreset(opts => {
+                    opts.LengthThreshold.Value = KRRLNTransformerOptions.SAllIsLongLN;
+                    opts.ShortPercentage.Value = 100;
+                    opts.ShortLevel.Value = 0;
+                    opts.ShortLimit.Value = 10;
+                    opts.ShortRandom.Value = 0;
+                    opts.LongPercentage.Value = 100;
+                    opts.LongLevel.Value = 100;
+                    opts.LongLimit.Value = 10;
+                    opts.LongRandom.Value = 0;
+                    opts.Alignment.Value = 5;
                     opts.LNAlignment.Value = 5;
                     opts.ProcessOriginalIsChecked.Value = true;
-                    opts.ODValue.Value = 6;
-                    opts.Seed.Value = 12345;
+                    opts.ODValue.Value = 5;
+                    opts.Seed.Value = 114514;
                 })),
-                [PresetKind.EightK] = ("8K Preset", CreatePreset(opts => {
-                    opts.ShortPercentage.Value = 70;
-                    opts.ShortLevel.Value = 70;
-                    opts.ShortLimit.Value = 6;
-                    opts.ShortRandom.Value = 30;
-                    opts.LongPercentage.Value = 70;
-                    opts.LongLevel.Value = 70;
-                    opts.LongLimit.Value = 6;
+                [PresetKind.NoteToOneHalfLN] = ("NoteToOneHalfLN", CreatePreset(opts => {
+                    opts.LengthThreshold.Value = KRRLNTransformerOptions.SAllIsShortLN;
+                    opts.ShortPercentage.Value = 100;
+                    opts.ShortLevel.Value = 8;
+                    opts.ShortLimit.Value = 10;
+                    opts.ShortRandom.Value = 0;
+                    opts.LongPercentage.Value = 0;
+                    opts.LongLevel.Value = 0;
+                    opts.LongLimit.Value = 0;
+                    opts.LongRandom.Value = 0;
+                    opts.Alignment.Value = 5;
+                    opts.LNAlignment.Value = 5;
+                    opts.ProcessOriginalIsChecked.Value = false;
+                    opts.ODValue.Value = 5;
+                    opts.Seed.Value = 114514;
+                })),
+                [PresetKind.ShortLN1] = ("ShortLN", CreatePreset(opts => {
+                    opts.LengthThreshold.Value = 4;
+                    opts.ShortPercentage.Value = 66;
+                    opts.ShortLevel.Value = 4;
+                    opts.ShortLimit.Value = 10;
+                    opts.ShortRandom.Value = 100;
+                    opts.LongPercentage.Value = 33;
+                    opts.LongLevel.Value = 35;
+                    opts.LongLimit.Value = 10;
                     opts.LongRandom.Value = 30;
-                    opts.LengthThreshold.Value = 3;
-                    opts.Alignment.Value = 3;
-                    opts.LNAlignment.Value = 4;
-                    opts.ProcessOriginalIsChecked.Value = true;
-                    opts.ODValue.Value = 7;
-                    opts.Seed.Value = 54321;
+                    opts.Alignment.Value = 7;
+                    opts.LNAlignment.Value = 5;
+                    opts.ProcessOriginalIsChecked.Value = false;
+                    opts.ODValue.Value = 5;
+                    opts.Seed.Value = 114514;
                 })),
-                [PresetKind.SevenK] = ("7K Preset", CreatePreset(opts => {
-                    opts.ShortPercentage.Value = 60;
-                    opts.ShortLevel.Value = 80;
-                    opts.ShortLimit.Value = 5;
-                    opts.ShortRandom.Value = 40;
-                    opts.LongPercentage.Value = 80;
-                    opts.LongLevel.Value = 80;
-                    opts.LongLimit.Value = 5;
-                    opts.LongRandom.Value = 20;
+                [PresetKind.MidLN1] = ("MidLN", CreatePreset(opts => {
                     opts.LengthThreshold.Value = 2;
-                    opts.Alignment.Value = 2;
-                    opts.LNAlignment.Value = 3;
-                    opts.ProcessOriginalIsChecked.Value = true;
-                    opts.ODValue.Value = 8;
-                    opts.Seed.Value = 99999;
-                }))
+                    opts.ShortPercentage.Value = 50;
+                    opts.ShortLevel.Value = 8;
+                    opts.ShortLimit.Value = 10;
+                    opts.ShortRandom.Value = 50;
+                    opts.LongPercentage.Value = 50;
+                    opts.LongLevel.Value = 50;
+                    opts.LongLimit.Value = 10;
+                    opts.LongRandom.Value = 55;
+                    opts.Alignment.Value = 5;
+                    opts.LNAlignment.Value = 5;
+                    opts.ProcessOriginalIsChecked.Value = false;
+                    opts.ODValue.Value = 5;
+                    opts.Seed.Value = 114514;
+                })),
+                [PresetKind.LongLN1] = ("HardLN", CreatePreset(opts => {
+                    opts.LengthThreshold.Value = 2;
+                    opts.ShortPercentage.Value = 100;
+                    opts.ShortLevel.Value = 8;
+                    opts.ShortLimit.Value = 10;
+                    opts.ShortRandom.Value = 0;
+                    opts.LongPercentage.Value = 75;
+                    opts.LongLevel.Value = 75;
+                    opts.LongLimit.Value = 10;
+                    opts.LongRandom.Value = 55;
+                    opts.Alignment.Value = 5;
+                    opts.LNAlignment.Value = 5;
+                    opts.ProcessOriginalIsChecked.Value = false;
+                    opts.ODValue.Value = 5;
+                    opts.Seed.Value = 114514;
+                })),
             };
 
         private static KRRLNTransformerOptions CreatePreset(Action<KRRLNTransformerOptions> modifier)

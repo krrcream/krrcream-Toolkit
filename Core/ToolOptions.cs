@@ -212,6 +212,11 @@ namespace krrTools.Core
         [Description("Default|默认")] Default = 0,
         [Description("10K Preset|10K预设")] TenK = 1,
         [Description("8K Preset|8K预设")] EightK = 2,
-        [Description("7K Preset|7K预设")] SevenK = 3
+        [Description("7K Preset|7K预设")] SevenK = 3,
+        [Description("Inverse Space=1/4|反键 间隔1/4")] Inverse4 = 4,
+        [Description("Note→1/2LN|米变1/2面条")] NoteToOneHalfLN = 5,
+        [Description("Easy LN|轻面")] ShortLN1 = 6,
+        [Description("Mid LN=1/4|中面")] MidLN1 = 7,
+        [Description("Hard LN=1/4|大面")] LongLN1 = 8,
     }
 }

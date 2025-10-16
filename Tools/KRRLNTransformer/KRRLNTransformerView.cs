@@ -28,39 +28,10 @@ namespace krrTools.Tools.KRRLNTransformer
             var root = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
             var stack = new StackPanel { Margin = new Thickness(15), HorizontalAlignment = HorizontalAlignment.Stretch };
 
-            // 预设面板
-            var presetsBorder = PresetPanelFactory.CreatePresetPanel(
-                "KRRLN",
-                () => _viewModel.GetPreviewOptions() as KRRLNTransformerOptions,
-                (opt) =>
-                {
-                    if (opt == null) return;
-                    _viewModel.Options.CopyFrom(opt);
-                }
-            );
-
-            // 预设面板中插入内置预设按钮
-            if (presetsBorder is StackPanel outerPanel)
-            {
-                var builtinPresetsPanel = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
-                foreach (var (kind, _, options) in KRRLNPresetBottom.GetPresetTemplates())
-                {
-                    var btn = SharedUIComponents.CreateStandardButton(KRRLNPresetBottom.GetEnumDescription(kind));
-                    btn.Width = 100;
-                    btn.Click += (_, _) =>
-                    {
-                        _viewModel.Options.CopyFrom(options);
-                    };
-                    builtinPresetsPanel.Children.Add(btn);
-                }
-                outerPanel.Children.Insert(0, builtinPresetsPanel);
-            }
-
-            var presetsPanel = SharedUIComponents.CreateLabeledRow(Strings.PresetsLabel, presetsBorder, new Thickness(0, 6, 0, 6));
-            stack.Children.Add(presetsPanel);
-
             // 长度阈值设置 - 可空滑条自动带勾选框
-            var lengthThresholdPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LengthThreshold);
+            var lengthThresholdPanel = SettingsBinder.CreateTemplatedSlider(
+                _viewModel.Options, 
+                o => o.LengthThreshold);
             stack.Children.Add(lengthThresholdPanel);
             
             // 短面条设置区域标题
@@ -77,12 +48,10 @@ namespace krrTools.Tools.KRRLNTransformer
             // 短面条设置 - 使用模板化控件
             var shortPercPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortPercentage);
             stack.Children.Add(shortPercPanel);
-
-            var shortLevelPanel = SettingsBinder.CreateTemplatedSliderWithDynamicMax(
+            
+            var shortLevelPanel = SettingsBinder.CreateTemplatedSlider(
                 _viewModel.Options, 
-                o => o.ShortLevel, 
-                _viewModel, 
-                nameof(_viewModel.ShortLevelMax));
+                o => o.ShortLevel);
             stack.Children.Add(shortLevelPanel);
 
             var shortLimitPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortLimit);
@@ -140,7 +109,38 @@ namespace krrTools.Tools.KRRLNTransformer
             stack.Children.Add(odPanel);
 
             stack.Children.Add(seedPanel);
+            
+            // 预设面板
+            var presetsBorder = PresetPanelFactory.CreatePresetPanel(
+                "KRRLN",
+                () => _viewModel.GetPreviewOptions() as KRRLNTransformerOptions,
+                (opt) =>
+                {
+                    if (opt == null) return;
+                    _viewModel.Options.CopyFrom(opt);
+                }
+            );
 
+            // 预设面板中插入内置预设按钮
+            if (presetsBorder is StackPanel outerPanel)
+            {
+                var builtinPresetsPanel = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
+                foreach (var (kind, _, options) in KRRLNPresetBottom.GetPresetTemplates())
+                {
+                    var btn = SharedUIComponents.CreateStandardButton(KRRLNPresetBottom.GetEnumDescription(kind));
+                    btn.Width = 100;
+                    btn.Click += (_, _) =>
+                    {
+                        _viewModel.Options.CopyFrom(options);
+                    };
+                    builtinPresetsPanel.Children.Add(btn);
+                }
+                outerPanel.Children.Insert(0, builtinPresetsPanel);
+            }
+
+            var presetsPanel = SharedUIComponents.CreateLabeledRow(Strings.PresetsLabel, presetsBorder, new Thickness(0, 6, 0, 6));
+            stack.Children.Add(presetsPanel);
+            
             root.Content = stack;
             Content = root;
 

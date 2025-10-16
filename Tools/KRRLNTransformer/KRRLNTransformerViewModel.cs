@@ -34,7 +34,7 @@ namespace krrTools.Tools.KRRLNTransformer
         }
 
         // ShortLevel 的最大值绑定到 LengthThreshold 的值
-        public double ShortLevelMax => Options.LengthThreshold.Value >= 65 ? 64 : (Options.LengthThreshold.Value ?? 16);
+        public double ShortLevelMax => (Options.LengthThreshold.Value * 4) > 256 ? 256 : (Options.LengthThreshold.Value * 4 ?? 16);
 
         protected override void TriggerPreviewRefresh()
         {

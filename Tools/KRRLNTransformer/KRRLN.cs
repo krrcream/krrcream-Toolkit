@@ -27,11 +27,11 @@ namespace krrTools.Tools.KRRLNTransformer
         }
 
         private Matrix BuildAndProcessMatrix(NoteMatrix matrix , List<int> timeAxis, Beatmap beatmap,
-            KRRLNTransformerOptions parameters)
+            KRRLNTransformerOptions options)
         {
             // 创建带种子的随机数生成器
-            var RG = parameters.Seed.Value.HasValue
-                ? new Random(parameters.Seed.Value.Value)
+            var RG = options.Seed.Value.HasValue
+                ? new Random(options.Seed.Value.Value)
                 : new Random();
             
             var ManiaObjects = beatmap.HitObjects.AsManiaNotes();
@@ -51,39 +51,39 @@ namespace krrTools.Tools.KRRLNTransformer
             BoolMatrix orgIsLNMatrix = GenerateOrgIsLN(matrix1, ManiaObjects);
             
             //将原始LN标记为-1,跳过处理
-            if (!parameters.ProcessOriginalIsChecked.Value)
+            if (!options.ProcessOriginalIsChecked.Value)
             {
                 MarkOriginalLNAsSkipped(matrix1, orgIsLNMatrix);
             }
             
             //生成长短面标记
-            var borderKey = (int)(parameters.LengthThreshold.Value ?? 5);
+            var borderKey = (int)(options.LengthThreshold.Value ?? 5);
             var borderdrict = new BeatNumberGenerator(64, 1.0 / 4);
             var shortLNdrict = new BeatNumberGenerator(256, 1.0 / 16);
             
             var (shortLNFlag, longLNFlag) = GenerateLNFlags(matrix1, ManiaObjects, availableTimeMtx, beatLengthMtx, borderdrict ,borderKey);
             
-            longLNFlag = MarkByPercentage(longLNFlag, parameters.LongPercentage.Value, RG);
-            shortLNFlag = MarkByPercentage(shortLNFlag, parameters.ShortPercentage.Value, RG);
-            longLNFlag = LimitTruePerRow(longLNFlag, (int)parameters.LongLimit.Value, RG);
-            shortLNFlag = LimitTruePerRow(shortLNFlag, (int)parameters.ShortLimit.Value, RG);
+            longLNFlag = MarkByPercentage(longLNFlag, options.LongPercentage.Value, RG);
+            shortLNFlag = MarkByPercentage(shortLNFlag, options.ShortPercentage.Value, RG);
+            longLNFlag = LimitTruePerRow(longLNFlag, (int)options.LongLimit.Value, RG);
+            shortLNFlag = LimitTruePerRow(shortLNFlag, (int)options.ShortLimit.Value, RG);
 
-            double LongLevel = parameters.LongLevel.Value; // 滑块是0到100，代码中用Level/100表示百分率
-            double ShortLevel = shortLNdrict.GetValue((int)parameters.ShortLevel.Value); // 滑块是整数，要对应到字典里 
+            double LongLevel = options.LongLevel.Value; // 滑块是0到100，代码中用Level/100表示百分率
+            double ShortLevel = shortLNdrict.GetValue((int)options.ShortLevel.Value); // 滑块是整数，要对应到字典里 
             //正式生成longLN矩阵
             GenerateLongLNMatrix(matrix1, longLnWaitModify, longLNFlag,  
                 availableTimeMtx, beatLengthMtx, borderKey, 
-                LongLevel ,ShortLevel, (int)parameters.LongRandom.Value, borderdrict,RG);
+                LongLevel ,ShortLevel, (int)options.LongRandom.Value, borderdrict,RG);
 
             GenerateShortLNMatrix(matrix1, shortLnWaitModify, shortLNFlag, 
                 availableTimeMtx, beatLengthMtx, borderKey,
-                ShortLevel, (int)parameters.ShortRandom.Value,borderdrict, RG);
+                ShortLevel, (int)options.ShortRandom.Value,borderdrict, RG);
 
             var result = MergeMatrices(longLnWaitModify, shortLnWaitModify);
             var resultSpan = result.AsSpan();
-            if (parameters.Alignment.Value.HasValue)
+            if (options.Alignment.Value.HasValue)
             {
-                PerformLengthAlignment(result, beatLengthMtx, parameters);
+                PerformLengthAlignment(result, beatLengthMtx, options);
             }
             return result;
         }
@@ -108,6 +108,12 @@ namespace krrTools.Tools.KRRLNTransformer
                     beatmap.HitObjects.UpdateHitObject(index, beatmap.HitObjects[index].AsManiaNote()
                         .CloneNote(EndTime: mergeMTXspan[i] + beatmap.HitObjects[index].StartTime));
                 }   
+            }
+
+            if (options.ODValue.Value.HasValue)
+            {
+                float OD = (float)options.ODValue.Value.Value;
+                beatmap.DifficultySection.OverallDifficulty = OD;
             }
             // 修改元数据
             // 避免重复添加 Version 前缀
