@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using krrTools.Bindable;
 using krrTools.Core;
 using static krrTools.Localization.Strings;
@@ -8,19 +9,21 @@ namespace krrTools.Tools.KRRLNTransformer
     public class KRRLNTransformerOptions : ToolOptionsBase
     {
         // Threshold and alignment settings (nullable for toggle behavior)
-        [Option(LabelKey = nameof(LengthThresholdLabel), Min = 0, Max = 65, UIType = UIType.Slider, DisplayMapField = nameof(LengthThresholdDict), IsRefresher = true)]
-        public Bindable<double?> LengthThreshold { get; } = new(16);
-        
+        [Option(LabelKey = nameof(LengthThresholdLabel), Min = 0, Max = 65, UIType = UIType.Slider,
+            DisplayMapField = nameof(LengthThresholdDict), IsRefresher = true)]
+        public Bindable<double?> LengthThreshold { get; } = new(2);
+
         // 在绑定短面上限值
         public double ShortLevelMax => LengthThreshold.Value >= 65 ? 64 : (LengthThreshold.Value ?? 16);
 
-        
+
         // Short LN settings
-        [Option(LabelKey = nameof(KRRShortPercentageLabel), Min = 0, Max = 100, UIType = UIType.Slider, IsRefresher = true)]
+        [Option(LabelKey = nameof(KRRShortPercentageLabel), Min = 0, Max = 100, UIType = UIType.Slider,
+            IsRefresher = true)]
         public Bindable<double> ShortPercentage { get; } = new(100);
 
-        [Option(LabelKey = nameof(KRRShortLevelLabel), Min = 0, Max = 100, UIType = UIType.Slider, IsRefresher = true)]
-        public Bindable<double> ShortLevel { get; } = new(50);
+        [Option(LabelKey = nameof(KRRShortLevelLabel), Min = 0, Max = 256, UIType = UIType.Slider, IsRefresher = true)]
+        public Bindable<double> ShortLevel { get; } = new(8);
 
         [Option(LabelKey = nameof(KRRShortLimitLabel), Min = 0, Max = 10, UIType = UIType.Slider, IsRefresher = true)]
         public Bindable<double> ShortLimit { get; } = new(10);
@@ -29,7 +32,8 @@ namespace krrTools.Tools.KRRLNTransformer
         public Bindable<double> ShortRandom { get; } = new();
 
         // Long LN settings
-        [Option(LabelKey = nameof(KRRLongPercentageLabel), Min = 0, Max = 100, UIType = UIType.Slider, IsRefresher = true)]
+        [Option(LabelKey = nameof(KRRLongPercentageLabel), Min = 0, Max = 100, UIType = UIType.Slider,
+            IsRefresher = true)]
         public Bindable<double> LongPercentage { get; } = new(50);
 
         [Option(LabelKey = nameof(KRRLongLevelLabel), Min = 0, Max = 100, UIType = UIType.Slider, IsRefresher = true)]
@@ -41,10 +45,14 @@ namespace krrTools.Tools.KRRLNTransformer
         [Option(LabelKey = nameof(KRRLongRandomLabel), Min = 0, Max = 100, UIType = UIType.Slider, IsRefresher = true)]
         public Bindable<double> LongRandom { get; } = new(50);
 
-        [Option(LabelKey = nameof(KRRAlignLabel), Min = 1, Max = 8, UIType = UIType.Slider, DisplayMapField = nameof(AlignValuesDict), IsRefresher = true)]
+        [Option(LabelKey = nameof(KRRAlignLabel), Min = 1, Max = 8, UIType = UIType.Slider,
+            DisplayMapField = nameof(AlignValuesDict), IsRefresher = true)]
         public Bindable<double?> Alignment { get; } = new(5);
 
+        /*
+        // 暂时隐藏长短面对齐选项
         [Option(LabelKey = nameof(KRRLNAlignLabel), Min = 1, Max = 8, UIType = UIType.Slider, DisplayMapField = nameof(AlignValuesDict), IsRefresher = true)]
+        */
         public Bindable<double?> LNAlignment { get; } = new(6);
 
         // General settings
@@ -96,71 +104,72 @@ namespace krrTools.Tools.KRRLNTransformer
         public static Dictionary<double, string> LengthThresholdDict = new()
         {
             { 0, "AllIsLongLN" },
-            { 1, "1/16"},
-            { 2, "2/16"},
-            { 3, "3/16"},
-            { 4, "4/16"},
-            { 5, "5/16"},
-            { 6, "6/16"},
-            { 7, "7/16"},
-            { 8, "8/16"},
-            { 9, "9/16"},
-            { 10, "10/16"},
-            { 11, "11/16"},
-            { 12, "12/16"},
-            { 13, "13/16"},
-            { 14, "14/16"},
-            { 15, "15/16"},
-            { 16, "16/16"},
-            { 17, "17/16"},
-            { 18, "18/16"},
-            { 19, "19/16"},
-            { 20, "20/16"},
-            { 21, "21/16"},
-            { 22, "22/16"},
-            { 23, "23/16"},
-            { 24, "24/16"},
-            { 25, "25/16"},
-            { 26, "26/16"},
-            { 27, "27/16"},
-            { 28, "28/16"},
-            { 29, "29/16"},
-            { 30, "30/16"},
-            { 31, "31/16"},
-            { 32, "32/16"},
-            { 33, "33/16"},
-            { 34, "34/16"},
-            { 35, "35/16"},
-            { 36, "36/16"},
-            { 37, "37/16"},
-            { 38, "38/16"},
-            { 39, "39/16"},
-            { 40, "40/16"},
-            { 41, "41/16"},
-            { 42, "42/16"},
-            { 43, "43/16"},
-            { 44, "44/16"},
-            { 45, "45/16"},
-            { 46, "46/16"},
-            { 47, "47/16"},
-            { 48, "48/16"},
-            { 49, "49/16"},
-            { 50, "50/16"},
-            { 51, "51/16"},
-            { 52, "52/16"},
-            { 53, "53/16"},
-            { 54, "54/16"},
-            { 55, "55/16"},
-            { 56, "56/16"},
-            { 57, "57/16"},
-            { 58, "58/16"},
-            { 59, "59/16"},
-            { 60, "60/16"},
-            { 61, "61/16"},
-            { 62, "62/16"},
-            { 63, "63/16"},
-            { 64, "64/16"},
-            { 65, "AllIsShortLN"}
+            { 1, "1/4" },
+            { 2, "2/4" },
+            { 3, "3/4" },
+            { 4, "1" },
+            { 5, "1+1/4" },
+            { 6, "1+2/4" },
+            { 7, "1+3/4" },
+            { 8, "2" },
+            { 9, "2+1/4" },
+            { 10, "2+2/4" },
+            { 11, "2+3/4" },
+            { 12, "3" },
+            { 13, "3+1/4" },
+            { 14, "3+2/4" },
+            { 15, "3+3/4" },
+            { 16, "4" },
+            { 17, "4+1/4" },
+            { 18, "4+2/4" },
+            { 19, "4+3/4" },
+            { 20, "5" },
+            { 21, "5+1/4" },
+            { 22, "5+2/4" },
+            { 23, "5+3/4" },
+            { 24, "6" },
+            { 25, "6+1/4" },
+            { 26, "6+2/4" },
+            { 27, "6+3/4" },
+            { 28, "7" },
+            { 29, "7+1/4" },
+            { 30, "7+2/4" },
+            { 31, "7+3/4" },
+            { 32, "8" },
+            { 33, "8+1/4" },
+            { 34, "8+2/4" },
+            { 35, "8+3/4" },
+            { 36, "9" },
+            { 37, "9+1/4" },
+            { 38, "9+2/4" },
+            { 39, "9+3/4" },
+            { 40, "10" },
+            { 41, "10+1/4" },
+            { 42, "10+2/4" },
+            { 43, "10+3/4" },
+            { 44, "11" },
+            { 45, "11+1/4" },
+            { 46, "11+2/4" },
+            { 47, "11+3/4" },
+            { 48, "12" },
+            { 49, "12+1/4" },
+            { 50, "12+2/4" },
+            { 51, "12+3/4" },
+            { 52, "13" },
+            { 53, "13+1/4" },
+            { 54, "13+2/4" },
+            { 55, "13+3/4" },
+            { 56, "14" },
+            { 57, "14+1/4" },
+            { 58, "14+2/4" },
+            { 59, "14+3/4" },
+            { 60, "15" },
+            { 61, "15+1/4" },
+            { 62, "15+2/4" },
+            { 63, "15+3/4" },
+            { 64, "16" },
+            { 65, "AllIsShortLN" }
         };
+
     }
 }

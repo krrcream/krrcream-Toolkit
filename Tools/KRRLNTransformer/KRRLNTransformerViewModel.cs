@@ -29,7 +29,7 @@ namespace krrTools.Tools.KRRLNTransformer
                 if (Options.ShortLevel.Value > ShortLevelMax)
                 {
                     Options.ShortLevel.Value = ShortLevelMax;
-        }
+                }
             }
         }
 

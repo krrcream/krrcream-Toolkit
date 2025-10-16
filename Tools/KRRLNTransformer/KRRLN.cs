@@ -26,7 +26,7 @@ namespace krrTools.Tools.KRRLNTransformer
             ApplyChangesToHitObjects(beatmap, processedMatrix, timeAxis, options);
         }
 
-        private Matrix BuildAndProcessMatrix(NoteMatrix matrix, List<int> timeAxis, Beatmap beatmap,
+        private Matrix BuildAndProcessMatrix(NoteMatrix matrix , List<int> timeAxis, Beatmap beatmap,
             KRRLNTransformerOptions parameters)
         {
             // 创建带种子的随机数生成器
@@ -58,21 +58,26 @@ namespace krrTools.Tools.KRRLNTransformer
             
             //生成长短面标记
             var borderKey = (int)(parameters.LengthThreshold.Value ?? 5);
-            var (shortLNFlag, longLNFlag) = GenerateLNFlags(matrix1, ManiaObjects, availableTimeMtx, beatLengthMtx, borderKey);
+            var borderdrict = new BeatNumberGenerator(64, 1.0 / 4);
+            var shortLNdrict = new BeatNumberGenerator(256, 1.0 / 16);
+            
+            var (shortLNFlag, longLNFlag) = GenerateLNFlags(matrix1, ManiaObjects, availableTimeMtx, beatLengthMtx, borderdrict ,borderKey);
             
             longLNFlag = MarkByPercentage(longLNFlag, parameters.LongPercentage.Value, RG);
             shortLNFlag = MarkByPercentage(shortLNFlag, parameters.ShortPercentage.Value, RG);
             longLNFlag = LimitTruePerRow(longLNFlag, (int)parameters.LongLimit.Value, RG);
             shortLNFlag = LimitTruePerRow(shortLNFlag, (int)parameters.ShortLimit.Value, RG);
 
+            double LongLevel = parameters.LongLevel.Value; // 滑块是0到100，代码中用Level/100表示百分率
+            double ShortLevel = shortLNdrict.GetValue((int)parameters.ShortLevel.Value); // 滑块是整数，要对应到字典里 
             //正式生成longLN矩阵
-            GenerateLongLNMatrix(matrix1, longLnWaitModify, longLNFlag, ManiaObjects, 
+            GenerateLongLNMatrix(matrix1, longLnWaitModify, longLNFlag,  
                 availableTimeMtx, beatLengthMtx, borderKey, 
-                parameters.LongLevel.Value, (int)parameters.LongRandom.Value, RG);
+                LongLevel ,ShortLevel, (int)parameters.LongRandom.Value, borderdrict,RG);
 
-            GenerateShortLNMatrix(matrix1, shortLnWaitModify, shortLNFlag, ManiaObjects,
+            GenerateShortLNMatrix(matrix1, shortLnWaitModify, shortLNFlag, 
                 availableTimeMtx, beatLengthMtx, borderKey,
-                parameters.ShortLevel.Value, (int)parameters.ShortRandom.Value, RG);
+                ShortLevel, (int)parameters.ShortRandom.Value,borderdrict, RG);
 
             var result = MergeMatrices(longLnWaitModify, shortLnWaitModify);
             var resultSpan = result.AsSpan();
@@ -80,7 +85,6 @@ namespace krrTools.Tools.KRRLNTransformer
             {
                 PerformLengthAlignment(result, beatLengthMtx, parameters);
             }
-            
             return result;
         }
         
@@ -122,12 +126,11 @@ namespace krrTools.Tools.KRRLNTransformer
                 var newTags = currentTags.Concat([tagToAdd]).ToArray();
                 beatmap.MetadataSection.Tags = newTags;
             }
-
+            
             return beatmap;
         }
-
         
-        // 面尾对齐作废，但是代码暂时留着万一哪天想出来了
+        /*// 面尾对齐作废，但是代码暂时留着万一哪天想出来了
         private Matrix AlignEndTimesByColumnAndGetHoldLengths(List<ManiaNote> maniaObjects, Matrix matrix, Matrix endTimeMtx, Matrix availableTimeMtx, List<int> timeAxis1, int timeX = 150)
         {
             int rows = matrix.Rows;
@@ -203,7 +206,7 @@ namespace krrTools.Tools.KRRLNTransformer
                 }
             }
             return holdLengths;
-        }
+        }*/
         
         // 长度对齐
         private void PerformLengthAlignment(Matrix result, DoubleMatrix beatLengthMtx, KRRLNTransformerOptions parameters)
@@ -261,6 +264,7 @@ namespace krrTools.Tools.KRRLNTransformer
             List<ManiaNote> maniaObjects, 
             Matrix availableTimeMtx, 
             DoubleMatrix beatLengthMtx,
+            BeatNumberGenerator BG,
             int borderKey)
         {
             var shortLNFlag = new BoolMatrix(matrix1.Rows, matrix1.Cols);
@@ -272,14 +276,14 @@ namespace krrTools.Tools.KRRLNTransformer
             var shortLNSpan = shortLNFlag.AsSpan();
             var longLNSpan = longLNFlag.AsSpan();
             
-            double borderValue = borderList[borderKey];
+            double borderValue = BG.GetValue(borderKey);
 
             for (int i = 0; i < matrixSpan.Length; i++)
             {
                 int index = matrixSpan[i];
                 if (index >= 0 && index < maniaObjects.Count)
                 {
-                    if (availableTimeSpan[i] > borderValue * beatLengthSpan[i] * 4)
+                    if (availableTimeSpan[i] > borderValue * beatLengthSpan[i] )
                         longLNSpan[i] = true;
                     else
                         shortLNSpan[i] = true;
@@ -334,8 +338,8 @@ namespace krrTools.Tools.KRRLNTransformer
         
         // 正式生成longLN矩阵 - 优化版本
         private void GenerateLongLNMatrix(Matrix matrix1, Matrix longLnWaitModify, BoolMatrix longLNFlag, 
-            List<ManiaNote> maniaObjects, Matrix availableTimeMtx, DoubleMatrix beatLengthMtx,
-            int borderKey, double LNLevel, int longRandom, Random random)
+             Matrix availableTimeMtx, DoubleMatrix beatLengthMtx,
+            int borderKey, double LLNLevel,double SLNLevel, int longRandom, BeatNumberGenerator BG, Random random)
         {
             var matrixSpan = matrix1.AsSpan();
             var longFlagSpan = longLNFlag.AsSpan();
@@ -343,19 +347,35 @@ namespace krrTools.Tools.KRRLNTransformer
             var beatLengthSpan = beatLengthMtx.AsSpan();
             var resultSpan = longLnWaitModify.AsSpan();
             
-            double borderValue = borderList[borderKey];
+            double borderValue = BG.GetValue(borderKey);
             
             for (int i = 0; i < matrixSpan.Length; i++)
             {
                 if (longFlagSpan[i])
                 {
-                    var indexObj = matrixSpan[i];
-                    var newLength = GenerateRandom(
-                        borderValue * maniaObjects[indexObj].BeatLengthOfThisNote * 4,
-                        availableTimeSpan[i] - beatLengthSpan[i] / 8,
-                        availableTimeSpan[i] * LNLevel / 100,
-                        longRandom, random
-                    );
+                    double mean = availableTimeSpan[i] * LLNLevel / 100; //长面用百分比
+                    double di = borderValue * beatLengthSpan[i];
+                    int newLength = 0;
+                    if (mean < di)
+                    {
+                        newLength = GenerateRandom(
+                            0,
+                            di,
+                            SLNLevel * beatLengthSpan[i],
+                            longRandom, random
+                        );
+                    }
+                    else
+                    {
+                        newLength = GenerateRandom(
+                            di,
+                            availableTimeSpan[i],
+                            mean,
+                            longRandom, random
+                        );
+                    }
+                    if (newLength > availableTimeSpan[i] - 34)
+                        newLength = availableTimeSpan[i] - 34;
                     resultSpan[i] = newLength;
                 }
             }
@@ -363,8 +383,8 @@ namespace krrTools.Tools.KRRLNTransformer
 
         // 正式生成shortLN矩阵 - 优化版本
         private void GenerateShortLNMatrix(Matrix matrix1, Matrix shortLnWaitModify, BoolMatrix shortLNFlag,
-            List<ManiaNote> maniaObjects, Matrix availableTimeMtx, DoubleMatrix beatLengthMtx,
-            int borderKey, double LNLevel, int shortRandom, Random random)
+             Matrix availableTimeMtx, DoubleMatrix beatLengthMtx,
+            int borderKey, double SLNLevel, int shortRandom, BeatNumberGenerator BG, Random random)
         {
             var matrixSpan = matrix1.AsSpan();
             var shortFlagSpan = shortLNFlag.AsSpan();
@@ -372,20 +392,22 @@ namespace krrTools.Tools.KRRLNTransformer
             var beatLengthSpan = beatLengthMtx.AsSpan();
             var resultSpan = shortLnWaitModify.AsSpan();
             
-            double borderValue = borderList[borderKey];
-            
+            double borderValue = BG.GetValue(borderKey);
+                
             for (int i = 0; i < matrixSpan.Length; i++)
             {
                 if (shortFlagSpan[i])
                 {
                     var indexObj = matrixSpan[i];
-                    double up = Math.Min((borderValue * maniaObjects[indexObj].BeatLengthOfThisNote * 4),availableTimeSpan[i]);
+                    double up = SLNLevel * beatLengthSpan[i];
                     var newLength = GenerateRandom(
-                        Math.Max(beatLengthSpan[i] / 4, 50),
-                        up,
-                        borderValue,
+                        0,
+                        borderValue * beatLengthSpan[i],  
+                        SLNLevel * beatLengthSpan[i],  //短面直接指定长度
                         shortRandom, random
                     );
+                    if (newLength > availableTimeSpan[i] - 34)
+                        newLength = availableTimeSpan[i] - 34;
                     resultSpan[i] = newLength;
                 }
             }
@@ -549,13 +571,12 @@ namespace krrTools.Tools.KRRLNTransformer
 
         private int GenerateRandom(double D, double U, double M, int P, Random r)
         {
-            if (P <= 0 || D >= U || M >= U)
-                return M > U ? (int)U : (int)M;
-            if (M < D)
-                return (int)D;
+            if (P <= 0)
+            {
+                return (int)M;
+            }
             if (P >= 100)
                 P = 100;
-    
             // 计算实际百分比
             var p = P / 100.0;
 
@@ -629,81 +650,6 @@ namespace krrTools.Tools.KRRLNTransformer
             return result;
         }
 
-        private Dictionary<int, double> borderList = new()
-        {
-            /*
-            { 0, "AllIsLongLN" },
-       
-            { 65, "AllIsShortLN"}
-            */
-            
-            { 0, 0 },
-            { 1, 1.0/16},
-            { 2, 2.0/16},
-            { 3, 3.0/16},
-            { 4, 4.0/16},
-            { 5, 5.0/16},
-            { 6, 6.0/16},
-            { 7, 7.0/16},
-            { 8, 8.0/16},
-            { 9, 9.0/16},
-            { 10, 10.0/16},
-            { 11, 11.0/16},
-            { 12, 12.0/16},
-            { 13, 13.0/16},
-            { 14, 14.0/16},
-            { 15, 15.0/16},
-            { 16, 16.0/16},
-            { 17, 17.0/16},
-            { 18, 18.0/16},
-            { 19, 19.0/16},
-            { 20, 20.0/16},
-            { 21, 21.0/16},
-            { 22, 22.0/16},
-            { 23, 23.0/16},
-            { 24, 24.0/16},
-            { 25, 25.0/16},
-            { 26, 26.0/16},
-            { 27, 27.0/16},
-            { 28, 28.0/16},
-            { 29, 29.0/16},
-            { 30, 30.0/16},
-            { 31, 31.0/16},
-            { 32, 32.0/16},
-            { 33, 33.0/16},
-            { 34, 34.0/16},
-            { 35, 35.0/16},
-            { 36, 36.0/16},
-            { 37, 37.0/16},
-            { 38, 38.0/16},
-            { 39, 39.0/16},
-            { 40, 40.0/16},
-            { 41, 41.0/16},
-            { 42, 42.0/16},
-            { 43, 43.0/16},
-            { 44, 44.0/16},
-            { 45, 45.0/16},
-            { 46, 46.0/16},
-            { 47, 47.0/16},
-            { 48, 48.0/16},
-            { 49, 49.0/16},
-            { 50, 50.0/16},
-            { 51, 51.0/16},
-            { 52, 52.0/16},
-            { 53, 53.0/16},
-            { 54, 54.0/16},
-            { 55, 55.0/16},
-            { 56, 56.0/16},
-            { 57, 57.0/16},
-            { 58, 58.0/16},
-            { 59, 59.0/16},
-            { 60, 60.0/16},
-            { 61, 61.0/16},
-            { 62, 62.0/16},
-            { 63, 63.0/16},
-            { 64, 64.0/16},
-            { 65, 999 }
-        };
         
         private Dictionary<int, double> alignList = new()
         {
@@ -758,4 +704,66 @@ namespace krrTools.Tools.KRRLNTransformer
             return destination;
         }
     }
+    
+    /// <summary>
+    /// 可配置的数字生成器类
+    /// 根据中间值和系数生成数字序列
+    /// 仅仅在KRRLN中使用
+    /// </summary>
+    internal class BeatNumberGenerator
+    {
+        private readonly double[] _values;
+        private readonly int _middleIndex;
+        private readonly double _coefficient;
+        private readonly double _lastValue;
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="middleIndex">中间索引值</param>
+        /// <param name="coefficient">系数，决定中间数字的大小</param>
+        /// <param name="lastValue">最后一个值，默认为999.0</param>
+        public BeatNumberGenerator(int middleIndex, double coefficient, double lastValue = 999.0)
+        {
+            _middleIndex = middleIndex;
+            _coefficient = coefficient;
+            _lastValue = lastValue;
+            // 创建数组，大小为middleIndex + 2 (索引0到middleIndex+1)
+            _values = new double[middleIndex + 2];
+            // 初始化数组
+            _values[0] = 0.0; // 第一个值始终为0
+            // 中间的值按照 i * coefficient 计算
+            for (int i = 1; i <= middleIndex; i++)
+            {
+                _values[i] = i * coefficient;
+            }
+            // 最后一个值为指定值
+            _values[middleIndex + 1] = lastValue;
+        }
+        /// <summary>
+        /// 获取指定索引的值
+        /// </summary>
+        /// <param name="index">索引</param>
+        /// <returns>对应的double值</returns>
+        public double GetValue(int index)
+        {
+            if (index <= 0)
+                return 0;
+            if (index >= _values.Length - 1)
+                return _lastValue;
+            return _values[index];
+        }
+        /// <summary>
+        /// 获取中间索引
+        /// </summary>
+        public int MiddleIndex => _middleIndex;
+        /// <summary>
+        /// 获取系数
+        /// </summary>
+        public double Coefficient => _coefficient;
+        /// <summary>
+        /// 获取数组长度
+        /// </summary>
+        public int Length => _values.Length;
+    }
+    
 }
