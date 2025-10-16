@@ -355,29 +355,13 @@ namespace krrTools
         // 通用方法：将工具控件的内容嵌入到指定的宿主容器中
         private void EmbedTool(UserControl toolControl, ContentControl host)
         {
-            if (toolControl.Content is UIElement content)
-            {
-                // 复制资源，以便 StaticResource/Style 查找仍然有效
-                var keys = toolControl.Resources.Keys.Cast<object>().ToList();
-                foreach (var k in keys)
-                {
-                    var res = toolControl.Resources[k];
-                    if (res is Style s && s.TargetType == typeof(Window))
-                        continue;
-                    if (!host.Resources.Contains(k))
-                        host.Resources.Add(k, toolControl.Resources[k]);
-                }
+            // 清除嵌入内容中的固定尺寸以便自适应
+            ClearFixedSizes(toolControl);
 
-                // 清除嵌入内容中的固定尺寸以便自适应
-                ClearFixedSizes(content);
-
-                // 将实际内容移入宿主，保留绑定和事件处理器
-                host.DataContext = toolControl.DataContext;
-                host.Content = content;
-                host.AllowDrop = true; // 允许拖拽事件传递到内容
-                // 清空原窗口内容，使元素只有一个父级
-                toolControl.Content = null;
-            }
+            // 将整个工具控件嵌入到宿主，保留绑定和事件处理器
+            host.DataContext = toolControl.DataContext;
+            host.Content = toolControl;
+            host.AllowDrop = true; // 允许拖拽事件传递到内容
         }
 
         private void LoadToolSettingsHosts()

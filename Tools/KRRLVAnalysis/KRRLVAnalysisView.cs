@@ -39,7 +39,8 @@ namespace krrTools.Tools.KRRLVAnalysis
                 AutoGenerateColumns = false,
                 CanUserAddRows = false,
                 SelectionMode = DataGridSelectionMode.Single,
-                SelectionUnit = DataGridSelectionUnit.FullRow
+                SelectionUnit = DataGridSelectionUnit.FullRow,
+                AllowDrop = true
             };
             dataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("OsuFiles.Value"));
 

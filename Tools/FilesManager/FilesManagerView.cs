@@ -91,7 +91,8 @@ namespace krrTools.Tools.FilesManager
                 GridLinesVisibility = DataGridGridLinesVisibility.All, // 显示网格线
                 RowHeaderWidth = 50, // 行号列宽度
                 IsEnabled = true, // 确保控件启用
-                Focusable = true // 确保可以获得焦点
+                Focusable = true, // 确保可以获得焦点
+                AllowDrop = true
             };
 
             // 启用 DataGridExtensions 高级功能
