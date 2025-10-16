@@ -72,7 +72,7 @@ namespace krrTools.Localization
         public const string LengthThresholdLabel = "Length Threshold {0}|长度阈值 {0}";
         public const string KRRShortLNHeader = "Short LN|短面";
         public const string KRRShortPercentageLabel = "Short LN {0}%|短面占比 {0}%";
-        public const string KRRShortLevelLabel = "Short Length {0}|断面长度 {0}";
+        public const string KRRShortLevelLabel = "Short Length {0}|短面长度 {0}";
         public const string KRRShortLimitLabel = "Short Limit {0}|短面限制 {0}";
         public const string KRRShortRandomLabel = "Short Random {0}|短面随机 {0}";
         public const string KRRLongLNHeader = "Long LN|长面条";
