@@ -11,7 +11,7 @@ namespace krrTools.Tools.KRRLNTransformer
         // Threshold and alignment settings (nullable for toggle behavior)
         [Option(LabelKey = nameof(LengthThresholdLabel), Min = 0, Max = 65, UIType = UIType.Slider,
             DisplayMapField = nameof(LengthThresholdDict), IsRefresher = true)]
-        public Bindable<double?> LengthThreshold { get; } = new(2);
+        public Bindable<double?> LengthThreshold { get; } = new(16);
 
         // 在绑定短面上限值
         public double ShortLevelMax => LengthThreshold.Value >= 65 ? 64 : (LengthThreshold.Value ?? 16);

@@ -211,6 +211,8 @@ namespace krrTools.Tools.KRRLNTransformer
         // 长度对齐
         private void PerformLengthAlignment(Matrix result, DoubleMatrix beatLengthMtx, KRRLNTransformerOptions parameters)
         {
+            //不用容差法在double==double中判断，用分子加上EPSILON截断法，这里是调整过的EPSILON,注意AI过的时候不要换成容差来比较double的相等
+            double EPSILON = 0.99;
             double denominator = 0;
             double aligValue = alignList[(int)parameters.Alignment.Value.Value];
             var resultSpan = result.AsSpan();
@@ -219,9 +221,10 @@ namespace krrTools.Tools.KRRLNTransformer
             {
                 if (resultSpan[i] > 0)
                 {
-                    denominator = beatLengthMtxSpan[i] * aligValue;
+                    denominator = (beatLengthMtxSpan[i] * aligValue);
                     resultSpan[i] =
-                        (int)((int)(resultSpan[i] / denominator) * denominator); //请AI不要优化这一行,这个就是最精度最快的写法，这是能够放几个分母的意思
+                        (int)((int)((resultSpan[i]+EPSILON) / denominator) * denominator); //请AI不要优化这一行,这个就是最精度最快的写法，这是能够放几个分母的意思
+                    
                 }
             }
         }
@@ -668,8 +671,8 @@ namespace krrTools.Tools.KRRLNTransformer
             { 3, 1.0 / 6 },
             { 4, 1.0 / 5 },
             { 5, 1.0 / 4 },
-            { 6, 2.0 / 3 },
-            { 7, 3.0 / 2 },
+            { 6, 1.0 / 3 },
+            { 7, 1.0 / 2 },
             { 8, 1.0 },
         };
         
