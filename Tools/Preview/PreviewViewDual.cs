@@ -33,6 +33,12 @@ namespace krrTools.Tools.Preview
         private TextBlock _startTimeDisplay = null!;
         private ConverterEnum? _currentTool;
 
+        private ScrollViewer? _originalScrollViewer;
+        private ScrollViewer? _convertedScrollViewer;
+        private bool _isSyncingScroll = false;
+        private DateTime _lastScrollSync = DateTime.MinValue;
+        private const int ScrollSyncThrottleMs = 16;
+
         public PreviewViewDual(PreviewViewModel viewModel)
         {
             ViewModel = viewModel;
@@ -284,11 +290,66 @@ namespace krrTools.Tools.Preview
                     break;
                 case nameof(ViewModel.OriginalVisual):
                     _originalContent.Content = ViewModel.OriginalVisual;
+                    _originalScrollViewer = FindScrollViewer(ViewModel.OriginalVisual);
+                    if (_originalScrollViewer != null)
+                    {
+                        _originalScrollViewer.ScrollChanged += OnOriginalScrollChanged;
+                    }
                     break;
                 case nameof(ViewModel.ConvertedVisual):
                     _convertedContent.Content = ViewModel.ConvertedVisual;
+                    _convertedScrollViewer = FindScrollViewer(ViewModel.ConvertedVisual);
+                    if (_convertedScrollViewer != null)
+                    {
+                        _convertedScrollViewer.ScrollChanged += OnConvertedScrollChanged;
+                    }
                     break;
             }
+        }
+
+        private ScrollViewer? FindScrollViewer(DependencyObject? element)
+        {
+            if (element == null) return null;
+            if (element is ScrollViewer sv) return sv;
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(element); i++)
+            {
+                var child = VisualTreeHelper.GetChild(element, i);
+                var found = FindScrollViewer(child);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
+        private void OnOriginalScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if (_isSyncingScroll) return;
+            _isSyncingScroll = true;
+            if ((DateTime.UtcNow - _lastScrollSync).TotalMilliseconds >= ScrollSyncThrottleMs)
+            {
+                _lastScrollSync = DateTime.UtcNow;
+                if (_convertedScrollViewer != null)
+                {
+                    _convertedScrollViewer.ScrollToVerticalOffset(_originalScrollViewer!.VerticalOffset);
+                    _convertedScrollViewer.ScrollToHorizontalOffset(_originalScrollViewer!.HorizontalOffset);
+                }
+            }
+            _isSyncingScroll = false;
+        }
+
+        private void OnConvertedScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if (_isSyncingScroll) return;
+            _isSyncingScroll = true;
+            if ((DateTime.UtcNow - _lastScrollSync).TotalMilliseconds >= ScrollSyncThrottleMs)
+            {
+                _lastScrollSync = DateTime.UtcNow;
+                if (_originalScrollViewer != null)
+                {
+                    _originalScrollViewer.ScrollToVerticalOffset(_convertedScrollViewer!.VerticalOffset);
+                    _originalScrollViewer.ScrollToHorizontalOffset(_convertedScrollViewer!.HorizontalOffset);
+                }
+            }
+            _isSyncingScroll = false;
         }
     }
 }
