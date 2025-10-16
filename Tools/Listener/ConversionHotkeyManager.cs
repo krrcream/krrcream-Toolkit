@@ -27,6 +27,9 @@ namespace krrTools.Tools.Listener
         {
             UnregisterAllHotkeys();
 
+            Logger.WriteLine(LogLevel.Debug, "[ConversionHotkeyManager] Registering hotkeys: N2NC='{0}', DP='{1}', KRRLN='{2}'",
+                settings.N2NCHotkey.Value, settings.DPHotkey.Value, settings.KRRLNHotkey.Value);
+
             RegisterHotkey(ConverterEnum.N2NC, settings.N2NCHotkey.Value);
             RegisterHotkey(ConverterEnum.DP, settings.DPHotkey.Value);
             RegisterHotkey(ConverterEnum.KRRLN, settings.KRRLNHotkey.Value);
@@ -38,8 +41,10 @@ namespace krrTools.Tools.Listener
 
             try
             {
+                Logger.WriteLine(LogLevel.Debug, $"[ConversionHotkeyManager] Registering hotkey for {converter}: '{hotkey}'");
                 var globalHotkey = new GlobalHotkey(hotkey, () => _convertAction(converter), _window);
                 _hotkeys[converter] = globalHotkey;
+                Logger.WriteLine(LogLevel.Debug, $"[ConversionHotkeyManager] Successfully registered hotkey for {converter}");
             }
             catch (Exception ex)
             {
@@ -57,6 +62,37 @@ namespace krrTools.Tools.Listener
                 hotkey?.Unregister();
             }
             _hotkeys.Clear();
+        }
+
+        /// <summary>
+        /// 检查快捷键是否冲突
+        /// </summary>
+        public Dictionary<ConverterEnum, bool> CheckHotkeyConflicts(GlobalSettings settings)
+        {
+            var conflicts = new Dictionary<ConverterEnum, bool>();
+
+            conflicts[ConverterEnum.N2NC] = CheckHotkeyConflict(settings.N2NCHotkey.Value);
+            conflicts[ConverterEnum.DP] = CheckHotkeyConflict(settings.DPHotkey.Value);
+            conflicts[ConverterEnum.KRRLN] = CheckHotkeyConflict(settings.KRRLNHotkey.Value);
+
+            return conflicts;
+        }
+
+        private bool CheckHotkeyConflict(string? hotkey)
+        {
+            if (string.IsNullOrEmpty(hotkey)) return false;
+
+            try
+            {
+                // 临时注册来检查冲突
+                var tempHotkey = new GlobalHotkey(hotkey, () => { }, _window);
+                tempHotkey.Unregister(); // 立即注销
+                return false; // 没有冲突
+            }
+            catch
+            {
+                return true; // 注册失败，说明冲突
+            }
         }
 
         public void Dispose()

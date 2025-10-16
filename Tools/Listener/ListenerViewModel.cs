@@ -104,6 +104,10 @@ public class ListenerViewModel : ReactiveViewModelBase
         private set => GlobalSettings.LastPreviewPath.Value = value;
     }
 
+    public Bindable<bool> N2NCHotkeyConflict { get; } = new();
+    public Bindable<bool> DPHotkeyConflict { get; } = new();
+    public Bindable<bool> KRRLNHotkeyConflict { get; } = new();
+
     public ListenerViewModel()
     {
         // 初始化服务

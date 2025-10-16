@@ -24,6 +24,7 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                 <TextBlock
@@ -37,32 +38,76 @@
                     x:Name="N2NCHotkeyTextBox"
                     Grid.Column="2"
                     Width="150"
+                    Height="30"
                     Margin="10,0,0,0"
                     VerticalAlignment="Center"
                     Background="LightGray"
                     IsReadOnly="True"
                     Text="{Binding N2NCHotkey, Mode=TwoWay}"
-                    ToolTip="Click here and press key combination to set N2NC hotkey" />
+                    ToolTip="Click here and press key combination to set N2NC hotkey">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding N2NCHotkeyConflict.Value}" Value="True">
+                                    <Setter Property="BorderBrush" Value="Red" />
+                                    <Setter Property="BorderThickness" Value="2" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
                 <TextBox
                     x:Name="DPHotkeyTextBox"
                     Grid.Column="3"
                     Width="150"
+                    Height="30"
                     Margin="10,0,0,0"
                     VerticalAlignment="Center"
                     Background="LightGray"
                     IsReadOnly="True"
                     Text="{Binding DPHotkey, Mode=TwoWay}"
-                    ToolTip="Click here and press key combination to set DP hotkey" />
+                    ToolTip="Click here and press key combination to set DP hotkey">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding DPHotkeyConflict.Value}" Value="True">
+                                    <Setter Property="BorderBrush" Value="Red" />
+                                    <Setter Property="BorderThickness" Value="2" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
                 <TextBox
                     x:Name="KRRLNHotkeyTextBox"
                     Grid.Column="4"
                     Width="150"
+                    Height="30"
                     Margin="10,0,0,0"
                     VerticalAlignment="Center"
                     Background="LightGray"
                     IsReadOnly="True"
                     Text="{Binding KRRLNHotkey, Mode=TwoWay}"
-                    ToolTip="Click here and press key combination to set KRRLN hotkey" />
+                    ToolTip="Click here and press key combination to set KRRLN hotkey">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding KRRLNHotkeyConflict.Value}" Value="True">
+                                    <Setter Property="BorderBrush" Value="Red" />
+                                    <Setter Property="BorderThickness" Value="2" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
+                <Button
+                    Grid.Column="5"
+                    Width="80"
+                    Height="30"
+                    Margin="10,0,0,0"
+                    VerticalAlignment="Center"
+                    Content="Test N2NC"
+                    Click="TestN2NCButton_Click" />
             </Grid>
         </Border>
 
