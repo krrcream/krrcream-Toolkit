@@ -306,45 +306,53 @@ namespace krrTools.Utilities
         // 事件处理方法
         private void OnBeatmapChanged(BeatmapChangedEvent e)
         {
-            // 处理路径变化事件
-            if (e.ChangeType == BeatmapChangeType.FromMonitoring)
+            // 使用Dispatcher确保在UI线程上执行，避免跨线程访问错误
+            Application.Current.Dispatcher.Invoke(() =>
             {
-                if (!string.IsNullOrEmpty(e.FilePath) && File.Exists(e.FilePath))
+                // 处理路径变化事件
+                if (e.ChangeType == BeatmapChangeType.FromMonitoring)
                 {
-                    SetFiles([e.FilePath], FileSource.Listened);
+                    if (!string.IsNullOrEmpty(e.FilePath) && File.Exists(e.FilePath))
+                    {
+                        SetFiles([e.FilePath], FileSource.Listened);
+                    }
+                    return;
                 }
-                return;
-            }
 
-            if (e.ChangeType == BeatmapChangeType.FromDropZone)
-            {
-                if (!string.IsNullOrEmpty(e.FilePath) && File.Exists(e.FilePath))
+                if (e.ChangeType == BeatmapChangeType.FromDropZone)
                 {
-                    SetFiles([e.FilePath], FileSource.Dropped);
+                    if (!string.IsNullOrEmpty(e.FilePath) && File.Exists(e.FilePath))
+                    {
+                        SetFiles([e.FilePath], FileSource.Dropped);
+                    }
+                    return;
                 }
-                return;
-            }
-            
-            EventBus.Publish(new ConvPrevRefreshOnlyEvent
-            {
-                NewValue = false
+                
+                EventBus.Publish(new ConvPrevRefreshOnlyEvent
+                {
+                    NewValue = false
+                });
             });
         }
 
         private void OnMonitoringEnabledChanged(MonitoringEnabledChangedEvent e)
         {
-            if (e.NewValue && _stagedPaths is { Length: > 0 })
+            // 使用Dispatcher确保在UI线程上执行，避免跨线程访问错误
+            Application.Current.Dispatcher.Invoke(() =>
             {
-                SetSource(FileSource.Listened);
-                EventBus.Publish(new ConvPrevRefreshOnlyEvent
+                if (e.NewValue && _stagedPaths is { Length: > 0 })
                 {
-                    NewValue = e.NewValue
-                });
-            }
-            else if (!e.NewValue)
-            {
-                SetSource(FileSource.None);
-            }
+                    SetSource(FileSource.Listened);
+                    EventBus.Publish(new ConvPrevRefreshOnlyEvent
+                    {
+                        NewValue = e.NewValue
+                    });
+                }
+                else if (!e.NewValue)
+                {
+                    SetSource(FileSource.None);
+                }
+            });
         }
     }
 }

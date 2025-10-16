@@ -103,17 +103,21 @@ namespace krrTools.Utilities
         #region 事件订阅
         private void OnMonitoringEnabledChanged(MonitoringEnabledChangedEvent evt)
         {
-            // 当监控启用状态改变时，根据当前 osu! 运行状态更新监听器状态
-            if (evt.NewValue)
+            // 使用Dispatcher确保在UI线程上执行，避免跨线程访问错误
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
-                ListenerState.Value = IsOsuRunning.Value ? (ListenerState)1 : (ListenerState)2;
-            }
-            else
-            {
-                ListenerState.Value = 0;
-                // 监听关闭时，重置预览到内置样本
-                EventBus.Publish(new ConvPrevRefreshOnlyEvent { NewValue = false });
-            }
+                // 当监控启用状态改变时，根据当前 osu! 运行状态更新监听器状态
+                if (evt.NewValue)
+                {
+                    ListenerState.Value = IsOsuRunning.Value ? (ListenerState)1 : (ListenerState)2;
+                }
+                else
+                {
+                    ListenerState.Value = 0;
+                    // 监听关闭时，重置预览到内置样本
+                    EventBus.Publish(new ConvPrevRefreshOnlyEvent { NewValue = false });
+                }
+            });
         }
 
         #endregion

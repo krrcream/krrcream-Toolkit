@@ -123,20 +123,24 @@ public class PreviewViewModel : ReactiveViewModelBase
     {
         LoadPreviewPath(e.FilePath);
 
-        switch (e.ChangeType)
+        // 使用Dispatcher确保在UI线程上执行，避免跨线程访问错误
+        Application.Current.Dispatcher.Invoke(() =>
         {
-            case BeatmapChangeType.FromMonitoring:
-                Title = $"[监听] {e.FileName}";
-                break;
+            switch (e.ChangeType)
+            {
+                case BeatmapChangeType.FromMonitoring:
+                    Title = $"[监听] {e.FileName}";
+                    break;
 
-            case BeatmapChangeType.FromDropZone:
-                Title = $"[拖入] {e.FileName}";
-                break;
+                case BeatmapChangeType.FromDropZone:
+                    Title = $"[拖入] {e.FileName}";
+                    break;
 
-            default:
-                Title = Strings.DropHint.GetLocalizedString();
-                break;
-        }
+                default:
+                    Title = Strings.DropHint.GetLocalizedString();
+                    break;
+            }
+        });
     }
 
     /// <summary>
