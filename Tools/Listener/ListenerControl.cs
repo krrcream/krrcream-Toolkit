@@ -20,8 +20,6 @@ namespace krrTools.Tools.Listener
 {
     public partial class ListenerControl
     {
-        private ConversionHotkeyManager? _conversionHotkeyManager;
-        private readonly BeatmapTransformationService _transformationService;
 
         public RelayCommand BrowseCommand { get; }
 
@@ -31,8 +29,6 @@ namespace krrTools.Tools.Listener
         private readonly FileDropZoneViewModel _dropZoneViewModel;
         public FileDropZoneViewModel DropZoneViewModel => _dropZoneViewModel;
 
-        private readonly IEventBus _eventBus;
-
         internal ListenerControl()
         {
             // 自动注入标记了 [Inject] 的属性
@@ -40,15 +36,9 @@ namespace krrTools.Tools.Listener
 
             Logger.WriteLine(LogLevel.Debug, "[ListenerControl] Constructor called");
 
-            _eventBus = App.Services.GetService(typeof(IEventBus)) as IEventBus ?? throw new InvalidOperationException("EventBus not found");
-
             InitializeComponent();
             _viewModel = new ListenerViewModel();
             DataContext = _viewModel;
-
-            // 初始化转换服务
-            var moduleManager = App.Services.GetService(typeof(IModuleManager)) as IModuleManager;
-            _transformationService = new BeatmapTransformationService(moduleManager!);
 
             // 初始化拖拽区 ViewModel
             var fileDispatcher = new FileDispatcher();
@@ -58,9 +48,6 @@ namespace krrTools.Tools.Listener
 
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
             Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
-
-            // 订阅监听状态变化
-            _eventBus.Subscribe<MonitoringEnabledChangedEvent>(OnMonitoringEnabledChanged);
 
             _viewModel.WindowTitle = Strings.OSUListener.Localize();
 
@@ -80,92 +67,17 @@ namespace krrTools.Tools.Listener
             Loaded += (_, _) =>
             {
                 Logger.WriteLine(LogLevel.Debug, "[ListenerControl] Loaded event fired");
-                InitializeConversionHotkeys();
             };
             Unloaded += Window_Closing;
         }
 
         private void Window_Closing(object? sender, RoutedEventArgs e)
         {
-            _conversionHotkeyManager?.Dispose();
         }
 
         private void OnLanguageChanged()
         {
             Dispatcher.BeginInvoke(new Action(() => { _viewModel.WindowTitle = Strings.OSUListener; }));
-        }
-
-        private void InitializeConversionHotkeys()
-        {
-            var mainWindow = Application.Current.MainWindow;
-            Logger.WriteLine(LogLevel.Debug, $"[ListenerControl] InitializeConversionHotkeys called, MainWindow: {mainWindow}, Handle: {mainWindow?.GetType().Name}");
-
-            if (mainWindow == null)
-            {
-                Logger.WriteLine(LogLevel.Error, "[ListenerControl] MainWindow is null, cannot initialize hotkeys");
-                return;
-            }
-
-            Logger.WriteLine(LogLevel.Debug, "[ListenerControl] Initializing conversion hotkeys");
-
-            _conversionHotkeyManager = new ConversionHotkeyManager(
-                ExecuteConvertWithModule,
-                mainWindow
-            );
-
-            // 只在监听启用时注册快捷键
-            var globalSettings = BaseOptionsManager.GetGlobalSettings();
-            if (globalSettings.MonitoringEnable.Value)
-            {
-                _conversionHotkeyManager.RegisterHotkeys(globalSettings);
-                UpdateHotkeyConflicts();
-                Logger.WriteLine(LogLevel.Debug, "[ListenerControl] Hotkeys registered during initialization");
-            }
-            else
-            {
-                Logger.WriteLine(LogLevel.Debug, "[ListenerControl] Hotkeys not registered during initialization (monitoring disabled)");
-            }
-
-            Logger.WriteLine(LogLevel.Debug, "[ListenerControl] Conversion hotkeys initialized");
-        }
-
-        private void UpdateHotkeyConflicts()
-        {
-            if (_conversionHotkeyManager == null) return;
-
-            var globalSettings = BaseOptionsManager.GetGlobalSettings();
-            var conflicts = _conversionHotkeyManager.CheckHotkeyConflicts(globalSettings);
-
-            _viewModel.N2NCHotkeyConflict.Value = conflicts[ConverterEnum.N2NC];
-            _viewModel.DPHotkeyConflict.Value = conflicts[ConverterEnum.DP];
-            _viewModel.KRRLNHotkeyConflict.Value = conflicts[ConverterEnum.KRRLN];
-        }
-
-        private void ExecuteConvertWithModule(ConverterEnum converter)
-        {
-            Logger.WriteLine(LogLevel.Information, $"[ListenerControl] EXECUTE CONVERT: {converter} triggered by hotkey");
-
-            // 获取当前谱面
-            string beatmapPath = _viewModel.MonitorOsuFilePath;
-
-            try
-            {
-                // 解码谱面
-                var beatmap = OsuParsers.Decoders.BeatmapDecoder.Decode(beatmapPath);
-
-                // 使用转换服务
-                var transformedBeatmap = _transformationService.TransformBeatmap(beatmap, converter);
-
-                // 保存转换后谱面
-                var outputPath = transformedBeatmap!.GetOutputOsuFileName();
-                var outputDir = Path.GetDirectoryName(beatmapPath);
-                var fullOutputPath = Path.Combine(outputDir!, outputPath);
-                transformedBeatmap!.Save(fullOutputPath);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Conversion failed: {ex.Message}", Strings.CannotConvert.Localize(), MessageBoxButton.OK, MessageBoxImage.Error);
-            }
         }
 
         private void OnHotkeyKeyDown(object sender, KeyEventArgs e)
@@ -218,9 +130,6 @@ namespace krrTools.Tools.Listener
                 textBox.Text = hotkey;
             }
 
-            // 重新注册快捷键
-            ReinitializeHotkeys();
-
             Logger.WriteLine(LogLevel.Debug, $"[ListenerControl] Set hotkey to: {hotkey}");
         }
 
@@ -241,44 +150,6 @@ namespace krrTools.Tools.Listener
                 case Key.OemBackslash: return "\\";
                 case Key.OemTilde: return "`";
                 default: return key.ToString();
-            }
-        }
-
-        private void ReinitializeHotkeys()
-        {
-            // 注销现有快捷键
-            _conversionHotkeyManager?.UnregisterAllHotkeys();
-
-            // 重新注册
-            var globalSettings = BaseOptionsManager.GetGlobalSettings();
-            _conversionHotkeyManager?.RegisterHotkeys(globalSettings);
-
-            // 更新冲突状态
-            UpdateHotkeyConflicts();
-        }
-
-        private void OnMonitoringEnabledChanged(MonitoringEnabledChangedEvent evt)
-        {
-            // 确保快捷键管理器已初始化
-            if (_conversionHotkeyManager == null)
-            {
-                Logger.WriteLine(LogLevel.Debug, "[ListenerControl] Initializing hotkey manager in OnMonitoringEnabledChanged");
-                InitializeConversionHotkeys();
-            }
-
-            if (evt.NewValue)
-            {
-                // 监听启用，注册快捷键
-                var globalSettings = BaseOptionsManager.GetGlobalSettings();
-                _conversionHotkeyManager?.RegisterHotkeys(globalSettings);
-                UpdateHotkeyConflicts();
-                Logger.WriteLine(LogLevel.Debug, "[ListenerControl] Hotkeys registered because monitoring enabled");
-            }
-            else
-            {
-                // 监听禁用，注销快捷键
-                _conversionHotkeyManager?.UnregisterAllHotkeys();
-                Logger.WriteLine(LogLevel.Debug, "[ListenerControl] Hotkeys unregistered because monitoring disabled");
             }
         }
 
@@ -307,7 +178,7 @@ namespace krrTools.Tools.Listener
         private void TestN2NCButton_Click(object sender, RoutedEventArgs e)
         {
             Logger.WriteLine(LogLevel.Information, "[ListenerControl] TEST BUTTON: Manual trigger N2NC conversion");
-            ExecuteConvertWithModule(ConverterEnum.N2NC);
+            // Conversion is now handled by MainWindow global hotkeys
         }
     }
 }

@@ -4,231 +4,191 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    Background="#FFBDC1C1"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Background="Transparent"
     mc:Ignorable="d">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="*" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
 
-        <!--  Top Border with Buttons  -->
-        <Border
+        <!--  Top Section with Instructions, Title, Hotkeys, and Button  -->
+        <ui:TextBlock
             Grid.Row="0"
-            Padding="10"
-            Background="LightGray">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+            Grid.Column="0"
+            Margin="10,10,10,10"
+            VerticalAlignment="Center"
+            FontSize="16"
+            Text="必须开启监听才能使用快捷键&#x0a;Listening must be enabled to use Hotkeys"
+            TextWrapping="Wrap" />
 
-                <!-- Left side bilingual instruction -->
-                <TextBlock
-                    Grid.Row="0"
-                    Grid.RowSpan="2"
-                    Grid.Column="0"
-                    Width="150"
-                    VerticalAlignment="Center"
-                    FontSize="18"
-                    Text="必须开启监听才能使用快捷键&#x0a;Listening must be enabled to use Hotkeys"
-                    TextWrapping="Wrap" />
+        <!--  N2NC Hotkey Label  -->
+        <ui:TextBlock
+            Grid.Row="3"
+            Grid.Column="1"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            FontSize="16"
+            Text="N2NC Hotkey" />
 
-                <TextBlock
-                    Grid.Row="0"
-                    Grid.Column="1"
-                    Width="200"
-                    VerticalAlignment="Center"
-                    FontSize="18"
-                    FontWeight="Bold"
-                    Text="{Binding WindowTitle}" />
+        <ui:TextBox
+            x:Name="N2NCHotkeyTextBox"
+            Grid.Row="4"
+            Grid.Column="1"
+            Margin="10,10,10,10"
+            VerticalContentAlignment="Center"
+            Background="Transparent"
+            FontSize="16"
+            IsReadOnly="True"
+            Text="{Binding N2NCHotkey, Mode=TwoWay}"
+            ToolTip="Click here and press key combination to set N2NC hotkey">
+            <TextBox.Style>
+                <Style TargetType="TextBox">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding N2NCHotkeyConflict.Value}" Value="True">
+                            <Setter Property="BorderBrush" Value="Red" />
+                            <Setter Property="BorderThickness" Value="2" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBox.Style>
+        </ui:TextBox>
 
-                <!-- N2NC Hotkey Label -->
-                <TextBlock
-                    Grid.Row="0"
-                    Grid.Column="3"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Bottom"
-                    FontSize="18"
-                    Text="N2NC Hotkey" />
+        <!--  DP Hotkey Label  -->
+        <ui:TextBlock
+            Grid.Row="5"
+            Grid.Column="1"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            FontSize="16"
+            Text="DP Hotkey" />
 
-                <TextBox
-                    x:Name="N2NCHotkeyTextBox"
-                    Grid.Row="1"
-                    Grid.Column="3"
-                    Width="150"
-                    Height="30"
-                    Margin="10,0,0,0"
-                    VerticalAlignment="Center"
-                    Background="LightGray"
-                    IsReadOnly="True"
-                    Text="{Binding N2NCHotkey, Mode=TwoWay}"
-                    ToolTip="Click here and press key combination to set N2NC hotkey">
-                    <TextBox.Style>
-                        <Style TargetType="TextBox">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding N2NCHotkeyConflict.Value}" Value="True">
-                                    <Setter Property="BorderBrush" Value="Red" />
-                                    <Setter Property="BorderThickness" Value="2" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBox.Style>
-                </TextBox>
+        <ui:TextBox
+            x:Name="DPHotkeyTextBox"
+            Grid.Row="6"
+            Grid.Column="1"
+            Margin="10,10,10,10"
+            VerticalContentAlignment="Center"
+            Background="Transparent"
+            FontSize="16"
+            IsReadOnly="True"
+            Text="{Binding DPHotkey, Mode=TwoWay}"
+            ToolTip="Click here and press key combination to set DP hotkey">
+            <TextBox.Style>
+                <Style TargetType="TextBox">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding DPHotkeyConflict.Value}" Value="True">
+                            <Setter Property="BorderBrush" Value="Red" />
+                            <Setter Property="BorderThickness" Value="2" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBox.Style>
+        </ui:TextBox>
 
-                <!-- DP Hotkey Label -->
-                <TextBlock
-                    Grid.Row="0"
-                    Grid.Column="4"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Bottom"
-                    FontSize="18"
-                    Text="DP Hotkey" />
+        <!--  KRRLN Hotkey Label  -->
+        <ui:TextBlock
+            Grid.Row="7"
+            Grid.Column="1"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            FontSize="16"
+            Text="KRRLN Hotkey" />
 
-                <TextBox
-                    x:Name="DPHotkeyTextBox"
-                    Grid.Row="1"
-                    Grid.Column="4"
-                    Width="150"
-                    Height="30"
-                    Margin="10,0,0,0"
-                    VerticalAlignment="Center"
-                    Background="LightGray"
-                    IsReadOnly="True"
-                    Text="{Binding DPHotkey, Mode=TwoWay}"
-                    ToolTip="Click here and press key combination to set DP hotkey">
-                    <TextBox.Style>
-                        <Style TargetType="TextBox">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding DPHotkeyConflict.Value}" Value="True">
-                                    <Setter Property="BorderBrush" Value="Red" />
-                                    <Setter Property="BorderThickness" Value="2" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBox.Style>
-                </TextBox>
+        <ui:TextBox
+            x:Name="KRRLNHotkeyTextBox"
+            Grid.Row="8"
+            Grid.Column="1"
+            Margin="10,10,10,10"
+            VerticalContentAlignment="Center"
+            Background="Transparent"
+            FontSize="16"
+            IsReadOnly="True"
+            Text="{Binding KRRLNHotkey, Mode=TwoWay}"
+            ToolTip="Click here and press key combination to set KRRLN hotkey">
+            <TextBox.Style>
+                <Style TargetType="TextBox">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding KRRLNHotkeyConflict.Value}" Value="True">
+                            <Setter Property="BorderBrush" Value="Red" />
+                            <Setter Property="BorderThickness" Value="2" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBox.Style>
+        </ui:TextBox>
 
-                <!-- KRRLN Hotkey Label -->
-                <TextBlock
-                    Grid.Row="0"
-                    Grid.Column="5"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Bottom"
-                    FontSize="18"
-                    Text="KRRLN Hotkey" />
+        <ui:Button
+            Grid.Row="2"
+            Grid.Column="1"
+            Width="120"
+            Height="40"
+            Margin="10,10,10,10"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Click="TestN2NCButton_Click"
+            Content="Test N2NC" />
 
-                <TextBox
-                    x:Name="KRRLNHotkeyTextBox"
-                    Grid.Row="1"
-                    Grid.Column="5"
-                    Width="150"
-                    Height="30"
-                    Margin="10,0,0,0"
-                    VerticalAlignment="Center"
-                    Background="LightGray"
-                    IsReadOnly="True"
-                    Text="{Binding KRRLNHotkey, Mode=TwoWay}"
-                    ToolTip="Click here and press key combination to set KRRLN hotkey">
-                    <TextBox.Style>
-                        <Style TargetType="TextBox">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding KRRLNHotkeyConflict.Value}" Value="True">
-                                    <Setter Property="BorderBrush" Value="Red" />
-                                    <Setter Property="BorderThickness" Value="2" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBox.Style>
-                </TextBox>
+        <!--  Songs Path Area  -->
+        <ui:TextBlock
+            Grid.Row="1"
+            Grid.Column="0"
+            FontSize="18"
+            Text="{Binding SongsPath, Mode=TwoWay}" />
+        <ui:Button
+            Grid.Row="1"
+            Grid.Column="1"
+            Width="120"
+            Height="40"
+            Margin="10,10,10,10"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Command="{Binding BrowseCommand}"
+            Content="Browse Songs" />
 
-                <Button
-                    Grid.Row="1"
-                    Grid.Column="6"
-                    Width="80"
-                    Height="30"
-                    Margin="10,0,0,0"
-                    VerticalAlignment="Center"
-                    Content="Test N2NC"
-                    Click="TestN2NCButton_Click" />
-            </Grid>
-        </Border>
+        <Image
+            Grid.Row="0"
+            Grid.Column="0"
+            Source="{Binding BGPath}"
+            Stretch="Uniform" />
 
-        <!--  Content Area  -->
-        <Grid Grid.Row="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-
-            <!--  Songs Path Area  -->
-            <StackPanel
-                Grid.Row="0"
-                Margin="10,0,10,10"
-                Orientation="Vertical">
-                <TextBlock
-                    FontSize="18"
-                    Foreground="White"
-                    Text="{Binding SongsFolderPathHeader.Value}" />
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock
-                        Grid.Column="0"
-                        Background="Transparent"
-                        FontSize="18"
-                        Foreground="Black"
-                        Text="{Binding SongsPath, Mode=TwoWay}" />
-                    <Button
-                        Grid.Column="1"
-                        Width="120"
-                        Height="42"
-                        Padding="10,2"
-                        Command="{Binding BrowseCommand}"
-                        Content="Browse Songs" />
-                </Grid>
-                <Image
-                    Height="100"
-                    Margin="0,10,0,0"
-                    Source="{Binding BGPath}"
-                    Stretch="Uniform" />
-            </StackPanel>
-
-            <!--  Current File Info  -->
-            <GroupBox
-                Grid.Row="1"
-                Margin="0,10,0,0"
-                FontSize="18"
-                Header="Current Beatmap Info">
-                <ItemsControl
-                    x:Name="FileInfoContainer"
-                    Margin="0,10,0,0"
-                    ItemsSource="{Binding FileInfoItems}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock FontSize="18">
-                                <TextBlock.Text>
-                                    <MultiBinding StringFormat="{}{0}: {1}">
-                                        <Binding Path="Key" />
-                                        <Binding Path="Value" />
-                                    </MultiBinding>
-                                </TextBlock.Text>
-                            </TextBlock>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </GroupBox>
-        </Grid>
+        <!--  Current File Info  -->
+        <GroupBox
+            Grid.Row="2"
+            Grid.RowSpan="7"
+            Grid.Column="0"
+            Margin="10,10,10,10"
+            FontSize="18"
+            Header="Current Beatmap Info">
+            <ItemsControl
+                x:Name="FileInfoContainer"
+                Margin="10,10,10,10"
+                ItemsSource="{Binding FileInfoItems}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ui:TextBlock Margin="5,2,5,2" FontSize="18">
+                            <ui:TextBlock.Text>
+                                <MultiBinding StringFormat="{}{0}: {1}">
+                                    <Binding Path="Key" />
+                                    <Binding Path="Value" />
+                                </MultiBinding>
+                            </ui:TextBlock.Text>
+                        </ui:TextBlock>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </GroupBox>
     </Grid>
 </UserControl>

@@ -22,7 +22,7 @@ public class SRCalculatorTests
     }
 
     [Fact]
-    public void Calculate_EmptyNoteSequence_ThrowsException()
+    public void Calculate_EmptyNoteSequence_ReturnsZero()
     {
         // Arrange
         var calculator = new SRCalculator();
@@ -30,8 +30,11 @@ public class SRCalculatorTests
         var keyCount = 4;
         var od = 8.0;
 
+        // Act
+        var result = calculator.Calculate(noteSequence, keyCount, od, out _);
+
         // Assert
-        Assert.Throws<InvalidOperationException>(() => calculator.Calculate(noteSequence, keyCount, od, out _));
+        Assert.Equal(0, result);
     }
 
     [Fact]

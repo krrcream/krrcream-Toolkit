@@ -193,6 +193,13 @@ namespace krrTools.Beatmaps
             var keys = (int)beatmap.DifficultySection.CircleSize;
             var od = beatmap.DifficultySection.OverallDifficulty;
             var notes = calculator.getNotes(beatmap);
+            
+            // Handle beatmaps with no hit objects
+            if (notes.Count == 0)
+            {
+                return (keys, od, 0, 0);
+            }
+            
             double xxySr = calculator.Calculate(notes, keys, od, out _);
             double krrLv = CalculateKrrLevel(keys, xxySr);
 

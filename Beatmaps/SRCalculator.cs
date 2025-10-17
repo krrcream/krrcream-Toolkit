@@ -80,6 +80,14 @@ namespace krrTools.Beatmaps
             }
             // 优化：避免多次LINQ排序，使用Array.Sort
             noteSeq = noteSequence.ToArray();
+            
+            // Handle empty note sequence
+            if (noteSeq.Length == 0)
+            {
+                totalStopwatch.Stop();
+                return 0;
+            }
+            
             Array.Sort(noteSeq, (a, b) =>
             {
                 var cmp = a.H.CompareTo(b.H);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -7,6 +8,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using krrTools.Beatmaps;
 using krrTools.Bindable;
 using krrTools.Configuration;
 using krrTools.Core;
@@ -21,10 +23,14 @@ using krrTools.Tools.Preview;
 using krrTools.UI;
 using krrTools.Utilities;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Grid = Wpf.Ui.Controls.Grid;
 using Point = System.Windows.Point;
 using Size = System.Windows.Size;
 using Wpf.Ui.Controls;
+using MessageBox = System.Windows.MessageBox;
+using MessageBoxButton = System.Windows.MessageBoxButton;
+using MessageBoxImage = System.Windows.MessageBoxImage;
 
 namespace krrTools
 {
@@ -38,6 +44,9 @@ namespace krrTools
         private PreviewViewDual _previewDual = null!;
         private ContentControl _currentSettingsContainer = null!;
         private readonly StateBarManager _StateBarManager;
+
+        // 全局快捷键管理器
+        private ConversionHotkeyManager? _conversionHotkeyManager;
 
         // Snackbar服务
         private SnackbarPresenter _snackbarPresenter = null!;
@@ -119,6 +128,90 @@ namespace krrTools
 
             // 添加窗口关闭时的资源清理
             Closed += MainWindow_Closed;
+        }
+
+        private void InitializeGlobalHotkeys()
+        {
+            _conversionHotkeyManager = new ConversionHotkeyManager(ExecuteConvertWithModule, this);
+            
+            // 订阅监听状态变化
+            var eventBus = App.Services.GetService(typeof(IEventBus)) as IEventBus;
+            eventBus?.Subscribe<MonitoringEnabledChangedEvent>(OnMonitoringEnabledChanged);
+
+            // 如果监听已启用，注册快捷键
+            var globalSettings = BaseOptionsManager.GetGlobalSettings();
+            if (globalSettings.MonitoringEnable.Value)
+            {
+                _conversionHotkeyManager.RegisterHotkeys(globalSettings);
+            }
+        }
+
+        private void ExecuteConvertWithModule(ConverterEnum converter)
+        {
+            // 获取监听ViewModel中的当前谱面路径
+            if (_listenerControlInstance?.ViewModel == null)
+            {
+                Logger.WriteLine(LogLevel.Warning, "[MainWindow] ExecuteConvertWithModule: ListenerControl or ViewModel is null");
+                return;
+            }
+
+            string beatmapPath = _listenerControlInstance.ViewModel.MonitorOsuFilePath;
+
+            if (string.IsNullOrEmpty(beatmapPath))
+            {
+                MessageBox.Show("No beatmap is currently being monitored.", "Conversion Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                // 解码谱面
+                var beatmap = OsuParsers.Decoders.BeatmapDecoder.Decode(beatmapPath);
+
+                // 初始化转换服务
+                var moduleManager = App.Services.GetService(typeof(IModuleManager)) as IModuleManager;
+                var transformationService = new BeatmapTransformationService(moduleManager!);
+
+                // 使用转换服务
+                var transformedBeatmap = transformationService.TransformBeatmap(beatmap, converter);
+
+                // 保存转换后谱面
+                var outputPath = transformedBeatmap!.GetOutputOsuFileName();
+                var outputDir = Path.GetDirectoryName(beatmapPath);
+                var fullOutputPath = Path.Combine(outputDir!, outputPath);
+                transformedBeatmap!.Save(fullOutputPath);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Conversion failed: {ex.Message}", "Conversion Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnMonitoringEnabledChanged(MonitoringEnabledChangedEvent evt)
+        {
+            if (_conversionHotkeyManager == null) return;
+
+            if (evt.NewValue)
+            {
+                // 监听启用，注册快捷键
+                var globalSettings = BaseOptionsManager.GetGlobalSettings();
+                _conversionHotkeyManager.RegisterHotkeys(globalSettings);
+            }
+            else
+            {
+                // 监听禁用，注销快捷键
+                _conversionHotkeyManager.UnregisterAllHotkeys();
+            }
+        }
+
+        private Func<IToolOptions> GetOptionsProviderForConverter(ConverterEnum converter)
+        {
+            return _optionsProviders.GetValueOrDefault(converter, () => new N2NCOptions());
+        }
+
+        private object? GetViewModelForConverter(ConverterEnum converter)
+        {
+            return _viewModelGetters.GetValueOrDefault(converter, () => null)?.Invoke();
         }
 
         private void InitializeProviders()
@@ -339,6 +432,9 @@ namespace krrTools
             {
                 StatusBarControl.ApplyThemeSettings();
                 InvalidateVisual(); // 强制重新绘制以应用主题
+
+                // 初始化全局快捷键
+                InitializeGlobalHotkeys();
             }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         }
 
@@ -702,21 +798,7 @@ namespace krrTools
             }
         }
 
-        #region 辅助方法
-
-        private Func<IToolOptions> GetOptionsProviderForConverter(ConverterEnum converter)
-        {
-            return _optionsProviders.TryGetValue(converter, out var provider) ? provider : () => new N2NCOptions();
-        }
-
-        private object? GetViewModelForConverter(ConverterEnum converter)
-        {
-            return _viewModelGetters.TryGetValue(converter, out var getter) ? getter() : null;
-        }
-
-        /// <summary>
-        /// 窗口关闭时的资源清理
-        /// </summary>
+        // 处理窗口关闭时的资源清理
         private void MainWindow_Closed(object? sender, EventArgs e)
         {
             // 清理预览ViewModel的资源
@@ -737,7 +819,5 @@ namespace krrTools
 
             // 清理其他可能需要释放的资源
         }
-
-        #endregion
     }
 }
