@@ -45,6 +45,7 @@ namespace krrTools.Tools.KRRLVAnalysis
             {
                 AutoGenerateColumns = false,
                 CanUserAddRows = false,
+                IsReadOnly = true,
                 SelectionMode = DataGridSelectionMode.Single,
                 SelectionUnit = DataGridSelectionUnit.FullRow,
                 AllowDrop = true
@@ -77,18 +78,17 @@ namespace krrTools.Tools.KRRLVAnalysis
             var buttonGrid = new Grid { Margin = new Thickness(5) };
             buttonGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             buttonGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            buttonGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            buttonGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(7, GridUnitType.Star) });
+            buttonGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
             
-            var loadBtn = SharedUIComponents.CreateStandardButton("Load Folder|加载文件夹");
-            loadBtn.Width = Double.NaN; loadBtn.Height = 40;
-            loadBtn.Click += LoadBtn_Click;
-
             var progressBar = new ProgressBar
             {
                 Height = 20,
                 Width = Double.NaN,
-                HorizontalAlignment = HorizontalAlignment.Left,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 5, 0, 5),
+                Margin = new Thickness(0, 5, 0, 10),
                 Minimum = 0,
                 Maximum = 100
             };
@@ -98,10 +98,28 @@ namespace krrTools.Tools.KRRLVAnalysis
                 Converter = new BooleanToVisibilityConverter()
             });
 
+            var loadBtn = SharedUIComponents.CreateStandardButton("Load Folder|加载文件夹");
+            loadBtn.Width = Double.NaN; 
+            loadBtn.Height = 35;
+            loadBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
+            loadBtn.Margin = new Thickness(0, 0, 5, 0); // 右边距5px，与导出按钮间隔
+            loadBtn.Click += LoadBtn_Click;
+
+            var saveBtn = SharedUIComponents.CreateStandardButton("Export|导出");
+            saveBtn.Width = Double.NaN; 
+            saveBtn.Height = 35;
+            saveBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
+            saveBtn.SetBinding(ButtonBase.CommandProperty, new Binding("SaveCommand"));
+
             Grid.SetRow(progressBar, 0);
+            Grid.SetColumnSpan(progressBar, 2); // 进度条跨两列
             Grid.SetRow(loadBtn, 1);
+            Grid.SetColumn(loadBtn, 0);
+            Grid.SetRow(saveBtn, 1);
+            Grid.SetColumn(saveBtn, 1);
             buttonGrid.Children.Add(progressBar);
             buttonGrid.Children.Add(loadBtn);
+            buttonGrid.Children.Add(saveBtn);
 
             Grid.SetRow(buttonGrid, 1);
             root.Children.Add(buttonGrid);

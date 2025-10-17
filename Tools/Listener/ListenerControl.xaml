@@ -36,18 +36,20 @@
 
         <!--  N2NC Hotkey Label  -->
         <ui:TextBlock
-            Grid.Row="3"
+            Grid.Row="4"
             Grid.Column="1"
             HorizontalAlignment="Center"
-            VerticalAlignment="Center"
+            VerticalAlignment="Bottom"
             FontSize="16"
-            Text="N2NC Hotkey" />
+            Text="N2NC Hotkey"
+            TextAlignment="Center" />
 
         <ui:TextBox
             x:Name="N2NCHotkeyTextBox"
-            Grid.Row="4"
+            Grid.Row="3"
             Grid.Column="1"
             Margin="10,10,10,10"
+            VerticalAlignment="Top"
             VerticalContentAlignment="Center"
             Background="Transparent"
             FontSize="16"
@@ -68,18 +70,20 @@
 
         <!--  DP Hotkey Label  -->
         <ui:TextBlock
-            Grid.Row="5"
+            Grid.Row="6"
             Grid.Column="1"
             HorizontalAlignment="Center"
-            VerticalAlignment="Center"
+            VerticalAlignment="Bottom"
             FontSize="16"
-            Text="DP Hotkey" />
+            Text="DP Hotkey"
+            TextAlignment="Center" />
 
         <ui:TextBox
             x:Name="DPHotkeyTextBox"
-            Grid.Row="6"
+            Grid.Row="5"
             Grid.Column="1"
             Margin="10,10,10,10"
+            VerticalAlignment="Top"
             VerticalContentAlignment="Center"
             Background="Transparent"
             FontSize="16"
@@ -100,18 +104,20 @@
 
         <!--  KRRLN Hotkey Label  -->
         <ui:TextBlock
-            Grid.Row="7"
+            Grid.Row="8"
             Grid.Column="1"
             HorizontalAlignment="Center"
-            VerticalAlignment="Center"
+            VerticalAlignment="Top"
             FontSize="16"
-            Text="KRRLN Hotkey" />
+            Text="KRRLN Hotkey"
+            TextAlignment="Center" />
 
         <ui:TextBox
             x:Name="KRRLNHotkeyTextBox"
-            Grid.Row="8"
+            Grid.Row="7"
             Grid.Column="1"
             Margin="10,10,10,10"
+            VerticalAlignment="Top"
             VerticalContentAlignment="Center"
             Background="Transparent"
             FontSize="16"
@@ -131,7 +137,7 @@
         </ui:TextBox>
 
         <ui:Button
-            Grid.Row="2"
+            Grid.Row="0"
             Grid.Column="1"
             Width="120"
             Height="40"

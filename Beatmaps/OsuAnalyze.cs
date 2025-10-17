@@ -47,7 +47,7 @@ namespace krrTools.Beatmaps
         public double BeatmapSetID { get; init; }
         
         // Raw beatmap object (optional, for advanced usage)
-        public Beatmap? Beatmap { get; init; }
+        // public Beatmap? Beatmap { get; init; }
     }
 
     public static class OsuAnalyzer
@@ -100,20 +100,11 @@ namespace krrTools.Beatmaps
                 BeatmapID = beatmap.MetadataSection.BeatmapID,
                 BeatmapSetID = beatmap.MetadataSection.BeatmapSetID,
                 
-                // Raw beatmap object
-                Beatmap = beatmap
+                // Raw beatmap object (optional, for advanced usage)
+                // Beatmap = beatmap  // Removed to prevent memory accumulation in batch processing
             };
 
             return result;
-        }
-
-        /// <summary>
-        /// 同步版本 - 已过时，请使用 AnalyzeAsync
-        /// </summary>
-        [Obsolete("此方法已过时，请使用 AnalyzeAsync 异步版本")]
-        public static OsuAnalysisResult Analyze(string filePath)
-        {
-            return AnalyzeAsync(filePath).GetAwaiter().GetResult();
         }
 
         public static async Task<OsuAnalysisResult> AnalyzeAsync(string filePath, Beatmap beatmap)
@@ -159,19 +150,10 @@ namespace krrTools.Beatmaps
                 BeatmapSetID = beatmap.MetadataSection.BeatmapSetID,
 
                 // Raw beatmap object
-                Beatmap = beatmap
+                // Beatmap = beatmap
             };
 
             return result;
-        }
-
-        /// <summary>
-        /// 同步版本 - 已过时，请使用 AnalyzeAsync
-        /// </summary>
-        [Obsolete("此方法已过时，请使用 AnalyzeAsync 异步版本")]
-        public static OsuAnalysisResult Analyze(string filePath, Beatmap beatmap)
-        {
-            return AnalyzeAsync(filePath, beatmap).GetAwaiter().GetResult();
         }
         
         private static string GetBPMDisplay(Beatmap beatmap)

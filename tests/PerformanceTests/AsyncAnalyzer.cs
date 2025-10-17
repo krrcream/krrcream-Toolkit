@@ -84,7 +84,7 @@ public static class AsyncAnalyzer
             BeatmapSetID = beatmap.MetadataSection.BeatmapSetID,
 
             // Raw beatmap object
-            Beatmap = beatmap
+            // Beatmap = beatmap
         };
 
         return result;

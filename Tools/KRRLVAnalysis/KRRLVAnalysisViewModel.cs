@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
+using ClosedXML.Excel;
 using CommunityToolkit.Mvvm.Input;
 using krrTools.Beatmaps;
 using krrTools.Bindable;
@@ -17,8 +18,8 @@ using krrTools.Bindable;
 namespace krrTools.Tools.KRRLVAnalysis
 {
     //TODO:   1.控件优化，优化UI更新逻辑，减少频繁更新;
-    //        2.数据加载异常，显示数据为0;
-    //        3.xxySR计算太慢，严重需要优化速度;
+    //        2.0note要跳过，UI中也不要显示;
+    //        3.xxySR计算有一定缓存，看看能不能优化;
 
     public partial class KRRLVAnalysisViewModel : ReactiveViewModelBase
     {
@@ -150,36 +151,102 @@ namespace krrTools.Tools.KRRLVAnalysis
         [RelayCommand]
         private void Save()
         {
-            var savePath = FilesHelper.ShowSaveFileDialog("保存为CSV文件", "CSV文件|*.csv", "csv");
-            if (!string.IsNullOrEmpty(savePath))
+            var saveDialog = new Microsoft.Win32.SaveFileDialog
             {
+                Title = "导出数据",
+                Filter = "CSV 文件 (*.csv)|*.csv|Excel 文件 (*.xlsx)|*.xlsx",
+                DefaultExt = "csv",
+                AddExtension = true
+            };
+
+            if (saveDialog.ShowDialog() == true)
+            {
+                var filePath = saveDialog.FileName;
+                var extension = Path.GetExtension(filePath).ToLower();
+
                 try
                 {
-                    var csv = new StringBuilder();
-
-                    // 添加CSV头部
-                    csv.AppendLine("KRR_LV,YLS_LV,XXY_SR,Title,Diff,Artist,Creator,Keys,Notes,MaxKPS,AvgKPS,BPM,OD,HP,LN%,beatmapID,beatmapSetId,filePath");
-
-                    // 添加数据行
-                    foreach (var file in OsuFiles.Value)
+                    if (extension == ".csv")
                     {
-                        var line = $"\"{file.KrrLV:F2}\",\"{file.YlsLV:F2}\",\"{file.XxySR:F2}\",\"{file.Title}\",\"{file.Diff}\",\"{file.Artist}\",\"{file.Creator}\",{file.Keys},{file.NotesCount},\"{file.MaxKPS:F2}\",\"{file.AvgKPS:F2}\",\"{file.BPM}\",{file.OD},{file.HP},\"{file.LNPercent:F2}\",{file.BeatmapID},{file.BeatmapSetID},\"{file.FilePath}\"";
-                        csv.AppendLine(line);
+                        ExportToCsv(filePath);
+                    }
+                    else if (extension == ".xlsx")
+                    {
+                        ExportToExcel(filePath);
                     }
 
-                    File.WriteAllText(savePath, csv.ToString(), Encoding.UTF8);
-                    var processStartInfo = new ProcessStartInfo(savePath)
+                    // 打开导出的文件
+                    var processStartInfo = new ProcessStartInfo(filePath)
                     {
                         UseShellExecute = true
                     };
                     Process.Start(processStartInfo);
-
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[ERROR] 保存CSV文件失败: {ex.Message}");
+                    Console.WriteLine($"[ERROR] 导出文件失败: {ex.Message}");
                 }
             }
+        }
+
+        private void ExportToCsv(string filePath)
+        {
+            var csv = new StringBuilder();
+
+            // 添加CSV头部
+            csv.AppendLine("KRR_LV,YLS_LV,XXY_SR,Title,Diff,Artist,Creator,Keys,Notes,MaxKPS,AvgKPS,BPM,OD,HP,LN%,beatmapID,beatmapSetId,filePath");
+
+            // 添加数据行
+            foreach (var file in OsuFiles.Value)
+            {
+                var line = $"\"{file.KrrLV:F2}\",\"{file.YlsLV:F2}\",\"{file.XxySR:F2}\",\"{file.Title}\",\"{file.Diff}\",\"{file.Artist}\",\"{file.Creator}\",{file.Keys},{file.NotesCount},\"{file.MaxKPS:F2}\",\"{file.AvgKPS:F2}\",\"{file.BPM}\",{file.OD},{file.HP},\"{file.LNPercent:F2}\",{file.BeatmapID},{file.BeatmapSetID},\"{file.FilePath}\"";
+                csv.AppendLine(line);
+            }
+
+            File.WriteAllText(filePath, csv.ToString(), Encoding.UTF8);
+        }
+
+        private void ExportToExcel(string filePath)
+        {
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("KRR LV Analysis");
+
+            // 添加头部
+            var headers = new[] { "KRR_LV", "YLS_LV", "XXY_SR", "Title", "Diff", "Artist", "Creator", "Keys", "Notes", "MaxKPS", "AvgKPS", "BPM", "OD", "HP", "LN%", "beatmapID", "beatmapSetId", "filePath" };
+            for (int i = 0; i < headers.Length; i++)
+            {
+                worksheet.Cell(1, i + 1).Value = headers[i];
+            }
+
+            // 添加数据行
+            int row = 2;
+            foreach (var file in OsuFiles.Value)
+            {
+                worksheet.Cell(row, 1).Value = file.KrrLV;
+                worksheet.Cell(row, 2).Value = file.YlsLV;
+                worksheet.Cell(row, 3).Value = file.XxySR;
+                worksheet.Cell(row, 4).Value = file.Title;
+                worksheet.Cell(row, 5).Value = file.Diff;
+                worksheet.Cell(row, 6).Value = file.Artist;
+                worksheet.Cell(row, 7).Value = file.Creator;
+                worksheet.Cell(row, 8).Value = file.Keys;
+                worksheet.Cell(row, 9).Value = file.NotesCount;
+                worksheet.Cell(row, 10).Value = file.MaxKPS;
+                worksheet.Cell(row, 11).Value = file.AvgKPS;
+                worksheet.Cell(row, 12).Value = file.BPM;
+                worksheet.Cell(row, 13).Value = file.OD;
+                worksheet.Cell(row, 14).Value = file.HP;
+                worksheet.Cell(row, 15).Value = file.LNPercent;
+                worksheet.Cell(row, 16).Value = file.BeatmapID;
+                worksheet.Cell(row, 17).Value = file.BeatmapSetID;
+                worksheet.Cell(row, 18).Value = file.FilePath;
+                row++;
+            }
+
+            // 自动调整列宽
+            worksheet.Columns().AdjustToContents();
+
+            workbook.SaveAs(filePath);
         }
 
         public async void ProcessDroppedFiles(string[] files)
@@ -201,59 +268,83 @@ namespace krrTools.Tools.KRRLVAnalysis
 
                 _updateTimer.Start();
 
-                await Task.Run(async () =>
+                const int batchSize = 50;
+                var batches = new List<string[]>();
+                for (int i = 0; i < files.Length; i += batchSize)
                 {
-                    var tasks = new List<Task>();
+                    var batch = files.Skip(i).Take(batchSize).ToArray();
+                    batches.Add(batch);
+                }
 
-                    foreach (var file in files)
+                foreach (var batch in batches)
+                {
+                    await Task.Run(async () =>
                     {
-                        if (Directory.Exists(file))
-                        {
-                            // 处理文件夹
-                            var osuFiles = Directory.GetFiles(file, "*.osu", SearchOption.AllDirectories)
-                                .Where(f => Path.GetExtension(f).Equals(".osu", StringComparison.OrdinalIgnoreCase));
+                        var tasks = new List<Task>();
 
-                            foreach (var osuFile in osuFiles)
-                            {
-                                await _semaphore.WaitAsync();
-                                var task = CreateProcessingTask(() => Task.Run(() => ProcessOsuFile(osuFile)));
-                                tasks.Add(task);
-                            }
-                        }
-                        else if (File.Exists(file) && Path.GetExtension(file).Equals(".osu", StringComparison.OrdinalIgnoreCase))
+                        foreach (var file in batch)
                         {
-                            await _semaphore.WaitAsync();
-                            var task = CreateProcessingTask(() => Task.Run(() => ProcessOsuFile(file)));
-                            tasks.Add(task);
-                        }
-                        // 添加对.osz文件的支持
-                        else if (File.Exists(file) && Path.GetExtension(file).Equals(".osz", StringComparison.OrdinalIgnoreCase))
-                        {
-                            try
+                            if (Directory.Exists(file))
                             {
-                                using var archive = ZipFile.OpenRead(file);
-                                var osuEntries = archive.Entries.Where(e => e.Name.EndsWith(".osu", StringComparison.OrdinalIgnoreCase));
+                                // 处理文件夹
+                                var osuFiles = Directory.GetFiles(file, "*.osu", SearchOption.AllDirectories)
+                                    .Where(f => Path.GetExtension(f).Equals(".osu", StringComparison.OrdinalIgnoreCase));
 
-                                foreach (var entry in osuEntries)
+                                foreach (var osuFile in osuFiles)
                                 {
                                     await _semaphore.WaitAsync();
-                                    var task = CreateProcessingTask(() => Task.Run(() => ProcessOszEntry(entry, file)));
+                                    var task = CreateProcessingTask(() => Task.Run(() => ProcessOsuFile(osuFile)));
                                     tasks.Add(task);
                                 }
                             }
-                            catch (Exception ex)
+                            else if (File.Exists(file) && Path.GetExtension(file).Equals(".osu", StringComparison.OrdinalIgnoreCase))
                             {
-                                Console.WriteLine($"[ERROR] 处理.osz文件失败: {ex.Message}");
+                                await _semaphore.WaitAsync();
+                                var task = CreateProcessingTask(() => Task.Run(() => ProcessOsuFile(file)));
+                                tasks.Add(task);
+                            }
+                            // 添加对.osz文件的支持
+                            else if (File.Exists(file) && Path.GetExtension(file).Equals(".osz", StringComparison.OrdinalIgnoreCase))
+                            {
+                                try
+                                {
+                                    using var archive = ZipFile.OpenRead(file);
+                                    var osuEntries = archive.Entries.Where(e => e.Name.EndsWith(".osu", StringComparison.OrdinalIgnoreCase));
+
+                                    foreach (var entry in osuEntries)
+                                    {
+                                        await _semaphore.WaitAsync();
+                                        var task = CreateProcessingTask(() => Task.Run(() => ProcessOszEntry(entry, file)));
+                                        tasks.Add(task);
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"[ERROR] 处理.osz文件失败: {ex.Message}");
+                                }
                             }
                         }
-                    }
 
-                    await Task.WhenAll(tasks);
-                });
+                        await Task.WhenAll(tasks);
+                    });
+
+                    // 每批处理完成后强制垃圾回收以释放内存
+                    GC.Collect(2, GCCollectionMode.Forced, true);
+                    GC.WaitForPendingFinalizers();
+                }
 
                 // 等待所有任务完成后，确保剩余的项目也被添加
                 await Task.Delay(200); // 给最后一次更新留出时间
                 _updateTimer.Stop();
+
+                // 确保进度条显示100%
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    ProgressValue.Value = 100;
+                });
+
+                // 短暂延迟，让用户看到100%的进度
+                await Task.Delay(300);
 
                 // 关闭进度窗口
                 Application.Current.Dispatcher.Invoke(() =>
@@ -429,10 +520,5 @@ namespace krrTools.Tools.KRRLVAnalysis
 
 
 
-        public new void Dispose()
-        {
-            _semaphore.Dispose();
-            _updateTimer.Stop();
-        }
     }
 }

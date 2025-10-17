@@ -73,7 +73,7 @@ public static class OriginalAnalyzer
             BeatmapSetID = beatmap.MetadataSection.BeatmapSetID,
 
             // Raw beatmap object
-            Beatmap = beatmap
+            // Beatmap = beatmap
         };
 
         return result;

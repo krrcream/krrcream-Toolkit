@@ -54,7 +54,7 @@ public class OsuAnalyzePerformanceTests : IDisposable
         // 并行分析
         var stopwatch = Stopwatch.StartNew();
         var tasks = Enumerable.Range(0, simulatedFileCount)
-            .Select(i => Task.Run(() => OsuAnalyzer.Analyze($"simulated_{i}.osu", sampleBeatmap)))
+            .Select(i => Task.Run(() => OsuAnalyzer.AnalyzeAsync($"simulated_{i}.osu", sampleBeatmap)))
             .ToList();
 
         var results = await Task.WhenAll(tasks);
