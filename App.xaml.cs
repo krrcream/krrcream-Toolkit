@@ -53,7 +53,7 @@ namespace krrTools
 
                 // 注册模块管理器
                 services.AddSingleton<IModuleManager, ModuleManager>();
-
+                services.AddSingleton<OsuMonitorService>();
                 // 注册模块
                 services.AddSingleton<IToolModule, N2NCModule>();
                 services.AddSingleton<IToolModule, DPToolModule>();

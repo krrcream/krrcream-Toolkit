@@ -1,9 +1,13 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using System.Windows.Media;
 using krrTools.Beatmaps;
+using krrTools.Configuration;
 using krrTools.UI;
 
 namespace krrTools.Tools.KRRLVAnalysis
@@ -11,6 +15,9 @@ namespace krrTools.Tools.KRRLVAnalysis
     public class KRRLVAnalysisView : UserControl
     {
         private readonly KRRLVAnalysisViewModel _analysisViewModel;
+        private DataGrid? dataGrid;
+
+        private const string ToolName = "KRRLVAnalysis";
 
         public KRRLVAnalysisView()
         {
@@ -34,7 +41,7 @@ namespace krrTools.Tools.KRRLVAnalysis
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
             // DataGrid for results
-            var dataGrid = new DataGrid
+            dataGrid = new DataGrid
             {
                 AutoGenerateColumns = false,
                 CanUserAddRows = false,
@@ -43,6 +50,9 @@ namespace krrTools.Tools.KRRLVAnalysis
                 AllowDrop = true
             };
             dataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("OsuFiles.Value"));
+
+            LoadColumnOrder();
+            dataGrid.ColumnReordered += OnColumnReordered;
 
             dataGrid.Columns.Add(new DataGridTextColumn { Header = "Title", Binding = new Binding("Title"), Width = 140 });
             dataGrid.Columns.Add(new DataGridTextColumn { Header = "Artist", Binding = new Binding("Artist"), Width = 140 });
@@ -134,6 +144,37 @@ namespace krrTools.Tools.KRRLVAnalysis
         private void OnLanguageChanged()
         {
             // Update UI strings if needed
+        }
+
+        private void LoadColumnOrder()
+        {
+            if (dataGrid == null) return;
+            var config = BaseOptionsManager.GetGlobalSettings();
+            if (config.DataGridColumnOrders.Value.TryGetValue(ToolName, out var orders) && orders.Count == dataGrid.Columns.Count)
+            {
+                for (int i = 0; i < orders.Count; i++)
+                {
+                    dataGrid.Columns[i].DisplayIndex = orders[i];
+                }
+            }
+        }
+
+        private void OnColumnReordered(object? sender, DataGridColumnEventArgs e)
+        {
+            SaveColumnOrder();
+        }
+
+        private void SaveColumnOrder()
+        {
+            if (dataGrid == null) return;
+            var orders = new List<int>();
+            foreach (var col in dataGrid.Columns.OrderBy(c => c.DisplayIndex))
+            {
+                orders.Add(dataGrid.Columns.IndexOf(col));
+            }
+            var config = BaseOptionsManager.GetGlobalSettings();
+            config.DataGridColumnOrders.Value[ToolName] = orders;
+            BaseOptionsManager.SetGlobalSettingsSilent(config);
         }
     }
 }

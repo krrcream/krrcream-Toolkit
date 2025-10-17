@@ -32,7 +32,7 @@ namespace krrTools.Utilities
         public StatusBarControl(StateBarManager stateBarManager)
         {
             InitializeComponent();
-            
+            ToolTip = "置顶|Topmost";
             // 设置实时预览开关的初始状态和点击事件
             RealTimeToggle.IsChecked = stateBarManager.IsMonitoringEnable;
             RealTimeToggle.Click += (_, _) => 

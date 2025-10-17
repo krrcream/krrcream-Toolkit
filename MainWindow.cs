@@ -274,21 +274,64 @@ namespace krrTools
 
             statusBarControl.TopmostToggle.Checked += (_, _) =>
             {
-                Topmost = true;
+                SetTopmost(true);
                 statusBarControl.TopmostToggle.Content = new SymbolIcon { Symbol = SymbolRegular.Pin20 };
                 statusBarControl.TopmostToggle.ToolTip = "取消置顶";
             };
             statusBarControl.TopmostToggle.Unchecked += (_, _) =>
             {
-                Topmost = false;
+                SetTopmost(false);
                 statusBarControl.TopmostToggle.Content = new SymbolIcon { Symbol = SymbolRegular.PinOff20 };
                 statusBarControl.TopmostToggle.ToolTip = "置顶窗口";
             };
+
+            // 监听冻结状态
+            _StateBarManager.IsFrozen.OnValueChanged(frozen =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    if (frozen)
+                    {
+                        statusBarControl.RealTimeToggle.IsEnabled = false;
+                        statusBarControl.TopmostToggle.IsEnabled = false;
+                        // TODO: 暂停预览刷新、监听等
+                    }
+                    else
+                    {
+                        statusBarControl.RealTimeToggle.IsEnabled = true;
+                        statusBarControl.TopmostToggle.IsEnabled = true;
+                        // TODO: 恢复预览刷新、监听等
+                    }
+                });
+            });
+
+            // 监听隐藏状态
+            _StateBarManager.IsHidden.OnValueChanged(hidden =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    if (hidden)
+                    {
+                        WindowState = WindowState.Minimized;
+                    }
+                    else
+                    {
+                        WindowState = WindowState.Normal;
+                        this.Activate();
+                    }
+                });
+            });
 
             // 添加SnackbarPresenter
             _snackbarPresenter = new SnackbarPresenter();
 
             return statusBarControl;
+        }
+
+        private void SetTopmost(bool value)
+        {
+            Topmost = value;
+            _StateBarManager.SetTopmost(value);
         }
 
         private void ApplyToThemeLoaded(object sender, RoutedEventArgs e)

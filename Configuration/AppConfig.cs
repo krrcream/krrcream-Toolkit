@@ -95,6 +95,11 @@ namespace krrTools.Configuration
         public Bindable<string> LastPreviewPath { get; set; } = new(string.Empty);
 
         /// <summary>
+        /// 数据表列顺序，按工具名称分组
+        /// </summary>
+        public Bindable<Dictionary<string, List<int>>> DataGridColumnOrders { get; set; } = new(new Dictionary<string, List<int>>());
+
+        /// <summary>
         /// 构造函数，设置自动保存回调
         /// </summary>
         public GlobalSettings()
@@ -115,6 +120,7 @@ namespace krrTools.Configuration
             DPHotkey.OnValueChanged(_ => ScheduleSave());
             KRRLNHotkey.OnValueChanged(_ => ScheduleSave());
             LastPreviewPath.OnValueChanged(_ => ScheduleSave());
+            DataGridColumnOrders.OnValueChanged(_ => ScheduleSave());
         }
 
         private void ScheduleSave()

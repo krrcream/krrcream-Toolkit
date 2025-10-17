@@ -16,11 +16,15 @@ namespace krrTools.Utilities
 
         // 跟踪上一次的状态，用于事件发布
         private bool _lastIsOsuRunning;
+        private bool _isTopmost;
 
         // 核心状态 - 直接使用全局设置
         public Bindable<bool> IsOsuRunning { get; } = new();
         public Bindable<string> CurrentBeatmapPath { get; } = new(string.Empty);
         public Bindable<ListenerState> ListenerState { get; } = new();
+        public Bindable<bool> IsPlaying { get; } = new();
+        public Bindable<bool> IsFrozen { get; } = new();
+        public Bindable<bool> IsHidden { get; } = new();
 
         public StateBarManager()
         {
@@ -30,6 +34,23 @@ namespace krrTools.Utilities
             // 设置状态绑定和响应逻辑
             SetupStateBindings();
             EventBus.Subscribe<MonitoringEnabledChangedEvent>(OnMonitoringEnabledChanged);
+        }
+
+        /// <summary>
+        /// 设置置顶状态
+        /// </summary>
+        public void SetTopmost(bool value)
+        {
+            _isTopmost = value;
+            // 检查隐藏逻辑
+            if (IsPlaying.Value && value)
+            {
+                IsHidden.Value = true;
+            }
+            else if (!value)
+            {
+                IsHidden.Value = false;
+            }
         }
 
         #region 公共属性
@@ -96,6 +117,38 @@ namespace krrTools.Utilities
 
             // 监听器状态变化时，触发属性变更通知
             ListenerState.OnValueChanged(_ => { OnPropertyChanged(nameof(ListenerState)); });
+
+            // IsPlaying变化时，处理隐藏和冻结逻辑
+            IsPlaying.OnValueChanged(playing =>
+            {
+                // 隐藏逻辑：只有置顶开启时才隐藏
+                if (playing && _isTopmost)
+                {
+                    IsHidden.Value = true;
+                }
+                else if (!playing)
+                {
+                    IsHidden.Value = false;
+                }
+
+                // 冻结逻辑：只有监听开启时才冻结
+                if (playing && IsMonitoringEnable)
+                {
+                    IsFrozen.Value = true;
+                }
+                else if (!playing)
+                {
+                    IsFrozen.Value = false;
+                }
+
+                OnPropertyChanged(nameof(IsPlaying));
+            });
+
+            // IsFrozen变化时，触发属性变更通知
+            IsFrozen.OnValueChanged(_ => { OnPropertyChanged(nameof(IsFrozen)); });
+
+            // IsHidden变化时，触发属性变更通知
+            IsHidden.OnValueChanged(_ => { OnPropertyChanged(nameof(IsHidden)); });
         }
 
         #endregion
@@ -116,6 +169,16 @@ namespace krrTools.Utilities
                     ListenerState.Value = 0;
                     // 监听关闭时，重置预览到内置样本
                     EventBus.Publish(new ConvPrevRefreshOnlyEvent { NewValue = false });
+                }
+
+                // 检查冻结逻辑
+                if (IsPlaying.Value && evt.NewValue)
+                {
+                    IsFrozen.Value = true;
+                }
+                else if (!evt.NewValue)
+                {
+                    IsFrozen.Value = false;
                 }
             });
         }

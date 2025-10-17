@@ -18,7 +18,12 @@
             Padding="10"
             Background="LightGray">
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
@@ -27,16 +32,39 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
+                <!-- Left side bilingual instruction -->
                 <TextBlock
+                    Grid.Row="0"
+                    Grid.RowSpan="2"
                     Grid.Column="0"
+                    Width="150"
+                    VerticalAlignment="Center"
+                    FontSize="18"
+                    Text="必须开启监听才能使用快捷键&#x0a;Listening must be enabled to use Hotkeys"
+                    TextWrapping="Wrap" />
+
+                <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="1"
                     Width="200"
                     VerticalAlignment="Center"
-                    FontSize="16"
+                    FontSize="18"
                     FontWeight="Bold"
                     Text="{Binding WindowTitle}" />
+
+                <!-- N2NC Hotkey Label -->
+                <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="3"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom"
+                    FontSize="18"
+                    Text="N2NC Hotkey" />
+
                 <TextBox
                     x:Name="N2NCHotkeyTextBox"
-                    Grid.Column="2"
+                    Grid.Row="1"
+                    Grid.Column="3"
                     Width="150"
                     Height="30"
                     Margin="10,0,0,0"
@@ -56,9 +84,20 @@
                         </Style>
                     </TextBox.Style>
                 </TextBox>
+
+                <!-- DP Hotkey Label -->
+                <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="4"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom"
+                    FontSize="18"
+                    Text="DP Hotkey" />
+
                 <TextBox
                     x:Name="DPHotkeyTextBox"
-                    Grid.Column="3"
+                    Grid.Row="1"
+                    Grid.Column="4"
                     Width="150"
                     Height="30"
                     Margin="10,0,0,0"
@@ -78,9 +117,20 @@
                         </Style>
                     </TextBox.Style>
                 </TextBox>
+
+                <!-- KRRLN Hotkey Label -->
+                <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="5"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom"
+                    FontSize="18"
+                    Text="KRRLN Hotkey" />
+
                 <TextBox
                     x:Name="KRRLNHotkeyTextBox"
-                    Grid.Column="4"
+                    Grid.Row="1"
+                    Grid.Column="5"
                     Width="150"
                     Height="30"
                     Margin="10,0,0,0"
@@ -100,8 +150,10 @@
                         </Style>
                     </TextBox.Style>
                 </TextBox>
+
                 <Button
-                    Grid.Column="5"
+                    Grid.Row="1"
+                    Grid.Column="6"
                     Width="80"
                     Height="30"
                     Margin="10,0,0,0"
@@ -121,10 +173,10 @@
             <!--  Songs Path Area  -->
             <StackPanel
                 Grid.Row="0"
-                Margin="5,0,5,10"
+                Margin="10,0,10,10"
                 Orientation="Vertical">
                 <TextBlock
-                    FontSize="14"
+                    FontSize="18"
                     Foreground="White"
                     Text="{Binding SongsFolderPathHeader.Value}" />
                 <Grid>
@@ -161,11 +213,11 @@
                 Header="Current Beatmap Info">
                 <ItemsControl
                     x:Name="FileInfoContainer"
-                    Margin="0,5,0,0"
+                    Margin="0,10,0,0"
                     ItemsSource="{Binding FileInfoItems}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock FontSize="16">
+                            <TextBlock FontSize="18">
                                 <TextBlock.Text>
                                     <MultiBinding StringFormat="{}{0}: {1}">
                                         <Binding Path="Key" />

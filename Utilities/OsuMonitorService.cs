@@ -54,6 +54,8 @@ public class OsuMonitorService
         // 更新全局状态
         StateBarManager.IsOsuRunning.Value = isOsuRunning;
 
+        StateBarManager.IsPlaying.Value = isOsuRunning && IsPlaying();
+
         if (!isOsuRunning)
         {
             _lastProcessId = -1;
@@ -113,7 +115,7 @@ public class OsuMonitorService
 
     /// <summary>
     /// 读取内存数据
-    /// </summary>
+    /// /// </summary>
     public string ReadMemoryData()
     {
         var stopwatch = Stopwatch.StartNew();
@@ -139,6 +141,26 @@ public class OsuMonitorService
         {
             Console.WriteLine($"[OsuMonitorService] 未能读取内存数据: {ex.Message}");
             return string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// 检测是否在playing状态
+    /// </summary>
+    public bool IsPlaying()
+    {
+        try
+        {
+            // 假设playing模式是0，选歌是其他
+            var mode = _reader.ReadSongSelectGameMode();
+            var isPlaying = _reader.ReadPlayedGameMode();
+            Logger.WriteLine(LogLevel.Debug,
+                $"[OsuMonitorService] 读取playing状态: mode={mode}, isPlaying={isPlaying}");
+            return isPlaying == 0;
+        }
+        catch
+        {
+            return false;
         }
     }
 }

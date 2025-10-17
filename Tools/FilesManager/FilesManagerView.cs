@@ -12,6 +12,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using DataGridExtensions;
 using krrTools.Beatmaps;
+using krrTools.Configuration;
 using krrTools.Localization;
 using krrTools.UI;
 using Microsoft.Extensions.Logging;
@@ -21,11 +22,12 @@ namespace krrTools.Tools.FilesManager
     public class FilesManagerView : UserControl 
     {
         private readonly FilesManagerViewModel _viewModel;
+        private DataGrid? _fileDataGrid;
 
         // 取反，数据加载时禁用按钮
         private readonly InverseBoolBtn _inverseBoolBtn = new();
 
-        private DataGrid? _fileDataGrid;
+        private const string ToolName = "FilesManager";
         private ProgressBar? _progressBarControl;
         private TextBlock? _progressTextBlockControl;
 
@@ -98,6 +100,9 @@ namespace krrTools.Tools.FilesManager
             // 启用 DataGridExtensions 高级功能
             _fileDataGrid.SetValue(DataGridFilter.IsAutoFilterEnabledProperty, true);                    
             _fileDataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("FilteredOsuFiles.Value"));
+
+            LoadColumnOrder();
+            _fileDataGrid.ColumnReordered += OnColumnReordered;
 
             // 设置选中行样式 - 更明显的蓝色高亮
             var rowStyle = new Style(typeof(DataGridRow));
@@ -348,6 +353,37 @@ namespace krrTools.Tools.FilesManager
                 BuildUI();
                 DataContext = dc;
             }));
+        }
+
+        private void LoadColumnOrder()
+        {
+            if (_fileDataGrid == null) return;
+            var config = BaseOptionsManager.GetGlobalSettings();
+            if (config.DataGridColumnOrders.Value.TryGetValue(ToolName, out var orders) && orders.Count == _fileDataGrid.Columns.Count)
+            {
+                for (int i = 0; i < orders.Count; i++)
+                {
+                    _fileDataGrid.Columns[i].DisplayIndex = orders[i];
+                }
+            }
+        }
+
+        private void OnColumnReordered(object? sender, DataGridColumnEventArgs e)
+        {
+            SaveColumnOrder();
+        }
+
+        private void SaveColumnOrder()
+        {
+            if (_fileDataGrid == null) return;
+            var orders = new List<int>();
+            foreach (var col in _fileDataGrid.Columns.OrderBy(c => c.DisplayIndex))
+            {
+                orders.Add(_fileDataGrid.Columns.IndexOf(col));
+            }
+            var config = BaseOptionsManager.GetGlobalSettings();
+            config.DataGridColumnOrders.Value[ToolName] = orders;
+            BaseOptionsManager.SetGlobalSettingsSilent(config);
         }
 
         private void OnDataGridKeyDown(object sender, KeyEventArgs e)
