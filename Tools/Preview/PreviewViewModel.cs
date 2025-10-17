@@ -155,7 +155,6 @@ public class PreviewViewModel : ReactiveViewModelBase
         else
         {
             ResetPreview();
-            RefreshOriginal();
         }
     }
 

@@ -276,13 +276,11 @@ namespace krrTools
             {
                 SetTopmost(true);
                 statusBarControl.TopmostToggle.Content = new SymbolIcon { Symbol = SymbolRegular.Pin20 };
-                statusBarControl.TopmostToggle.ToolTip = "取消置顶";
             };
             statusBarControl.TopmostToggle.Unchecked += (_, _) =>
             {
                 SetTopmost(false);
                 statusBarControl.TopmostToggle.Content = new SymbolIcon { Symbol = SymbolRegular.PinOff20 };
-                statusBarControl.TopmostToggle.ToolTip = "置顶窗口";
             };
 
             // 监听冻结状态

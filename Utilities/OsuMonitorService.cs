@@ -17,7 +17,7 @@ namespace krrTools.Utilities;
 public class OsuMonitorService
 {
     private int _lastProcessId = -1;
-    private readonly IOsuMemoryReader _reader;
+    private IOsuMemoryReader? _reader;
     private int _lastProcessCount = -1;
     private bool _lastIsOsuRunning = false;
     private string _lastBeatmapFile = string.Empty;
@@ -27,10 +27,7 @@ public class OsuMonitorService
 
     public OsuMonitorService()
     {
-#pragma warning disable CS0618 // 必须构建初始化，否则有高延迟问题
-        _reader = OsuMemoryReader.Instance;
-#pragma warning restore CS0618 // Type or member is obsolete
-
+        // 延迟初始化_reader，只有在需要时创建
         // 注入服务
         this.InjectServices();
     }
@@ -40,6 +37,12 @@ public class OsuMonitorService
     /// </summary>
     public void DetectOsuProcess()
     {
+        if (_reader == null)
+        {
+#pragma warning disable CS0618 // 必须构建初始化，否则有高延迟问题
+            _reader = OsuMemoryReader.Instance;
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
         var osuProcesses = Process.GetProcessesByName("osu!");
         var isOsuRunning = osuProcesses.Length > 0;
 
@@ -115,13 +118,15 @@ public class OsuMonitorService
 
     /// <summary>
     /// 读取内存数据
-    /// /// </summary>
+    /// </summary>
     public string ReadMemoryData()
     {
+        if (_reader == null) return string.Empty;
+
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            if (_reader.ReadSongSelectGameMode() != 3) return string.Empty; // 3 = 观看录像模式，跳过
+            // if (_reader.ReadSongSelectGameMode() != 3) return string.Empty; // 这是监听F1选歌模式，不是选谱，所以使用的话体验差一点
 
             var beatmapFile = _reader.GetOsuFileName();
             var mapFolderName = _reader.GetMapFolderName();
@@ -149,14 +154,17 @@ public class OsuMonitorService
     /// </summary>
     public bool IsPlaying()
     {
+        if (_reader == null) return false;
+
         try
         {
             // 假设playing模式是0，选歌是其他
             var mode = _reader.ReadSongSelectGameMode();
-            var isPlaying = _reader.ReadPlayedGameMode();
+            var playingMods = _reader.GetPlayingMods();
+            var acc = _reader.ReadAcc();
             Logger.WriteLine(LogLevel.Debug,
-                $"[OsuMonitorService] 读取playing状态: mode={mode}, isPlaying={isPlaying}");
-            return isPlaying == 0;
+                $"[OsuMonitorService] 读取playing状态: mode={mode}, isPlaying={playingMods}, acc={acc}");
+            return playingMods == 0 || acc > 0;
         }
         catch
         {
