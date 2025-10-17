@@ -7,6 +7,7 @@ using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Core;
 using krrTools.Tools.Preview;
+using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 
 namespace krrTools.Utilities
@@ -66,7 +67,7 @@ namespace krrTools.Utilities
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ConverterProcessor] Transformation failed: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[ConverterProcessor] Transformation failed: {0}", ex.Message);
                 return new TextBlock { Text = $"转换失败: {ex.Message}" };
             }
         } // 通过方法获得转换结果，传递绘制

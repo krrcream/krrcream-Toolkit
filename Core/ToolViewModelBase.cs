@@ -51,8 +51,8 @@ namespace krrTools.Core;
                         }
                         catch (Exception ex)
                         {
-                            Logger.WriteLine(LogLevel.Error, $"[ToolOptions] Failed to save options for {_toolEnum}: {ex.Message}");
-                            Console.WriteLine("[DEBUG] Failed to save options; changes may be lost.");
+                            Logger.WriteLine(LogLevel.Error, "[ToolOptions] Failed to save options for {0}: {1}", _toolEnum, ex.Message);
+                            Logger.WriteLine(LogLevel.Debug, "[ToolOptions] Failed to save options; changes may be lost.");
                         }
                     }
                 };
@@ -135,7 +135,7 @@ namespace krrTools.Core;
             }
             catch
             {
-                Console.WriteLine("[DEBUG] Failed to load options; using defaults.");
+                Logger.WriteLine(LogLevel.Debug, "[ToolOptions] Failed to load options; using defaults.");
             }
         }
         

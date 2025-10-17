@@ -9,6 +9,7 @@ using System.Windows;
 using krrTools.Configuration;
 using krrTools.Core;
 using krrTools.Localization;
+using Microsoft.Extensions.Logging;
 using MessageBox = System.Windows.MessageBox;
 using MessageBoxButton = System.Windows.MessageBoxButton;
 
@@ -47,7 +48,7 @@ namespace krrTools.Utilities
         private void ConvertWithResults(string[] paths, ConverterEnum activeTabTag)
         {
             var startTime = DateTime.Now;
-            Console.WriteLine($"[INFO] 开始转换 - 调用模块: {activeTabTag}, 使用活动设置, 文件数量: {paths.Length}");
+            Logger.WriteLine(LogLevel.Information, "[FileDispatcher] 开始转换 - 调用模块: {0}, 使用活动设置, 文件数量: {1}", activeTabTag, paths.Length);
 
             var created = new ConcurrentBag<string>();
             var failed = new ConcurrentBag<string>();
@@ -73,7 +74,7 @@ namespace krrTools.Utilities
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[ERROR] 并行转换文件失败: {p}\n{ex}");
+                    Logger.WriteLine(LogLevel.Error, "[FileDispatcher] 并行转换文件失败: {0}\n{1}", p, ex);
                     failed.Add(p);
                 }
                 finally
@@ -88,17 +89,17 @@ namespace krrTools.Utilities
             {
                 try
                 {
-                    Console.WriteLine($"[INFO] 转换器: {activeTabTag}, 生成文件数量: {created.Count}");
+                    Logger.WriteLine(LogLevel.Information, "[FileDispatcher] 转换器: {0}, 生成文件数量: {1}", activeTabTag, created.Count);
 
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[ERROR] 广播已转换文件失败: {ex.Message}");
+                    Logger.WriteLine(LogLevel.Error, "[FileDispatcher] 广播已转换文件失败: {0}", ex.Message);
                 }
             }
 
             var duration = DateTime.Now - startTime;
-            Console.WriteLine($"[INFO] 转换器: {activeTabTag}, 成功: {created.Count}, 失败: {failed.Count}, 用时: {duration.TotalSeconds:F4}s");
+            Logger.WriteLine(LogLevel.Information, "[FileDispatcher] 转换器: {0}, 成功: {1}, 失败: {2}, 用时: {3:F4}s", activeTabTag, created.Count, failed.Count, duration.TotalSeconds);
 
             ShowConversionResult(created.ToList(), failed.ToList());
         }

@@ -31,8 +31,8 @@ namespace krrTools
         {
             _logger?.Log(level, message, args);
 
-            // Output to console with color in UI thread (only if enabled)
-            if (!_consoleOutputEnabled)
+            // 如果有外部logger，就不输出到控制台，避免双重输出
+            if (_logger != null || !_consoleOutputEnabled)
                 return;
 
             ConsoleColor color = level switch

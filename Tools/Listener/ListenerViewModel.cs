@@ -161,7 +161,7 @@ public class ListenerViewModel : ReactiveViewModelBase
         _monitoringCancellation = new CancellationTokenSource();
         _monitoringTask = Task.Run(async () =>
         {
-            Console.WriteLine("[ListenerViewModel] Monitoring task started");
+            Logger.WriteLine(LogLevel.Information, "[ListenerViewModel] Monitoring task started");
             while (!_monitoringCancellation.Token.IsCancellationRequested)
             {
                 var detected = CheckOsuBeatmap();
@@ -172,7 +172,7 @@ public class ListenerViewModel : ReactiveViewModelBase
                 await Task.Delay(_currentDelayMs, _monitoringCancellation.Token); // 动态间隔，可取消
             }
 
-            Console.WriteLine("[ListenerViewModel] Monitoring task ended");
+            Logger.WriteLine(LogLevel.Information, "[ListenerViewModel] Monitoring task ended");
         });
 
         return Task.CompletedTask;
@@ -251,11 +251,11 @@ public class ListenerViewModel : ReactiveViewModelBase
         catch (AggregateException ex) when (ex.InnerException is TaskCanceledException)
         {
             // 忽略任务取消异常
-            Console.WriteLine("[ListenerViewModel] StopMonitoring: Task was canceled, ignoring.");
+            Logger.WriteLine(LogLevel.Information, "[ListenerViewModel] StopMonitoring: Task was canceled, ignoring.");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ListenerViewModel] StopMonitoring error: {ex.Message}");
+            Logger.WriteLine(LogLevel.Error, "[ListenerViewModel] StopMonitoring error: {0}", ex.Message);
         }
 
         _monitoringCancellation?.Dispose();

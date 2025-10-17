@@ -4,6 +4,7 @@ using System.IO;
 using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Core;
+using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 
@@ -47,13 +48,13 @@ namespace krrTools.Utilities
                 }
                 else
                 {
-                    Console.WriteLine($"[BeatmapTransformationService] Tool {converter} does not support Beatmap conversion");
+                    Logger.WriteLine(LogLevel.Warning, "[BeatmapTransformationService] Tool {0} does not support Beatmap conversion", converter);
                     return null;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[BeatmapTransformationService] Transformation failed for {converter}: {ex.Message}");
+                Logger.WriteLine(LogLevel.Error, "[BeatmapTransformationService] Transformation failed for {0}: {1}", converter, ex.Message);
                 return null;
             }
         }
@@ -97,7 +98,7 @@ namespace krrTools.Utilities
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[ERROR] 删除旧文件失败: {fullOutputPath}\n{ex}");
+                        Logger.WriteLine(LogLevel.Error, "[BeatmapTransformationService] 删除旧文件失败: {0}\n{1}", fullOutputPath, ex);
                         return null;
                     }
                 }
@@ -109,13 +110,13 @@ namespace krrTools.Utilities
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[ERROR] 保存失败: {fullOutputPath}\n{ex}");
+                    Logger.WriteLine(LogLevel.Error, "[BeatmapTransformationService] 保存失败: {0}\n{1}", fullOutputPath, ex);
                     return null;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] 转换文件失败: {inputPath}\n{ex}");
+                Logger.WriteLine(LogLevel.Error, "[BeatmapTransformationService] 转换文件失败: {0}\n{1}", inputPath, ex);
                 return null;
             }
         }

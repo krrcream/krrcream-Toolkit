@@ -50,7 +50,7 @@ public class OsuMonitorService
         // 只有当状态变化时才输出日志
         if (_lastProcessCount != osuProcesses.Length || _lastIsOsuRunning != isOsuRunning)
         {
-            Console.WriteLine($"[OsuMonitorService] osu!进程数: {osuProcesses.Length}, 运行: {isOsuRunning}");
+            Logger.WriteLine(LogLevel.Information, "[OsuMonitorService] osu!进程数: {0}, 运行: {1}", osuProcesses.Length, isOsuRunning);
             _lastProcessCount = osuProcesses.Length;
             _lastIsOsuRunning = isOsuRunning;
         }
@@ -106,7 +106,7 @@ public class OsuMonitorService
                         songsPath != BaseOptionsManager.GetGlobalSettings().SongsPath.Value)
                     {
                         BaseOptionsManager.GetGlobalSettings().SongsPath.Value = songsPath;
-                        Console.WriteLine("[OsuMonitorService] 客户端: osu!, 进程ID: {0}, 加载Songs路径: {1}",
+                        Logger.WriteLine(LogLevel.Information, "[OsuMonitorService] 客户端: osu!, 进程ID: {0}, 加载Songs路径: {1}",
                             selectedProcess.Id, songsPath);
                     }
 
@@ -142,7 +142,7 @@ public class OsuMonitorService
             // 只有当beatmap文件变化时才输出日志
             if (_lastBeatmapFile != path)
             {
-                Console.WriteLine($"[OsuMonitorService] 内存读取成功,用时{stopwatch.ElapsedMilliseconds}ms: beatmapFile={path}");
+                Logger.WriteLine(LogLevel.Information, "[OsuMonitorService] 内存读取成功,用时{0}ms: beatmapFile={1}", stopwatch.ElapsedMilliseconds, path);
                 _lastBeatmapFile = path;
             }
 
@@ -150,7 +150,7 @@ public class OsuMonitorService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[OsuMonitorService] 未能读取内存数据: {ex.Message}");
+            Logger.WriteLine(LogLevel.Error, "[OsuMonitorService] 未能读取内存数据: {0}", ex.Message);
             return string.Empty;
         }
     }

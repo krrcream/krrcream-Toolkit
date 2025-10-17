@@ -95,7 +95,7 @@ public class PreviewViewModel : ReactiveViewModelBase
                 ConverterEnum.KRRLN => "KRRLN",
                 _ => "未知"
             };
-            Console.WriteLine($"[{moduleName}模块]-{settingsEvent.PropertyName}-变更为{settingsEvent.NewValue}");
+            Logger.WriteLine(LogLevel.Information, "[{0}模块]-{1}-变更为{2}", moduleName, settingsEvent.PropertyName, settingsEvent.NewValue);
         }
 
         // 直接调用RefreshConverted，在测试环境中Dispatcher可能不可用

@@ -79,8 +79,8 @@ namespace krrTools
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"应用启动失败: {ex.Message}");
-                Console.WriteLine(ex.StackTrace);
+                Logger.WriteLine(LogLevel.Error, "应用启动失败: {0}", ex.Message);
+                Logger.WriteLine(LogLevel.Error, "StackTrace: {0}", ex.StackTrace ?? "N/A");
                 MessageBox.Show($"应用启动失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
