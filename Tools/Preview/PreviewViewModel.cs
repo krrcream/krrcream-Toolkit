@@ -6,6 +6,7 @@ using krrTools.Bindable;
 using krrTools.Configuration;
 using krrTools.Core;
 using krrTools.Localization;
+using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 
@@ -221,11 +222,11 @@ public class PreviewViewModel : ReactiveViewModelBase
                 OriginalVisual = Processor.BuildOriginalVisual(beatmap);
 
             var duration = DateTime.Now - decodeStartTime;
-            Console.WriteLine($"[PreviewViewModel] 原始预览刷新完成，耗时: {duration.TotalMilliseconds:F1}ms");
+            Logger.WriteLine(LogLevel.Debug, "[PreviewViewModel] 原始预览刷新完成，耗时: {0:F1}ms", duration.TotalMilliseconds);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PreviewViewModel] RefreshOriginal failed: {ex.Message}");
+            Logger.WriteLine(LogLevel.Error, "[PreviewViewModel] RefreshOriginal failed: {0}", ex.Message);
         }
     }
 
@@ -259,11 +260,11 @@ public class PreviewViewModel : ReactiveViewModelBase
                 ConvertedVisual = Processor.BuildConvertedVisual(beatmap);
 
             var duration = DateTime.Now - decodeStartTime;
-            Console.WriteLine($"[PreviewViewModel] 转换后预览刷新完成，耗时: {duration.TotalMilliseconds:F1}ms");
+            Logger.WriteLine(LogLevel.Debug, "[PreviewViewModel] 转换后预览刷新完成，耗时: {0:F1}ms", duration.TotalMilliseconds);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PreviewViewModel] RefreshConverted failed: {ex.Message}");
+            Logger.WriteLine(LogLevel.Error, "[PreviewViewModel] RefreshConverted failed: {0}", ex.Message);
         }
     }
 }

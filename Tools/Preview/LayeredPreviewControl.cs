@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
 using krrTools.Beatmaps;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.Tools.Preview
 {
@@ -162,14 +163,14 @@ namespace krrTools.Tools.Preview
             }
             catch (Exception e)
             {
-                Console.WriteLine($"[LayeredPreview] Refresh error: {e}");
+                Logger.WriteLine(LogLevel.Error, "[LayeredPreview] Refresh error: {0}", e);
             }
             finally
             {
                 stopwatch.Stop();
                 if (stopwatch.ElapsedMilliseconds > 3)
                 {
-                    Console.WriteLine($"[LayeredPreview] Warning: Refresh took {stopwatch.ElapsedMilliseconds} ms");
+                    Logger.WriteLine(LogLevel.Warning, "[LayeredPreview] Refresh took {0} ms", stopwatch.ElapsedMilliseconds);
                 }
             }
         }

@@ -20,6 +20,7 @@ public class OsuMonitorService
     private IOsuMemoryReader? _reader;
     private int _lastProcessCount = -1;
     private bool _lastIsOsuRunning = false;
+    private bool _lastIsPlaying;
     private string _lastBeatmapFile = string.Empty;
 
     [Inject]
@@ -57,7 +58,12 @@ public class OsuMonitorService
         // 更新全局状态
         StateBarManager.IsOsuRunning.Value = isOsuRunning;
 
-        StateBarManager.IsPlaying.Value = isOsuRunning && IsPlaying();
+        var currentIsPlaying = isOsuRunning && IsPlaying();
+        if (currentIsPlaying != _lastIsPlaying)
+        {
+            StateBarManager.IsPlaying.Value = currentIsPlaying;
+            _lastIsPlaying = currentIsPlaying;
+        }
 
         if (!isOsuRunning)
         {
@@ -159,11 +165,9 @@ public class OsuMonitorService
         try
         {
             // 假设playing模式是0，选歌是其他
-            var mode = _reader.ReadSongSelectGameMode();
             var playingMods = _reader.GetPlayingMods();
             var acc = _reader.ReadAcc();
-            Logger.WriteLine(LogLevel.Debug,
-                $"[OsuMonitorService] 读取playing状态: mode={mode}, isPlaying={playingMods}, acc={acc}");
+            // 移除频繁的日志输出，只在状态变化时输出
             return playingMods == 0 || acc > 0;
         }
         catch

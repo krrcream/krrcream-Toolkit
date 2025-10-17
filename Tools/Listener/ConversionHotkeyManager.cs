@@ -13,6 +13,7 @@ namespace krrTools.Tools.Listener
         private readonly Dictionary<ConverterEnum, GlobalHotkey?> _hotkeys = new();
         private readonly Action<ConverterEnum> _convertAction;
         private readonly System.Windows.Window _window;
+        private bool _hotkeysRegistered;
 
         public ConversionHotkeyManager(Action<ConverterEnum> convertAction, System.Windows.Window window)
         {
@@ -25,6 +26,8 @@ namespace krrTools.Tools.Listener
         /// </summary>
         public void RegisterHotkeys(GlobalSettings settings)
         {
+            if (_hotkeysRegistered) return; // 避免重复注册
+
             UnregisterAllHotkeys();
 
             Logger.WriteLine(LogLevel.Debug, "[ConversionHotkeyManager] Registering hotkeys: N2NC='{0}', DP='{1}', KRRLN='{2}'",
@@ -33,6 +36,8 @@ namespace krrTools.Tools.Listener
             RegisterHotkey(ConverterEnum.N2NC, settings.N2NCHotkey.Value);
             RegisterHotkey(ConverterEnum.DP, settings.DPHotkey.Value);
             RegisterHotkey(ConverterEnum.KRRLN, settings.KRRLNHotkey.Value);
+
+            _hotkeysRegistered = true;
         }
 
         private void RegisterHotkey(ConverterEnum converter, string? hotkey)
@@ -62,6 +67,7 @@ namespace krrTools.Tools.Listener
                 hotkey?.Unregister();
             }
             _hotkeys.Clear();
+            _hotkeysRegistered = false;
         }
 
         /// <summary>
