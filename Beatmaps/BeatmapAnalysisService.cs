@@ -34,7 +34,7 @@ namespace krrTools.Beatmaps
             // 快速检查是否为有效的Mania谱面文件 (包含文件有效性 + Mode检查)
             if (!BeatmapAnalyzer.IsManiaBeatmap(fullPath)) return;
 
-            await Task.Run(() =>
+            await Task.Run(async () =>
             {
                 try
                 {
@@ -42,7 +42,7 @@ namespace krrTools.Beatmaps
                     if (!_cacheManager.CanProcessFile(fullPath)) return;
 
                     // 使用BeatmapAnalyzer进行完整分析
-                    var analysisResult = BeatmapAnalyzer.Analyze(fullPath);
+                    var analysisResult = await BeatmapAnalyzer.AnalyzeAsync(fullPath);
                     if (analysisResult == null) return;
 
                     Logger.WriteLine(LogLevel.Debug,

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 namespace krrTools.Beatmaps
@@ -11,11 +12,11 @@ namespace krrTools.Beatmaps
     public class BeatmapAnalyzer
     {
         /// <summary>
-        /// 分析谱面文件，返回完整分析结果
+        /// 异步分析谱面文件，返回完整分析结果
         /// </summary>
         /// <param name="filePath">谱面文件路径</param>
         /// <returns>分析结果，如果失败返回null</returns>
-        public static OsuAnalysisResult? Analyze(string? filePath)
+        public static async Task<OsuAnalysisResult?> AnalyzeAsync(string? filePath)
         {
             if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath) ||
                 !Path.GetExtension(filePath).Equals(".osu", StringComparison.OrdinalIgnoreCase))
@@ -32,13 +33,22 @@ namespace krrTools.Beatmaps
                 }
 
                 // 使用OsuAnalyzer进行完整分析
-                return OsuAnalyzer.Analyze(filePath);
+                return await OsuAnalyzer.AnalyzeAsync(filePath);
             }
             catch (Exception ex)
             {
                 Logger.WriteLine(LogLevel.Error, "[BeatmapAnalyzer] Analysis failed for {0}: {1}", filePath, ex.Message);
                 return null;
             }
+        }
+
+        /// <summary>
+        /// 同步版本 - 已过时，请使用 AnalyzeAsync
+        /// </summary>
+        [Obsolete("此方法已过时，请使用 AnalyzeAsync 异步版本")]
+        public static OsuAnalysisResult? Analyze(string? filePath)
+        {
+            return AnalyzeAsync(filePath).GetAwaiter().GetResult();
         }
 
         /// <summary>

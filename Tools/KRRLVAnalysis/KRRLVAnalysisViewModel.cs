@@ -294,7 +294,7 @@ namespace krrTools.Tools.KRRLVAnalysis
                 }
 
                 // 执行分析方法
-                AnalyzeOszEntry(item, entry);
+                Task.Run(() => AnalyzeOszEntry(item, entry));
             }
             catch (Exception ex)
             {
@@ -302,7 +302,7 @@ namespace krrTools.Tools.KRRLVAnalysis
             }
         }
 
-        private void AnalyzeOszEntry(KRRLVAnalysisItem item, ZipArchiveEntry entry)
+        private async Task AnalyzeOszEntry(KRRLVAnalysisItem item, ZipArchiveEntry entry)
         {
             try
             {
@@ -323,7 +323,7 @@ namespace krrTools.Tools.KRRLVAnalysis
                     }
 
                     // 使用 BeatmapAnalyzer 分析临时文件
-                    var result = BeatmapAnalyzer.Analyze(tempFilePath);
+                    var result = await BeatmapAnalyzer.AnalyzeAsync(tempFilePath);
                     if (result == null)
                     {
                         Application.Current.Dispatcher.Invoke(() =>
@@ -389,15 +389,15 @@ namespace krrTools.Tools.KRRLVAnalysis
             }
 
             // 执行分析方法
-            Analyze(item);
+            Task.Run(() => Analyze(item));
         }
 
 
-        private void Analyze(KRRLVAnalysisItem item)
+        private async Task Analyze(KRRLVAnalysisItem item)
         {
             try
             {
-                var result = BeatmapAnalyzer.Analyze(item.FilePath);
+                var result = await BeatmapAnalyzer.AnalyzeAsync(item.FilePath);
                 if (result == null)
                 {
                     Application.Current.Dispatcher.Invoke(() =>

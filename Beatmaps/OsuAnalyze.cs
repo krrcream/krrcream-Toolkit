@@ -5,9 +5,11 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Threading.Tasks;
 using krrTools.Localization;
 using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
+using OsuParsers.Beatmaps.Objects;
 using OsuParsers.Decoders;
 
 namespace krrTools.Beatmaps
@@ -50,17 +52,21 @@ namespace krrTools.Beatmaps
 
     public static class OsuAnalyzer
     {
-        public static OsuAnalysisResult Analyze(string filePath)
+        public static async Task<OsuAnalysisResult> AnalyzeAsync(string filePath)
         {
-            var beatmap = BeatmapDecoder.Decode(filePath);
+            var beatmap = await Task.Run(() => BeatmapDecoder.Decode(filePath));
 
-            var (Keys1, OD1, xxySR, krrLV) = PerformAnalysis(beatmap);
-            int notesCount = beatmap.HitObjects.Count;
-            double maxKPS = beatmap.MaxBPM;
-            double avgKPS = beatmap.MainBPM;
+            // 异步并行计算SR和KPS指标
+            var srTask = Task.Run(() => PerformAnalysis(beatmap));
+            var kpsTask = Task.Run(() => CalculateKPSMetrics(beatmap));
+
+            // 异步等待并行任务完成
+            await Task.WhenAll(srTask, kpsTask);
+            var (Keys1, OD1, xxySR, krrLV) = srTask.Result;
+            var (notesCount, maxKPS, avgKPS) = kpsTask.Result;
             
             // gather standard metadata with OsuParsers
-            var bpmDisplay = GetBPMDisplay(beatmap);
+            var bpmDisplay = await Task.Run(() => GetBPMDisplay(beatmap));
 
             var result = new OsuAnalysisResult
             {
@@ -101,13 +107,26 @@ namespace krrTools.Beatmaps
             return result;
         }
 
-        public static OsuAnalysisResult Analyze(string filePath, Beatmap beatmap)
+        /// <summary>
+        /// 同步版本 - 已过时，请使用 AnalyzeAsync
+        /// </summary>
+        [Obsolete("此方法已过时，请使用 AnalyzeAsync 异步版本")]
+        public static OsuAnalysisResult Analyze(string filePath)
         {
-            var (Keys1, OD1, xxySR, krrLV) = PerformAnalysis(beatmap);
-            int notesCount = beatmap.HitObjects.Count;
-            double maxKPS = beatmap.MaxBPM;
-            double avgKPS = beatmap.MainBPM;
-            var bpmDisplay = GetBPMDisplay(beatmap);
+            return AnalyzeAsync(filePath).GetAwaiter().GetResult();
+        }
+
+        public static async Task<OsuAnalysisResult> AnalyzeAsync(string filePath, Beatmap beatmap)
+        {
+            // 异步并行计算SR和KPS指标
+            var srTask = Task.Run(() => PerformAnalysis(beatmap));
+            var kpsTask = Task.Run(() => CalculateKPSMetrics(beatmap));
+
+            // 异步等待并行任务完成
+            await Task.WhenAll(srTask, kpsTask);
+            var (Keys1, OD1, xxySR, krrLV) = srTask.Result;
+            var (notesCount, maxKPS, avgKPS) = kpsTask.Result;
+            var bpmDisplay = await Task.Run(() => GetBPMDisplay(beatmap));
             var result = new OsuAnalysisResult
             {
                 FilePath = filePath,
@@ -144,6 +163,15 @@ namespace krrTools.Beatmaps
             };
 
             return result;
+        }
+
+        /// <summary>
+        /// 同步版本 - 已过时，请使用 AnalyzeAsync
+        /// </summary>
+        [Obsolete("此方法已过时，请使用 AnalyzeAsync 异步版本")]
+        public static OsuAnalysisResult Analyze(string filePath, Beatmap beatmap)
+        {
+            return AnalyzeAsync(filePath, beatmap).GetAwaiter().GetResult();
         }
         
         private static string GetBPMDisplay(Beatmap beatmap)
@@ -187,95 +215,44 @@ namespace krrTools.Beatmaps
             return krrLv;
         }
 
-        public static string? AddNewBeatmapToSongFolder(string newBeatmapFile, bool openOsz = false)
+        private static (int notesCount, double maxKPS, double avgKPS) CalculateKPSMetrics(Beatmap beatmap)
         {
-            // 获取.osu文件所在的目录作为歌曲文件夹
-            string? songFolder = Path.GetDirectoryName(newBeatmapFile);
-            if (string.IsNullOrEmpty(songFolder))
+            var hitObjects = beatmap.HitObjects;
+            if (hitObjects.Count == 0)
+                return (0, 0, 0);
+
+            // 计算KPS
+            var notes = hitObjects.Where(obj => obj is HitCircle || obj is Slider || obj is Spinner)
+                .OrderBy(obj => obj.StartTime)
+                .ToList();
+
+            if (notes.Count == 0)
+                return (0, 0, 0);
+
+            // 使用滑动窗口计算最大KPS
+            const int windowMs = 1000; // 1秒窗口
+            double maxKPS = 0;
+            double totalKPS = 0;
+            var windowCount = 0;
+
+            for (var i = 0; i < notes.Count; i++)
             {
-                Logger.WriteLine(LogLevel.Error, Strings.InvalidBeatmapFilePath.Localize() + ": " + newBeatmapFile);
-                return null;
+                var count = 1;
+                for (var j = i + 1; j < notes.Count; j++)
+                    if (notes[j].StartTime - notes[i].StartTime <= windowMs)
+                        count++;
+                    else
+                        break;
+
+                double kps = count;
+                maxKPS = Math.Max(maxKPS, kps);
+                totalKPS += kps;
+                windowCount++;
             }
 
-            Logger.WriteLine(LogLevel.Debug,$"OsuAnalyzer{songFolder}");
+            var avgKPS = windowCount > 0 ? totalKPS / windowCount : 0;
 
-            // 创建.osz文件
-            string outputOsz = Path.GetFileName(songFolder) + ".osz";
-            string? parentDir = Path.GetDirectoryName(songFolder);
-            if (string.IsNullOrEmpty(parentDir))
-            {
-                // TODO: 路径为空时，改成自销毁通知
-                Logger.WriteLine(LogLevel.Error, Strings.UnableToDetermineParentDirectory.Localize() + ": " + songFolder);
-                return null;
-            }
-
-            string fullOutputPath = Path.Combine(parentDir, outputOsz);
-
-            if (File.Exists(fullOutputPath))
-                File.Delete(fullOutputPath);
-
-            try
-            {
-                // Ensure source directory exists before creating archive
-                if (!Directory.Exists(songFolder))
-                {
-                    Logger.WriteLine(LogLevel.Error, Strings.SourceSongFolderDoesNotExist.Localize() + ": " + songFolder);
-                    return null;
-                }
-
-                ZipFile.CreateFromDirectory(songFolder, fullOutputPath);
-            }
-            catch (Exception e)
-            {
-                Logger.WriteLine(LogLevel.Error, $"Failed to create {fullOutputPath} {Environment.NewLine}{Environment.NewLine}{e.Message}");
-                return null;
-            }
-
-            // 2. 加入新的谱面文件到.osz
-            try
-            {
-                using ZipArchive archive = ZipFile.Open(fullOutputPath, ZipArchiveMode.Update);
-                archive.CreateEntryFromFile(newBeatmapFile, Path.GetFileName(newBeatmapFile));
-            }
-            catch (Exception e)
-            {
-                Logger.WriteLine(LogLevel.Error, Strings.FailedToAddBeatmapToArchive.Localize() + ": " + Environment.NewLine + Environment.NewLine + e.Message);
-                return null;
-            }
-
-            // 3. 删除原本谱面
-            try
-            {
-                if (File.Exists(newBeatmapFile))
-                {
-                    File.Delete(newBeatmapFile);
-                }
-            }
-            catch (Exception e)
-            {
-                Logger.WriteLine(LogLevel.Warning, Strings.FailedToDeleteTemporaryBeatmapFile.Localize() + ": " + newBeatmapFile + " " + Environment.NewLine + Environment.NewLine + e.Message);
-            }
-
-            // 4. 打开 .osz（仅当调用方请求时）
-            if (openOsz)
-            {
-                Process proc = new Process();
-                proc.StartInfo.FileName = fullOutputPath;
-                proc.StartInfo.UseShellExecute = true;
-                try
-                {
-                    proc.Start();
-                }
-                catch
-                {
-                    Logger.WriteLine(LogLevel.Error, "There was an error opening the generated .osz file. This is probably because .osz files have not been configured to open with osu!.exe on this system." + Environment.NewLine + Environment.NewLine +
-                                    "To fix this, download any map from the website, right click the .osz file, click properties, beside Opens with... click Change..., and select osu!. " +
-                                    "You'll know the problem is fixed when you can double click .osz files to open them with osu!");
-                }
-            }
-
-            // return the created osz path as success indicator
-            return fullOutputPath;
+            return (notes.Count, maxKPS, avgKPS);
         }
 
         public static List<double> GetBeatLengthAxis(Dictionary<double, double> beatLengthDict, double mainBPM,

@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using krrTools.Localization;
 using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 
@@ -138,6 +141,97 @@ namespace krrTools.Beatmaps
             string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(inputPath);
             string extension = Path.GetExtension(inputPath);
             return Path.Combine(directory, $"{fileNameWithoutExtension}_{suffix}{extension}");
+        }
+        
+                public static string? AddNewBeatmapToSongFolder(string newBeatmapFile, bool openOsz = false)
+        {
+            // 获取.osu文件所在的目录作为歌曲文件夹
+            string? songFolder = Path.GetDirectoryName(newBeatmapFile);
+            if (string.IsNullOrEmpty(songFolder))
+            {
+                Logger.WriteLine(LogLevel.Error, Strings.InvalidBeatmapFilePath.Localize() + ": " + newBeatmapFile);
+                return null;
+            }
+
+            Logger.WriteLine(LogLevel.Debug,$"OsuAnalyzer{songFolder}");
+
+            // 创建.osz文件
+            string outputOsz = Path.GetFileName(songFolder) + ".osz";
+            string? parentDir = Path.GetDirectoryName(songFolder);
+            if (string.IsNullOrEmpty(parentDir))
+            {
+                // TODO: 路径为空时，改成自销毁通知
+                Logger.WriteLine(LogLevel.Error, Strings.UnableToDetermineParentDirectory.Localize() + ": " + songFolder);
+                return null;
+            }
+
+            string fullOutputPath = Path.Combine(parentDir, outputOsz);
+
+            if (File.Exists(fullOutputPath))
+                File.Delete(fullOutputPath);
+
+            try
+            {
+                // Ensure source directory exists before creating archive
+                if (!Directory.Exists(songFolder))
+                {
+                    Logger.WriteLine(LogLevel.Error, Strings.SourceSongFolderDoesNotExist.Localize() + ": " + songFolder);
+                    return null;
+                }
+
+                ZipFile.CreateFromDirectory(songFolder, fullOutputPath);
+            }
+            catch (Exception e)
+            {
+                Logger.WriteLine(LogLevel.Error, $"Failed to create {fullOutputPath} {Environment.NewLine}{Environment.NewLine}{e.Message}");
+                return null;
+            }
+
+            // 2. 加入新的谱面文件到.osz
+            try
+            {
+                using ZipArchive archive = ZipFile.Open(fullOutputPath, ZipArchiveMode.Update);
+                archive.CreateEntryFromFile(newBeatmapFile, Path.GetFileName(newBeatmapFile));
+            }
+            catch (Exception e)
+            {
+                Logger.WriteLine(LogLevel.Error, Strings.FailedToAddBeatmapToArchive.Localize() + ": " + Environment.NewLine + Environment.NewLine + e.Message);
+                return null;
+            }
+
+            // 3. 删除原本谱面
+            try
+            {
+                if (File.Exists(newBeatmapFile))
+                {
+                    File.Delete(newBeatmapFile);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.WriteLine(LogLevel.Warning, Strings.FailedToDeleteTemporaryBeatmapFile.Localize() + ": " + newBeatmapFile + " " + Environment.NewLine + Environment.NewLine + e.Message);
+            }
+
+            // 4. 打开 .osz（仅当调用方请求时）
+            if (openOsz)
+            {
+                Process proc = new Process();
+                proc.StartInfo.FileName = fullOutputPath;
+                proc.StartInfo.UseShellExecute = true;
+                try
+                {
+                    proc.Start();
+                }
+                catch
+                {
+                    Logger.WriteLine(LogLevel.Error, "There was an error opening the generated .osz file. This is probably because .osz files have not been configured to open with osu!.exe on this system." + Environment.NewLine + Environment.NewLine +
+                                    "To fix this, download any map from the website, right click the .osz file, click properties, beside Opens with... click Change..., and select osu!. " +
+                                    "You'll know the problem is fixed when you can double click .osz files to open them with osu!");
+                }
+            }
+
+            // return the created osz path as success indicator
+            return fullOutputPath;
         }
     }
 }
