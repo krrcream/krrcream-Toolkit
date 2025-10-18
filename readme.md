@@ -1,4 +1,4 @@
-﻿
+﻿Readme Outdated. Waiting for the new version to be tested before updating.
 # 🎵 krrcream's Toolkit
 
 <p align="center">
