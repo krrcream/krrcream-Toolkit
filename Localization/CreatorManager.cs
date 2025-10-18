@@ -107,7 +107,7 @@ public class CreatorManager
         // 重新构建标签字符串
         if (orderedTags.Count > 0)
         {
-            string tagPart = "Krr " + string.Join(" ", orderedTags) + ". & " + creator;
+            string tagPart = "Krr " + string.Join(" ", orderedTags) + " & " + creator;
             return tagPart;
         }
         return "Krr & " + creator;
