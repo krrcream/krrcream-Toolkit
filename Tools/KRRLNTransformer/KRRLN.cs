@@ -8,6 +8,7 @@ using OsuParsers.Beatmaps;
 using OsuParsers.Beatmaps.Objects.Mania;
 using OsuParsers.Extensions;
 using OsuParsers.Enums;
+using krrTools.Localization;
 
 namespace krrTools.Tools.KRRLNTransformer
 {
@@ -17,6 +18,31 @@ namespace krrTools.Tools.KRRLNTransformer
     public class KRRLN
     {
         /// <summary>
+        /// 修改metadeta,放在每个转谱器开头
+        /// </summary>
+        private void MetadetaChange(Beatmap beatmap,KRRLNTransformerOptions options)
+        {
+            // 修改作者 保持叠加转谱后的标签按顺序唯一
+            beatmap.MetadataSection.Creator = CreatorManager.AddTagtoCreator(beatmap.MetadataSection.Creator, Strings.KRRLNTag);
+
+            // 替换Version （允许叠加转谱）
+            beatmap.MetadataSection.Version = $"[{Strings.KRRLNTag}] {beatmap.MetadataSection.Version}";
+            
+            // 替换标签，保证唯一
+            var existingTags = new HashSet<string>(beatmap.MetadataSection.Tags ?? Enumerable.Empty<string>());
+            var requiredTags = new[] { Strings.ConverterTag, Strings.KRRLNTag , "Krr"};
+
+            var newTags = requiredTags
+                .Where(tag => !existingTags.Contains(tag))
+                .Concat(beatmap.MetadataSection.Tags ?? Enumerable.Empty<string>())
+                .ToArray();
+            
+            beatmap.MetadataSection.Tags = newTags;
+            // 修改ID 但是维持beatmapsetID
+            beatmap.MetadataSection.BeatmapID = 0;
+        }
+        
+        /// <summary>
         /// 执行谱面转换
         /// </summary>
         public void TransformBeatmap(Beatmap beatmap, KRRLNTransformerOptions options)
@@ -24,6 +50,7 @@ namespace krrTools.Tools.KRRLNTransformer
             var (matrix, timeAxis) = beatmap.BuildMatrix();
             var processedMatrix = BuildAndProcessMatrix(matrix, timeAxis, beatmap, options);
             ApplyChangesToHitObjects(beatmap, processedMatrix, timeAxis, options);
+            MetadetaChange(beatmap, options);
         }
 
         private Matrix BuildAndProcessMatrix(NoteMatrix matrix , List<int> timeAxis, Beatmap beatmap,
@@ -57,7 +84,7 @@ namespace krrTools.Tools.KRRLNTransformer
             }
             
             //生成长短面标记
-            var borderKey = (int)(options.LengthThreshold.Value ?? 5);
+            var borderKey = (int)options.LengthThreshold.Value;
             var borderdrict = new BeatNumberGenerator(64, 1.0 / 4);
             var shortLNdrict = new BeatNumberGenerator(256, 1.0 / 16);
             
@@ -116,23 +143,6 @@ namespace krrTools.Tools.KRRLNTransformer
                 beatmap.DifficultySection.OverallDifficulty = OD;
             }
             // 修改元数据
-            // 避免重复添加 Version 前缀
-            if (beatmap.MetadataSection.Version != null && !beatmap.MetadataSection.Version.Contains("[KRR LN.]"))
-                beatmap.MetadataSection.Version = $"[KRR LN.]{beatmap.MetadataSection.Version}";
-
-            // 避免重复拼接 Creator
-            if (beatmap.MetadataSection.Creator != null && !beatmap.MetadataSection.Creator.Contains("Krr LN."))
-                beatmap.MetadataSection.Creator = "Krr LN. & " + beatmap.MetadataSection.Creator;
-
-            // 避免重复添加 Tag
-            var currentTags = beatmap.MetadataSection.Tags ?? [];
-            var tagToAdd = "krrcream's transformer LN";
-            if (!currentTags.Contains(tagToAdd))
-            {
-                var newTags = currentTags.Concat([tagToAdd]).ToArray();
-                beatmap.MetadataSection.Tags = newTags;
-            }
-            
             return beatmap;
         }
         

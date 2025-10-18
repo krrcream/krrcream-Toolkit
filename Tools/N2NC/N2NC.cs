@@ -5,6 +5,7 @@ using krrTools.Beatmaps;
 using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 using OsuParsers.Beatmaps.Objects;
+using krrTools.Localization;
 
 namespace krrTools.Tools.N2NC
 {
@@ -14,6 +15,39 @@ namespace krrTools.Tools.N2NC
     public class N2NC
     {
         /// <summary>
+        /// 修改metadeta,放在每个转谱器开头
+        /// </summary>
+        private void MetadetaChange(Beatmap beatmap,N2NCOptions options)
+        {
+            
+            var originalCS = beatmap.DifficultySection.CircleSize;
+            //修改CS
+            beatmap.DifficultySection.CircleSize = (float)options.TargetKeys.Value;
+            
+            string NtoNCVersionName = $"[{originalCS}to{options.TargetKeys.Value}C]";
+            
+            // 修改作者 保持叠加转谱后的标签按顺序唯一
+            beatmap.MetadataSection.Creator = CreatorManager.AddTagtoCreator(beatmap.MetadataSection.Creator, Strings.NToNCTag);
+            
+            // 替换Version （允许叠加转谱）
+            beatmap.MetadataSection.Version = NtoNCVersionName + " " + beatmap.MetadataSection.Version;
+            
+            // 替换标签，保证唯一
+            var existingTags = new HashSet<string>(beatmap.MetadataSection.Tags ?? Enumerable.Empty<string>());
+            var requiredTags = new[] { Strings.ConverterTag, Strings.NToNCTag , "Krr"};
+
+            var newTags = requiredTags
+                .Where(tag => !existingTags.Contains(tag))
+                .Concat(beatmap.MetadataSection.Tags ?? Enumerable.Empty<string>())
+                .ToArray();
+            
+            beatmap.MetadataSection.Tags = newTags;
+            // 修改ID 但是维持beatmapsetID
+            beatmap.MetadataSection.BeatmapID = 0;
+        }
+        
+        
+        /// <summary>
         /// 执行谱面转换
         /// </summary>
         public void TransformBeatmap(Beatmap beatmap, N2NCOptions options)
@@ -22,6 +56,7 @@ namespace krrTools.Tools.N2NC
             var (matrix, timeAxis) = beatmap.BuildMatrix();
             var processedMatrix = ProcessMatrix(matrix, timeAxis, beatmap, options, random);
             ApplyChangesToHitObjects(beatmap, processedMatrix, options);
+            MetadetaChange(beatmap, options);
         }
 
         /// <summary>
@@ -37,16 +72,8 @@ namespace krrTools.Tools.N2NC
         /// </summary>
         private void ApplyChangesToHitObjects(Beatmap beatmap, NoteMatrix processedMatrix, N2NCOptions options)
         {
-            NewHitObjects(beatmap, processedMatrix, options);
 
-            // 修改元数据
-            var originalCS = (int)beatmap.DifficultySection.CircleSize;
-            var tag = $"[{originalCS}to{options.TargetKeys.Value}C]";
-            if (!beatmap.MetadataSection.Version.Contains(tag))
-            {
-                beatmap.DifficultySection.CircleSize = (float)options.TargetKeys.Value;
-                beatmap.MetadataSection.Version = tag + " " + beatmap.MetadataSection.Version;
-            }
+            NewHitObjects(beatmap, processedMatrix, options);
         }
 
         private NoteMatrix ConvertMatrix(NoteMatrix matrix, List<int> timeAxis, Beatmap beatmap, N2NCOptions options, Random random)

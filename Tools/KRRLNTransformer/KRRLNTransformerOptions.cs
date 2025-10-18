@@ -19,11 +19,7 @@ namespace krrTools.Tools.KRRLNTransformer
         // Threshold and alignment settings (nullable for toggle behavior)
         [Option(LabelKey = nameof(LengthThresholdLabel), Min = 0, Max = 65, UIType = UIType.Slider,
             DisplayMapField = nameof(LengthThresholdDict), IsRefresher = true)]
-        public Bindable<double?> LengthThreshold { get; } = new(16);
-
-        // Bind short level max
-        public double ShortLevelMax => LengthThreshold.Value > 256 ? 256 : (LengthThreshold.Value ?? 16);
-
+        public Bindable<double> LengthThreshold { get; } = new(16);
 
         // Short LN settings
         [Option(LabelKey = nameof(KRRShortPercentageLabel), Min = 0, Max = 100, UIType = UIType.Slider,
@@ -180,7 +176,7 @@ namespace krrTools.Tools.KRRLNTransformer
             { 65, "AllIsShortLN" }
         };
         
-        public static Dictionary<double, string> ShortLengthDict = new()
+        public Dictionary<double, string> ShortLengthDict = new()
         {
             { 0, "0" },
             { 1, "1/16" },

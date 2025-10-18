@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using krrTools.Beatmaps;
 using krrTools.Tools.N2NC;
 using OsuParsers.Beatmaps;
 using OsuParsers.Beatmaps.Objects;
+using krrTools.Localization;
 
 namespace krrTools.Tools.DPtool
 {
@@ -18,7 +20,38 @@ namespace krrTools.Tools.DPtool
         private const double BEAT_LENGTH_MULTIPLIER = 4.0;
 
         // private int _newKeyCount;
+        /// <summary>
+        /// 修改metadeta,放在每个转谱器开头
+        /// </summary>
+        private void MetadetaChange(Beatmap beatmap,DPToolOptions options)
+        {
+            
+            var originalCS = beatmap.OrgKeys;
+            string DPVersionName = $"[{originalCS}to{(int)beatmap.DifficultySection.CircleSize}DP]";
+            
+            // 修改作者 保持叠加转谱后的标签按顺序唯一
+            beatmap.MetadataSection.Creator = CreatorManager.AddTagtoCreator(beatmap.MetadataSection.Creator, Strings.DPTag);
 
+            
+            // 替换Version （允许叠加转谱）
+            beatmap.MetadataSection.Version = DPVersionName + " " + beatmap.MetadataSection.Version;
+            
+            // 替换标签，保证唯一
+            var existingTags = new HashSet<string>(beatmap.MetadataSection.Tags ?? Enumerable.Empty<string>());
+            var requiredTags = new[] { Strings.ConverterTag, Strings.DPTag , "Krr"};
+
+            var newTags = requiredTags
+                .Where(tag => !existingTags.Contains(tag))
+                .Concat(beatmap.MetadataSection.Tags ?? Enumerable.Empty<string>())
+                .ToArray();
+            
+            beatmap.MetadataSection.Tags = newTags;
+            // 修改ID 但是维持beatmapsetID
+            beatmap.MetadataSection.BeatmapID = 0;
+        }
+        
+        
+        
         public void ApplyToBeatmap(IBeatmap beatmap)
         {
             throw new NotImplementedException();
@@ -33,6 +66,7 @@ namespace krrTools.Tools.DPtool
             var (matrix, timeAxis) = beatmap.BuildMatrix();
             var processedMatrix = ProcessMatrix(matrix, timeAxis, beatmap, options);
             ApplyChangesToHitObjects(beatmap, processedMatrix, options, originalCircleSize);
+            MetadetaChange(beatmap, options);
         }
 
         /// <summary>
@@ -101,20 +135,6 @@ namespace krrTools.Tools.DPtool
             {
                 beatmap.DifficultySection.CircleSize = (float)(originalCircleSize * 2);
             }
-
-            // 避免重复拼接 Creator
-            if (beatmap.MetadataSection == null)
-                throw new InvalidOperationException("Beatmap.MetadataSection cannot be null");
-            if (beatmap.MetadataSection.Creator == null)
-                beatmap.MetadataSection.Creator = "DP Tool";
-            else if (!beatmap.MetadataSection.Creator.StartsWith("DP Tool"))
-                beatmap.MetadataSection.Creator = "DP Tool & " + beatmap.MetadataSection.Creator;
-
-            // 避免重复拼接 Version
-            if (beatmap.MetadataSection.Version == null)
-                beatmap.MetadataSection.Version = "[DP]";
-            /*else if (!beatmap.MetadataSection.Version.StartsWith("[DP]"))
-                beatmap.MetadataSection.Version = "[DP] " + beatmap.MetadataSection.Version;*/
         }
 
         // 静态方法：处理矩阵，应用DP转换选项

@@ -6,7 +6,13 @@ namespace krrTools.Localization
     public static class Strings
     {
         public const string WindowTitle = "krrcream's Toolkit V3.0.0";
-
+        
+        // Metadeta
+        public const string ConverterTag = "Converter";
+        public const string KRRLNTag = "LN.";
+        public const string NToNCTag = "NtNC.";
+        public const string DPTag = "DP.";
+        
         // Tab headers
         public const string TabN2NC = "NtoN Converter|NtoN转换器";
         // public const string TabYLsLN = "YLS LN Transformer|凉雨转面器";
