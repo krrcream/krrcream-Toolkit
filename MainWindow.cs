@@ -180,6 +180,7 @@ namespace krrTools
                 var outputDir = Path.GetDirectoryName(beatmapPath);
                 var fullOutputPath = Path.Combine(outputDir!, outputPath);
                 transformedBeatmap!.Save(fullOutputPath);
+                ListenerControl.ListenerZipOsuFile(fullOutputPath);
             }
             catch (Exception ex)
             {
@@ -437,8 +438,6 @@ namespace krrTools
                 InitializeGlobalHotkeys();
             }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         }
-
-
 
         // 清除固定尺寸属性，以便嵌入时自适应布局
         private void ClearFixedSizes(DependencyObject? element)
