@@ -195,7 +195,7 @@ namespace krrTools.Tools.FilesManager
 
             var totalFilesText = new TextBlock
             {
-                Text = "总文件数: ",
+                Text = "Total: ",
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 5, 0)
             };
@@ -204,11 +204,11 @@ namespace krrTools.Tools.FilesManager
                 VerticalAlignment = VerticalAlignment.Center,
                 FontWeight = FontWeights.Bold
             };
-            totalFilesValue.SetBinding(TextBlock.TextProperty, new Binding("OsuFiles.Count"));
+            totalFilesValue.SetBinding(TextBlock.TextProperty, new Binding("TotalFileCount.Value"));
 
             var filteredFilesText = new TextBlock
             {
-                Text = "显示文件数: ",
+                Text = "Files: ",
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(20, 0, 5, 0)
             };
@@ -219,7 +219,7 @@ namespace krrTools.Tools.FilesManager
                 Foreground = Brushes.Blue
             };
             filteredFilesValue.SetBinding(TextBlock.TextProperty, 
-                new Binding("FilteredOsuFiles.Count") { FallbackValue = "0" });
+                new Binding("FilteredFileCount.Value") { FallbackValue = "0" });
 
             statsPanel.Children.Add(totalFilesText);
             statsPanel.Children.Add(totalFilesValue);
@@ -235,18 +235,18 @@ namespace krrTools.Tools.FilesManager
                 Margin = new Thickness(0, 0, 10, 0)
             };
             _progressBarControl = new ProgressBar { Width = 200, Height = 20 };
-            _progressBarControl.SetBinding(RangeBase.ValueProperty, new Binding("ProgressValue"));
-            _progressBarControl.SetBinding(RangeBase.MaximumProperty, new Binding("ProgressMaximum"));
+            _progressBarControl.SetBinding(RangeBase.ValueProperty, new Binding(nameof(_viewModel.ProgressValue)));
+            _progressBarControl.SetBinding(RangeBase.MaximumProperty, new Binding(nameof(_viewModel.ProgressMaximum)));
             BindingOperations.SetBinding(_progressBarControl, VisibilityProperty,
-                new Binding("IsProcessing") { Converter = new BooleanToVisibilityConverter() });
+                new Binding(nameof(_viewModel.IsProcessing)) { Converter = new BooleanToVisibilityConverter() });
             _progressTextBlockControl = new TextBlock
             {
                 Foreground = new SolidColorBrush(Color.FromArgb(255, 33, 33, 33)),
                 VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0)
             };
-            _progressTextBlockControl.SetBinding(TextBlock.TextProperty, new Binding("ProgressText"));
+            _progressTextBlockControl.SetBinding(TextBlock.TextProperty, new Binding(nameof(_viewModel.ProgressText)));
             BindingOperations.SetBinding(_progressTextBlockControl, VisibilityProperty,
-                new Binding("IsProcessing") { Converter = new BooleanToVisibilityConverter() });
+                new Binding(nameof(_viewModel.IsProcessing)) { Converter = new BooleanToVisibilityConverter() });
             progressPanel.Children.Add(_progressBarControl);
             progressPanel.Children.Add(_progressTextBlockControl);
 

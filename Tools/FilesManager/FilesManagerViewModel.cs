@@ -18,6 +18,8 @@ namespace krrTools.Tools.FilesManager
     {
         public Bindable<ObservableCollection<FilesManagerInfo>> OsuFiles { get; set; } = new(new ObservableCollection<FilesManagerInfo>());
         public Bindable<ICollectionView> FilteredOsuFiles { get; set; }
+        public Bindable<int> FilteredFileCount { get; set; } = new();
+        public Bindable<int> TotalFileCount { get; set; } = new();
         public Bindable<bool> IsProcessing { get; set; } = new();
         public Bindable<int> ProgressValue { get; set; } = new();
         public Bindable<int> ProgressMaximum { get; set; } = new(100);
@@ -28,9 +30,18 @@ namespace krrTools.Tools.FilesManager
         {
             // 初始化数据源
             FilteredOsuFiles = new Bindable<ICollectionView>(CollectionViewSource.GetDefaultView(OsuFiles.Value));
+            UpdateCounts();
 
             // 设置自动绑定通知
             SetupAutoBindableNotifications();
+        }
+
+        private void UpdateCounts()
+        {
+            TotalFileCount.Value = OsuFiles.Value.Count;
+            FilteredFileCount.Value = FilteredOsuFiles.Value?.Cast<object>().Count() ?? 0;
+            OsuFiles.Value.CollectionChanged += (s, e) => TotalFileCount.Value = OsuFiles.Value.Count;
+            FilteredOsuFiles.Value.CollectionChanged += (s, e) => FilteredFileCount.Value = FilteredOsuFiles.Value.Cast<object>().Count();
         }
 
 
@@ -130,6 +141,7 @@ namespace krrTools.Tools.FilesManager
                 Application.Current?.Dispatcher?.Invoke(() =>
                 {
                     FilteredOsuFiles.Value = CollectionViewSource.GetDefaultView(OsuFiles.Value);
+                    UpdateCounts();
                     Logger.WriteLine(LogLevel.Information,
                         "[FilesManagerViewModel] FilteredOsuFiles refreshed in ProcessFilesAsync, count: {0}",
                         FilteredOsuFiles.Value.Cast<object>().Count());
