@@ -168,6 +168,8 @@ namespace krrTools.Tools.N2NC
                     if (opt == null) return;
                     _viewModel.TargetKeys = opt.TargetKeys.Value;
                     _viewModel.TransformSpeed = opt.TransformSpeed.Value;
+                    _viewModel.MaxKeys = opt.MaxKeys.Value;
+                    _viewModel.MinKeys = opt.MinKeys.Value;
                     _viewModel.Seed = opt.Seed;
                     if (opt.SelectedKeyFlags.HasValue)
                     {
@@ -206,6 +208,8 @@ namespace krrTools.Tools.N2NC
                     {
                         _viewModel.TargetKeys = (int)options.TargetKeys.Value;
                         _viewModel.TransformSpeed = options.TransformSpeed.Value;
+                        _viewModel.MaxKeys = (int)options.MaxKeys.Value;
+                        _viewModel.MinKeys = (int)options.MinKeys.Value;
                         _viewModel.Seed = options.Seed;
                     };
                     builtinPresetsPanel.Children.Add(btn);

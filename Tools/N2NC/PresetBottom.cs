@@ -17,23 +17,31 @@ namespace krrTools.Tools.N2NC
             = new Dictionary<PresetKind, (string, N2NCOptions)>
             {
                 [PresetKind.Default] = ("Default", CreatePreset(opts => {
-                    opts.TargetKeys.Value = 10;
-                    opts.TransformSpeed.Value = 1.0;
+                    opts.TargetKeys.Value = 8;
+                    opts.MaxKeys.Value = 8;
+                    opts.MinKeys.Value = 2;
+                    opts.TransformSpeed.Value = 5;
                     opts.Seed = 114514;
                 })),
                 [PresetKind.TenK] = ("10K Preset", CreatePreset(opts => {
                     opts.TargetKeys.Value = 10;
-                    opts.TransformSpeed.Value = 2.0;
+                    opts.MaxKeys.Value = 8;
+                    opts.MinKeys.Value = 2;
+                    opts.TransformSpeed.Value = 4;
                     opts.Seed = 0;
                 })),
                 [PresetKind.EightK] = ("8K Preset", CreatePreset(opts => {
                     opts.TargetKeys.Value = 8;
-                    opts.TransformSpeed.Value = 1.0;
+                    opts.MaxKeys.Value = 8;
+                    opts.MinKeys.Value = 2;
+                    opts.TransformSpeed.Value = 5;
                     opts.Seed = 0;
                 })),
                 [PresetKind.SevenK] = ("7K Preset", CreatePreset(opts => {
                     opts.TargetKeys.Value = 7;
-                    opts.TransformSpeed.Value = 1.0;
+                    opts.MaxKeys.Value = 7;
+                    opts.MinKeys.Value = 2;
+                    opts.TransformSpeed.Value = 5;
                     opts.Seed = 0;
                 }))
             };
@@ -140,7 +148,8 @@ namespace krrTools.Tools.N2NC
             viewModel.TargetKeys = Convert.ToInt32(preset.TargetKeys.Value);
             viewModel.TransformSpeed = preset.TransformSpeed.Value;
             viewModel.Seed = preset.Seed;
-
+            viewModel.MaxKeys = Convert.ToInt32(preset.MaxKeys.Value);
+            viewModel.MinKeys = Convert.ToInt32(preset.MinKeys.Value);
             if (preset.SelectedKeyFlags.HasValue)
             {
                 viewModel.KeySelection = preset.SelectedKeyFlags.Value;
