@@ -12,6 +12,61 @@ using krrTools.UI;
 
 namespace krrTools.Tools.KRRLVAnalysis
 {
+    /// <summary>
+    /// LV分析器的列配置
+    /// 统一管理UI列和导出功能的属性映射
+    /// </summary>
+    public static class KRRLVAnalysisColumnConfig
+    {
+        /// <summary>
+        /// 列配置：(属性名, 显示名, 宽度, 格式)
+        /// </summary>
+        public static readonly (string Property, string Header, double Width, string Format)[] Columns =
+        {
+            ("Title", "Title", 140.0, ""),
+            ("Artist", "Artist", 140.0, ""),
+            ("Diff", "Diff", 140.0, ""),
+            ("BPMDisplay", "BPM", double.NaN, ""),
+            ("OD", "OD", double.NaN, "F1"),
+            ("HP", "HP", double.NaN, "F1"),
+            ("KeyCount", "Keys", double.NaN, ""),
+            ("NotesCount", "Notes", double.NaN, ""),
+            ("LNPercent", "LN%", double.NaN, "F2"),
+            ("MaxKPS", "Max KPS", double.NaN, "F2"),
+            ("AvgKPS", "Avg KPS", double.NaN, "F2"),
+            ("XXY_SR", "XXY SR", double.NaN, "F2"),
+            ("KRR_LV", "KRR LV", double.NaN, "F2"),
+            ("YLs_LV", "YLS LV", double.NaN, "F2"),
+            ("Status", "Status", double.NaN, ""),
+            ("FilePath", "FilePath", double.NaN, "")
+        };
+
+        /// <summary>
+        /// 导出属性配置：(属性名, 显示名)
+        /// </summary>
+        public static readonly (string Property, string Header)[] ExportProperties =
+        {
+            ("KRR_LV", "KRR LV"),
+            ("YLs_LV", "YLS LV"),
+            ("XXY_SR", "XXY SR"),
+            ("Title", "Title"),
+            ("Diff", "Diff"),
+            ("Artist", "Artist"),
+            ("Creator", "Creator"),
+            ("KeyCount", "Keys"),
+            ("NotesCount", "Notes"),
+            ("MaxKPS", "Max KPS"),
+            ("AvgKPS", "Avg KPS"),
+            ("BPMDisplay", "BPM"),
+            ("OD", "OD"),
+            ("HP", "HP"),
+            ("LNPercent", "LN%"),
+            ("BeatmapID", "beatmapID"),
+            ("BeatmapSetID", "beatmapSetId"),
+            ("FilePath", "filePath")
+        };
+    }
+
     public class KRRLVAnalysisView : UserControl
     {
         private readonly KRRLVAnalysisViewModel _analysisViewModel;
@@ -48,30 +103,25 @@ namespace krrTools.Tools.KRRLVAnalysis
                 IsReadOnly = true,
                 SelectionMode = DataGridSelectionMode.Single,
                 SelectionUnit = DataGridSelectionUnit.FullRow,
-                AllowDrop = true
+                AllowDrop = true,
+                // 启用虚拟化以提升大数据集性能
+                EnableRowVirtualization = true,
+                EnableColumnVirtualization = true,
+                // 优化渲染性能
+                MaxHeight = double.PositiveInfinity,
+                MaxWidth = double.PositiveInfinity
             };
+
+            // 设置虚拟化面板的滚动单位
+            VirtualizingPanel.SetScrollUnit(dataGrid, ScrollUnit.Pixel);
             dataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("FilteredOsuFiles.Value"));
 
             LoadColumnOrder();
             dataGrid.ColumnReordered += OnColumnReordered;
 
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "Title", Binding = new Binding("Title"), Width = 140 });
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "Artist", Binding = new Binding("Artist"), Width = 140 });
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "Diff", Binding = new Binding("Diff"), Width = 140 });
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "BPM", Binding = new Binding("BPM"), Width = DataGridLength.Auto });
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "OD", Binding = new Binding("OD") { StringFormat = "F1" }, Width = DataGridLength.Auto });
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "HP", Binding = new Binding("HP") { StringFormat = "F1" }, Width = DataGridLength.Auto });
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "Keys", Binding = new Binding("Keys"), Width = DataGridLength.Auto });
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "Notes", Binding = new Binding("NotesCount"), Width = DataGridLength.Auto });
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "LN%", Binding = new Binding("LNPercent") { StringFormat = "F2" }, Width = DataGridLength.Auto });
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "Max KPS", Binding = new Binding("MaxKPS") { StringFormat = "F2" }, Width = DataGridLength.Auto });
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "Avg KPS", Binding = new Binding("AvgKPS") { StringFormat = "F2" }, Width = DataGridLength.Auto });
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "XXY SR", Binding = new Binding("XxySR") { StringFormat = "F2" }, Width = DataGridLength.Auto });
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "KRR LV", Binding = new Binding("KrrLV") { StringFormat = "F2" }, Width = DataGridLength.Auto });
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "YLS LV", Binding = new Binding("YlsLV") { StringFormat = "F2" }, Width = DataGridLength.Auto });
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "Status", Binding = new Binding("Status"), Width = DataGridLength.Auto });
-            dataGrid.Columns.Add(new DataGridTextColumn { Header = "FileName", Binding = new Binding("FileName"), Width = DataGridLength.Auto });
-            
+            // 动态生成列
+            GenerateDataGridColumns();
+
             Grid.SetRow(dataGrid, 0);
             root.Children.Add(dataGrid);
 
@@ -129,6 +179,30 @@ namespace krrTools.Tools.KRRLVAnalysis
             Drop += Window_Drop;
             DragEnter += Window_DragEnter;
             DragOver += Window_DragOver;
+        }
+
+        private void GenerateDataGridColumns()
+        {
+            if (dataGrid == null) return;
+
+            // 使用共享的列配置
+            foreach (var config in KRRLVAnalysisColumnConfig.Columns)
+            {
+                var binding = new Binding($"Result.{config.Property}");
+                if (!string.IsNullOrEmpty(config.Format))
+                {
+                    binding.StringFormat = config.Format;
+                }
+
+                var column = new DataGridTextColumn
+                {
+                    Header = config.Header,
+                    Binding = binding,
+                    Width = double.IsNaN(config.Width) ? DataGridLength.Auto : new DataGridLength(config.Width)
+                };
+
+                dataGrid.Columns.Add(column);
+            }
         }
 
         private void Window_Drop(object sender, DragEventArgs e)

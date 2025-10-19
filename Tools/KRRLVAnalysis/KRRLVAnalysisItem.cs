@@ -1,35 +1,50 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using krrTools.Beatmaps;
 
 namespace krrTools.Tools.KRRLVAnalysis
 {
     public class KRRLVAnalysisItem : INotifyPropertyChanged
     {
-        private string? _fileName;
+        private OsuAnalysisResult? _result;
+        // private string? _fileName;
+        private string? _filePath;
         private string? _status;
-        private string? _diff;
-        private string? _title;
-        private string? _artist;
-        private string? _creator;
-        private double _keys;
-        private string? _bpm;
-        private double _od;
-        private double _hp;
-        private double _lnPercent;
-        private double _beatmapID;
-        private double _beatmapSetID;
-        private double _xxySR;
-        private double _krrLV;
-        private double _ylsLV;
 
-        public string? FileName
+        public KRRLVAnalysisItem()
         {
-            get => _fileName;
-            set => SetProperty(ref _fileName, value);
         }
 
-        public string? FilePath { get; init; }
+        public KRRLVAnalysisItem(OsuAnalysisResult result, string fileName, string filePath)
+        {
+            _result = result;
+            // _fileName = fileName;
+            _filePath = filePath;
+            _status = "√";
+        }
+
+        public OsuAnalysisResult? Result
+        {
+            get => _result;
+            set
+            {
+                _result = value;
+                OnPropertyChanged(string.Empty); // 通知所有属性变化
+            }
+        }
+
+        // public string? FileName
+        // {
+        //     get => _fileName;
+        //     set => SetProperty(ref _fileName, value);
+        // }
+
+        public string? FilePath
+        {
+            get => _filePath;
+            set => SetProperty(ref _filePath, value);
+        }
 
         public string? Status
         {
@@ -37,111 +52,36 @@ namespace krrTools.Tools.KRRLVAnalysis
             set => SetProperty(ref _status, value);
         }
 
-        public string? Diff
+        // 动态属性访问器，用于反射绑定
+        public object? this[string propertyName]
         {
-            get => _diff;
-            set => SetProperty(ref _diff, value);
+            get
+            {
+                if (_result == null) return null;
+                
+                var property = typeof(OsuAnalysisResult).GetProperty(propertyName);
+                return property?.GetValue(_result);
+            }
         }
 
-        public string? Title
-        {
-            get => _title;
-            set => SetProperty(ref _title, value);
-        }
-
-        public string? Artist
-        {
-            get => _artist;
-            set => SetProperty(ref _artist, value);
-        }
-
-        public string? Creator
-        {
-            get => _creator;
-            set => SetProperty(ref _creator, value);
-        }
-
-        public double Keys
-        {
-            get => _keys;
-            set => SetProperty(ref _keys, value);
-        }
-
-        public string? BPM
-        {
-            get => _bpm;
-            set => SetProperty(ref _bpm, value);
-        }
-
-        public double OD
-        {
-            get => _od;
-            set => SetProperty(ref _od, value);
-        }
-
-        public double HP
-        {
-            get => _hp;
-            set => SetProperty(ref _hp, value);
-        }
-
-        public double LNPercent
-        {
-            get => _lnPercent;
-            set => SetProperty(ref _lnPercent, value);
-        }
-
-        public double BeatmapID
-        {
-            get => _beatmapID;
-            set => SetProperty(ref _beatmapID, value);
-        }
-
-        public double BeatmapSetID
-        {
-            get => _beatmapSetID;
-            set => SetProperty(ref _beatmapSetID, value);
-        }
-
-        public double XxySR
-        {
-            get => _xxySR;
-            set => SetProperty(ref _xxySR, value);
-        }
-
-        public double KrrLV
-        {
-            get => _krrLV;
-            set => SetProperty(ref _krrLV, value);
-        }
-
-        public double YlsLV
-        {
-            get => _ylsLV;
-            set => SetProperty(ref _ylsLV, value);
-        }
-
-        private double _notesCount;
-        private double _maxKPS;
-        private double _avgKPS;
-
-        public double NotesCount
-        {
-            get => _notesCount;
-            set => SetProperty(ref _notesCount, value);
-        }
-
-        public double MaxKPS
-        {
-            get => _maxKPS;
-            set => SetProperty(ref _maxKPS, value);
-        }
-
-        public double AvgKPS
-        {
-            get => _avgKPS;
-            set => SetProperty(ref _avgKPS, value);
-        }
+        // 为兼容性保留的常用属性代理
+        public string? Title => _result?.Title;
+        public string? Artist => _result?.Artist;
+        public string? Diff => _result?.Diff;
+        public string? Creator => _result?.Creator;
+        public string? BPM => _result?.BPMDisplay;
+        public double Keys => _result?.KeyCount ?? 0;
+        public double OD => _result?.OD ?? 0;
+        public double HP => _result?.HP ?? 0;
+        public double LNPercent => _result?.LNPercent ?? 0;
+        public double BeatmapID => _result?.BeatmapID ?? 0;
+        public double BeatmapSetID => _result?.BeatmapSetID ?? 0;
+        public double XxySR => _result?.XXY_SR ?? 0;
+        public double KrrLV => _result?.KRR_LV ?? 0;
+        public double YlsLV => _result?.YLs_LV ?? 0;
+        public int NotesCount => _result?.NotesCount ?? 0;
+        public double MaxKPS => _result?.MaxKPS ?? 0;
+        public double AvgKPS => _result?.AvgKPS ?? 0;
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
