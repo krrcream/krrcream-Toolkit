@@ -183,8 +183,14 @@ namespace krrTools.Tools.KRRLNTransformer
         // 添加获取枚举显示名称的方法
         public static string GetEnumDescription(PresetKind value)
         {
-            // 使用共享库的多语言支持功能
-            return LocalizationService.GetLocalizedEnumDisplayName(value);
+            // 返回原始的Description字符串以支持动态本地化
+            var field = value.GetType().GetField(value.ToString());
+            if (field != null)
+            {
+                var attr = Attribute.GetCustomAttribute(field, typeof(System.ComponentModel.DescriptionAttribute)) as System.ComponentModel.DescriptionAttribute;
+                return attr?.Description ?? value.ToString();
+            }
+            return value.ToString();
         }
 
         private static void ApplyPresetToViewModel(KRRLNTransformerViewModel viewModel, KRRLNTransformerOptions preset)

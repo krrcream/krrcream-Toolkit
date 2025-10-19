@@ -64,9 +64,9 @@ namespace krrTools.Beatmaps
 
             try
             {
-                // 只读取文件头部，检查Mode信息 (最多读取前50行)
+                // 只读取文件头部，检查Mode信息 (最多读取前20行)
                 using var reader = new StreamReader(filePath);
-                for (int lineCount = 0; lineCount < 50 && reader.ReadLine() is { } line; lineCount++)
+                for (int lineCount = 0; lineCount < 20 && reader.ReadLine() is { } line; lineCount++)
                 {
                     if (line.AsSpan().StartsWith("Mode:".AsSpan(), StringComparison.OrdinalIgnoreCase))
                     {

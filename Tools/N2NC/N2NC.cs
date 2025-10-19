@@ -72,7 +72,6 @@ namespace krrTools.Tools.N2NC
         /// </summary>
         private void ApplyChangesToHitObjects(Beatmap beatmap, NoteMatrix processedMatrix, N2NCOptions options)
         {
-
             NewHitObjects(beatmap, processedMatrix, options);
         }
 
@@ -150,6 +149,7 @@ namespace krrTools.Tools.N2NC
             // 生成 oldMTX 矩阵
             for (var col = 0; col < cols; col++)
             {
+                // TODO: 这里1key谱会传入0，需确认是否合理，或者功能是否还正常
                 // 为每一列创建一个震荡数字生成器，范围是 0 到 CS-1
                 var oldIndex = new OscillatorGenerator(CS - 1, random);
                 // 重置时间计数器

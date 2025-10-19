@@ -19,7 +19,7 @@ public class OsuMonitorService
     private int _lastProcessId = -1;
     private IOsuMemoryReader? _reader;
     private int _lastProcessCount = -1;
-    private bool _lastIsOsuRunning = false;
+    private bool _lastIsOsuRunning;
     private bool _lastIsPlaying;
     private string _lastBeatmapFile = string.Empty;
 
@@ -158,7 +158,7 @@ public class OsuMonitorService
     /// <summary>
     /// 检测是否在playing状态
     /// </summary>
-    public bool IsPlaying()
+    private bool IsPlaying()
     {
         if (_reader == null) return false;
 

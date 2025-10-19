@@ -51,7 +51,7 @@ namespace krrTools.Tools.DPtool
         }
         
         
-        
+
         public void ApplyToBeatmap(IBeatmap beatmap)
         {
             throw new NotImplementedException();

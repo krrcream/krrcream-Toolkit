@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -149,19 +151,7 @@ namespace krrTools
         private void ExecuteConvertWithModule(ConverterEnum converter)
         {
             // 获取监听ViewModel中的当前谱面路径
-            if (_listenerControlInstance?.ViewModel == null)
-            {
-                Logger.WriteLine(LogLevel.Warning, "[MainWindow] ExecuteConvertWithModule: ListenerControl or ViewModel is null");
-                return;
-            }
-
             string beatmapPath = _listenerControlInstance.ViewModel.MonitorOsuFilePath;
-
-            if (string.IsNullOrEmpty(beatmapPath))
-            {
-                MessageBox.Show("No beatmap is currently being monitored.", "Conversion Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
 
             try
             {
@@ -175,12 +165,46 @@ namespace krrTools
                 // 使用转换服务
                 var transformedBeatmap = transformationService.TransformBeatmap(beatmap, converter);
 
+                if (transformedBeatmap == null)
+                {
+                    Logger.WriteLine(LogLevel.Error,$"Conversion failed: Transformed beatmap is null.", "Conversion Error");
+                    return;
+                }
+                
                 // 保存转换后谱面
-                var outputPath = transformedBeatmap!.GetOutputOsuFileName();
+                var outputPath = transformedBeatmap.GetOutputOsuFileName();
                 var outputDir = Path.GetDirectoryName(beatmapPath);
                 var fullOutputPath = Path.Combine(outputDir!, outputPath);
-                transformedBeatmap!.Save(fullOutputPath);
-                ListenerControl.ListenerZipOsuFile(fullOutputPath);
+                transformedBeatmap.Save(fullOutputPath);
+
+                // 打包成.osz并打开
+                var directoryPath = Path.GetDirectoryName(fullOutputPath);
+                var directoryName = Path.GetFileName(directoryPath);
+                if (directoryPath == null || directoryName == null)
+                    throw new ArgumentException("Invalid path structure");
+
+                var zipFilePath = Path.Combine(directoryPath, $"{directoryName}.osz");
+
+                if (File.Exists(zipFilePath)) File.Delete(zipFilePath);
+
+                using (var archive = ZipFile.Open(zipFilePath, ZipArchiveMode.Create))
+                {
+                    archive.CreateEntryFromFile(fullOutputPath, Path.GetFileName(fullOutputPath));
+                }
+                File.Delete(fullOutputPath);
+
+                Console.WriteLine($"已创建 {zipFilePath}");
+
+                var songsPath = BaseOptionsManager.GetGlobalSettings().SongsPath.Value;
+                var osuDir = Path.GetDirectoryName(songsPath);
+                if (osuDir == null)
+                    throw new InvalidOperationException("Invalid songs path");
+
+                string osuExe = Path.Combine(osuDir, "osu!.exe");
+                if (!File.Exists(osuExe))
+                    throw new InvalidOperationException("osu!.exe not found");
+
+                Process.Start(osuExe, zipFilePath);
             }
             catch (Exception ex)
             {
@@ -438,6 +462,8 @@ namespace krrTools
                 InitializeGlobalHotkeys();
             }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         }
+
+
 
         // 清除固定尺寸属性，以便嵌入时自适应布局
         private void ClearFixedSizes(DependencyObject? element)

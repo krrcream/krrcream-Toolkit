@@ -129,8 +129,6 @@ public class ListenerViewModel : ReactiveViewModelBase
         SetupAutoBindableNotifications();
     }
 
-
-
     private void OnListenerStateChanged(ListenerState state)
     {
         switch (state)

@@ -6,7 +6,7 @@ namespace krrTools.Localization
     public static class Strings
     {
         public const string WindowTitle = "krrcream's Toolkit V3.0.0";
-        
+
         // Metadeta
         public const string ConverterTag = "Converter";
         public const string KRRLNTag = "LN.";

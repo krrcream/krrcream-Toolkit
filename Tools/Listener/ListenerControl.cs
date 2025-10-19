@@ -77,6 +77,27 @@ namespace krrTools.Tools.Listener
             Dispatcher.BeginInvoke(new Action(() => { _viewModel.WindowTitle = Strings.OSUListener; }));
         }
 
+        #region 快捷键处理
+        private string KeyToString(Key key)
+        {
+            // 处理特殊键
+            switch (key)
+            {
+                case Key.OemPlus: return "+";
+                case Key.OemMinus: return "-";
+                case Key.OemQuestion: return "/";
+                case Key.OemPeriod: return ".";
+                case Key.OemComma: return ",";
+                case Key.OemSemicolon: return ";";
+                case Key.OemQuotes: return "'";
+                case Key.OemOpenBrackets: return "[";
+                case Key.OemCloseBrackets: return "]";
+                case Key.OemBackslash: return "\\";
+                case Key.OemTilde: return "`";
+                default: return key.ToString();
+            }
+        }
+        
         private void OnHotkeyKeyDown(object sender, KeyEventArgs e)
         {
             if (sender is not TextBox textBox) return;
@@ -129,27 +150,7 @@ namespace krrTools.Tools.Listener
 
             Logger.WriteLine(LogLevel.Debug, $"[ListenerControl] Set hotkey to: {hotkey}");
         }
-
-        private string KeyToString(Key key)
-        {
-            // 处理特殊键
-            switch (key)
-            {
-                case Key.OemPlus: return "+";
-                case Key.OemMinus: return "-";
-                case Key.OemQuestion: return "/";
-                case Key.OemPeriod: return ".";
-                case Key.OemComma: return ",";
-                case Key.OemSemicolon: return ";";
-                case Key.OemQuotes: return "'";
-                case Key.OemOpenBrackets: return "[";
-                case Key.OemCloseBrackets: return "]";
-                case Key.OemBackslash: return "\\";
-                case Key.OemTilde: return "`";
-                default: return key.ToString();
-            }
-        }
-
+        
         private void OnHotkeyTextBoxGotFocus(object sender, RoutedEventArgs e)
         {
             if (sender is TextBox textBox)
@@ -171,114 +172,12 @@ namespace krrTools.Tools.Listener
                 Logger.WriteLine(LogLevel.Debug, $"[ListenerControl] Hotkey TextBox lost focus: {textBox.Name}, IME re-enabled");
             }
         }
-
+        #endregion
+        
         private void TestN2NCButton_Click(object sender, RoutedEventArgs e)
         {
             Logger.WriteLine(LogLevel.Information, "[ListenerControl] TEST BUTTON: Manual trigger N2NC conversion");
             // Conversion is now handled by MainWindow global hotkeys
-        } 
-        
-        /// <summary>
-        /// 仅用于监听器打包.osz并打开
-        /// </summary>
-        public static void ListenerZipOsuFile(string inputPath)
-        {
-            // 检查inputPath是否是.osu文件
-            if (!inputPath.EndsWith(".osu") || !File.Exists(inputPath))
-            {
-                throw new ArgumentException("ZipinputPath 必须是.osu文件且文件必须存在");
-            }
-            try
-            {
-                // 获取目录名作为文件名
-                var directoryPath = Path.GetDirectoryName(inputPath);
-                var directoryName = Path.GetFileName(directoryPath);
-                var zipFilePath = Path.Combine(directoryPath, $"{directoryName}.osz");
-        
-                if (File.Exists(zipFilePath))
-                    File.Delete(zipFilePath);
-            
-                using (var archive = ZipFile.Open(zipFilePath, ZipArchiveMode.Create))
-                {
-                    archive.CreateEntryFromFile(inputPath, Path.GetFileName(inputPath));
-                    File.Delete(inputPath);
-                }
-                Console.WriteLine($"已创建 {zipFilePath}");
-                // 检查是否已有 osu! 进程在运行
-                string osuExe = FindGameRootFromOsuPath(inputPath);
-                var existingProcesses = Process.GetProcessesByName(osuExe);
-                if (existingProcesses.Length > 0)
-                {
-                    // 如果已有进程，尝试使用现有进程打开文件
-                    // 注意：这需要 osu! 支持通过命令行参数打开文件
-                    Console.WriteLine("已找到 osu! 进程，尝试使用现有进程打开文件...");
-                    try
-                    {
-                        // 发送文件路径给已存在的进程（如果 osu! 支持这种方式）
-                        Process.Start("osu!.exe", zipFilePath);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new InvalidOperationException($"无法使用现有 osu! 进程打开文件: {ex.Message}", ex);
-                    }
-                }
-                else
-                {
-                    // 使用songs对应的osu程序打开
-                    var process = Process.Start(osuExe, zipFilePath);
-                    if (process == null)
-                    {
-                        throw new InvalidOperationException("无法启动 osu!.exe 进程");
-                    }
-                }
-            }
-            catch (Exception e) when (!(e is ArgumentException))
-            {
-                throw new InvalidOperationException($"处理Osz文件时发生错误: {e.Message}", e);
-            }
-        }
-        
-        private static string FindGameRootFromOsuPath(string osuFilePath)
-        {
-            try
-            {
-                // 方法1: 直接往上两级目录查找（针对标准结构优化）
-                FileInfo file = new FileInfo(osuFilePath);
-                DirectoryInfo potentialGameDir = file.Directory?.Parent?.Parent;
-
-                if (potentialGameDir != null && File.Exists(Path.Combine(potentialGameDir.FullName, "osu!.exe")))
-                {
-                    return Path.Combine(potentialGameDir.FullName, "osu!.exe"); // 返回完整路径
-                }
-
-                // 方法2: 如果标准结构不匹配，则使用通用查找（兜底方案）
-                DirectoryInfo dir = file.Directory?.Parent?.Parent; // 从上两级开始
-                int currentDepth = 2;
-
-                while (dir != null && currentDepth < 4)
-                {
-                    if (dir.Name.Equals("songs", StringComparison.OrdinalIgnoreCase))
-                    {
-                        dir = dir.Parent;
-                        currentDepth++;
-                        continue;
-                    }
-
-                    var exePath = Path.Combine(dir.FullName, "osu!.exe");
-                    if (File.Exists(exePath))
-                    {
-                        return exePath; // 返回完整路径
-                    }
-                    dir = dir.Parent;
-                    currentDepth++;
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.WriteLine(LogLevel.Warning, $"查找游戏根目录时出错: {ex.Message}");
-            }
-
-            return null;
         }
     }
 }

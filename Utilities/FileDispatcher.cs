@@ -18,6 +18,7 @@ namespace krrTools.Utilities
     public class FileDispatcher
     {
         private readonly BeatmapTransformationService _transformationService;
+        private readonly SemaphoreSlim _ioSemaphore = new SemaphoreSlim(4); // 限制并发I/O操作数量
 
         // 进度更新委托
         public Action<int, int, string>? UpdateProgress { get; set; }
@@ -55,11 +56,12 @@ namespace krrTools.Utilities
 
             int processedCount = 0;
 
-            // 并行处理每个文件，记录数量，限制并行度，保留2核心
+            // 并行处理每个文件，记录数量，限制并行度为4（I/O密集型）
             Parallel.ForEach(paths, 
-                new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount - 2 }, 
+                new ParallelOptions { MaxDegreeOfParallelism = 4 }, 
                 p =>
             {
+                _ioSemaphore.Wait();
                 try
                 {
                     var outputPath = _transformationService.TransformAndSaveBeatmap(p, activeTabTag);
@@ -74,11 +76,12 @@ namespace krrTools.Utilities
                 }
                 catch (Exception ex)
                 {
-                    Logger.WriteLine(LogLevel.Error, "[FileDispatcher] 并行转换文件失败: {0}\n{1}", p, ex);
+                    Logger.WriteLine(LogLevel.Error, "[FileDispatcher] 文件 {0} 转换失败: {1}", p, ex);
                     failed.Add(p);
                 }
                 finally
                 {
+                    _ioSemaphore.Release();
                     // 更新进度
                     int current = Interlocked.Increment(ref processedCount);
                     UpdateProgress?.Invoke(current, paths.Length, string.Empty);

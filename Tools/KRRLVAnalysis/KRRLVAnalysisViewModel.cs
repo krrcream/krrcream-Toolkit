@@ -23,50 +23,28 @@ namespace krrTools.Tools.KRRLVAnalysis
 
     public partial class KRRLVAnalysisViewModel : ReactiveViewModelBase
     {
+        private const int BatchSize = 50; // UI更新和并行输出块大小
+
         public Bindable<string> PathInput { get; set; } = new(string.Empty);
-        public Bindable<ObservableCollection<KRRLVAnalysisItem>> OsuFiles { get; set; } = new(new ObservableCollection<KRRLVAnalysisItem>());
+        private Bindable<ObservableCollection<KRRLVAnalysisItem>> OsuFiles { get; set; } = new(new ObservableCollection<KRRLVAnalysisItem>());
 
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(4, 4); // 最多4个并发线程
-        private readonly DispatcherTimer _updateTimer;
         // private ProcessingWindow? _processingWindow;
         private readonly List<KRRLVAnalysisItem> _pendingItems = new List<KRRLVAnalysisItem>();
         private readonly Lock _pendingItemsLock = new Lock();
 
         private int _currentProcessedCount;
+        private int _uiUpdateCounter; // UI更新计数器，每BatchSize个文件更新一次UI
 
-        public Bindable<int> TotalCount { get; set; } = new();
-        public Bindable<double> ProgressValue { get; set; } = new();
-        public Bindable<bool> IsProgressVisible { get; set; } = new();
-        
-        public int ProcessedCount { get; set; }
+        private Bindable<int> TotalCount { get; set; } = new();
+        private Bindable<double> ProgressValue { get; set; } = new();
+        private Bindable<bool> IsProgressVisible { get; set; } = new();
 
         public KRRLVAnalysisViewModel()
         {
-            // 初始化定时器，每100毫秒批量更新一次UI
-            _updateTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(100)
-            };
-            _updateTimer.Tick += UpdateTimer_Tick;
-
+            _uiUpdateCounter = 0;
             // 设置自动绑定通知
             SetupAutoBindableNotifications();
-        }
-
-        private void UpdateTimer_Tick(object? sender, EventArgs e)
-        {
-            List<KRRLVAnalysisItem> itemsToAdd;
-            lock (_pendingItemsLock)
-            {
-                if (_pendingItems.Count == 0) return;
-                itemsToAdd = new List<KRRLVAnalysisItem>(_pendingItems);
-                _pendingItems.Clear();
-            }
-
-            foreach (var item in itemsToAdd)
-            {
-                OsuFiles.Value.Add(item);
-            }
         }
 
         /// <summary>
@@ -80,12 +58,39 @@ namespace krrTools.Tools.KRRLVAnalysis
                     _semaphore.Release();
                     // 使用原子操作更新计数器
                     Interlocked.Increment(ref _currentProcessedCount);
+                    Interlocked.Increment(ref _uiUpdateCounter);
 
-                    // 更新UI进度
-                    Application.Current.Dispatcher.Invoke(() =>
+                    // 每BatchSize个文件更新一次UI
+                    if (_uiUpdateCounter >= BatchSize)
                     {
-                        ProgressValue.Value = (double)_currentProcessedCount / TotalCount.Value * 100;
-                    });
+                        Interlocked.Exchange(ref _uiUpdateCounter, 0);
+                        
+                        // 更新UI进度和项目
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            ProgressValue.Value = (double)_currentProcessedCount / TotalCount.Value * 100;
+                            
+                            // 批量更新UI项目
+                            List<KRRLVAnalysisItem> itemsToAdd;
+                            lock (_pendingItemsLock)
+                            {
+                                if (_pendingItems.Count > 0)
+                                {
+                                    itemsToAdd = new List<KRRLVAnalysisItem>(_pendingItems);
+                                    _pendingItems.Clear();
+                                }
+                                else
+                                {
+                                    itemsToAdd = new List<KRRLVAnalysisItem>();
+                                }
+                            }
+
+                            foreach (var item in itemsToAdd)
+                            {
+                                OsuFiles.Value.Add(item);
+                            }
+                        });
+                    }
                 });
         }
 
@@ -256,19 +261,16 @@ namespace krrTools.Tools.KRRLVAnalysis
                 // 计算总文件数（包括.osz中的.osu文件）
                 TotalCount.Value = BeatmapFileHelper.GetOsuFilesCount(files);
                 _currentProcessedCount = 0;
+                _uiUpdateCounter = 0;
 
                 // 显示进度窗口,处理前
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    // _processingWindow = new ProcessingWindow();
-                    // _processingWindow.Show();
                     IsProgressVisible.Value = true;
                     ProgressValue.Value = 0;
                 });
 
-                _updateTimer.Start();
-
-                const int batchSize = 50;
+                const int batchSize = BatchSize;
                 var batches = new List<string[]>();
                 for (int i = 0; i < files.Length; i += batchSize)
                 {
@@ -335,12 +337,31 @@ namespace krrTools.Tools.KRRLVAnalysis
 
                 // 等待所有任务完成后，确保剩余的项目也被添加
                 await Task.Delay(200); // 给最后一次更新留出时间
-                _updateTimer.Stop();
 
-                // 确保进度条显示100%
+                // 确保进度条显示100%并添加剩余项目
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     ProgressValue.Value = 100;
+                    
+                    // 添加剩余的待处理项目
+                    List<KRRLVAnalysisItem> itemsToAdd;
+                    lock (_pendingItemsLock)
+                    {
+                        if (_pendingItems.Count > 0)
+                        {
+                            itemsToAdd = new List<KRRLVAnalysisItem>(_pendingItems);
+                            _pendingItems.Clear();
+                        }
+                        else
+                        {
+                            itemsToAdd = new List<KRRLVAnalysisItem>();
+                        }
+                    }
+
+                    foreach (var item in itemsToAdd)
+                    {
+                        OsuFiles.Value.Add(item);
+                    }
                 });
 
                 // 短暂延迟，让用户看到100%的进度
@@ -398,9 +419,9 @@ namespace krrTools.Tools.KRRLVAnalysis
             try
             {
                 // 从.osz条目中读取内容
-                using var stream = entry.Open();
-                using var memoryStream = new MemoryStream();
-                stream.CopyTo(memoryStream);
+                await using var stream = entry.Open();
+                await using var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream);
                 memoryStream.Position = 0;
 
                 // 创建临时文件路径
@@ -408,9 +429,9 @@ namespace krrTools.Tools.KRRLVAnalysis
                 try
                 {
                     // 将内存流写入临时文件
-                    using (var fileStream = File.Create(tempFilePath))
+                    await using (var fileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true))
                     {
-                        memoryStream.WriteTo(fileStream);
+                        await memoryStream.CopyToAsync(fileStream);
                     }
 
                     // 使用 BeatmapAnalyzer 分析临时文件
