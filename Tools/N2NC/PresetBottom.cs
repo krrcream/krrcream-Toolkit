@@ -154,23 +154,9 @@ namespace krrTools.Tools.N2NC
             {
                 viewModel.KeySelection = preset.SelectedKeyFlags.Value;
             }
-            else if (preset.SelectedKeyTypes != null)
+            else if (preset.SelectedKeyFlags != null)
             {
                 KeySelectionFlags flags = KeySelectionFlags.None;
-                foreach (var k in preset.SelectedKeyTypes)
-                {
-                    switch (k)
-                    {
-                        case 4: flags |= KeySelectionFlags.K4; break;
-                        case 5: flags |= KeySelectionFlags.K5; break;
-                        case 6: flags |= KeySelectionFlags.K6; break;
-                        case 7: flags |= KeySelectionFlags.K7; break;
-                        case 8: flags |= KeySelectionFlags.K8; break;
-                        case 9: flags |= KeySelectionFlags.K9; break;
-                        case 10: flags |= KeySelectionFlags.K10; break;
-                        case 11: flags |= KeySelectionFlags.K10Plus; break;
-                    }
-                }
                 viewModel.KeySelection = flags;
             }
         }

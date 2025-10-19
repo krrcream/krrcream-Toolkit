@@ -53,6 +53,17 @@ namespace krrTools.Tools.N2NC
         /// </summary>
         public void TransformBeatmap(Beatmap beatmap, N2NCOptions options)
         {
+            //在最开头判断，减少不必要的进程
+            var keyFlags = options.SelectedKeyFlags;
+            if (keyFlags.HasValue && keyFlags.Value != KeySelectionFlags.None)
+            {
+                var AlignmentPreProcessCS = Math.Clamp((int)beatmap.DifficultySection.CircleSize - 3, 0, 8);
+                bool isSelected = ((int)keyFlags.Value & (1 << AlignmentPreProcessCS)) != 0;
+                if (!isSelected)
+                {
+                    return;
+                }
+            }
             var random = options.Seed.HasValue ? new Random(options.Seed.Value) : new Random();
             var (matrix, timeAxis) = beatmap.BuildMatrix();
             var processedMatrix = ProcessMatrix(matrix, timeAxis, beatmap, options, random);
@@ -83,18 +94,10 @@ namespace krrTools.Tools.N2NC
             var CS = (int)beatmap.DifficultySection.CircleSize;
             var targetKeys = (int)options.TargetKeys.Value;
             var turn = targetKeys - CS;
-            var P = options.SelectedKeyTypes;
+     
             // 使用传入的随机数生成器
             var RG = random;
-
-            // Console.WriteLine($"[N2NC] ConvertMatrix: CS={CS}, targetKeys={targetKeys}, turn={turn}, matrix={matrix.Rows}x{matrix.Cols}, timeAxis={timeAxis.Count}");
-
-            if (P is { Count: > 0 } && !P.Contains(CS))
-            {
-                Console.WriteLine($"[WARN] 谱面键数 {CS} 不在筛选的键位模式里 {string.Join(",", P)}，跳过转换");
-                return matrix;
-            }
-
+            
             if (CS == targetKeys && (int)options.TargetKeys.Value == targetKeys)
             {
                 return matrix;

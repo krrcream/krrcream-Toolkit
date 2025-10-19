@@ -12,14 +12,15 @@ namespace krrTools.Tools.N2NC;
 public enum KeySelectionFlags
 {
     None = 0,
-    K4 = 1 << 0,
-    K5 = 1 << 1,
-    K6 = 1 << 2,
-    K7 = 1 << 3,
-    K8 = 1 << 4,
-    K9 = 1 << 5,
-    K10 = 1 << 6,
-    K10Plus = 1 << 7
+    K3Minus = 1 << 0,
+    K4 = 1 << 1,
+    K5 = 1 << 2,
+    K6 = 1 << 3,
+    K7 = 1 << 4,
+    K8 = 1 << 5,
+    K9 = 1 << 6,
+    K10 = 1 << 7,
+    K10Plus = 1 << 8
 }
 
 /// <summary>
@@ -141,8 +142,31 @@ public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProv
         Strings.N2NCMinKeysTemplate.GetLocalizedString().PropertyChanged += _minKeysDisplayHandler;
     }
 
-    public KeySelectionFlags KeySelection { get; set; } = KeySelectionFlags.None;
+    public KeySelectionFlags KeySelection 
+    { 
+        get => _keySelection;
+        set
+        {
+            if (_keySelection != value)
+            {
+                _keySelection = value;
+                Options.SelectedKeyFlags = value;  // 同步更新到 Options
+                OnPropertyChanged();
+            }
+        }
+    }
 
+    public bool Is3KMinusSelected
+    {
+        get => (_keySelection & KeySelectionFlags.K3Minus) == KeySelectionFlags.K3Minus;
+        set
+        {
+            if (value) KeySelection |= KeySelectionFlags.K3Minus;
+            else KeySelection &= ~KeySelectionFlags.K3Minus;
+            OnPropertyChanged();
+        }
+    }
+    
     public bool Is4KSelected
     {
         get => (_keySelection & KeySelectionFlags.K4) == KeySelectionFlags.K4;
@@ -238,21 +262,6 @@ public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProv
     }
 
     // 获取选中的键数列表 - now derived from KeySelection flags
-    private List<int> GetSelectedKeyTypes()
-    {
-        var selectedKeys = new List<int>();
-
-        if (Is4KSelected) selectedKeys.Add(4);
-        if (Is5KSelected) selectedKeys.Add(5);
-        if (Is6KSelected) selectedKeys.Add(6);
-        if (Is7KSelected) selectedKeys.Add(7);
-        if (Is8KSelected) selectedKeys.Add(8);
-        if (Is9KSelected) selectedKeys.Add(9);
-        if (Is10KSelected) selectedKeys.Add(10);
-        if (Is10KPlusSelected) selectedKeys.Add(11); // 10K+用11表示
-
-        return selectedKeys;
-    }
 
     /// <summary>
     /// 目标键数 - 响应式属性，自动触发约束和事件
@@ -337,11 +346,8 @@ public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProv
 
     public N2NCOptions GetConversionOptions()
     {
-        var selectedKeys = GetSelectedKeyTypes();
-
         var options = new N2NCOptions
         {
-            SelectedKeyTypes = selectedKeys,
             Seed = Options.Seed,
             SelectedKeyFlags = KeySelection,
             SelectedPreset = Options.SelectedPreset

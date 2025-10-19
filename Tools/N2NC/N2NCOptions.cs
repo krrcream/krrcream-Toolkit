@@ -55,11 +55,8 @@ namespace krrTools.Tools.N2NC
             set => SetProperty(ref _seed, value);
         }
         private int? _seed = 114514;
-
-        public List<int>? SelectedKeyTypes { get; set; }
-
         public KeySelectionFlags? SelectedKeyFlags { get; set; } = KeySelectionFlags.None;
-
+        
         public override void Validate()
         {
             base.Validate(); // First clamp to Min/Max

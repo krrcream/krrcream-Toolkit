@@ -67,11 +67,12 @@ namespace krrTools.Tools.N2NC
             var keysWrap = new WrapPanel { Orientation = Orientation.Horizontal, ItemHeight = 33 };
             var flagOrder = new[]
             {
-                KeySelectionFlags.K4, KeySelectionFlags.K5, KeySelectionFlags.K6, KeySelectionFlags.K7,
+                KeySelectionFlags.K3Minus,KeySelectionFlags.K4, KeySelectionFlags.K5, KeySelectionFlags.K6, KeySelectionFlags.K7,
                 KeySelectionFlags.K8, KeySelectionFlags.K9, KeySelectionFlags.K10, KeySelectionFlags.K10Plus
             };
             var flagLabels = new Dictionary<KeySelectionFlags, string>
             {
+                [KeySelectionFlags.K3Minus] = "3K-",
                 [KeySelectionFlags.K4] = "4K",
                 [KeySelectionFlags.K5] = "5K",
                 [KeySelectionFlags.K6] = "6K",
@@ -174,22 +175,9 @@ namespace krrTools.Tools.N2NC
                     {
                         _viewModel.KeySelection = opt.SelectedKeyFlags.Value;
                     }
-                    else if (opt.SelectedKeyTypes != null)
+                    else if (opt.SelectedKeyFlags != null)
                     {
                         var flags = KeySelectionFlags.None;
-                        foreach (var k in opt.SelectedKeyTypes)
-                            switch (k)
-                            {
-                                case 4: flags |= KeySelectionFlags.K4; break;
-                                case 5: flags |= KeySelectionFlags.K5; break;
-                                case 6: flags |= KeySelectionFlags.K6; break;
-                                case 7: flags |= KeySelectionFlags.K7; break;
-                                case 8: flags |= KeySelectionFlags.K8; break;
-                                case 9: flags |= KeySelectionFlags.K9; break;
-                                case 10: flags |= KeySelectionFlags.K10; break;
-                                default: flags |= KeySelectionFlags.K10Plus; break;
-                            }
-
                         _viewModel.KeySelection = flags;
                     }
                 }
