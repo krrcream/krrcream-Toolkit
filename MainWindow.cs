@@ -406,17 +406,16 @@ namespace krrTools
             {
                 Dispatcher.Invoke(() =>
                 {
+                    // TODO: 考虑是否要暂停预览刷新、监听等，也要评估复杂程度
                     if (frozen)
                     {
                         statusBarControl.RealTimeToggle.IsEnabled = false;
                         statusBarControl.TopmostToggle.IsEnabled = false;
-                        // TODO: 暂停预览刷新、监听等
                     }
                     else
                     {
                         statusBarControl.RealTimeToggle.IsEnabled = true;
                         statusBarControl.TopmostToggle.IsEnabled = true;
-                        // TODO: 恢复预览刷新、监听等
                     }
                 });
             });

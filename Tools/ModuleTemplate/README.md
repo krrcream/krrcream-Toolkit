@@ -37,21 +37,33 @@ static ToolModuleRegistry()
 ```
 
 ### 5. 实现核心算法
-在 `Processor.cs` 中实现你的转换逻辑。
+在 `ModuleName.cs` 中实现你的转换逻辑。
 
 ### 6. 配置UI
-在 `Control.cs` 中构建你的用户界面。
+在 `View.cs` 中构建你的用户界面。
 
 ### 7. 添加选项
 在 `Options.cs` 中定义你的模块设置。
+
+### 8. 添加枚举值
+在 `ConverterEnum` 枚举中添加新模块：
+```csharp
+public enum ConverterEnum
+{
+    N2NC,
+    DP,
+    KRRLN,
+    MyNewModule,  // 添加这一行
+}
+```
 
 ## 文件说明
 
 - `Module.cs.template` - 模块主类，实现模块接口
 - `Options.cs.template` - 模块选项类，定义设置
 - `ViewModel.cs.template` - 视图模型类，处理数据绑定
-- `Control.cs.template` - 用户界面控件类
-- `Processor.cs.template` - 核心算法处理类
+- `View.cs.template` - 用户界面控件类
+- `ModuleName.cs.template` - 核心算法处理类
 
 ## 模板文件中的占位符
 
@@ -62,7 +74,7 @@ static ToolModuleRegistry()
 
 1. 所有类名中的 `ModuleName` 都需要替换为实际名称
 2. 确保命名空间正确
-3. 实现 `ProcessBeatmap` 方法作为核心转换逻辑
+3. 实现 `TransformBeatmap` 方法作为核心转换逻辑
 4. 在UI中添加适当的输入验证
 5. 测试模块的保存和加载功能
 
@@ -91,3 +103,60 @@ copy_module_template.bat MyNewModule
    - `ModuleName` → `SpeedChanger`
    - `ModuleNameTool` → `SpeedChangerTool`
    - 实现具体的转换逻辑
+
+## 自定义UI控件
+
+项目提供了丰富的自定义UI控件库，位于 `UI/` 文件夹中：
+
+### SharedUIComponents.cs
+提供统一的UI组件：
+
+- `CreateStandardPanel(UIElement, Thickness?, Thickness?)` - 创建标准面板
+- `CreateHeaderLabel(string)` - 创建标题标签
+- `CreateLabeledRow(string, UIElement, Thickness)` - 创建带标签的行
+- `CreateStandardTextBox()` - 创建标准文本框
+- `CreateStandardButton(string, string?)` - 创建标准按钮
+- `CreateStandardCheckBox(string, string?)` - 创建标准复选框
+
+### UIConstants.cs
+UI常量定义：
+
+- `HeaderFontSize = 18.0` - 标题字体大小
+- `CommonFontSize = 16.0` - 普通字体大小
+- `UiTextBrush` - UI文本画刷
+- `PanelBorderBrush` - 面板边框画刷
+- `PanelCornerRadius` - 面板圆角
+- `PanelPadding` - 面板内边距
+
+### PresetPanelFactory.cs
+预设面板工厂：
+
+- `CreatePresetPanel<T>(string, Func<T?>, Action<T?>)` - 创建预设管理面板
+
+### SettingsBinder.cs (位于 Configuration/)
+设置绑定器，提供模板化控件：
+
+- `CreateTemplatedSlider(Bindable<T>, Expression<Func<...>>)` - 创建模板滑块
+- `CreateTemplatedSliderWithDynamicMax(...)` - 创建带动态最大值的滑块
+- `CreateSeedPanel(...)` - 创建种子面板
+
+### 使用示例
+```csharp
+// 在 View.cs 中使用
+private void BuildTemplatedUI()
+{
+    var scrollViewer = new ScrollViewer { /* ... */ };
+    var grid = new StackPanel { Margin = new Thickness(15) };
+    
+    // 使用标准面板
+    var panel = SharedUIComponents.CreateStandardPanel(someControl);
+    grid.Children.Add(panel);
+    
+    // 使用模板滑块
+    var slider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.SomeSetting);
+    grid.Children.Add(slider);
+    
+    scrollViewer.Content = grid;
+    Content = scrollViewer;
+}
+```

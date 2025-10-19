@@ -16,7 +16,6 @@ namespace krrTools.Tools.FilesManager
 {
     public partial class FilesManagerViewModel : ReactiveViewModelBase
     {
-        // TODO: 改为WPF控件，更换输入框过滤功能的控件功能，找一个类似Excel的筛选功能
         public Bindable<ObservableCollection<FilesManagerInfo>> OsuFiles { get; set; } = new(new ObservableCollection<FilesManagerInfo>());
         public Bindable<ICollectionView> FilteredOsuFiles { get; set; }
         public Bindable<bool> IsProcessing { get; set; } = new();

@@ -317,9 +317,8 @@ namespace krrTools.Beatmaps
 
         private static double FittingFormula(double x)
         {
-            // TODO: 实现正确的拟合公式
-            // For now, returning a placeholder value
-            return x * 1.5; // Replace with actual formula
+            // TODO: 凉雨算法，等待实现正确的拟合公式
+            return x * 1.5;
         }
     }
 }

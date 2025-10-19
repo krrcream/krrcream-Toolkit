@@ -12,7 +12,7 @@ namespace krrTools.Tools.DPtool
     /// <summary>
     /// DP 转换算法实现
     /// </summary>
-    public class DP : IApplyToBeatmap
+    public class DP
     {
         // 常量定义
         private const int RANDOM_SEED = 114514;
@@ -48,13 +48,6 @@ namespace krrTools.Tools.DPtool
             beatmap.MetadataSection.Tags = newTags;
             // 修改ID 但是维持beatmapsetID
             beatmap.MetadataSection.BeatmapID = 0;
-        }
-        
-        
-
-        public void ApplyToBeatmap(IBeatmap beatmap)
-        {
-            throw new NotImplementedException();
         }
     
         /// <summary>

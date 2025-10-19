@@ -1,0 +1,53 @@
+// TODO: 将所有"ModuleName"替换为你的实际模块名称
+
+using System;
+using System.Collections.Generic;
+using System.Windows;
+using System.Windows.Controls;
+using krrTools.Configuration;
+using krrTools.Core;
+using krrTools.Localization;
+using krrTools.UI;
+
+namespace krrTools.Tools.ModuleName
+{
+    public class ModuleNameView : ToolViewBase<ModuleNameOptions>
+    {
+        private readonly ModuleNameViewModel _viewModel;
+        // TODO: 声明UI控件变量
+        // 示例：
+        // private UIElement SomeSettingSlider;
+
+        public event EventHandler? SettingsChanged;
+
+        public ModuleNameView() : base(ConverterEnum.ModuleName) // TODO: 添加到 ConverterEnum
+        {
+            _viewModel = new ModuleNameViewModel(Options);
+            DataContext = _viewModel;
+            BuildTemplatedUI();
+        }
+
+        private void BuildTemplatedUI()
+        {
+            var scrollViewer = new ScrollViewer
+            {
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+            };
+
+            var grid = new StackPanel { Margin = new Thickness(15), HorizontalAlignment = HorizontalAlignment.Stretch };
+
+            var rowMargin = new Thickness(0, 6, 0, 6);
+
+            // TODO: 创建模板化控件 - 绑定到Options的Bindable属性
+            // 示例：
+            // SomeSettingSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.SomeSetting);
+
+            // TODO: 添加控件到grid
+            // grid.Children.Add(SomeSettingSlider);
+
+            scrollViewer.Content = grid;
+            Content = scrollViewer;
+        }
+    }
+}

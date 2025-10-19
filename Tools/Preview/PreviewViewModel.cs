@@ -176,7 +176,7 @@ public class PreviewViewModel : ReactiveViewModelBase
         RefreshOriginal();
         RefreshConverted();
         
-        // TODO: 重置触发，拖拽区也要重置。
+        // 重置后，拖拽区要重置吗？
     }
 
     public void SetProcessor(IPreviewProcessor? processor)

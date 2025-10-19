@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 
 namespace krrTools.Tools.Listener
 {
-    // TODO: 统一快捷键绑定，比如 WPF InputBinding
     public class GlobalHotkey
     {
         private const int MOD_ALT = 0x0001;

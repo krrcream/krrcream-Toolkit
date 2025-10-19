@@ -161,7 +161,6 @@ namespace krrTools.Utilities
 
         public void SetFiles(string[]? files, FileSource source = FileSource.Dropped)
         {
-            // TODO: 需要梳理
             var oldSource = _currentSource;
             _stagedPaths = files;
             _isSingleFile = files?.Length == 1;

@@ -160,7 +160,6 @@ namespace krrTools.Beatmaps
             string? parentDir = Path.GetDirectoryName(songFolder);
             if (string.IsNullOrEmpty(parentDir))
             {
-                // TODO: 路径为空时，改成自销毁通知
                 Logger.WriteLine(LogLevel.Error, Strings.UnableToDetermineParentDirectory.Localize() + ": " + songFolder);
                 return null;
             }

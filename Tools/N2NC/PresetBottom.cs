@@ -9,8 +9,6 @@ using Microsoft.Extensions.Logging;
 
 namespace krrTools.Tools.N2NC
 {
-    // TODO: 未来抽象类，最好做成带+号的按钮列表组件，让模块自己去实例化
-    // 现在先这样写着，N2NC里有预设模版的备份
     public abstract class PresetBottom : Window
     {
         private readonly N2NCViewModel _viewModel;

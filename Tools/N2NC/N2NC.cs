@@ -113,7 +113,7 @@ namespace krrTools.Tools.N2NC
         private NoteMatrix DoAddKeys(NoteMatrix matrix, List<int> timeAxis, int turn, double convertTime,
             int CS, int targetKeys, double beatLength, Random random, N2NCOptions options)
         {
-            // 生成转换矩阵
+            // TODO: 这里可能需要优化，直接用传入NoteMatrix matrix 生成oldMTX和insertMTX
             var (oldMTX, insertMTX) = convertMTX(turn, timeAxis, convertTime, CS, random);
             var newMatrix = convert(matrix, oldMTX, insertMTX, timeAxis, targetKeys, beatLength, random);
             DensityReducer(newMatrix, (int)options.TargetKeys.Value - (int)options.MaxKeys.Value, (int)options.MinKeys.Value, (int)options.TargetKeys.Value, random);
@@ -130,8 +130,7 @@ namespace krrTools.Tools.N2NC
             DensityReducer(newMatrix, (int)options.TargetKeys.Value - (int)options.MaxKeys.Value, (int)options.MinKeys.Value, (int)options.TargetKeys.Value, random);
             return newMatrix;
         }
-
-        // TODO：统一生成基础矩阵，再由模块处理更好。
+        
         // 未来库完善，矩阵可弃用，仅供测试模式下输出运行模型
         public (NoteMatrix, NoteMatrix) convertMTX(int turn, List<int> timeAxis,
             double convertTime, int CS, Random random)
@@ -1039,7 +1038,5 @@ namespace krrTools.Tools.N2NC
                 }
             }
         }
-
-        // TODO: 设置检查不合理，应重构
     }
 }

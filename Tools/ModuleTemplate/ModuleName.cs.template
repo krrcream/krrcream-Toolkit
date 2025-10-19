@@ -1,0 +1,63 @@
+// TODO: 将所有"ModuleName"替换为你的实际模块名称
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using krrTools.Beatmaps;
+using Microsoft.Extensions.Logging;
+using OsuParsers.Beatmaps;
+using OsuParsers.Beatmaps.Objects;
+using krrTools.Localization;
+
+namespace krrTools.Tools.ModuleName
+{
+    /// <summary>
+    /// ModuleName 转换算法实现
+    /// </summary>
+    public class ModuleName
+    {
+        /// <summary>
+        /// 修改metadata,放在每个转谱器开头
+        /// </summary>
+        private void MetadetaChange(Beatmap beatmap, ModuleNameOptions options)
+        {
+            // TODO: 实现metadata修改逻辑
+            // 示例：
+            // var originalCS = beatmap.DifficultySection.CircleSize;
+            // beatmap.DifficultySection.CircleSize = (float)options.TargetKeys.Value;
+            
+            // 修改作者
+            // beatmap.MetadataSection.Creator = CreatorManager.AddTagtoCreator(beatmap.MetadataSection.Creator, Strings.ModuleNameTag);
+            
+            // 替换Version
+            // beatmap.MetadataSection.Version = $"[{originalCS}to{options.TargetKeys.Value}C] " + beatmap.MetadataSection.Version;
+            
+            // 替换标签
+            // var existingTags = new HashSet<string>(beatmap.MetadataSection.Tags ?? Enumerable.Empty<string>());
+            // var requiredTags = new[] { Strings.ConverterTag, Strings.ModuleNameTag, "Krr" };
+            // var newTags = requiredTags.Where(tag => !existingTags.Contains(tag)).Concat(beatmap.MetadataSection.Tags ?? Enumerable.Empty<string>()).ToArray();
+            // beatmap.MetadataSection.Tags = newTags;
+            
+            // 修改ID
+            // beatmap.MetadataSection.BeatmapID = 0;
+        }
+        
+        /// <summary>
+        /// 转换谱面
+        /// </summary>
+        /// <param name="beatmap">输入谱面</param>
+        /// <param name="options">转换选项</param>
+        public void TransformBeatmap(Beatmap beatmap, ModuleNameOptions options)
+        {
+            // 修改metadata
+            MetadetaChange(beatmap, options);
+            
+            // TODO: 实现核心转换逻辑
+            // 示例：
+            // foreach (var hitObject in beatmap.HitObjects)
+            // {
+            //     // 修改hitObject
+            // }
+        }
+    }
+}

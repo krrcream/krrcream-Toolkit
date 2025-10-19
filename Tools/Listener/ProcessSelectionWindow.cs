@@ -26,7 +26,7 @@ namespace krrTools.Tools.Listener
                 {
                     try
                     {
-                        Title = "选择osu!进程"; // TODO: localize if needed
+                        Title = "选择osu!进程|Selected osu! process";
                         // update any labels/buttons by rebuilding
                         var dc = DataContext;
                         Content = null;

@@ -17,9 +17,7 @@ using krrTools.Bindable;
 
 namespace krrTools.Tools.KRRLVAnalysis
 {
-    //TODO:   1.控件优化，优化UI更新逻辑，减少频繁更新;
-    //        2.0note要跳过，UI中也不要显示;
-    //        3.xxySR计算有一定缓存，看看能不能优化;
+    //TODO:   0note要跳过，UI中也不要显示; 有时候解析结果是空的，要检查是预过滤不完善还是解析bug
 
     public partial class KRRLVAnalysisViewModel : ReactiveViewModelBase
     {

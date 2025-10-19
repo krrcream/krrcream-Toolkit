@@ -1,35 +1,39 @@
 // TODO: 将所有"ModuleName"替换为你的实际模块名称
 
-using krrTools.Tools.Shared;
+using System.Collections.Generic;
+using krrTools.Bindable;
+using krrTools.Core;
+using static krrTools.Localization.Strings;
 
 namespace krrTools.Tools.ModuleName
 {
     /// <summary>
-    /// ModuleName转换选项类
-    /// 继承自UnifiedToolOptions，包含模块特定的设置
+    /// 转换选项类，用于封装所有转换参数
     /// </summary>
     public class ModuleNameOptions : ToolOptionsBase
     {
-        // TODO: 添加你的模块特定设置属性
+        // TODO: 添加你的选项属性，使用 Bindable<T> 和 Option 属性
         // 示例：
-        // public double SomeSetting { get; set; } = 1.0;
-        // public bool EnableFeature { get; set; } = true;
-        // public int MaxValue { get; set; } = 100;
+        // [Option(LabelKey = nameof(SomeSettingLabel), Min = 1, Max = 10, UIType = UIType.Slider, DataType = typeof(double), IsRefresher = true)]
+        // public Bindable<double> SomeSetting { get; } = new Bindable<double>(5);
 
         /// <summary>
-        /// 验证选项值的有效性
-        /// 在保存选项时会自动调用
-        /// TODO: 实现你的验证逻辑
+        /// 默认构造函数，使用默认值
         /// </summary>
-        public override void Validate()
+        public ModuleNameOptions()
         {
-            // 调用基类验证（处理预设等通用设置）
-            base.Validate();
-
-            // TODO: 添加你的验证逻辑
+            // TODO: Wire up property changed events for Bindable<T> properties
             // 示例：
-            // if (SomeSetting < 0) SomeSetting = 0;
-            // if (MaxValue > 1000) MaxValue = 1000;
+            // SomeSetting.PropertyChanged += (_, _) => OnPropertyChanged(nameof(SomeSetting));
         }
+
+        // TODO: 添加显示映射字典（如果需要）
+        // 示例：
+        // public static readonly Dictionary<double, string> SomeSettingDict = new Dictionary<double, string>
+        // {
+        //     { 1, "Low" },
+        //     { 5, "Medium" },
+        //     { 10, "High" }
+        // };
     }
 }

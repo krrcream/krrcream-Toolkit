@@ -1,49 +1,32 @@
 // TODO: 将所有"ModuleName"替换为你的实际模块名称
 // 例如：如果你的模块叫"MyConverter"，则替换为"MyConverter"
 
-using krrTools.Tools.Shared;
+using krrTools.Core;
+using krrTools.Localization;
 using OsuParsers.Beatmaps;
 
 namespace krrTools.Tools.ModuleName
 {
     /// <summary>
     /// ModuleName转换模块
-    /// 继承自ToolModuleBase，提供统一的模块接口
     /// </summary>
-    public class ModuleNameModule : ToolModuleBase<ModuleNameOptions, ModuleNameViewModel, ModuleNameControl>
+    public class ModuleNameModule : ToolModuleBase<ModuleNameOptions, ModuleNameViewModel, ModuleNameView>
     {
-        /// <summary>
-        /// 模块类型 - 必须与ToolModuleType枚举中的值对应
-        /// TODO: 在ToolModuleType枚举中添加对应的值
-        /// </summary>
         public override ToolModuleType ModuleType => ToolModuleType.ModuleName;
 
-        /// <summary>
-        /// 模块内部名称 - 用于配置文件名和工具标识
-        /// 建议格式："ModuleNameTool"
-        /// TODO: 修改为实际的工具名称
-        /// </summary>
-        public override string ModuleName => "ModuleNameTool";
+        public override string DisplayName => "ModuleName Converter"; // TODO: 使用本地化字符串，如 Strings.TabModuleName
 
         /// <summary>
-        /// 模块显示名称 - 显示在UI中的名称
-        /// TODO: 修改为用户友好的显示名称
+        /// 应用转换到谱面（内部实现）- 获取最新的运行时设置
         /// </summary>
-        public override string DisplayName => "ModuleName Converter";
-
-        /// <summary>
-        /// 核心算法：处理Beatmap
-        /// 这是模块的核心转换逻辑
-        /// TODO: 实现你的转换算法
-        /// </summary>
-        /// <param name="input">输入的Beatmap对象</param>
-        /// <param name="options">转换选项</param>
-        /// <returns>处理后的Beatmap对象</returns>
-        public override Beatmap ProcessBeatmap(Beatmap input, ModuleNameOptions options)
+        /// <param name="beatmap">谱面对象</param>
+        protected override void ApplyToBeatmapInternal(Beatmap beatmap)
         {
-            // 调用核心处理器进行转换
-            // TODO: 实现ModuleNameProcessor类
-            return ModuleNameProcessor.Process(input, options);
+            // 获取最新的选项设置 - 响应式系统实时更新
+            var options = GetLatestOptions();
+            
+            var transformer = new ModuleName();
+            transformer.TransformBeatmap(beatmap, options);
         }
     }
 }

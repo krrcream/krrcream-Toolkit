@@ -1,25 +1,38 @@
 // TODO: 将所有"ModuleName"替换为你的实际模块名称
 
-using krrTools.Tools.Shared;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using krrTools.Configuration;
+using krrTools.Core;
+using krrTools.Localization;
 
 namespace krrTools.Tools.ModuleName
 {
     /// <summary>
-    /// ModuleName视图模型类
-    /// 继承自ToolViewModelBase，处理数据绑定和业务逻辑
+    /// ModuleName响应式ViewModel - 配置的响应式管理
+    /// 核心功能：实时配置更新 + 智能约束处理
+    /// 融合ToolViewModelBase基础功能和Bindable的响应式能力
     /// </summary>
-    public class ModuleNameViewModel : ToolViewModelBase<ModuleNameOptions>
+    public class ModuleNameViewModel : ToolViewModelBase<ModuleNameOptions>, IPreviewOptionsProvider // TODO: 如果不需要预览，移除 IPreviewOptionsProvider
     {
-        /// <summary>
-        /// 构造函数
-        /// TODO: 修改工具名称参数
-        /// </summary>
-        public ModuleNameViewModel() : base("ModuleNameTool", autoSave: true)
+        // TODO: 本地化事件处理器委托引用，用于Dispose时取消订阅
+        // private PropertyChangedEventHandler? _someSettingHandler;
+
+        // TODO: 添加显示映射字典
+        // public static readonly Dictionary<double, string> SomeSettingDict = new()
+        // {
+        //     { 1, "Low" },
+        //     { 5, "Medium" },
+        //     { 10, "High" }
+        // };
+
+        public ModuleNameViewModel() : base(ConverterEnum.ModuleName, autoSave: true) // TODO: 添加到 ConverterEnum
         {
-            // TODO: 初始化额外的属性或逻辑（如果需要）
+            // TODO: 初始化额外的属性或逻辑
         }
 
-        // TODO: 添加UI绑定属性（如果需要）
+        // TODO: 添加UI绑定属性
         // 示例：
         // private bool _isProcessing;
         // public bool IsProcessing
@@ -28,7 +41,7 @@ namespace krrTools.Tools.ModuleName
         //     set => SetProperty(ref _isProcessing, value);
         // }
 
-        // TODO: 添加命令或方法（如果需要）
+        // TODO: 添加命令或方法
         // 示例：
         // public RelayCommand SomeCommand => new RelayCommand(ExecuteSomeCommand);
         // private void ExecuteSomeCommand()
