@@ -17,36 +17,37 @@ namespace krrTools.Tools.N2NC
         /// <summary>
         /// 修改metadeta,放在每个转谱器开头
         /// </summary>
-        private void MetadetaChange(Beatmap beatmap,N2NCOptions options)
+        private void MetadetaChange(Beatmap beatmap, N2NCOptions options)
         {
-            
+
             var originalCS = beatmap.DifficultySection.CircleSize;
             //修改CS
             beatmap.DifficultySection.CircleSize = (float)options.TargetKeys.Value;
-            
+
             string NtoNCVersionName = $"[{originalCS}to{options.TargetKeys.Value}C]";
-            
+
             // 修改作者 保持叠加转谱后的标签按顺序唯一
-            beatmap.MetadataSection.Creator = CreatorManager.AddTagtoCreator(beatmap.MetadataSection.Creator, Strings.NToNCTag);
-            
+            beatmap.MetadataSection.Creator =
+                CreatorManager.AddTagtoCreator(beatmap.MetadataSection.Creator, Strings.NToNCTag);
+
             // 替换Version （允许叠加转谱）
             beatmap.MetadataSection.Version = NtoNCVersionName + " " + beatmap.MetadataSection.Version;
-            
+
             // 替换标签，保证唯一
             var existingTags = new HashSet<string>(beatmap.MetadataSection.Tags ?? Enumerable.Empty<string>());
-            var requiredTags = new[] { Strings.ConverterTag, Strings.NToNCTag , "Krr"};
+            var requiredTags = new[] { Strings.ConverterTag, Strings.NToNCTag, "Krr" };
 
             var newTags = requiredTags
                 .Where(tag => !existingTags.Contains(tag))
                 .Concat(beatmap.MetadataSection.Tags ?? Enumerable.Empty<string>())
                 .ToArray();
-            
+
             beatmap.MetadataSection.Tags = newTags;
             // 修改ID 但是维持beatmapsetID
             beatmap.MetadataSection.BeatmapID = 0;
         }
-        
-        
+
+
         /// <summary>
         /// 执行谱面转换
         /// </summary>
@@ -62,7 +63,8 @@ namespace krrTools.Tools.N2NC
         /// <summary>
         /// 处理音符矩阵
         /// </summary>
-        private NoteMatrix ProcessMatrix(NoteMatrix matrix, List<int> timeAxis, Beatmap beatmap, N2NCOptions options, Random random)
+        private NoteMatrix ProcessMatrix(NoteMatrix matrix, List<int> timeAxis, Beatmap beatmap, N2NCOptions options,
+            Random random)
         {
             return ConvertMatrix(matrix, timeAxis, beatmap, options, random);
         }
@@ -75,7 +77,8 @@ namespace krrTools.Tools.N2NC
             NewHitObjects(beatmap, processedMatrix, options);
         }
 
-        private NoteMatrix ConvertMatrix(NoteMatrix matrix, List<int> timeAxis, Beatmap beatmap, N2NCOptions options, Random random)
+        private NoteMatrix ConvertMatrix(NoteMatrix matrix, List<int> timeAxis, Beatmap beatmap, N2NCOptions options,
+            Random random)
         {
             var CS = (int)beatmap.DifficultySection.CircleSize;
             var targetKeys = (int)options.TargetKeys.Value;
@@ -116,7 +119,8 @@ namespace krrTools.Tools.N2NC
             // TODO: 这里可能需要优化，直接用传入NoteMatrix matrix 生成oldMTX和insertMTX
             var (oldMTX, insertMTX) = convertMTX(turn, timeAxis, convertTime, CS, random);
             var newMatrix = convert(matrix, oldMTX, insertMTX, timeAxis, targetKeys, beatLength, random);
-            DensityReducer(newMatrix, (int)options.TargetKeys.Value - (int)options.MaxKeys.Value, (int)options.MinKeys.Value, (int)options.TargetKeys.Value, random);
+            DensityReducer(newMatrix, (int)options.TargetKeys.Value - (int)options.MaxKeys.Value,
+                (int)options.MinKeys.Value, (int)options.TargetKeys.Value, random);
             return newMatrix;
         }
 
@@ -127,10 +131,11 @@ namespace krrTools.Tools.N2NC
             var _ = originalCS;
 #pragma warning restore CS0219
             var newMatrix = SmartReduceColumns(matrix, timeAxis, -turn, convertTime, beatLength, random);
-            DensityReducer(newMatrix, (int)options.TargetKeys.Value - (int)options.MaxKeys.Value, (int)options.MinKeys.Value, (int)options.TargetKeys.Value, random);
+            DensityReducer(newMatrix, (int)options.TargetKeys.Value - (int)options.MaxKeys.Value,
+                (int)options.MinKeys.Value, (int)options.TargetKeys.Value, random);
             return newMatrix;
         }
-        
+
         // 未来库完善，矩阵可弃用，仅供测试模式下输出运行模型
         public (NoteMatrix, NoteMatrix) convertMTX(int turn, List<int> timeAxis,
             double convertTime, int CS, Random random)
@@ -204,7 +209,8 @@ namespace krrTools.Tools.N2NC
         }
 
         // 转换操作
-        public NoteMatrix convert(NoteMatrix matrix, NoteMatrix oldMTX, NoteMatrix insertMTX, List<int> timeAxis1, int targetKeys,
+        public NoteMatrix convert(NoteMatrix matrix, NoteMatrix oldMTX, NoteMatrix insertMTX, List<int> timeAxis1,
+            int targetKeys,
             double beatLength, Random random)
         {
             try
@@ -338,7 +344,8 @@ namespace krrTools.Tools.N2NC
                 for (var j = 0; j < newCols; j++)
                 for (var i = 0; i < rows - 1; i++)
                     // 如果当前值和下一个值不同，且都不为-1
-                    if (colsMatrix[i, j] != -1 && colsMatrix[i + 1, j] != -1 && colsMatrix[i, j] != colsMatrix[i + 1, j])
+                    if (colsMatrix[i, j] != -1 && colsMatrix[i + 1, j] != -1 &&
+                        colsMatrix[i, j] != colsMatrix[i + 1, j])
                     {
                         var changeRow = i; // 变化点
                         var nextValue = colsMatrix[i + 1, j]; // 变化后的值
@@ -423,7 +430,8 @@ namespace krrTools.Tools.N2NC
             beatmap.SortHitObjects();
         }
 
-        private void DensityReducer(NoteMatrix matrix, int maxToRemovePerRow, int minKeys, int targetKeys, Random random)
+        private void DensityReducer(NoteMatrix matrix, int maxToRemovePerRow, int minKeys, int targetKeys,
+            Random random)
         {
             if (maxToRemovePerRow <= 0) return;
 
@@ -502,7 +510,8 @@ namespace krrTools.Tools.N2NC
 
 
 
-        public NoteMatrix SmartReduceColumns(NoteMatrix orgMTX, List<int> timeAxis, int turn, double convertTime, double beatLength, Random random)
+        public NoteMatrix SmartReduceColumns(NoteMatrix orgMTX, List<int> timeAxis, int turn, double convertTime,
+            double beatLength, Random random)
         {
             var rows = orgMTX.Rows;
             var originalCols = orgMTX.Cols;
@@ -592,10 +601,12 @@ namespace krrTools.Tools.N2NC
 
             // 应用约束条件：确保每行至少有一个note
             // 应用约束条件：确保每行至少有一个note
-            ApplyMinimumNotesConstraint(newMatrix, orgMTX, regionStart, regionEnd, targetCols, timeAxis, beatLength, random);
+            ApplyMinimumNotesConstraint(newMatrix, orgMTX, regionStart, regionEnd, targetCols, timeAxis, beatLength,
+                random);
         }
 
-        private void ApplyMinimumNotesConstraint(NoteMatrix matrix, NoteMatrix orgMTX, int startRow, int endRow, int targetCols,
+        private void ApplyMinimumNotesConstraint(NoteMatrix matrix, NoteMatrix orgMTX, int startRow, int endRow,
+            int targetCols,
             List<int> timeAxis, double beatLength, Random random)
         {
             // 遍历每个区域的每一行
@@ -632,7 +643,8 @@ namespace krrTools.Tools.N2NC
                             // 检查位置是否可用（前后beatLength/16+10时间内无物件）
                             if (IsPositionAvailableForEmptyRow(matrix, timeAxis, row, col, beatLength))
                                 // 特别检查长条尾部时间距离要求
-                                if (!IsHoldNoteTailTooClose(matrix, orgMTX, timeAxis, row, selectedOrgCol, col, beatLength))
+                                if (!IsHoldNoteTailTooClose(matrix, orgMTX, timeAxis, row, selectedOrgCol, col,
+                                        beatLength))
                                     availablePositions.Add(col);
 
                         // 如果有可用位置
@@ -681,7 +693,8 @@ namespace krrTools.Tools.N2NC
             return columnList.Take(colsToRemove).Select(x => x.index).ToList();
         }
 
-        private double CalculateColumnRisk(NoteMatrix matrix, int colIndex, int totalCols, int regionStart, int regionEnd)
+        private double CalculateColumnRisk(NoteMatrix matrix, int colIndex, int totalCols, int regionStart,
+            int regionEnd)
         {
             var totalRows = 0;
             var emptyRows = 0;
@@ -756,7 +769,8 @@ namespace krrTools.Tools.N2NC
                         newMatrix[row, col] = -7;
         }
 
-        private void CopyLongNoteBody(NoteMatrix orgMTX, NoteMatrix newMatrix, int startRow, int oldCol, int newCol, int totalRows)
+        private void CopyLongNoteBody(NoteMatrix orgMTX, NoteMatrix newMatrix, int startRow, int oldCol, int newCol,
+            int totalRows)
         {
             // 复制长条的身体部分
             var row = startRow + 1;
@@ -768,7 +782,8 @@ namespace krrTools.Tools.N2NC
             }
         }
 
-        private void ProcessEmptyRows(NoteMatrix orgMTX, NoteMatrix newMatrix, List<int> timeAxis, double beatLength, Random random)
+        private void ProcessEmptyRows(NoteMatrix orgMTX, NoteMatrix newMatrix, List<int> timeAxis, double beatLength,
+            Random random)
         {
             var rows = newMatrix.Rows;
             var targetCols = newMatrix.Cols;
@@ -794,7 +809,8 @@ namespace krrTools.Tools.N2NC
                             random)) continue; // 成功插入，跳过第二步
 
                     // 第二步：尝试通过删除其他列的note来腾出空间
-                    TryClearSpaceAndInsert(orgMTX, newMatrix, timeAxis, row, targetCols, originalCols, beatLength, random);
+                    TryClearSpaceAndInsert(orgMTX, newMatrix, timeAxis, row, targetCols, originalCols, beatLength,
+                        random);
                 }
             }
         }
@@ -1004,15 +1020,34 @@ namespace krrTools.Tools.N2NC
             private readonly int _maxValue;
             private int _currentValue;
             private int _direction;
+            private bool _isSpecialCase;
 
             public OscillatorGenerator(int maxValue, Random? random = null)
             {
-                if (maxValue <= 0) throw new ArgumentException("maxValue 必须大于零");
+                if (maxValue < 0) throw new ArgumentException("maxValue 必须不小于零");
 
                 _maxValue = maxValue;
-                var rnd = random ?? new Random();
-                _currentValue = rnd.Next(1, maxValue);
-                _direction = rnd.Next(0, 2) == 0 ? -1 : 1;
+                // 处理特殊情况
+                if (maxValue == 0)
+                {
+                    _currentValue = 0;
+                    _isSpecialCase = true;
+                }
+                else if (maxValue == 1)
+                {
+                    var rnd = random ?? new Random();
+                    _currentValue = rnd.Next(0, 2); // 0 或 1
+                    _direction = rnd.Next(0, 2) == 0 ? -1 : 1;
+                    _isSpecialCase = true;
+                }
+                else
+                {
+                    // 正常情况
+                    var rnd = random ?? new Random();
+                    _currentValue = rnd.Next(1, maxValue);
+                    _direction = rnd.Next(0, 2) == 0 ? -1 : 1;
+                    _isSpecialCase = false;
+                }
             }
 
 
@@ -1023,18 +1058,35 @@ namespace krrTools.Tools.N2NC
 
             public void Next()
             {
-                _currentValue += _direction;
-
-                // 检查是否需要改变方向
-                if (_currentValue > _maxValue)
+                if (_isSpecialCase)
                 {
-                    _currentValue = _maxValue - 1;
-                    _direction = -1;
+                    if (_maxValue == 0)
+                    {
+                        // maxValue=0 时始终返回 0
+                        _currentValue = 0;
+                    }
+                    else if (_maxValue == 1)
+                    {
+                        // maxValue=1 时在 0 和 1 之间切换
+                        _currentValue = 1 - _currentValue;
+                    }
                 }
-                else if (_currentValue <= 0)
+                else
                 {
-                    _currentValue = 0;
-                    _direction = 1;
+                    // 正常逻辑
+                    _currentValue += _direction;
+
+                    // 检查是否需要改变方向
+                    if (_currentValue > _maxValue)
+                    {
+                        _currentValue = _maxValue - 1;
+                        _direction = -1;
+                    }
+                    else if (_currentValue < 0)
+                    {
+                        _currentValue = 1;
+                        _direction = 1;
+                    }
                 }
             }
         }
