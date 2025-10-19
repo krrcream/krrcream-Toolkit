@@ -141,17 +141,22 @@ namespace krrTools.Tools.N2NC
                 SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
 
+            TextBlock filterLabelBlock;
             var filterLabel = Strings.Localize(Strings.FilterLabel);
+
+            var keysPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = rowMargin };
+            filterLabelBlock = SharedUIComponents.CreateHeaderLabel(filterLabel);
+            filterLabelBlock.Margin = new Thickness(0, 0, 0, 4);
+            keysPanel.Children.Add(filterLabelBlock);
+            keysPanel.Children.Add(keysMainPanel);
 
             void UpdateFilterLabel()
             {
-                filterLabel = Strings.Localize(Strings.FilterLabel);
+                filterLabelBlock.Text = Strings.Localize(Strings.FilterLabel);
             }
 
             SharedUIComponents.LanguageChanged += UpdateFilterLabel;
             Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= UpdateFilterLabel;
-
-            var keysPanel = SharedUIComponents.CreateLabeledRow(filterLabel, keysMainPanel, rowMargin);
             grid.Children.Add(keysPanel);
 
             // 预设面板
