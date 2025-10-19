@@ -70,6 +70,9 @@ namespace krrTools.Utilities
 
             // 初始化显示文字
             UpdateDisplayText();
+
+            // 订阅语言切换事件
+            LocalizationService.LanguageChanged += OnLanguageChanged;
         }
 
         // UI 相关属性
@@ -79,6 +82,8 @@ namespace krrTools.Utilities
         // 本地化
         private readonly DynamicLocalizedString _dropHintLocalized = new(Strings.DropHint);
         private readonly DynamicLocalizedString _dropFilesHintLocalized = new(Strings.DropFilesHint);
+        private readonly DynamicLocalizedString _droppedPrefixLocalized = new(Strings.DroppedPrefix);
+        private readonly DynamicLocalizedString _listenedPrefixLocalized = new(Strings.ListenedPrefix);
 
         // 属性
         private string _displayText = string.Empty;
@@ -276,8 +281,8 @@ namespace krrTools.Utilities
             {
                 string prefix = _currentSource switch
                 {
-                    FileSource.Dropped => "[拖入] ",
-                    FileSource.Listened => "[监听] ",
+                    FileSource.Dropped => _droppedPrefixLocalized.Value,
+                    FileSource.Listened => _listenedPrefixLocalized.Value,
                     _ => ""
                 };
                 DisplayText = prefix + string.Format(_dropFilesHintLocalized.Value, _stagedPaths.Length);
@@ -291,6 +296,11 @@ namespace krrTools.Utilities
                 _currentSource = source;
                 UpdateDisplayText();
             }
+        }
+
+        private void OnLanguageChanged()
+        {
+            UpdateDisplayText();
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

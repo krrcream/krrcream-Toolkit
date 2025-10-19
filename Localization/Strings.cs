@@ -185,6 +185,8 @@ namespace krrTools.Localization
         public const string OriginalHint = "Original|原始";
         public const string ConvertedHint = "Converted|结果";
         public const string DropHint = "Drag & Drop .osu files in here|将 .osu 文件拖到此区域";
+        public const string DroppedPrefix = "[Dropped] |[拖入] ";
+        public const string ListenedPrefix = "[Listened] |[监听] ";
         public const string StartButtonText = "Start|开始转换";
         public const string DropFilesHint = "{0} file(s) staged. Click Start to convert.|已暂存 {0} 个文件，点击开始转换。";
         public const string NoDataAvailable = "No data available|无可用数据";
