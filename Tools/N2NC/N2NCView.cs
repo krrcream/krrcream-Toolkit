@@ -171,15 +171,7 @@ namespace krrTools.Tools.N2NC
                     _viewModel.MaxKeys = opt.MaxKeys.Value;
                     _viewModel.MinKeys = opt.MinKeys.Value;
                     _viewModel.Seed = opt.Seed;
-                    if (opt.SelectedKeyFlags.HasValue)
-                    {
-                        _viewModel.KeySelection = opt.SelectedKeyFlags.Value;
-                    }
-                    else if (opt.SelectedKeyFlags != null)
-                    {
-                        var flags = KeySelectionFlags.None;
-                        _viewModel.KeySelection = flags;
-                    }
+                    _viewModel.KeySelection = opt.SelectedKeyFlags ?? KeySelectionFlags.None; 
                 }
             );
 
@@ -187,17 +179,18 @@ namespace krrTools.Tools.N2NC
             if (presetsBorder is StackPanel outerPanel)
             {
                 var builtinPresetsPanel = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
-                foreach (var (kind, _, options) in PresetBottom.GetPresetTemplates())
+                foreach (var (kind, _, opt) in PresetBottom.GetPresetTemplates())
                 {
                     var btn = SharedUIComponents.CreateStandardButton(PresetBottom.GetEnumDescription(kind));
                     btn.Width = 100;
                     btn.Click += (_, _) =>
                     {
-                        _viewModel.TargetKeys = (int)options.TargetKeys.Value;
-                        _viewModel.MaxKeys = (int)options.MaxKeys.Value;
-                        _viewModel.MinKeys = (int)options.MinKeys.Value;
-                        _viewModel.TransformSpeed = options.TransformSpeed.Value;
-                        _viewModel.Seed = options.Seed;
+                        _viewModel.TargetKeys = (int)opt.TargetKeys.Value;
+                        _viewModel.MaxKeys = (int)opt.MaxKeys.Value;
+                        _viewModel.MinKeys = (int)opt.MinKeys.Value;
+                        _viewModel.TransformSpeed = opt.TransformSpeed.Value;
+                        _viewModel.Seed = opt.Seed;
+                        _viewModel.KeySelection = opt.SelectedKeyFlags ?? KeySelectionFlags.None; 
                     };
                     builtinPresetsPanel.Children.Add(btn);
                 }
