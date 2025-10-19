@@ -64,6 +64,7 @@ public enum ConverterEnum
 - `ViewModel.cs.template` - 视图模型类，处理数据绑定
 - `View.cs.template` - 用户界面控件类
 - `ModuleName.cs.template` - 核心算法处理类
+- `SettingsBinder_GUIDE.md` - SettingsBinder使用指南
 
 ## 模板文件中的占位符
 
@@ -139,6 +140,8 @@ UI常量定义：
 - `CreateTemplatedSlider(Bindable<T>, Expression<Func<...>>)` - 创建模板滑块
 - `CreateTemplatedSliderWithDynamicMax(...)` - 创建带动态最大值的滑块
 - `CreateSeedPanel(...)` - 创建种子面板
+
+**详细使用说明请参考 `SettingsBinder_GUIDE.md`**
 
 ### 使用示例
 ```csharp
