@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -9,27 +10,37 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Data;
 using System.Windows.Threading;
 using ClosedXML.Excel;
 using CommunityToolkit.Mvvm.Input;
 using krrTools.Beatmaps;
 using krrTools.Bindable;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.Tools.KRRLVAnalysis
 {
-    //TODO:   0note要跳过，UI中也不要显示; 有时候解析结果是空的，要检查是预过滤不完善还是解析bug
-
+    /// <summary>
+    /// LV分析视图模型
+    /// 显示所有内容，不进行过滤，支持批量处理和进度更新
+    /// 非mania谱和分析失败的谱面会显示对应状态，而不是过滤掉
+    /// </summary>
     public partial class KRRLVAnalysisViewModel : ReactiveViewModelBase
     {
         private const int BatchSize = 50; // UI更新和并行输出块大小
 
         public Bindable<string> PathInput { get; set; } = new(string.Empty);
-        private Bindable<ObservableCollection<KRRLVAnalysisItem>> OsuFiles { get; set; } = new(new ObservableCollection<KRRLVAnalysisItem>());
 
-        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(4, 4); // 最多4个并发线程
+        private Bindable<ObservableCollection<KRRLVAnalysisItem>> OsuFiles { get; set; } =
+            new(new ObservableCollection<KRRLVAnalysisItem>());
+
+        public Bindable<ICollectionView> FilteredOsuFiles { get; set; }
+
+        private readonly SemaphoreSlim _semaphore = new(4, 4); // 最多4个并发线程
+
         // private ProcessingWindow? _processingWindow;
-        private readonly List<KRRLVAnalysisItem> _pendingItems = new List<KRRLVAnalysisItem>();
-        private readonly Lock _pendingItemsLock = new Lock();
+        private readonly List<KRRLVAnalysisItem> _pendingItems = new();
+        private readonly Lock _pendingItemsLock = new();
 
         private int _currentProcessedCount;
         private int _uiUpdateCounter; // UI更新计数器，每BatchSize个文件更新一次UI
@@ -41,6 +52,7 @@ namespace krrTools.Tools.KRRLVAnalysis
         public KRRLVAnalysisViewModel()
         {
             _uiUpdateCounter = 0;
+            FilteredOsuFiles = new Bindable<ICollectionView>(CollectionViewSource.GetDefaultView(OsuFiles.Value));
             // 设置自动绑定通知
             SetupAutoBindableNotifications();
         }
@@ -62,12 +74,12 @@ namespace krrTools.Tools.KRRLVAnalysis
                     if (_uiUpdateCounter >= BatchSize)
                     {
                         Interlocked.Exchange(ref _uiUpdateCounter, 0);
-                        
+
                         // 更新UI进度和项目
                         Application.Current.Dispatcher.Invoke(() =>
                         {
                             ProgressValue.Value = (double)_currentProcessedCount / TotalCount.Value * 100;
-                            
+
                             // 批量更新UI项目
                             List<KRRLVAnalysisItem> itemsToAdd;
                             lock (_pendingItemsLock)
@@ -83,10 +95,7 @@ namespace krrTools.Tools.KRRLVAnalysis
                                 }
                             }
 
-                            foreach (var item in itemsToAdd)
-                            {
-                                OsuFiles.Value.Add(item);
-                            }
+                            foreach (var item in itemsToAdd) OsuFiles.Value.Add(item);
                         });
                     }
                 });
@@ -135,7 +144,6 @@ namespace krrTools.Tools.KRRLVAnalysis
         private void OpenPath()
         {
             if (!string.IsNullOrEmpty(PathInput.Value))
-            {
                 try
                 {
                     Process.Start(new ProcessStartInfo
@@ -148,7 +156,6 @@ namespace krrTools.Tools.KRRLVAnalysis
                 {
                     Console.WriteLine($"[ERROR] 无法打开路径: {ex.Message}");
                 }
-            }
         }
 
         [RelayCommand]
@@ -170,13 +177,8 @@ namespace krrTools.Tools.KRRLVAnalysis
                 try
                 {
                     if (extension == ".csv")
-                    {
                         ExportToCsv(filePath);
-                    }
-                    else if (extension == ".xlsx")
-                    {
-                        ExportToExcel(filePath);
-                    }
+                    else if (extension == ".xlsx") ExportToExcel(filePath);
 
                     // 打开导出的文件
                     var processStartInfo = new ProcessStartInfo(filePath)
@@ -197,12 +199,14 @@ namespace krrTools.Tools.KRRLVAnalysis
             var csv = new StringBuilder();
 
             // 添加CSV头部
-            csv.AppendLine("KRR_LV,YLS_LV,XXY_SR,Title,Diff,Artist,Creator,Keys,Notes,MaxKPS,AvgKPS,BPM,OD,HP,LN%,beatmapID,beatmapSetId,filePath");
+            csv.AppendLine(
+                "KRR_LV,YLS_LV,XXY_SR,Title,Diff,Artist,Creator,Keys,Notes,MaxKPS,AvgKPS,BPM,OD,HP,LN%,beatmapID,beatmapSetId,filePath");
 
             // 添加数据行
             foreach (var file in OsuFiles.Value)
             {
-                var line = $"\"{file.KrrLV:F2}\",\"{file.YlsLV:F2}\",\"{file.XxySR:F2}\",\"{file.Title}\",\"{file.Diff}\",\"{file.Artist}\",\"{file.Creator}\",{file.Keys},{file.NotesCount},\"{file.MaxKPS:F2}\",\"{file.AvgKPS:F2}\",\"{file.BPM}\",{file.OD},{file.HP},\"{file.LNPercent:F2}\",{file.BeatmapID},{file.BeatmapSetID},\"{file.FilePath}\"";
+                var line =
+                    $"\"{file.KrrLV:F2}\",\"{file.YlsLV:F2}\",\"{file.XxySR:F2}\",\"{file.Title}\",\"{file.Diff}\",\"{file.Artist}\",\"{file.Creator}\",{file.Keys},{file.NotesCount},\"{file.MaxKPS:F2}\",\"{file.AvgKPS:F2}\",\"{file.BPM}\",{file.OD},{file.HP},\"{file.LNPercent:F2}\",{file.BeatmapID},{file.BeatmapSetID},\"{file.FilePath}\"";
                 csv.AppendLine(line);
             }
 
@@ -215,14 +219,15 @@ namespace krrTools.Tools.KRRLVAnalysis
             var worksheet = workbook.Worksheets.Add("KRR LV Analysis");
 
             // 添加头部
-            var headers = new[] { "KRR_LV", "YLS_LV", "XXY_SR", "Title", "Diff", "Artist", "Creator", "Keys", "Notes", "MaxKPS", "AvgKPS", "BPM", "OD", "HP", "LN%", "beatmapID", "beatmapSetId", "filePath" };
-            for (int i = 0; i < headers.Length; i++)
+            var headers = new[]
             {
-                worksheet.Cell(1, i + 1).Value = headers[i];
-            }
+                "KRR_LV", "YLS_LV", "XXY_SR", "Title", "Diff", "Artist", "Creator", "Keys", "Notes", "MaxKPS", "AvgKPS",
+                "BPM", "OD", "HP", "LN%", "beatmapID", "beatmapSetId", "filePath"
+            };
+            for (var i = 0; i < headers.Length; i++) worksheet.Cell(1, i + 1).Value = headers[i];
 
             // 添加数据行
-            int row = 2;
+            var row = 2;
             foreach (var file in OsuFiles.Value)
             {
                 worksheet.Cell(row, 1).Value = file.KrrLV;
@@ -256,8 +261,12 @@ namespace krrTools.Tools.KRRLVAnalysis
         {
             try
             {
+                Logger.WriteLine(LogLevel.Debug,
+                    $"[DEBUG] ProcessDroppedFiles called with {files.Length} files: {string.Join(", ", files)}");
                 // 计算总文件数（包括.osz中的.osu文件）
-                TotalCount.Value = BeatmapFileHelper.GetOsuFilesCount(files);
+                var allOsuFiles = BeatmapFileHelper.EnumerateOsuFiles(files).ToArray();
+                Logger.WriteLine(LogLevel.Debug, $"[DEBUG] allOsuFiles.Length = {allOsuFiles.Length}");
+                TotalCount.Value = allOsuFiles.Length;
                 _currentProcessedCount = 0;
                 _uiUpdateCounter = 0;
 
@@ -270,9 +279,9 @@ namespace krrTools.Tools.KRRLVAnalysis
 
                 const int batchSize = BatchSize;
                 var batches = new List<string[]>();
-                for (int i = 0; i < files.Length; i += batchSize)
+                for (var i = 0; i < allOsuFiles.Length; i += batchSize)
                 {
-                    var batch = files.Skip(i).Take(batchSize).ToArray();
+                    var batch = allOsuFiles.Skip(i).Take(batchSize).ToArray();
                     batches.Add(batch);
                 }
 
@@ -283,12 +292,12 @@ namespace krrTools.Tools.KRRLVAnalysis
                         var tasks = new List<Task>();
 
                         foreach (var file in batch)
-                        {
                             if (Directory.Exists(file))
                             {
                                 // 处理文件夹
                                 var osuFiles = Directory.GetFiles(file, "*.osu", SearchOption.AllDirectories)
-                                    .Where(f => Path.GetExtension(f).Equals(".osu", StringComparison.OrdinalIgnoreCase));
+                                    .Where(f => Path.GetExtension(f)
+                                        .Equals(".osu", StringComparison.OrdinalIgnoreCase));
 
                                 foreach (var osuFile in osuFiles)
                                 {
@@ -297,24 +306,28 @@ namespace krrTools.Tools.KRRLVAnalysis
                                     tasks.Add(task);
                                 }
                             }
-                            else if (File.Exists(file) && Path.GetExtension(file).Equals(".osu", StringComparison.OrdinalIgnoreCase))
+                            else if (File.Exists(file) &&
+                                     Path.GetExtension(file).Equals(".osu", StringComparison.OrdinalIgnoreCase))
                             {
                                 await _semaphore.WaitAsync();
                                 var task = CreateProcessingTask(() => Task.Run(() => ProcessOsuFile(file)));
                                 tasks.Add(task);
                             }
                             // 添加对.osz文件的支持
-                            else if (File.Exists(file) && Path.GetExtension(file).Equals(".osz", StringComparison.OrdinalIgnoreCase))
+                            else if (File.Exists(file) &&
+                                     Path.GetExtension(file).Equals(".osz", StringComparison.OrdinalIgnoreCase))
                             {
                                 try
                                 {
                                     using var archive = ZipFile.OpenRead(file);
-                                    var osuEntries = archive.Entries.Where(e => e.Name.EndsWith(".osu", StringComparison.OrdinalIgnoreCase));
+                                    var osuEntries = archive.Entries.Where(e =>
+                                        e.Name.EndsWith(".osu", StringComparison.OrdinalIgnoreCase));
 
                                     foreach (var entry in osuEntries)
                                     {
                                         await _semaphore.WaitAsync();
-                                        var task = CreateProcessingTask(() => Task.Run(() => ProcessOszEntry(entry, file)));
+                                        var task = CreateProcessingTask(() =>
+                                            Task.Run(() => ProcessOszEntry(entry, file)));
                                         tasks.Add(task);
                                     }
                                 }
@@ -323,7 +336,6 @@ namespace krrTools.Tools.KRRLVAnalysis
                                     Console.WriteLine($"[ERROR] 处理.osz文件失败: {ex.Message}");
                                 }
                             }
-                        }
 
                         await Task.WhenAll(tasks);
                     });
@@ -340,7 +352,7 @@ namespace krrTools.Tools.KRRLVAnalysis
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     ProgressValue.Value = 100;
-                    
+
                     // 添加剩余的待处理项目
                     List<KRRLVAnalysisItem> itemsToAdd;
                     lock (_pendingItemsLock)
@@ -356,10 +368,7 @@ namespace krrTools.Tools.KRRLVAnalysis
                         }
                     }
 
-                    foreach (var item in itemsToAdd)
-                    {
-                        OsuFiles.Value.Add(item);
-                    }
+                    foreach (var item in itemsToAdd) OsuFiles.Value.Add(item);
                 });
 
                 // 短暂延迟，让用户看到100%的进度
@@ -368,6 +377,10 @@ namespace krrTools.Tools.KRRLVAnalysis
                 // 关闭进度窗口
                 Application.Current.Dispatcher.Invoke(() =>
                 {
+                    FilteredOsuFiles.Value = CollectionViewSource.GetDefaultView(OsuFiles.Value);
+                    Logger.WriteLine(LogLevel.Information,
+                        "[KRRLVAnalysisViewModel] FilteredOsuFiles refreshed, count: {0}",
+                        FilteredOsuFiles.Value.Cast<object>().Count());
                     // _processingWindow?.Close();
                     // _processingWindow = null;
                     IsProgressVisible.Value = false;
@@ -384,17 +397,18 @@ namespace krrTools.Tools.KRRLVAnalysis
             try
             {
                 // 创建一个唯一的标识符，包含.osz文件路径和条目名称
-                string uniqueId = $"{oszFilePath}|{entry.FullName}";
+                var uniqueId = $"{oszFilePath}|{entry.FullName}";
 
                 // 检查是否已存在于列表中
-                if (OsuFiles.Value.Any(f => f.FilePath != null && f.FilePath.Equals(uniqueId, StringComparison.OrdinalIgnoreCase)))
+                if (OsuFiles.Value.Any(f =>
+                        f.FilePath != null && f.FilePath.Equals(uniqueId, StringComparison.OrdinalIgnoreCase)))
                     return;
 
                 var item = new KRRLVAnalysisItem
                 {
                     FileName = entry.Name,
                     FilePath = uniqueId, // 使用唯一标识符
-                    Status = "待处理"
+                    Status = "waiting"
                 };
 
                 // 添加到待处理列表
@@ -427,7 +441,8 @@ namespace krrTools.Tools.KRRLVAnalysis
                 try
                 {
                     // 将内存流写入临时文件
-                    await using (var fileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true))
+                    await using (var fileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write,
+                                     FileShare.None, 4096, true))
                     {
                         await memoryStream.CopyToAsync(fileStream);
                     }
@@ -436,10 +451,7 @@ namespace krrTools.Tools.KRRLVAnalysis
                     var result = await BeatmapAnalyzer.AnalyzeAsync(tempFilePath);
                     if (result == null)
                     {
-                        Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            item.Status = "分析失败";
-                        });
+                        Application.Current.Dispatcher.Invoke(() => { item.Status = "Fail"; });
                         return;
                     }
 
@@ -449,13 +461,10 @@ namespace krrTools.Tools.KRRLVAnalysis
                 finally
                 {
                     // 确保删除临时文件
-                    if (File.Exists(tempFilePath))
-                    {
-                        File.Delete(tempFilePath);
-                    }
+                    if (File.Exists(tempFilePath)) File.Delete(tempFilePath);
                 }
             }
-            catch (ArgumentException ex) when (ex.Message == "不是mania模式")
+            catch (ArgumentException ex) when (ex.Message == "no-mania")
             {
                 Application.Current.Dispatcher.Invoke((Action)(() =>
                 {
@@ -467,13 +476,10 @@ namespace krrTools.Tools.KRRLVAnalysis
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] 分析.osz条目时发生异常: {ex.Message}");
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    item.Status = $"错误: {ex.Message}";
-                });
+                Application.Current.Dispatcher.Invoke(() => { item.Status = $"错误: {ex.Message}"; });
             }
         }
-        
+
         // private void UpdateProgress(int current, int total)
         // {
         //     _processingWindow?.UpdateProgress(current, total);
@@ -482,14 +488,15 @@ namespace krrTools.Tools.KRRLVAnalysis
         private void ProcessOsuFile(string filePath)
         {
             // 检查文件是否已存在于列表中
-            if (OsuFiles.Value.Any(f => f.FilePath != null && f.FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase)))
+            if (OsuFiles.Value.Any(f =>
+                    f.FilePath != null && f.FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase)))
                 return;
 
             var item = new KRRLVAnalysisItem
             {
                 FileName = Path.GetFileName(filePath),
                 FilePath = filePath,
-                Status = "待处理"
+                Status = "waiting"
             };
 
             // 添加到待处理列表
@@ -507,37 +514,27 @@ namespace krrTools.Tools.KRRLVAnalysis
         {
             try
             {
+                // 先检查是否为mania模式
+                if (!BeatmapAnalyzer.IsManiaBeatmap(item.FilePath))
+                {
+                    Application.Current.Dispatcher.Invoke(() => { item.Status = "no-mania"; });
+                    return;
+                }
+
                 var result = await BeatmapAnalyzer.AnalyzeAsync(item.FilePath);
                 if (result == null)
                 {
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        item.Status = "分析失败";
-                    });
+                    Application.Current.Dispatcher.Invoke(() => { item.Status = "Fail"; });
                     return;
                 }
 
                 // 使用通用方法更新UI
                 UpdateAnalysisResult(item, result);
             }
-            catch (ArgumentException ex) when (ex.Message == "不是mania模式")
-            {
-                // 设置状态为不是mania模式，不移除项目
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    item.Status = "不是mania模式";
-                });
-            }
             catch (Exception ex)
             {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    item.Status = $"错误: {ex.Message}";
-                });
+                Application.Current.Dispatcher.Invoke(() => { item.Status = $"错误: {ex.Message}"; });
             }
         }
-
-
-
     }
 }

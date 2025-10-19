@@ -38,18 +38,19 @@ namespace krrTools.Tools.FilesManager
         private async Task SetSongsFolderAsync()
         {
             var selectedPath = FilesHelper.ShowFolderBrowserDialog("Please select the osu! Songs folder");
-            if (!string.IsNullOrEmpty(selectedPath)) await ProcessAsync(selectedPath);
+            if (!string.IsNullOrEmpty(selectedPath))
+            {
+                SelectedFolderPath.Value = selectedPath;
+                await ProcessFilesAsync(BeatmapFileHelper.EnumerateOsuFiles([selectedPath]).ToArray());
+            }
         }
 
         public async void ProcessDroppedFiles(string[] files)
         {
             try
             {
-                if (files.Length == 1 && Directory.Exists(files[0]))
-                    await ProcessAsync(files[0]);
-                else
-                    // For multiple files or single file, process as individual files
-                    await ProcessFilesAsync(files);
+                var allOsuFiles = BeatmapFileHelper.EnumerateOsuFiles(files).ToArray();
+                await ProcessFilesAsync(allOsuFiles);
             }
             catch (Exception ex)
             {
@@ -58,7 +59,7 @@ namespace krrTools.Tools.FilesManager
             }
         }
 
-        private async Task ProcessFilesAsync(string[] files)
+        public async Task ProcessFilesAsync(string[] files)
         {
             IsProcessing.Value = true;
             ProgressValue.Value = 0;
@@ -131,95 +132,6 @@ namespace krrTools.Tools.FilesManager
                     FilteredOsuFiles.Value = CollectionViewSource.GetDefaultView(OsuFiles.Value);
                     Logger.WriteLine(LogLevel.Information,
                         "[FilesManagerViewModel] FilteredOsuFiles refreshed in ProcessFilesAsync, count: {0}",
-                        FilteredOsuFiles.Value.Cast<object>().Count());
-                });
-            }
-        }
-
-        public async Task ProcessAsync(string doPath)
-        {
-            SelectedFolderPath.Value = doPath;
-            ProgressValue.Value = 0;
-            ProgressText.Value = "Loading...";
-        
-            try
-            {
-                // 在后台线程获取文件列表（包括.osz包内osu）
-                var files = await Task.Run(() => BeatmapFileHelper.EnumerateOsuFiles([doPath]).ToArray());
-
-                Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] Enumerated {0} files from {1}",
-                    files.Length, doPath);
-
-                ProgressMaximum.Value = files.Length;
-                ProgressText.Value = $"Found {files.Length} files, processing...";
-
-                // Clear existing data
-                OsuFiles.Value.Clear();
-                FilteredOsuFiles.Value.Refresh();
-
-                // 分批处理文件，避免UI冻结
-                const int batchSize = 50;
-                var batch = new ObservableCollection<FilesManagerInfo>();
-
-                for (var i = 0; i < files.Length; i++)
-                {
-                    try
-                    {
-                        // 在后台线程解析文件
-                        var fileInfo = await Task.Run(() => ParseOsuFile(files[i]));
-
-                        if (fileInfo != null)
-                        {
-                            batch.Add(fileInfo);
-
-                        }
-                        else
-                        {
-                            Logger.WriteLine(LogLevel.Warning, "[FilesManagerViewModel] Failed to parse {0}", files[i]);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.WriteLine(LogLevel.Error, "[FilesManagerViewModel] 解析文件 {0} 时出错: {1}", files[i], ex.Message);
-                    }
-
-                    // 更新进度
-                    ProgressValue.Value = i + 1;
-                    ProgressText.Value = $"正在处理 {i + 1}/{files.Length}...";
-
-                    // 每处理一批就更新UI
-                    if (batch.Count >= batchSize || i == files.Length - 1)
-                    {
-                        // 在UI线程上更新数据
-                        Application.Current?.Dispatcher?.Invoke((Action)(() =>
-                        {
-                            foreach (var item in batch) OsuFiles.Value.Add(item);
-                            FilteredOsuFiles.Value.Refresh();
-                        }));
-
-                        batch.Clear();
-
-                        // UI更新
-                        await Task.Delay(1);
-                    }
-                }
-
-                ProgressText.Value = $"完成处理 {files.Length} 个文件";
-            }
-            catch (Exception ex)
-            {
-                Logger.WriteLine(LogLevel.Error, "[FilesManagerViewModel] 读取文件夹时出错: {0}", ex.Message);
-                ProgressText.Value = $"处理出错: {ex.Message}";
-                Logger.WriteLine(LogLevel.Error, "[FilesManagerViewModel] Error in ProcessAsync: {0}", ex.Message);
-            }
-            finally
-            {
-                IsProcessing.Value = false;
-
-                Application.Current?.Dispatcher?.Invoke(() =>
-                {
-                    FilteredOsuFiles.Value = CollectionViewSource.GetDefaultView(OsuFiles.Value);
-                    Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] FilteredOsuFiles refreshed, count: {0}",
                         FilteredOsuFiles.Value.Cast<object>().Count());
                 });
             }

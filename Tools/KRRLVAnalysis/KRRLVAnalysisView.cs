@@ -50,7 +50,7 @@ namespace krrTools.Tools.KRRLVAnalysis
                 SelectionUnit = DataGridSelectionUnit.FullRow,
                 AllowDrop = true
             };
-            dataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("OsuFiles.Value"));
+            dataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("FilteredOsuFiles.Value"));
 
             LoadColumnOrder();
             dataGrid.ColumnReordered += OnColumnReordered;
@@ -128,6 +128,7 @@ namespace krrTools.Tools.KRRLVAnalysis
 
             Drop += Window_Drop;
             DragEnter += Window_DragEnter;
+            DragOver += Window_DragOver;
         }
 
         private void Window_Drop(object sender, DragEventArgs e)
@@ -146,6 +147,13 @@ namespace krrTools.Tools.KRRLVAnalysis
         {
             e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ?
                 DragDropEffects.Copy : DragDropEffects.None;
+        }
+
+        private void Window_DragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ?
+                DragDropEffects.Copy : DragDropEffects.None;
+            e.Handled = true;
         }
 
         private void LoadBtn_Click(object sender, RoutedEventArgs e)

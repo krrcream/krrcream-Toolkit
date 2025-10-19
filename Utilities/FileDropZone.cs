@@ -87,6 +87,7 @@ namespace krrTools.Utilities
             Child = mainGrid;
 
             Drop += OnDrop;
+            DragOver += OnDragOver;
             StartConversionButton.Click += StartConversionButton_Click;
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
             Unloaded += FileDropZone_Unloaded;
@@ -125,6 +126,19 @@ namespace krrTools.Utilities
             if (osuFiles.Count == 0) return;
 
             _viewModel.SetFiles(osuFiles.ToArray(), source: FileSource.Dropped);
+        }
+
+        private void OnDragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+            e.Handled = true;
         }
 
         private void StartConversionButton_Click(object sender, RoutedEventArgs e)

@@ -141,11 +141,10 @@ namespace krrTools.Tools.N2NC
                 SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
 
-            TextBlock filterLabelBlock;
             var filterLabel = Strings.Localize(Strings.FilterLabel);
 
             var keysPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = rowMargin };
-            filterLabelBlock = SharedUIComponents.CreateHeaderLabel(filterLabel);
+            TextBlock filterLabelBlock = SharedUIComponents.CreateHeaderLabel(filterLabel);
             filterLabelBlock.Margin = new Thickness(0, 0, 0, 4);
             keysPanel.Children.Add(filterLabelBlock);
             keysPanel.Children.Add(keysMainPanel);
@@ -207,9 +206,9 @@ namespace krrTools.Tools.N2NC
                     btn.Click += (_, _) =>
                     {
                         _viewModel.TargetKeys = (int)options.TargetKeys.Value;
-                        _viewModel.TransformSpeed = options.TransformSpeed.Value;
                         _viewModel.MaxKeys = (int)options.MaxKeys.Value;
                         _viewModel.MinKeys = (int)options.MinKeys.Value;
+                        _viewModel.TransformSpeed = options.TransformSpeed.Value;
                         _viewModel.Seed = options.Seed;
                     };
                     builtinPresetsPanel.Children.Add(btn);

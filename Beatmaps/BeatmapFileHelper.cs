@@ -65,7 +65,7 @@ namespace krrTools.Beatmaps
             foreach (var path in paths)
             {
                 if (File.Exists(path) && Path.GetExtension(path).Equals(".osu", StringComparison.OrdinalIgnoreCase))
-                    yield return path;
+                        yield return path;
                 else if (Directory.Exists(path))
                     foreach (var file in Directory.EnumerateFiles(path, "*.osu", SearchOption.AllDirectories))
                         yield return file;

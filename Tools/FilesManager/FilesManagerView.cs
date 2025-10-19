@@ -70,6 +70,7 @@ namespace krrTools.Tools.FilesManager
 
             Drop += OnDrop;
             DragEnter += OnDragEnter;
+            DragOver += OnDragOver;
             // PreviewDrop += OnDrop;
             // PreviewDragEnter += OnDragEnter;
         }
@@ -284,6 +285,12 @@ namespace krrTools.Tools.FilesManager
             e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
         }
 
+        private void OnDragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Handled = true;
+        }
+
 
 
         private async void DeleteMenuItem_Click(object sender, RoutedEventArgs e)
@@ -407,7 +414,8 @@ namespace krrTools.Tools.FilesManager
                 if (!string.IsNullOrEmpty(selectedPath))
                 {
                     var vm = (FilesManagerViewModel)DataContext;
-                    await vm.ProcessAsync(selectedPath);
+                    vm.SelectedFolderPath.Value = selectedPath;
+                    await vm.ProcessFilesAsync(BeatmapFileHelper.EnumerateOsuFiles([selectedPath]).ToArray());
                 }
             }
             catch (Exception ex)
