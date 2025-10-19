@@ -19,16 +19,20 @@ namespace krrTools.Core
 
     /// <summary>
     /// 转换模块基类 - 实现IToolModule，职责分离
+    /// <para></para>
     /// 提供统一的模块框架，支持选项管理、UI创建和谱面转换。
+    /// <para></para>
     /// 子类需实现ApplyToBeatmapInternal以定义具体转换逻辑。
+    /// <para></para>
+    /// 泛型参数TOptions、TViewModel和TControl保护类型安全，确保模块与其配置和UI组件一致。
     /// </summary>
     public abstract class ToolModuleBase<TOptions, TViewModel, TControl> : IToolModule
         where TOptions : ToolOptionsBase, new()
         where TViewModel : ToolViewModelBase<TOptions>
         where TControl : ToolViewBase<TOptions>
     {
-        protected TOptions _currentOptions = new();
-        protected ReactiveOptions<TOptions>? _reactiveOptions;
+        private TOptions _currentOptions = new();
+        private ReactiveOptions<TOptions>? _reactiveOptions;
 
         protected ToolModuleBase(ReactiveOptions<TOptions>? reactiveOptions = null)
         {
@@ -119,9 +123,9 @@ namespace krrTools.Core
         /// <summary>
         /// 实现 IApplyToBeatmap 接口
         /// </summary>
-        public void ApplyToBeatmap(IBeatmap beatmap)
+        public void ApplyToBeatmap(Beatmap beatmap)
         {
-            var b = beatmap as Beatmap ?? throw new ArgumentException("IBeatmap must be Beatmap");
+            var b = beatmap; // as Beatmap ?? throw new ArgumentException("IBeatmap must be Beatmap"); // 类型检查已在调用处完成
             ApplyToBeatmapInternal(b);
         }
     }

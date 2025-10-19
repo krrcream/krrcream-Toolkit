@@ -21,9 +21,9 @@ public class PreviewViewModel : ReactiveViewModelBase
     [Inject] protected IEventBus EventBus { get; set; } = null!;
 
     // 响应式属性
-    private Bindable<FrameworkElement?> _originalVisual = new();
-    private Bindable<FrameworkElement?> _convertedVisual = new();
-    private Bindable<string> _title = new(string.Empty);
+    private readonly Bindable<FrameworkElement?> _originalVisual = new();
+    private readonly Bindable<FrameworkElement?> _convertedVisual = new();
+    private readonly Bindable<string> _title = new(string.Empty);
 
     private ConverterEnum? _currentTool;
 
@@ -123,25 +123,6 @@ public class PreviewViewModel : ReactiveViewModelBase
     private void OnBeatmapChanged(BeatmapChangedEvent e)
     {
         LoadPreviewPath(e.FilePath);
-
-        // 使用Dispatcher确保在UI线程上执行，避免跨线程访问错误
-        Application.Current.Dispatcher.Invoke(() =>
-        {
-            switch (e.ChangeType)
-            {
-                case BeatmapChangeType.FromMonitoring:
-                    Title = $"[监听] {e.FileName}";
-                    break;
-
-                case BeatmapChangeType.FromDropZone:
-                    Title = $"[拖入] {e.FileName}";
-                    break;
-
-                default:
-                    Title = Strings.DropHint.GetLocalizedString();
-                    break;
-            }
-        });
     }
 
     /// <summary>

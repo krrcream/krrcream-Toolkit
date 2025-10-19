@@ -1,3 +1,5 @@
+using OsuParsers.Beatmaps;
+
 namespace krrTools.Beatmaps
 {
     /// <summary>
@@ -9,6 +11,6 @@ namespace krrTools.Beatmaps
         /// 应用转换到谱面（实现类内部获取设置）
         /// </summary>
         /// <param name="beatmap">谱面对象</param>
-        void ApplyToBeatmap(IBeatmap beatmap);
+        void ApplyToBeatmap(Beatmap beatmap);
     }
 }

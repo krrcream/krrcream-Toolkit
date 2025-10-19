@@ -4,17 +4,17 @@ using System.Linq;
 
 namespace krrTools.Localization;
 
-public class CreatorManager
+public abstract class CreatorManager
 {
     // 定义标签的固定顺序
-    private static readonly List<string> TagOrder = new List<string>
-    {
+    private static readonly List<string> TagOrder =
+    [
         Strings.NToNCTag,
         Strings.KRRLNTag,
         Strings.DPTag
-    };
+    ];
 
-    public static string AddTagtoCreator(string currentCreator, string newTag)
+    public static string AddTagToCreator(string currentCreator, string newTag)
     {
         // 解析当前已有的标签和创作者
         var existingTags = new List<string>();

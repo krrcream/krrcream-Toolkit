@@ -23,14 +23,14 @@ namespace krrTools.Tools.DPtool
         /// <summary>
         /// 修改metadeta,放在每个转谱器开头
         /// </summary>
-        private void MetadetaChange(Beatmap beatmap,DPToolOptions options)
+        private void MetadetaChange(Beatmap beatmap, DPToolOptions options)
         {
             
             var originalCS = beatmap.OrgKeys;
             string DPVersionName = $"[{originalCS}to{(int)beatmap.DifficultySection.CircleSize}DP]";
             
             // 修改作者 保持叠加转谱后的标签按顺序唯一
-            beatmap.MetadataSection.Creator = CreatorManager.AddTagtoCreator(beatmap.MetadataSection.Creator, Strings.DPTag);
+            beatmap.MetadataSection.Creator = CreatorManager.AddTagToCreator(beatmap.MetadataSection.Creator, Strings.DPTag);
 
             
             // 替换Version （允许叠加转谱）

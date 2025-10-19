@@ -186,7 +186,7 @@ namespace krrTools.Tools.Preview
                 stopwatch.Stop();
                 if (stopwatch.ElapsedMilliseconds > 3)
                 {
-                    Logger.WriteLine(LogLevel.Warning, "[LayeredPreview] Refresh took {0} ms", stopwatch.ElapsedMilliseconds);
+                    Logger.WriteLine(LogLevel.Information, "[LayeredPreview] Refresh took {0} ms", stopwatch.ElapsedMilliseconds);
                 }
             }
         }

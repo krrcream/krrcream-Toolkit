@@ -210,13 +210,13 @@ public class SRCalculatorTests
 
         _output.WriteLine(separator);
 
-        // 同时输出到控制台
-        Console.WriteLine(separator);
-        Console.WriteLine(header);
-        Console.WriteLine(separator);
-        Console.WriteLine(
-            $"| {"新版本".PadRight(colWidths[0])} | {newTimes[0]} | {newTimes[1]} | {newTimes[2]} | {newTimes[3]} | {newSRStr} |");
-        Console.WriteLine(
-            $"| {"旧版本".PadRight(colWidths[0])} | {oldTimes[0]} | {oldTimes[1]} | {oldTimes[2]} | {oldTimes[3]} | {oldSRStr} |");
+        // // 同时输出到控制台
+        // Console.WriteLine(separator);
+        // Console.WriteLine(header);
+        // Console.WriteLine(separator);
+        // Console.WriteLine(
+        //     $"| {"New".PadRight(colWidths[0])} | {newTimes[0]} | {newTimes[1]} | {newTimes[2]} | {newTimes[3]} | {newSRStr} |");
+        // Console.WriteLine(
+        //     $"| {"Old".PadRight(colWidths[0])} | {oldTimes[0]} | {oldTimes[1]} | {oldTimes[2]} | {oldTimes[3]} | {oldSRStr} |");
     }
 }

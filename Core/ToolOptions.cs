@@ -117,7 +117,7 @@ namespace krrTools.Core
         /// <summary>
         /// 从另一个选项对象复制所有Bindable属性的值
         /// </summary>
-        public void CopyFrom(ToolOptionsBase other)
+        public void CopyFrom(ToolOptionsBase? other)
         {
             if (other == null || other.GetType() != GetType()) return;
 
@@ -207,6 +207,8 @@ namespace krrTools.Core
     /// <summary>
     /// 预设类型枚举
     /// </summary>
+    
+    //TODO: 单一枚举不合理，应该由各个ToolOptions自行定义预设枚举，并自动反射创建
     public enum PresetKind
     {
         [Description("Default|默认")] Default = 0,

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -39,6 +40,17 @@ namespace krrTools.Beatmaps
             return asMs ? 60000.0 / Math.Max(1.0, bpm) : bpm;
         }
 
+        public static string GetBPMDisplay(this Beatmap beatmap)
+        {
+            var bpm = beatmap.MainBPM;
+            var bpmMax = beatmap.MaxBPM;
+            var bpmMin = beatmap.MinBPM;
+            
+            string BPMFormat = string.Format(CultureInfo.InvariantCulture, "{0}({1} - {2})", bpm, bpmMin, bpmMax);
+                
+            return BPMFormat;
+        }
+        
         public static (NoteMatrix, List<int>) BuildMatrix(this Beatmap beatmap)
         {
             var cs = (int)beatmap.DifficultySection.CircleSize;
@@ -148,17 +160,6 @@ namespace krrTools.Beatmaps
             if (beatmap.GeneralSection.ModeId != 3) return null;
 
             if (beatmap.HitObjects.Count == 0) return null;
-            
-            // if (path != null)
-            // {
-            //     beatmap.OriginalFilePath = path;
-            //
-            //     if (!File.Exists(path))
-            //         throw new FileNotFoundException($"文件未找到: {path}");
-            //
-            //     if (Path.GetExtension(path).ToLower() != ".osu")
-            //         throw new ArgumentException("文件扩展名必须为.osu");
-            // }
             
             return beatmap;
         }

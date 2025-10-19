@@ -41,7 +41,7 @@ public static class OptimizedAnalyzer
             return (keys, od, xxySr, krrLv);
         });
 
-        var kpsTask = Task.Run(() => { return CalculateKPSMetrics(beatmap); });
+        var kpsTask = Task.Run(() => CalculateKPSMetrics(beatmap));
 
         // 等待并行任务完成
         Task.WaitAll(srTask, kpsTask);
@@ -55,7 +55,6 @@ public static class OptimizedAnalyzer
         {
             // File information
             FilePath = filePath,
-            FileName = Path.GetFileName(filePath),
 
             // Basic metadata
             Diff = beatmap.MetadataSection.Version,
@@ -65,7 +64,7 @@ public static class OptimizedAnalyzer
             BPMDisplay = bpmDisplay,
 
             // Difficulty settings
-            Keys = Keys1,
+            KeyCount = Keys1,
             OD = OD1,
             HP = beatmap.DifficultySection.HPDrainRate,
 
@@ -143,7 +142,7 @@ public static class OptimizedAnalyzer
             if (timingPoint.BeatLength > 0)
             {
                 var bpm = 60000.0 / timingPoint.BeatLength;
-                if (bpm > 0 && bpm < 1000) // 合理的BPM范围
+                if (bpm is > 0 and < 1000) // 合理的BPM范围
                 {
                     totalBPM += bpm;
                     count++;

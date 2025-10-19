@@ -65,7 +65,7 @@ public static class AsyncAnalyzer
             BPMDisplay = bpmDisplay,
 
             // Difficulty settings
-            Keys = Keys1,
+            KeyCount = Keys1,
             OD = OD1,
             HP = beatmap.DifficultySection.HPDrainRate,
 

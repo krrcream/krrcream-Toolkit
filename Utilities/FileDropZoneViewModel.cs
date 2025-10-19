@@ -221,7 +221,7 @@ namespace krrTools.Utilities
             if (_stagedPaths is { Length: > 0 } && GetActiveTabTag != null)
             {
                 // 在UI层过滤非Mania谱面
-                var filteredPaths = _stagedPaths.Where(BeatmapAnalyzer.IsManiaBeatmap).ToArray();
+                var filteredPaths = _stagedPaths.Where(BeatmapFileHelper.IsManiaBeatmap).ToArray();
                 var skippedCount = _stagedPaths.Length - filteredPaths.Length;
                 if (skippedCount > 0)
                 {

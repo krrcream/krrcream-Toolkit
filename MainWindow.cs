@@ -150,26 +150,25 @@ namespace krrTools
 
         private void ExecuteConvertWithModule(ConverterEnum converter)
         {
-            // 获取监听ViewModel中的当前谱面路径
+            // 获取监听ViewModel中的当前谱面路径, 变量是持久化的，所以这里一定有值
             string beatmapPath = _listenerControlInstance.ViewModel.MonitorOsuFilePath;
 
             try
             {
-                // 解码谱面
-                var beatmap = OsuParsers.Decoders.BeatmapDecoder.Decode(beatmapPath);
-
+                // 解码谱面，并确保是有效的 Mania 谱面
+                var beatmap = OsuParsers.Decoders.BeatmapDecoder.Decode(beatmapPath).GetManiaBeatmap();
+                if (beatmap == null)
+                {
+                    Logger.WriteLine(LogLevel.Error,$"{beatmapPath} is not a supported beatmap. And Skipped.");
+                    return;
+                }
+                
                 // 初始化转换服务
                 var moduleManager = App.Services.GetService(typeof(IModuleManager)) as IModuleManager;
                 var transformationService = new BeatmapTransformationService(moduleManager!);
 
                 // 使用转换服务
                 var transformedBeatmap = transformationService.TransformBeatmap(beatmap, converter);
-
-                if (transformedBeatmap == null)
-                {
-                    Logger.WriteLine(LogLevel.Error,$"Conversion failed: Transformed beatmap is null.", "Conversion Error");
-                    return;
-                }
                 
                 // 保存转换后谱面
                 var outputPath = transformedBeatmap.GetOutputOsuFileName();
@@ -236,7 +235,7 @@ namespace krrTools
 
         private object? GetViewModelForConverter(ConverterEnum converter)
         {
-            return _viewModelGetters.GetValueOrDefault(converter, () => null)?.Invoke();
+            return _viewModelGetters.GetValueOrDefault(converter, () => null).Invoke();
         }
 
         private void InitializeProviders()

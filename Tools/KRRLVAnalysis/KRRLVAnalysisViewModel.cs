@@ -106,13 +106,14 @@ namespace krrTools.Tools.KRRLVAnalysis
         /// </summary>
         private void UpdateAnalysisResult(KRRLVAnalysisItem item, OsuAnalysisResult result)
         {
+            // TODO: 改成OsuAnalysisResult反射创建表头、赋值
             Application.Current.Dispatcher.Invoke(() =>
             {
                 item.Diff = result.Diff;
                 item.Title = result.Title;
                 item.Artist = result.Artist;
                 item.Creator = result.Creator;
-                item.Keys = result.Keys;
+                item.Keys = result.KeyCount;
                 item.BPM = result.BPMDisplay;
                 item.OD = result.OD;
                 item.HP = result.HP;
@@ -121,11 +122,10 @@ namespace krrTools.Tools.KRRLVAnalysis
                 item.BeatmapSetID = result.BeatmapSetID;
                 item.XxySR = result.XXY_SR;
                 item.KrrLV = result.KRR_LV;
-                item.YlsLV = OsuAnalyzer.CalculateYlsLevel(result.XXY_SR);
+                item.YlsLV = result.YLs_LV;
                 item.NotesCount = result.NotesCount;
                 item.MaxKPS = result.MaxKPS;
                 item.AvgKPS = result.AvgKPS;
-                item.Status = "已分析";
             });
         }
 
@@ -448,15 +448,13 @@ namespace krrTools.Tools.KRRLVAnalysis
                     }
 
                     // 使用 BeatmapAnalyzer 分析临时文件
-                    var result = await BeatmapAnalyzer.AnalyzeAsync(tempFilePath);
-                    if (result == null)
-                    {
-                        Application.Current.Dispatcher.Invoke(() => { item.Status = "Fail"; });
-                        return;
-                    }
+                    var result = await OsuAnalyzer.AnalyzeAsync(tempFilePath);
 
-                    // 使用通用方法更新UI
-                    UpdateAnalysisResult(item, result);
+                    // 更新基础信息
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        UpdateAnalysisResult(item, result);
+                    });
                 }
                 finally
                 {
@@ -479,11 +477,6 @@ namespace krrTools.Tools.KRRLVAnalysis
                 Application.Current.Dispatcher.Invoke(() => { item.Status = $"错误: {ex.Message}"; });
             }
         }
-
-        // private void UpdateProgress(int current, int total)
-        // {
-        //     _processingWindow?.UpdateProgress(current, total);
-        // }
 
         private void ProcessOsuFile(string filePath)
         {
@@ -514,22 +507,13 @@ namespace krrTools.Tools.KRRLVAnalysis
         {
             try
             {
-                // 先检查是否为mania模式
-                if (!BeatmapAnalyzer.IsManiaBeatmap(item.FilePath))
+                var result = await OsuAnalyzer.AnalyzeAsync(item.FilePath!);
+                
+                // 更新基础信息
+                Application.Current.Dispatcher.Invoke(() =>
                 {
-                    Application.Current.Dispatcher.Invoke(() => { item.Status = "no-mania"; });
-                    return;
-                }
-
-                var result = await BeatmapAnalyzer.AnalyzeAsync(item.FilePath);
-                if (result == null)
-                {
-                    Application.Current.Dispatcher.Invoke(() => { item.Status = "Fail"; });
-                    return;
-                }
-
-                // 使用通用方法更新UI
-                UpdateAnalysisResult(item, result);
+                    UpdateAnalysisResult(item, result);
+                });
             }
             catch (Exception ex)
             {

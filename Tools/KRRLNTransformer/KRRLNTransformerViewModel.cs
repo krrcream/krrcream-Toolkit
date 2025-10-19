@@ -18,7 +18,7 @@ namespace krrTools.Tools.KRRLNTransformer
             options.LengthThreshold.PropertyChanged += OnLengthThresholdChanged;
         }
 
-        private void OnLengthThresholdChanged(object sender, PropertyChangedEventArgs e)
+        private void OnLengthThresholdChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(Bindable<double?>.Value))
             {

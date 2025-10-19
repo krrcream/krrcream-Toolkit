@@ -62,13 +62,13 @@ namespace krrTools.Beatmaps
         private Note[][] noteSeqByColumn = [];
         private Note[] LNSeq = [];
         private Note[] tailSeq = [];
-
+        
+        // TODO: 超长计算核，待优化
         public double Calculate(List<Note> noteSequence, int keyCount, double od, out Dictionary<string, long> times)
         {
             times = new Dictionary<string, long>();
             var totalStopwatch = Stopwatch.StartNew(); // 总时间计时开始
 
-            // Initialize data structures
             K = keyCount;
             
             // Check if key count is supported (max 18 keys, even numbers only for K>10)
@@ -206,25 +206,7 @@ namespace krrTools.Beatmaps
                 return -1;
             }
         }
-
-        // private double[] Smooth(double[] lst)
-        // {
-        //     var lstBar = new double[T];
-        //     var windowSum = 0.0;
-
-        //     for (int i = 0; i < Math.Min(500, T); i += granularity)
-        //         windowSum += lst[i];
-
-        //     for (int s = 0; s < T; s += granularity)
-        //     {
-        //         lstBar[s] = 0.001 * windowSum * granularity;
-        //         if (s + 500 < T)
-        //             windowSum += lst[s + 500];
-        //         if (s - 500 >= 0)
-        //             windowSum -= lst[s - 500];
-        //     }
-        //     return lstBar;
-        // }
+        
         private double[] Smooth(double[] lst) // 优化方法：使用前缀和加速滑动窗口计算
         {
             var prefixSum = new double[T + 1];

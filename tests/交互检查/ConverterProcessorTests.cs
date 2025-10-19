@@ -8,7 +8,7 @@ using Moq;
 using OsuParsers.Beatmaps;
 using Xunit;
 
-namespace krrTools.Tests.Utilities;
+namespace krrTools.Tests.交互检查;
 
 public class ConverterProcessorTests
 {

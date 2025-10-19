@@ -45,12 +45,11 @@ namespace krrTools.Bindable
             {
                 if (field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(Bindable<>))
                 {
-                    var bindable = field.GetValue(this) as INotifyPropertyChanged;
-                    if (bindable != null)
+                    if (field.GetValue(this) is INotifyPropertyChanged bindable)
                     {
                         string propName = field.Name.TrimStart('_');
                         propName = char.ToUpper(propName[0]) + propName.Substring(1);
-                        bindable.PropertyChanged += (sender, args) => OnPropertyChanged(propName);
+                        bindable.PropertyChanged += (_, _) => OnPropertyChanged(propName);
                     }
                 }
             }
@@ -61,10 +60,9 @@ namespace krrTools.Bindable
             {
                 if (prop.PropertyType.IsGenericType && prop.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
                 {
-                    var bindable = prop.GetValue(this) as INotifyPropertyChanged;
-                    if (bindable != null)
+                    if (prop.GetValue(this) is INotifyPropertyChanged bindable)
                     {
-                        bindable.PropertyChanged += (sender, args) => OnPropertyChanged(prop.Name);
+                        bindable.PropertyChanged += (_, _) => OnPropertyChanged(prop.Name);
                     }
                 }
             }

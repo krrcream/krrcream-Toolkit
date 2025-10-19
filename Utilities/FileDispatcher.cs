@@ -43,6 +43,8 @@ namespace krrTools.Utilities
 
         public void ConvertFiles(string[] paths)
         {
+            // 传入的文件路径列表已经过预处理，确保都是有效的.osu文件路径
+            // 解析后跳过 0 note 文件
             ConvertWithResults(paths, ActiveTabTag);
         }
 

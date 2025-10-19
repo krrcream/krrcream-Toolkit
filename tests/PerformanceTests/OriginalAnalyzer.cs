@@ -54,7 +54,7 @@ public static class OriginalAnalyzer
             BPMDisplay = bpmDisplay,
 
             // Difficulty settings
-            Keys = keys,
+            KeyCount = keys,
             OD = od,
             HP = beatmap.DifficultySection.HPDrainRate,
 

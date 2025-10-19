@@ -33,7 +33,7 @@ public class ListenerViewModel : ReactiveViewModelBase
 
     // 服务实例
     private readonly OsuMonitorService _monitorService;
-    private readonly BeatmapAnalysisService _analysisService;
+    private readonly BeatmapAnalysisService _analysisService; //分析服务自订阅监听变更
 
     // 全局设置引用
     public GlobalSettings GlobalSettings { get; }
@@ -150,9 +150,9 @@ public class ListenerViewModel : ReactiveViewModelBase
         }
     }
 
-    public Task StartMonitoringAsync()
+    private void StartMonitoringAsync()
     {
-        if (_isMonitoringActive) return Task.CompletedTask;
+        // if (_isMonitoringActive) return Task.CompletedTask;
 
         _isMonitoringActive = true;
         _currentDelayMs = 500; // 重置延迟
@@ -173,7 +173,7 @@ public class ListenerViewModel : ReactiveViewModelBase
             Logger.WriteLine(LogLevel.Information, "[ListenerViewModel] Monitoring task ended");
         });
 
-        return Task.CompletedTask;
+        // return Task.CompletedTask;
     }
 
     private bool CheckOsuBeatmap()
@@ -184,7 +184,7 @@ public class ListenerViewModel : ReactiveViewModelBase
             _monitorService.DetectOsuProcess();
 
             var monitorFilePath = _monitorService.ReadMemoryData();
-            var isMania = BeatmapAnalyzer.IsManiaBeatmap(monitorFilePath);
+            var isMania = BeatmapFileHelper.IsManiaBeatmap(monitorFilePath);
 
             if (!isMania)
             {
@@ -239,7 +239,7 @@ public class ListenerViewModel : ReactiveViewModelBase
         }
     }
 
-    public void StopMonitoring()
+    private void StopMonitoring()
     {
         _monitoringCancellation?.Cancel();
         try
@@ -275,14 +275,14 @@ public class ListenerViewModel : ReactiveViewModelBase
             Artist.Value = result.Artist ?? string.Empty;
             Creator.Value = result.Creator ?? string.Empty;
             Version.Value = result.Diff ?? string.Empty;
-            Keys.Value = (int)result.Keys;
+            Keys.Value = (int)result.KeyCount;
             OD.Value = result.OD;
             HP.Value = result.HP;
             NotesCount.Value = result.NotesCount;
             LNPercent.Value = result.LNPercent;
             XxySR.Value = result.XXY_SR;
             KrrLV.Value = result.KRR_LV;
-            YlsLV.Value = OsuAnalyzer.CalculateYlsLevel(result.XXY_SR);
+            YlsLV.Value = result.YLs_LV;
             MaxKPS.Value = result.MaxKPS;
             AvgKPS.Value = result.AvgKPS;
             Status.Value = "Analyzed";

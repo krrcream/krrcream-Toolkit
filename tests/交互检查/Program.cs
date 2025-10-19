@@ -1,10 +1,10 @@
 ﻿// See https://aka.ms/new-console-template for more information
+
 using System;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace HotkeyTest
+namespace krrTools.Tests.交互检查
 {
     class Program
     {

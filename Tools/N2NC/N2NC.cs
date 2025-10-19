@@ -28,7 +28,7 @@ namespace krrTools.Tools.N2NC
 
             // 修改作者 保持叠加转谱后的标签按顺序唯一
             beatmap.MetadataSection.Creator =
-                CreatorManager.AddTagtoCreator(beatmap.MetadataSection.Creator, Strings.NToNCTag);
+                CreatorManager.AddTagToCreator(beatmap.MetadataSection.Creator, Strings.NToNCTag);
 
             // 替换Version （允许叠加转谱）
             beatmap.MetadataSection.Version = NtoNCVersionName + " " + beatmap.MetadataSection.Version;

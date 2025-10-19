@@ -51,7 +51,7 @@ public static class Injector
     /// Inject services into properties marked with [Inject] attribute.
     /// Only injects if the property is currently null.
     /// </summary>
-    public static void InjectServices(object target)
+    public static void InjectServices(object? target)
     {
         if (target == null) return;
 

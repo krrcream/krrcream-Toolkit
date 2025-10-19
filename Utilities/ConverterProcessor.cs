@@ -54,21 +54,21 @@ namespace krrTools.Utilities
         public FrameworkElement BuildConvertedVisual(Beatmap input)
         {
             if (ModuleTool == null)
-                return new TextBlock { Text = "ModuleTool == null" };
+                return new TextBlock { Text = "ModuleTool is null" };
 
             try
             {
                 // 使用转换服务应用转换
                 var transformedBeatmap = _transformationService.TransformBeatmap(input, ModuleTool.Value);
-                if (transformedBeatmap == null)
-                    return new TextBlock { Text = "Transformation failed" };
+                if (transformedBeatmap.HitObjects.Count == 0)
+                    return new TextBlock { Text = "Notes is 0" };
 
                 return BuildManiaTimeRowsFromNotes(transformedBeatmap);
             }
             catch (Exception ex)
             {
                 Logger.WriteLine(LogLevel.Error, "[ConverterProcessor] Transformation failed: {0}", ex.Message);
-                return new TextBlock { Text = $"转换失败: {ex.Message}" };
+                return new TextBlock { Text = $"TransformBeatmap Fail: {ex.Message}" };
             }
         } // 通过方法获得转换结果，传递绘制
 

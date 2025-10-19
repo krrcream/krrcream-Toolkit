@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using krrTools.Bindable;
 using krrTools.Configuration;
@@ -29,25 +30,29 @@ namespace krrTools.Beatmaps
         /// <summary>
         /// 处理谱面文件
         /// </summary>
-        public async Task ProcessBeatmapAsync(string fullPath)
+        private async Task ProcessBeatmapAsync(string filePath)
         {
-            // 快速检查是否为有效的Mania谱面文件 (包含文件有效性 + Mode检查)
-            if (!BeatmapAnalyzer.IsManiaBeatmap(fullPath)) return;
+            if (string.IsNullOrEmpty(filePath) || 
+                !File.Exists(filePath) ||
+                !Path.GetExtension(filePath).Equals(".osu", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
 
             await Task.Run(async () =>
             {
                 try
                 {
                     // 响应式防重复处理检查
-                    if (!_cacheManager.CanProcessFile(fullPath)) return;
+                    if (!_cacheManager.CanProcessFile(filePath)) return;
 
-                    // 使用BeatmapAnalyzer进行完整分析
-                    var analysisResult = await BeatmapAnalyzer.AnalyzeAsync(fullPath);
-                    if (analysisResult == null) return;
+                    // 完整分析
+                    var analysisResult = await OsuAnalyzer.AnalyzeAsync(filePath);
+                    if (analysisResult.Status != "√") return;
 
                     Logger.WriteLine(LogLevel.Debug,
                         "[BeatmapAnalysisService] Beatmap analyzed: {0}, Keys: {1}, SR: {2:F2}",
-                        analysisResult.Title ?? "Unknown", analysisResult.Keys, analysisResult.XXY_SR);
+                        analysisResult.Title ?? "Unknown", analysisResult.KeyCount, analysisResult.XXY_SR);
 
 
                     // 发布专门的分析结果变化事件

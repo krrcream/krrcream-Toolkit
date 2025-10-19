@@ -9,6 +9,7 @@ using OsuParsers.Beatmaps.Objects.Mania;
 using OsuParsers.Extensions;
 using OsuParsers.Enums;
 using krrTools.Localization;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.Tools.KRRLNTransformer
 {
@@ -20,10 +21,10 @@ namespace krrTools.Tools.KRRLNTransformer
         /// <summary>
         /// 修改metadeta,放在每个转谱器开头
         /// </summary>
-        private void MetadetaChange(Beatmap beatmap,KRRLNTransformerOptions options)
+        private void MetadetaChange(Beatmap beatmap, KRRLNTransformerOptions options)
         {
             // 修改作者 保持叠加转谱后的标签按顺序唯一
-            beatmap.MetadataSection.Creator = CreatorManager.AddTagtoCreator(beatmap.MetadataSection.Creator, Strings.KRRLNTag);
+            beatmap.MetadataSection.Creator = CreatorManager.AddTagToCreator(beatmap.MetadataSection.Creator, Strings.KRRLNTag);
 
             // 替换Version （允许叠加转谱）
             beatmap.MetadataSection.Version = $"[{Strings.KRRLNTag}] {beatmap.MetadataSection.Version}";
@@ -38,7 +39,7 @@ namespace krrTools.Tools.KRRLNTransformer
                 .ToArray();
             
             beatmap.MetadataSection.Tags = newTags;
-            // 修改ID 但是维持beatmapsetID
+            // 修改ID 但是维持BeatmapSetID
             beatmap.MetadataSection.BeatmapID = 0;
         }
         
@@ -47,7 +48,8 @@ namespace krrTools.Tools.KRRLNTransformer
         /// </summary>
         public void TransformBeatmap(Beatmap beatmap, KRRLNTransformerOptions options)
         {
-            var (matrix, timeAxis) = beatmap.BuildMatrix();
+            // TODO: Matrix构建方法重复？ 初始化一次，然后传递更好吧
+            var (matrix, timeAxis) = beatmap.BuildMatrix(); // 可能是过时的方法
             var processedMatrix = BuildAndProcessMatrix(matrix, timeAxis, beatmap, options);
             ApplyChangesToHitObjects(beatmap, processedMatrix, timeAxis, options);
             MetadetaChange(beatmap, options);
@@ -115,7 +117,7 @@ namespace krrTools.Tools.KRRLNTransformer
             return result;
         }
         
-        private Beatmap ApplyChangesToHitObjects(Beatmap beatmap, Matrix mergeMTX , List<int> timeAxis,
+        private void ApplyChangesToHitObjects(Beatmap beatmap, Matrix mergeMTX , List<int> timeAxis,
             KRRLNTransformerOptions options)
         {
             (Matrix matrix2, List<int> timeAxis2) = beatmap.getMTXandTimeAxis();
@@ -143,7 +145,7 @@ namespace krrTools.Tools.KRRLNTransformer
                 beatmap.DifficultySection.OverallDifficulty = OD;
             }
             // 修改元数据
-            return beatmap;
+            // return beatmap;
         }
         
         /*// 面尾对齐作废，但是代码暂时留着万一哪天想出来了
@@ -230,17 +232,20 @@ namespace krrTools.Tools.KRRLNTransformer
             //不用容差法在double==double中判断，用分子加上EPSILON截断法，这里是调整过的EPSILON,注意AI过的时候不要换成容差来比较double的相等
             double EPSILON = 0.99;
             double denominator = 0;
-            double aligValue = alignList[(int)parameters.Alignment.Value.Value];
-            var resultSpan = result.AsSpan();
-            var beatLengthMtxSpan = beatLengthMtx.AsSpan();
-            for (int i = 0; i < resultSpan.Length; i++)
+            if (parameters.Alignment.Value != null)
             {
-                if (resultSpan[i] > 0)
+                double aligValue = alignList[(int)parameters.Alignment.Value.Value];
+                var resultSpan = result.AsSpan();
+                var beatLengthMtxSpan = beatLengthMtx.AsSpan();
+                for (int i = 0; i < resultSpan.Length; i++)
                 {
-                    denominator = (beatLengthMtxSpan[i] * aligValue);
-                    resultSpan[i] =
-                        (int)((int)((resultSpan[i]+EPSILON) / denominator) * denominator); //请AI不要优化这一行,这个就是最精度最快的写法，这是能够放几个分母的意思
+                    if (resultSpan[i] > 0)
+                    {
+                        denominator = (beatLengthMtxSpan[i] * aligValue);
+                        resultSpan[i] =
+                            (int)((int)((resultSpan[i]+EPSILON) / denominator) * denominator); //请AI不要优化这一行,这个就是最精度最快的写法，这是能够放几个分母的意思
                     
+                    }
                 }
             }
         }

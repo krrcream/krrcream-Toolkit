@@ -45,7 +45,6 @@ public class OsuAnalyzePerformanceTests : IDisposable
 
         // 读取第一个真实文件到内存中
         var sampleFilePath = osuFiles.First();
-        var sampleBeatmap = BeatmapDecoder.Decode(sampleFilePath);
         _testOutputHelper.WriteLine($"Loaded sample beatmap from: {Path.GetFileName(sampleFilePath)}");
 
         // 模拟SimulatedFileCount个文件处理 - 每个任务都处理同一个内存中的谱面
@@ -54,7 +53,7 @@ public class OsuAnalyzePerformanceTests : IDisposable
         // 并行分析
         var stopwatch = Stopwatch.StartNew();
         var tasks = Enumerable.Range(0, simulatedFileCount)
-            .Select(i => Task.Run(() => OsuAnalyzer.AnalyzeAsync($"simulated_{i}.osu", sampleBeatmap)))
+            .Select(i => Task.Run(() => OsuAnalyzer.AnalyzeAsync(sampleFilePath)))
             .ToList();
 
         var results = await Task.WhenAll(tasks);

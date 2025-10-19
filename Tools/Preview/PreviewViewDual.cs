@@ -35,7 +35,7 @@ namespace krrTools.Tools.Preview
 
         private ScrollViewer? _originalScrollViewer;
         private ScrollViewer? _convertedScrollViewer;
-        private bool _isSyncingScroll = false;
+        private bool _isSyncingScroll;
         private DateTime _lastScrollSync = DateTime.MinValue;
         private const int ScrollSyncThrottleMs = 16;
 
