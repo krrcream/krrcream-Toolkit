@@ -201,7 +201,7 @@ namespace krrTools.Bindable
     public class BeatmapChangedEvent
     {
         public required string FilePath { get; set; }
-        public required string FileName { get; set; }
+        // public required string FileName { get; set; }
         
         /// <summary>
         /// Event type to distinguish between path change and full analysis
@@ -209,24 +209,24 @@ namespace krrTools.Bindable
         public BeatmapChangeType ChangeType { get; set; }
         
         /// <summary>
-        /// 只读的谱面对象，提供完整的谱面数据访问（可选）
-        /// </summary>
-        public Beatmap? Beatmap { get; set; }
-
-        /// <summary>
         /// 构造函数，不强制要求Beatmap对象
         /// </summary>
         public BeatmapChangedEvent()
         {
         }
-
-        /// <summary>
-        /// 构造函数，设置Beatmap对象，事件携带只读谱面数据
-        /// </summary>
-        public BeatmapChangedEvent(Beatmap beatmap) : this()
-        {
-            Beatmap = beatmap;
-        }
+                
+        // /// <summary>
+        // /// 只读的谱面对象，提供完整的谱面数据访问（可选）
+        // /// </summary>
+        // public Beatmap? Beatmap { get; set; }
+        
+        // /// <summary>
+        // /// 构造函数，设置Beatmap对象，事件携带只读谱面数据
+        // /// </summary>
+        // public BeatmapChangedEvent(Beatmap beatmap) : this()
+        // {
+        //     Beatmap = beatmap;
+        // }
     }
 
     public class MonitoringEnabledChangedEvent : ValueChangedEvent<bool> { }

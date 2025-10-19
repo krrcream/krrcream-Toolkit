@@ -17,14 +17,16 @@ namespace krrTools.Bindable
         private T _value;
         private bool _disabled;
         private Func<T, T>? _mapping;
-        private Action<T>? _onValueChanged;
-        private Func<T, Task>? _onValueChangedAsync;
+        private List<Action<T>> _onValueChangedCallbacks = new();
+        private List<Func<T, Task>> _onValueChangedAsyncCallbacks = new();
         private bool _isNotifying; // 防递归标志
         private INotifyCollectionChanged? _collectionChanged;
+        private T _previousValue; // 用于撤销功能
 
         public Bindable(T defaultValue = default!)
         {
             _value = defaultValue;
+            _previousValue = defaultValue; // 初始化上一个值
             // 如果默认值是集合，监听其改变
             if (_value is INotifyCollectionChanged collection)
             {
@@ -59,6 +61,9 @@ namespace krrTools.Bindable
             if (_disabled || _isNotifying) return; // 防递归
             if (EqualityComparer<T>.Default.Equals(_value, value)) return;
 
+            // 保存上一个值用于撤销
+            _previousValue = _value;
+
             // 移除旧值的监听
             if (_collectionChanged != null)
             {
@@ -91,13 +96,16 @@ namespace krrTools.Bindable
             _isNotifying = true;
             try
             {
-                // 同步回调（保持兼容性，但不推荐）
-                _onValueChanged?.Invoke(value);
+                // 同步回调
+                foreach (var callback in _onValueChangedCallbacks)
+                {
+                    callback(value);
+                }
                 
                 // 异步回调
-                if (_onValueChangedAsync != null)
+                foreach (var callback in _onValueChangedAsyncCallbacks)
                 {
-                    await _onValueChangedAsync(value);
+                    await callback(value);
                 }
             }
             finally
@@ -144,7 +152,7 @@ namespace krrTools.Bindable
         /// </summary>
         public Bindable<T> OnValueChanged(Action<T> callback)
         {
-            _onValueChanged = callback;
+            _onValueChangedCallbacks.Add(callback);
             return this;
         }
 
@@ -153,7 +161,7 @@ namespace krrTools.Bindable
         /// </summary>
         public Bindable<T> OnValueChangedAsync(Func<T, Task> callback)
         {
-            _onValueChangedAsync = callback;
+            _onValueChangedAsyncCallbacks.Add(callback);
             return this;
         }
 
@@ -164,6 +172,17 @@ namespace krrTools.Bindable
         {
             // In a full implementation, track bindings and remove them.
             // For simplicity, this is a placeholder.
+        }
+
+        /// <summary>
+        /// Undo the last value change.
+        /// </summary>
+        public void Undo()
+        {
+            if (!EqualityComparer<T>.Default.Equals(_previousValue, default(T)))
+            {
+                Value = _previousValue;
+            }
         }
     }
 }

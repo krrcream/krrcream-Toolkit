@@ -16,6 +16,7 @@ using ClosedXML.Excel;
 using CommunityToolkit.Mvvm.Input;
 using krrTools.Beatmaps;
 using krrTools.Bindable;
+using krrTools.Utilities;
 using Microsoft.Extensions.Logging;
 
 namespace krrTools.Tools.KRRLVAnalysis
@@ -31,11 +32,14 @@ namespace krrTools.Tools.KRRLVAnalysis
         private static readonly int OptimalBatchSize = Math.Max(20, Environment.ProcessorCount * 8);
         private const int BatchSize = 50; // UI更新和并行输出块大小（保持兼容性）
 
+        [Inject]
+        private StateBarManager StateBarManager { get; set; } = null!;
+
         // 简单的对象池用于复用KRRLVAnalysisItem对象
         private class ItemObjectPool
         {
             private readonly Stack<KRRLVAnalysisItem> _pool = new();
-            private readonly object _lock = new();
+            private readonly Lock _lock = new();
 
             public KRRLVAnalysisItem Rent()
             {
@@ -47,23 +51,31 @@ namespace krrTools.Tools.KRRLVAnalysis
 
             public void Return(KRRLVAnalysisItem item)
             {
-                if (item == null) return;
-                
-                // 重置对象状态
-                // item.FileName = null;
-                item.FilePath = null;
-                item.Status = null;
-                item.Result = null;
+                // 调用Dispose清理对象
+                item.Dispose();
 
                 lock (_lock)
                 {
-                    if (_pool.Count < 1000) // 限制池大小
+                    if (_pool.Count < 100) // 50*2=100，考虑UI显示延迟和缓冲
                         _pool.Push(item);
+                    // 池已满时不做任何操作，让对象自然被GC回收
+                }
+            }            /// <summary>
+            /// 清空对象池，释放所有缓存的对象
+            /// </summary>
+            public void Clear()
+            {
+                lock (_lock)
+                {
+                    _pool.Clear();
                 }
             }
         }
 
         private readonly ItemObjectPool _itemPool = new();
+
+        // 进度更新定时器 - 每100毫秒更新一次UI
+        private DispatcherTimer? _progressUpdateTimer;
 
         public Bindable<string> PathInput { get; set; } = new(string.Empty);
 
@@ -82,15 +94,23 @@ namespace krrTools.Tools.KRRLVAnalysis
         private int _uiUpdateCounter; // UI更新计数器，每BatchSize个文件更新一次UI
 
         private Bindable<int> TotalCount { get; set; } = new();
-        private Bindable<double> ProgressValue { get; set; } = new();
-        private Bindable<bool> IsProgressVisible { get; set; } = new();
+        private Bindable<double> ProgressValue => StateBarManager.ProgressValue;
 
         public KRRLVAnalysisViewModel()
         {
+            // 自动注入标记了 [Inject] 的属性
+            this.InjectServices();
+
             _uiUpdateCounter = 0;
             FilteredOsuFiles = new Bindable<ICollectionView>(CollectionViewSource.GetDefaultView(OsuFiles.Value));
             // 设置自动绑定通知
             SetupAutoBindableNotifications();
+
+            // 初始化进度条为0%
+            ProgressValue.Value = 0;
+
+            // 预热GC以获得更好的性能
+            Task.Run(() => GC.Collect(0, GCCollectionMode.Optimized, false));
         }
 
         /// <summary>
@@ -106,26 +126,43 @@ namespace krrTools.Tools.KRRLVAnalysis
                     Interlocked.Increment(ref _currentProcessedCount);
                     Interlocked.Increment(ref _uiUpdateCounter);
 
-                    // 每OptimalBatchSize个文件更新一次UI（使用智能批处理大小）
+                    // 数据表更新：每5个文件更新一次（更频繁）
+                    if (_uiUpdateCounter % 5 == 0)
+                    {
+                        UpdateDataGridAsync();
+                    }
+
+                    // 进度条更新：每OptimalBatchSize个文件更新一次（保持现有逻辑）
                     if (_uiUpdateCounter >= OptimalBatchSize)
                     {
                         Interlocked.Exchange(ref _uiUpdateCounter, 0);
-
-                        // 异步UI更新，不阻塞后台线程
-                        UpdateUIAsync();
+                        UpdateProgressAsync();
                     }
                 });
         }
 
         /// <summary>
-        /// 异步UI更新，使用BeginInvoke避免阻塞
+        /// 异步进度条更新，使用BeginInvoke避免阻塞
         /// </summary>
-        private void UpdateUIAsync()
+        private void UpdateProgressAsync()
         {
             Application.Current.Dispatcher.BeginInvoke(new Action(() =>
             {
-                ProgressValue.Value = (double)_currentProcessedCount / TotalCount.Value * 100;
+                if (TotalCount.Value > 0)
+                {
+                    ProgressValue.Value = (double)_currentProcessedCount / TotalCount.Value * 100;
+                    Logger.WriteLine(LogLevel.Information, $"[DEBUG] UpdateProgressAsync: ProgressValue={ProgressValue.Value:F1}%, Current={_currentProcessedCount}, Total={TotalCount.Value}");
+                }
+            }), DispatcherPriority.Background);
+        }
 
+        /// <summary>
+        /// 异步数据表更新，使用BeginInvoke避免阻塞
+        /// </summary>
+        private void UpdateDataGridAsync()
+        {
+            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
                 // 批量更新UI项目
                 List<KRRLVAnalysisItem> itemsToAdd;
                 lock (_pendingItemsLock)
@@ -143,6 +180,8 @@ namespace krrTools.Tools.KRRLVAnalysis
 
                 foreach (var item in itemsToAdd)
                     OsuFiles.Value.Add(item);
+
+                Logger.WriteLine(LogLevel.Information, $"[DEBUG] UpdateDataGridAsync: Added {itemsToAdd.Count} items, Total items: {OsuFiles.Value.Count}");
             }), DispatcherPriority.Background);
         }
 
@@ -310,9 +349,12 @@ namespace krrTools.Tools.KRRLVAnalysis
                     {
                         _itemPool.Return(item);
                     }
-                    
+
                     OsuFiles.Value.Clear();
                     FilteredOsuFiles.Value = CollectionViewSource.GetDefaultView(OsuFiles.Value);
+
+                    // 强制清理集合的内部引用
+                    GC.Collect(0, GCCollectionMode.Forced, false);
                 }, DispatcherPriority.Background);
 #pragma warning restore CS4014
                 
@@ -325,11 +367,21 @@ namespace krrTools.Tools.KRRLVAnalysis
 
                 // 显示进度窗口,处理前
 #pragma warning disable CS4014
-                Application.Current.Dispatcher.BeginInvoke(() =>
+                Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    IsProgressVisible.Value = true;
                     ProgressValue.Value = 0;
-                }, DispatcherPriority.Background);
+                    Logger.WriteLine(LogLevel.Information, $"[DEBUG] Progress bar initialized: Value={ProgressValue.Value}");
+
+                    // 启动进度更新定时器 - 每100毫秒更新一次
+                    _progressUpdateTimer = new DispatcherTimer
+                    {
+                        Interval = TimeSpan.FromMilliseconds(100),
+                        IsEnabled = true
+                    };
+                    _progressUpdateTimer.Tick += ProgressUpdateTimer_Tick;
+                    _progressUpdateTimer.Start();
+                    Logger.WriteLine(LogLevel.Information, "[DEBUG] Progress update timer started");
+                }), DispatcherPriority.Background);
 #pragma warning restore CS4014
 
                 const int batchSize = BatchSize; // 保持向后兼容性，但内部使用智能大小
@@ -396,7 +448,7 @@ namespace krrTools.Tools.KRRLVAnalysis
                     });
 
                     // 智能内存管理：只有在内存压力大时才进行GC
-                    if (_currentProcessedCount % 1000 == 0) // 每处理1000个文件检查一次
+                    if (_currentProcessedCount % 500 == 0) // 100*5=500，平衡检查频率
                     {
                         var memoryInfo = GC.GetGCMemoryInfo();
                         if (memoryInfo.MemoryLoadBytes > 500 * 1024 * 1024) // 超过500MB
@@ -439,20 +491,46 @@ namespace krrTools.Tools.KRRLVAnalysis
 
                 // 关闭进度窗口
 #pragma warning disable CS4014
-                Application.Current.Dispatcher.BeginInvoke(() =>
+                Application.Current.Dispatcher.BeginInvoke((Action)(() =>
                 {
+                    // 停止进度更新定时器
+                    if (_progressUpdateTimer != null)
+                    {
+                        _progressUpdateTimer.Stop();
+                        _progressUpdateTimer.Tick -= ProgressUpdateTimer_Tick;
+                        _progressUpdateTimer = null;
+                        Logger.WriteLine(LogLevel.Debug, "[DEBUG] Progress update timer stopped");
+                    }
+
                     FilteredOsuFiles.Value = CollectionViewSource.GetDefaultView(OsuFiles.Value);
                     Logger.WriteLine(LogLevel.Information,
                         "[KRRLVAnalysisViewModel] FilteredOsuFiles refreshed, count: {0}",
                         FilteredOsuFiles.Value.Cast<object>().Count());
                     // _processingWindow?.Close();
                     // _processingWindow = null;
-                    IsProgressVisible.Value = false;
-                }, DispatcherPriority.Background);
+                    Logger.WriteLine(LogLevel.Debug, $"[DEBUG] Processing completed: FinalValue={ProgressValue.Value:F1}%");
+
+                    // 分析完成后进行内存清理
+                    PerformMemoryCleanup();
+                }), DispatcherPriority.Background);
 #pragma warning restore CS4014
             }
             catch (Exception ex)
             {
+                // 确保在异常情况下也停止定时器
+#pragma warning disable CS4014
+                if (_progressUpdateTimer != null)
+                {
+                    Application.Current.Dispatcher.BeginInvoke(() =>
+                    {
+                        _progressUpdateTimer.Stop();
+                        _progressUpdateTimer.Tick -= ProgressUpdateTimer_Tick;
+                        _progressUpdateTimer = null;
+                        Logger.WriteLine(LogLevel.Debug, "[DEBUG] Progress timer stopped due to exception");
+                    });
+                }
+#pragma warning restore CS4014
+
                 Console.WriteLine($"[ERROR] 处理文件时发生异常: {ex.Message}");
             }
         }
@@ -569,7 +647,6 @@ namespace krrTools.Tools.KRRLVAnalysis
             Task.Run(() => Analyze(item));
         }
 
-
         private async Task Analyze(KRRLVAnalysisItem item)
         {
             try
@@ -589,6 +666,49 @@ namespace krrTools.Tools.KRRLVAnalysis
 #pragma warning disable CS4014
                 Application.Current.Dispatcher.BeginInvoke(() => { item.Status = $"错误: {ex.Message}"; }, DispatcherPriority.Background);
 #pragma warning restore CS4014
+            }
+        }
+
+
+        /// <summary>
+        /// 执行内存清理，释放不再需要的资源
+        /// </summary>
+        private void PerformMemoryCleanup()
+        {
+            try
+            {
+                // 清理对象池中多余的对象
+                _itemPool.Clear();
+
+                // 清理待处理项目列表
+                lock (_pendingItemsLock)
+                {
+                    _pendingItems.Clear();
+                }
+
+                // 强制垃圾回收
+                GC.Collect(2, GCCollectionMode.Forced, true);
+                GC.WaitForPendingFinalizers();
+                GC.Collect(2, GCCollectionMode.Forced, true);
+
+                Logger.WriteLine(LogLevel.Information, "[KRRLVAnalysisViewModel] Memory cleanup completed");
+            }
+            catch (Exception ex)
+            {
+                Logger.WriteLine(LogLevel.Warning, "[KRRLVAnalysisViewModel] Memory cleanup failed: {0}", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 进度更新定时器的Tick事件处理函数 - 每100毫秒更新一次进度条
+        /// </summary>
+        private void ProgressUpdateTimer_Tick(object? sender, EventArgs e)
+        {
+            if (TotalCount.Value > 0)
+            {
+                double progress = (double)_currentProcessedCount / TotalCount.Value * 100;
+                ProgressValue.Value = Math.Min(progress, 100); // 确保不超过100%
+                Logger.WriteLine(LogLevel.Information, $"[DEBUG] Timer update: ProgressValue={ProgressValue.Value:F1}%, Current={_currentProcessedCount}, Total={TotalCount.Value}");
             }
         }
     }

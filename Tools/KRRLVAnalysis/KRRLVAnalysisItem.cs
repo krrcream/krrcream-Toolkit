@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -5,24 +6,13 @@ using krrTools.Beatmaps;
 
 namespace krrTools.Tools.KRRLVAnalysis
 {
-    public class KRRLVAnalysisItem : INotifyPropertyChanged
+    public class KRRLVAnalysisItem : INotifyPropertyChanged, IDisposable
     {
         private OsuAnalysisResult? _result;
         // private string? _fileName;
         private string? _filePath;
         private string? _status;
-
-        public KRRLVAnalysisItem()
-        {
-        }
-
-        public KRRLVAnalysisItem(OsuAnalysisResult result, string fileName, string filePath)
-        {
-            _result = result;
-            // _fileName = fileName;
-            _filePath = filePath;
-            _status = "√";
-        }
+        private bool _disposed;
 
         public OsuAnalysisResult? Result
         {
@@ -95,6 +85,30 @@ namespace krrTools.Tools.KRRLVAnalysis
             if (EqualityComparer<T>.Default.Equals(field, value)) return;
             field = value;
             OnPropertyChanged(propertyName);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                // 清理托管资源
+                _result = null;
+                _filePath = null;
+                _status = null;
+
+                // 清理事件订阅
+                PropertyChanged = null;
+            }
+
+            _disposed = true;
         }
     }
 }

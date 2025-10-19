@@ -123,7 +123,7 @@ public class ListenerViewModel : ReactiveViewModelBase
         EventBus.Subscribe<AnalysisResultChangedEvent>(OnAnalysisResultChanged);
 
         // 订阅监听器状态变化
-        StateBarManager.ListenerState.OnValueChanged(OnListenerStateChanged);
+        StateBarManager.ListenerStateBindable.OnValueChanged(OnListenerStateChanged);
 
         // 设置 Bindable 属性变化通知
         SetupAutoBindableNotifications();
@@ -203,7 +203,6 @@ public class ListenerViewModel : ReactiveViewModelBase
                 EventBus.Publish(new BeatmapChangedEvent
                 {
                     FilePath = monitorFilePath,
-                    FileName = Path.GetFileName(monitorFilePath),
                     ChangeType = BeatmapChangeType.FromMonitoring
                 });
 

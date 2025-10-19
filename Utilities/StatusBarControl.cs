@@ -25,6 +25,8 @@ namespace krrTools.Utilities
         public ToggleButton TopmostToggle { get; private set; } = null!;
         public ToggleButton RealTimeToggle { get; private set; } = null!;
 
+        private readonly StateBarManager _stateBarManager = null!;
+
         // 菜单项引用，用于语言切换时更新
         private MenuItem _themeMenuItem = null!;
         private MenuItem _backdropMenuItem = null!;
@@ -41,6 +43,7 @@ namespace krrTools.Utilities
 
         public StatusBarControl(StateBarManager stateBarManager)
         {
+            _stateBarManager = stateBarManager;
             InitializeComponent();
             LocalizationService.LanguageChanged += OnLanguageChanged;
             
@@ -54,6 +57,22 @@ namespace krrTools.Utilities
 
         private void InitializeComponent()
         {
+            // 主容器：Grid，包含进度条行和状态栏行
+            var rootGrid = new Grid
+            {
+                RowDefinitions =
+                {
+                    new RowDefinition { Height = GridLength.Auto }, // 进度条行
+                    new RowDefinition { Height = GridLength.Auto }  // 状态栏行
+                }
+            };
+
+            // 进度条
+            var progressBar = BuildProgressBar();
+            System.Windows.Controls.Grid.SetRow(progressBar, 0);
+            rootGrid.Children.Add(progressBar);
+
+            // 状态栏Border
             var footer = new Border
             {
                 Background = PanelBackgroundBrush,
@@ -62,9 +81,10 @@ namespace krrTools.Utilities
                 Height = double.NaN, // 动态高度
                 MinHeight = 32,
                 Padding = new Thickness(0, 4, 0, 4),
-                Margin = new Thickness(0, 4, 0, 0),
+                Margin = new Thickness(0, 0, 0, 0),
                 CornerRadius = PanelCornerRadius
             };
+            System.Windows.Controls.Grid.SetRow(footer, 1);
 
             // 用 Grid 实现6列分布，右侧按钮分别贴右
             var mainGrid = new Grid
@@ -139,9 +159,31 @@ namespace krrTools.Utilities
             mainGrid.Children.Add(settingsButton);
 
             footer.Child = mainGrid;
-            ApplyThemeSettings();
+            rootGrid.Children.Add(footer);
 
-            Content = footer;
+            Content = rootGrid;
+        }
+
+        private ProgressBar BuildProgressBar()
+        {
+            var progressBar = new ProgressBar
+            {
+                Height = 4,
+                Width = Double.NaN,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0),
+                Minimum = 0,
+                Maximum = 100,
+                Background = Brushes.Transparent,
+                Foreground = Brushes.Coral,
+                BorderThickness = new Thickness(0),
+            };
+
+            progressBar.SetBinding(RangeBase.ValueProperty, new Binding(nameof(StateBarManager.ProgressValue) + ".Value") { Source = _stateBarManager });
+            progressBar.SetBinding(UIElement.VisibilityProperty, new Binding(nameof(StateBarManager.ProgressVisible) + ".Value") { Source = _stateBarManager, Converter = new BooleanToVisibilityConverter() });
+
+            return progressBar;
         }
 
         private Button CreateSettingsButton()
@@ -312,15 +354,14 @@ namespace krrTools.Utilities
             // 更新主题子项
             foreach (var item in _themeSubItems)
             {
-                var theme = item.Tag as ApplicationTheme?;
-                if (theme.HasValue)
+                if (item.Tag is ApplicationTheme theme)
                 {
-                    item.Header = theme.Value switch
+                    item.Header = theme switch
                     {
                         ApplicationTheme.Light => Strings.Localize(Strings.ThemeLight),
                         ApplicationTheme.Dark => Strings.Localize(Strings.ThemeDark),
                         ApplicationTheme.HighContrast => Strings.Localize(Strings.ThemeHighContrast),
-                        _ => theme.Value.ToString()
+                        _ => theme.ToString()
                     };
                 }
             }
@@ -328,16 +369,15 @@ namespace krrTools.Utilities
             // 更新背景子项
             foreach (var item in _backdropSubItems)
             {
-                var backdrop = item.Tag as WindowBackdropType?;
-                if (backdrop.HasValue)
+                if (item.Tag is WindowBackdropType backdrop)
                 {
-                    item.Header = backdrop.Value switch
+                    item.Header = backdrop switch
                     {
                         WindowBackdropType.None => Strings.Localize(Strings.BackdropNone),
                         WindowBackdropType.Mica => Strings.Localize(Strings.BackdropMica),
                         WindowBackdropType.Acrylic => Strings.Localize(Strings.BackdropAcrylic),
                         WindowBackdropType.Tabbed => Strings.Localize(Strings.BackdropTabbed),
-                        _ => backdrop.Value.ToString()
+                        _ => backdrop.ToString()
                     };
                 }
             }

@@ -94,10 +94,10 @@ namespace krrTools.Tools.N2NC
             var CS = (int)beatmap.DifficultySection.CircleSize;
             var targetKeys = (int)options.TargetKeys.Value;
             var turn = targetKeys - CS;
-     
+
             // 使用传入的随机数生成器
             var RG = random;
-            
+
             if (CS == targetKeys && (int)options.TargetKeys.Value == targetKeys)
             {
                 return matrix;

@@ -20,11 +20,9 @@ namespace krrTools.Tools.Listener
 
         public RelayCommand BrowseCommand { get; }
 
-        private readonly ListenerViewModel _viewModel;
-        public ListenerViewModel ViewModel => _viewModel;
+        public ListenerViewModel ViewModel { get; }
 
-        private readonly FileDropZoneViewModel _dropZoneViewModel;
-        public FileDropZoneViewModel DropZoneViewModel => _dropZoneViewModel;
+        public FileDropZoneViewModel DropZoneViewModel { get; }
 
         internal ListenerControl()
         {
@@ -34,19 +32,19 @@ namespace krrTools.Tools.Listener
             Logger.WriteLine(LogLevel.Debug, "[ListenerControl] Constructor called");
 
             InitializeComponent();
-            _viewModel = new ListenerViewModel();
-            DataContext = _viewModel;
+            ViewModel = new ListenerViewModel();
+            DataContext = ViewModel;
 
             // 初始化拖拽区 ViewModel
             var fileDispatcher = new FileDispatcher();
-            _dropZoneViewModel = new FileDropZoneViewModel(fileDispatcher);
+            DropZoneViewModel = new FileDropZoneViewModel(fileDispatcher);
             
-            BrowseCommand = new RelayCommand(() => _viewModel.SetSongsPathWindow());
+            BrowseCommand = new RelayCommand(() => ViewModel.SetSongsPathWindow());
 
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
             Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
 
-            _viewModel.WindowTitle = Strings.OSUListener.Localize();
+            ViewModel.WindowTitle = Strings.OSUListener.Localize();
 
             // 添加快捷键编辑事件
             N2NCHotkeyTextBox.KeyDown += OnHotkeyKeyDown;
@@ -74,7 +72,7 @@ namespace krrTools.Tools.Listener
 
         private void OnLanguageChanged()
         {
-            Dispatcher.BeginInvoke(new Action(() => { _viewModel.WindowTitle = Strings.OSUListener; }));
+            Dispatcher.BeginInvoke(new Action(() => { ViewModel.WindowTitle = Strings.OSUListener; }));
         }
 
         #region 快捷键处理
@@ -134,17 +132,17 @@ namespace krrTools.Tools.Listener
             // 根据TextBox设置对应的快捷键
             if (textBox == N2NCHotkeyTextBox)
             {
-                _viewModel.SetN2NCHotkey(hotkey);
+                ViewModel.SetN2NCHotkey(hotkey);
                 textBox.Text = hotkey;
             }
             else if (textBox == DPHotkeyTextBox)
             {
-                _viewModel.SetDPHotkey(hotkey);
+                ViewModel.SetDPHotkey(hotkey);
                 textBox.Text = hotkey;
             }
             else if (textBox == KRRLNHotkeyTextBox)
             {
-                _viewModel.SetKRRLNHotkey(hotkey);
+                ViewModel.SetKRRLNHotkey(hotkey);
                 textBox.Text = hotkey;
             }
 

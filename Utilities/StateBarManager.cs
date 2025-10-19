@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Windows.Threading;
 using krrTools.Bindable;
 using krrTools.Configuration;
 
@@ -9,27 +10,42 @@ namespace krrTools.Utilities
     /// 全局状态管理器 - 使用Bindable系统统一管理应用状态
     /// 实现驱动式响应和统一状态管理
     /// </summary>
-    public class StateBarManager : INotifyPropertyChanged, IDisposable
+    public class StateBarManager : INotifyPropertyChanged
     {
         [Inject]
         private IEventBus EventBus { get; set; } = null!;
 
-        // 跟踪上一次的状态，用于事件发布
-        private bool _lastIsOsuRunning;
+
         private bool _isTopmost;
+
+        // 进度条自动隐藏定时器
+        private readonly DispatcherTimer? _progressHideTimer;
 
         // 核心状态 - 直接使用全局设置
         public Bindable<bool> IsOsuRunning { get; } = new();
         public Bindable<string> CurrentBeatmapPath { get; } = new(string.Empty);
-        public Bindable<ListenerState> ListenerState { get; } = new();
+        public Bindable<ListenerState> ListenerStateBindable { get; } = new();
         public Bindable<bool> IsPlaying { get; } = new();
         public Bindable<bool> IsFrozen { get; } = new();
         public Bindable<bool> IsHidden { get; } = new();
+        public Bindable<double> ProgressValue { get; } = new();
+        public Bindable<bool> ProgressVisible { get; } = new();
 
         public StateBarManager()
         {
             // 自动注入标记了 [Inject] 的属性
             this.InjectServices();
+
+            // 初始化进度条隐藏定时器
+            _progressHideTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(3)
+            };
+            _progressHideTimer.Tick += (_, _) =>
+            {
+                ProgressVisible.Value = false;
+                _progressHideTimer.Stop();
+            };
 
             // 设置状态绑定和响应逻辑
             SetupStateBindings();
@@ -61,9 +77,7 @@ namespace krrTools.Utilities
         public bool IsMonitoringEnable
         {
             get => BaseOptionsManager.GetRealTimePreview();
-            set =>
-                // 直接设置全局设置，全局设置会发布事件
-                BaseOptionsManager.SetMonitoring(value);
+            set => BaseOptionsManager.SetMonitoring(value);
         }
 
         #endregion
@@ -71,24 +85,20 @@ namespace krrTools.Utilities
         #region 状态绑定设置
         private void SetupStateBindings()
         {
-            // 初始化上一次的值
-            _lastIsOsuRunning = IsOsuRunning.Value;
-
             // osu!运行状态变化时，更新监听器状态
             IsOsuRunning.OnValueChanged(running =>
             {
                 EventBus.Publish(new OsuRunningEvent
                 {
-                    OldValue = _lastIsOsuRunning,
+                    OldValue = !running,
                     NewValue = running,
                 });
-                _lastIsOsuRunning = running;
                 
                 if (IsMonitoringEnable)
                 {
-                    ListenerState.Value = running 
-                        ? (ListenerState)1
-                        : (ListenerState)2;
+                    ListenerStateBindable.Value = running 
+                        ? ListenerState.Monitoring
+                        : ListenerState.WaitingForOsu;
                 }
 
                 OnPropertyChanged(nameof(IsOsuRunning));
@@ -116,7 +126,7 @@ namespace krrTools.Utilities
             // });
 
             // 监听器状态变化时，触发属性变更通知
-            ListenerState.OnValueChanged(_ => { OnPropertyChanged(nameof(ListenerState)); });
+            ListenerStateBindable.OnValueChanged(_ => { OnPropertyChanged(nameof(ListenerStateBindable)); });
 
             // IsPlaying变化时，处理隐藏和冻结逻辑
             IsPlaying.OnValueChanged(playing =>
@@ -149,6 +159,40 @@ namespace krrTools.Utilities
 
             // IsHidden变化时，触发属性变更通知
             IsHidden.OnValueChanged(_ => { OnPropertyChanged(nameof(IsHidden)); });
+
+            // ProgressValue变化时，自动控制ProgressVisible
+            ProgressValue.OnValueChanged(value =>
+            {
+                if (value >= 100)
+                {
+                    // 进度完成，先显示进度条，然后3秒后自动隐藏
+                    ProgressVisible.Value = true;
+                    if (_progressHideTimer is { IsEnabled: false })
+                    {
+                        _progressHideTimer.Start();
+                    }
+                }
+                else if (value > 0)
+                {
+                    // 进度进行中，显示进度条
+                    ProgressVisible.Value = true;
+                    // 如果定时器正在运行，停止它
+                    if (_progressHideTimer is { IsEnabled: true })
+                    {
+                        _progressHideTimer.Stop();
+                    }
+                }
+                else
+                {
+                    // 进度为0，隐藏进度条
+                    ProgressVisible.Value = false;
+                    // 停止定时器
+                    if (_progressHideTimer is { IsEnabled: true })
+                    {
+                        _progressHideTimer.Stop();
+                    }
+                }
+            });
         }
 
         #endregion
@@ -162,11 +206,13 @@ namespace krrTools.Utilities
                 // 当监控启用状态改变时，根据当前 osu! 运行状态更新监听器状态
                 if (evt.NewValue)
                 {
-                    ListenerState.Value = IsOsuRunning.Value ? (ListenerState)1 : (ListenerState)2;
+                    ListenerStateBindable.Value = IsOsuRunning.Value 
+                        ? ListenerState.Monitoring 
+                        : ListenerState.WaitingForOsu;
                 }
                 else
                 {
-                    ListenerState.Value = 0;
+                    ListenerStateBindable.Value = 0;
                     // 监听关闭时，重置预览到内置样本
                     EventBus.Publish(new ConvPrevRefreshOnlyEvent { NewValue = false });
                 }
@@ -192,17 +238,6 @@ namespace krrTools.Utilities
         protected virtual void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        #endregion
-
-        #region IDisposable
-
-        public void Dispose()
-        {
-            // 清理绑定和订阅
-            // 注意：当前的 Bindable 实现不支持移除回调，这里只是为了符合接口
-            // 在实际使用中，这些对象应该由垃圾回收器处理
         }
 
         #endregion

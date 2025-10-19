@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -9,6 +12,7 @@ using System.Windows.Media;
 using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.UI;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.Tools.KRRLVAnalysis
 {
@@ -22,7 +26,7 @@ namespace krrTools.Tools.KRRLVAnalysis
         /// 列配置：(属性名, 显示名, 宽度, 格式)
         /// </summary>
         public static readonly (string Property, string Header, double Width, string Format)[] Columns =
-        {
+        [
             ("Title", "Title", 140.0, ""),
             ("Artist", "Artist", 140.0, ""),
             ("Diff", "Diff", 140.0, ""),
@@ -39,13 +43,13 @@ namespace krrTools.Tools.KRRLVAnalysis
             ("YLs_LV", "YLS LV", double.NaN, "F2"),
             ("Status", "Status", double.NaN, ""),
             ("FilePath", "FilePath", double.NaN, "")
-        };
+        ];
 
         /// <summary>
         /// 导出属性配置：(属性名, 显示名)
         /// </summary>
         public static readonly (string Property, string Header)[] ExportProperties =
-        {
+        [
             ("KRR_LV", "KRR LV"),
             ("YLs_LV", "YLS LV"),
             ("XXY_SR", "XXY SR"),
@@ -64,7 +68,7 @@ namespace krrTools.Tools.KRRLVAnalysis
             ("BeatmapID", "beatmapID"),
             ("BeatmapSetID", "beatmapSetId"),
             ("FilePath", "filePath")
-        };
+        ];
     }
 
     public class KRRLVAnalysisView : UserControl
@@ -78,7 +82,9 @@ namespace krrTools.Tools.KRRLVAnalysis
         {
             _analysisViewModel = new KRRLVAnalysisViewModel();
             DataContext = _analysisViewModel;
-
+            AllowDrop = true;
+            Focusable = true;
+            
             BuildUI();
             
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
@@ -87,13 +93,9 @@ namespace krrTools.Tools.KRRLVAnalysis
 
         private void BuildUI()
         {
-            // control layout only; host sets size and location
-            AllowDrop = true;
-            Focusable = true;
-
             var root = new Grid();
-            root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 数据表行
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 按钮行
 
             // DataGrid for results
             dataGrid = new DataGrid
@@ -114,7 +116,7 @@ namespace krrTools.Tools.KRRLVAnalysis
 
             // 设置虚拟化面板的滚动单位
             VirtualizingPanel.SetScrollUnit(dataGrid, ScrollUnit.Pixel);
-            dataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("FilteredOsuFiles.Value"));
+            dataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("Value") { Source = _analysisViewModel.FilteredOsuFiles });
 
             LoadColumnOrder();
             dataGrid.ColumnReordered += OnColumnReordered;
@@ -122,32 +124,12 @@ namespace krrTools.Tools.KRRLVAnalysis
             // 动态生成列
             GenerateDataGridColumns();
 
-            Grid.SetRow(dataGrid, 0);
-            root.Children.Add(dataGrid);
-
+            // Buttons at the bottom
             var buttonGrid = new Grid { Margin = new Thickness(5) };
-            buttonGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            buttonGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            buttonGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            buttonGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(7, GridUnitType.Star) });
-            buttonGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
+            buttonGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            buttonGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            buttonGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             
-            var progressBar = new ProgressBar
-            {
-                Height = 20,
-                Width = Double.NaN,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 5, 0, 10),
-                Minimum = 0,
-                Maximum = 100
-            };
-            progressBar.SetBinding(RangeBase.ValueProperty, new Binding("ProgressValue.Value"));
-            progressBar.SetBinding(VisibilityProperty, new Binding("IsProgressVisible.Value")
-            {
-                Converter = new BooleanToVisibilityConverter()
-            });
-
             var loadBtn = SharedUIComponents.CreateStandardButton("Load Folder|加载文件夹");
             loadBtn.Width = Double.NaN; 
             loadBtn.Height = 35;
@@ -159,19 +141,28 @@ namespace krrTools.Tools.KRRLVAnalysis
             saveBtn.Width = Double.NaN; 
             saveBtn.Height = 35;
             saveBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
-            saveBtn.SetBinding(ButtonBase.CommandProperty, new Binding("SaveCommand"));
+            saveBtn.SetBinding(ButtonBase.CommandProperty, new Binding(nameof(KRRLVAnalysisViewModel.SaveCommand)));
 
-            Grid.SetRow(progressBar, 0);
-            Grid.SetColumnSpan(progressBar, 2); // 进度条跨两列
-            Grid.SetRow(loadBtn, 1);
+            // 测试按钮 - 临时添加用于调试进度条
+            // var testBtn = SharedUIComponents.CreateStandardButton("Test Progress|测试进度");
+            // testBtn.Width = Double.NaN; 
+            // testBtn.Height = 35;
+            // testBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
+            // testBtn.Click += TestBtn_Click;
+            // Grid.SetColumn(testBtn, 1);
+            // buttonGrid.Children.Add(testBtn);
+            
+            
+            Grid.SetRow(dataGrid, 0);
+            Grid.SetRow(buttonGrid, 1);
             Grid.SetColumn(loadBtn, 0);
-            Grid.SetRow(saveBtn, 1);
-            Grid.SetColumn(saveBtn, 1);
-            buttonGrid.Children.Add(progressBar);
+            Grid.SetColumn(saveBtn, 2);
+
             buttonGrid.Children.Add(loadBtn);
+
             buttonGrid.Children.Add(saveBtn);
 
-            Grid.SetRow(buttonGrid, 1);
+            root.Children.Add(dataGrid);
             root.Children.Add(buttonGrid);
 
             Content = root;
@@ -276,5 +267,37 @@ namespace krrTools.Tools.KRRLVAnalysis
             config.DataGridColumnOrders.Value[ToolName] = orders;
             BaseOptionsManager.SetGlobalSettingsSilent(config);
         }
+
+        // private void TestBtn_Click(object sender, RoutedEventArgs e)
+        // {
+        //     // 测试进度条功能
+        //     Logger.WriteLine(LogLevel.Information, "[DEBUG] Test button clicked - testing global progress bar");
+        //     
+        //     // 模拟进度条显示和更新
+        //     Task.Run(async () =>
+        //     {
+        //         await Application.Current.Dispatcher.BeginInvoke(() =>
+        //         {
+        //             _analysisViewModel.ProgressValue.Value = 0;
+        //             Logger.WriteLine(LogLevel.Information, "[DEBUG] Test: Global progress bar shown");
+        //         });
+        //
+        //         for (int i = 0; i <= 100; i += 10)
+        //         {
+        //             await Task.Delay(200);
+        //             await Application.Current.Dispatcher.BeginInvoke(() =>
+        //             {
+        //                 _analysisViewModel.ProgressValue.Value = i;
+        //                 Logger.WriteLine(LogLevel.Information, $"[DEBUG] Test: Global progress updated to {i}%");
+        //             });
+        //         }
+        //
+        //         await Task.Delay(500);
+        //         await Application.Current.Dispatcher.BeginInvoke(() =>
+        //         {
+        //             Logger.WriteLine(LogLevel.Information, "[DEBUG] Test: Global progress bar test completed");
+        //         });
+        //     });
+        // }
     }
 }

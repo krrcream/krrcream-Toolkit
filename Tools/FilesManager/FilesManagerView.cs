@@ -24,12 +24,7 @@ namespace krrTools.Tools.FilesManager
         private readonly FilesManagerViewModel _viewModel;
         private DataGrid? _fileDataGrid;
 
-        // 取反，数据加载时禁用按钮
-        private readonly InverseBoolBtn _inverseBoolBtn = new();
-
         private const string ToolName = "FilesManager";
-        private ProgressBar? _progressBarControl;
-        private TextBlock? _progressTextBlockControl;
 
         public FilesManagerView()
         {
@@ -100,7 +95,7 @@ namespace krrTools.Tools.FilesManager
 
             // 启用 DataGridExtensions 高级功能
             _fileDataGrid.SetValue(DataGridFilter.IsAutoFilterEnabledProperty, true);                    
-            _fileDataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("FilteredOsuFiles.Value"));
+            _fileDataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("Value") { Source = _viewModel.FilteredOsuFiles });
 
             LoadColumnOrder();
             _fileDataGrid.ColumnReordered += OnColumnReordered;
@@ -204,7 +199,7 @@ namespace krrTools.Tools.FilesManager
                 VerticalAlignment = VerticalAlignment.Center,
                 FontWeight = FontWeights.Bold
             };
-            totalFilesValue.SetBinding(TextBlock.TextProperty, new Binding("TotalFileCount.Value"));
+            totalFilesValue.SetBinding(TextBlock.TextProperty, new Binding("Value") { Source = _viewModel.TotalFileCount });
 
             var filteredFilesText = new TextBlock
             {
@@ -218,10 +213,8 @@ namespace krrTools.Tools.FilesManager
                 FontWeight = FontWeights.Bold,
                 Foreground = Brushes.Blue
             };
-            filteredFilesValue.SetBinding(TextBlock.TextProperty, 
-                new Binding("FilteredFileCount.Value") { FallbackValue = "0" });
-
-            statsPanel.Children.Add(totalFilesText);
+            filteredFilesValue.SetBinding(TextBlock.TextProperty,
+                new Binding("Value") { Source = _viewModel.FilteredFileCount, FallbackValue = "0" });            statsPanel.Children.Add(totalFilesText);
             statsPanel.Children.Add(totalFilesValue);
             statsPanel.Children.Add(filteredFilesText);
             statsPanel.Children.Add(filteredFilesValue);
@@ -234,21 +227,6 @@ namespace krrTools.Tools.FilesManager
                 Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 10, 0)
             };
-            _progressBarControl = new ProgressBar { Width = 200, Height = 20 };
-            _progressBarControl.SetBinding(RangeBase.ValueProperty, new Binding(nameof(_viewModel.ProgressValue)));
-            _progressBarControl.SetBinding(RangeBase.MaximumProperty, new Binding(nameof(_viewModel.ProgressMaximum)));
-            BindingOperations.SetBinding(_progressBarControl, VisibilityProperty,
-                new Binding(nameof(_viewModel.IsProcessing)) { Converter = new BooleanToVisibilityConverter() });
-            _progressTextBlockControl = new TextBlock
-            {
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 33, 33, 33)),
-                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0)
-            };
-            _progressTextBlockControl.SetBinding(TextBlock.TextProperty, new Binding(nameof(_viewModel.ProgressText)));
-            BindingOperations.SetBinding(_progressTextBlockControl, VisibilityProperty,
-                new Binding(nameof(_viewModel.IsProcessing)) { Converter = new BooleanToVisibilityConverter() });
-            progressPanel.Children.Add(_progressBarControl);
-            progressPanel.Children.Add(_progressTextBlockControl);
 
             bottomGrid.Children.Add(progressPanel);
             Grid.SetColumn(progressPanel, 1);
@@ -258,8 +236,6 @@ namespace krrTools.Tools.FilesManager
             loadBtn.Height = 40;
             loadBtn.Click += SetSongsBtn_Click;
 
-            loadBtn.SetBinding(IsEnabledProperty, new Binding("IsProcessing.Value") 
-                { Converter = _inverseBoolBtn });
             bottomGrid.Children.Add(loadBtn);
             Grid.SetColumn(loadBtn, 2);
 
@@ -290,8 +266,6 @@ namespace krrTools.Tools.FilesManager
             e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
             e.Handled = true;
         }
-
-
 
         private async void DeleteMenuItem_Click(object sender, RoutedEventArgs e)
         {
@@ -422,23 +396,6 @@ namespace krrTools.Tools.FilesManager
             {
                 Console.WriteLine($"[ERROR] Error setting Songs path: {ex.Message}");
             }
-        }
-    }
-
-    public class InverseBoolBtn : IValueConverter
-    {
-        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-        {
-            if (value is bool booleanValue)
-                return !booleanValue;
-            return true;
-        }
-
-        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        {
-            if (value is bool booleanValue)
-                return !booleanValue;
-            return false;
         }
     }
 }

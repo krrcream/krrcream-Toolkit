@@ -8,6 +8,7 @@ using System.Windows.Data;
 using CommunityToolkit.Mvvm.Input;
 using krrTools.Beatmaps;
 using krrTools.Bindable;
+using krrTools.Utilities;
 using Microsoft.Extensions.Logging;
 using OsuParsers.Decoders;
 using Application = System.Windows.Application;
@@ -16,14 +17,13 @@ namespace krrTools.Tools.FilesManager
 {
     public partial class FilesManagerViewModel : ReactiveViewModelBase
     {
+        [Inject]
+        private StateBarManager StateBarManager { get; set; } = null!;
+
         public Bindable<ObservableCollection<FilesManagerInfo>> OsuFiles { get; set; } = new(new ObservableCollection<FilesManagerInfo>());
         public Bindable<ICollectionView> FilteredOsuFiles { get; set; }
         public Bindable<int> FilteredFileCount { get; set; } = new();
         public Bindable<int> TotalFileCount { get; set; } = new();
-        public Bindable<bool> IsProcessing { get; set; } = new();
-        public Bindable<int> ProgressValue { get; set; } = new();
-        public Bindable<int> ProgressMaximum { get; set; } = new(100);
-        public Bindable<string> ProgressText { get; set; } = new(string.Empty);
         public Bindable<string> SelectedFolderPath { get; set; } = new("");
 
         public FilesManagerViewModel()
@@ -40,8 +40,10 @@ namespace krrTools.Tools.FilesManager
         {
             TotalFileCount.Value = OsuFiles.Value.Count;
             FilteredFileCount.Value = FilteredOsuFiles.Value?.Cast<object>().Count() ?? 0;
-            OsuFiles.Value.CollectionChanged += (s, e) => TotalFileCount.Value = OsuFiles.Value.Count;
-            FilteredOsuFiles.Value.CollectionChanged += (s, e) => FilteredFileCount.Value = FilteredOsuFiles.Value.Cast<object>().Count();
+            OsuFiles.Value.CollectionChanged += (_, _) => TotalFileCount.Value = OsuFiles.Value.Count;
+            if (FilteredOsuFiles.Value != null)
+                FilteredOsuFiles.Value.CollectionChanged += (_, _) =>
+                    FilteredFileCount.Value = FilteredOsuFiles.Value.Cast<object>().Count();
         }
 
 
@@ -66,27 +68,20 @@ namespace krrTools.Tools.FilesManager
             catch (Exception ex)
             {
                 Logger.WriteLine(LogLevel.Error, "[FilesManagerViewModel] ProcessDroppedFiles error: {0}", ex.Message);
-                ProgressText.Value = $"处理出错: {ex.Message}";
             }
         }
 
         public async Task ProcessFilesAsync(string[] files)
         {
-            IsProcessing.Value = true;
-            ProgressValue.Value = 0;
-            ProgressText.Value = "Loading...";
+            StateBarManager.ProgressValue.Value = 0;
 
             try
             {
                 var validFiles = files.Where(f =>
                     File.Exists(f) && Path.GetExtension(f).Equals(".osu", StringComparison.OrdinalIgnoreCase)).ToArray();
-                ProgressMaximum.Value = validFiles.Length;
-                ProgressText.Value = $"Found {validFiles.Length} files, processing...";
 
-                // Set selected folder path to the directory of the first file
                 if (validFiles.Length > 0) SelectedFolderPath.Value = Path.GetDirectoryName(validFiles[0]) ?? "";
 
-                // Clear existing data
                 OsuFiles.Value.Clear();
 
                 // 分批处理文件，避免UI冻结
@@ -109,8 +104,7 @@ namespace krrTools.Tools.FilesManager
                     }
 
                     // 更新进度
-                    ProgressValue.Value = i + 1;
-                    ProgressText.Value = $"正在处理 {i + 1}/{validFiles.Length}...";
+                    StateBarManager.ProgressValue.Value = (double)(i + 1) / validFiles.Length * 100;
 
                     // 每处理一批就更新UI
                     if (batch.Count >= batchSize || i == validFiles.Length - 1)
@@ -127,17 +121,14 @@ namespace krrTools.Tools.FilesManager
                         await Task.Delay(1);
                     }
                 }
-
-                ProgressText.Value = $"完成处理 {validFiles.Length} 个文件";
             }
             catch (Exception ex)
             {
                 Logger.WriteLine(LogLevel.Error, "[FilesManagerViewModel] 读取文件时出错: {0}", ex.Message);
-                ProgressText.Value = $"处理出错: {ex.Message}";
             }
             finally
             {
-                IsProcessing.Value = false;
+                StateBarManager.ProgressValue.Value = 100; // 完成时设置为100
                 Application.Current?.Dispatcher?.Invoke(() =>
                 {
                     FilteredOsuFiles.Value = CollectionViewSource.GetDefaultView(OsuFiles.Value);
