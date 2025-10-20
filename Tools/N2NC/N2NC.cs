@@ -4,8 +4,11 @@ using System.Linq;
 using krrTools.Beatmaps;
 using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
+using OsuParsers.Enums;
 using OsuParsers.Beatmaps.Objects;
+using OsuParsers.Extensions;
 using krrTools.Localization;
+using OsuParsers.Beatmaps.Objects.Mania;
 
 namespace krrTools.Tools.N2NC
 {
@@ -65,7 +68,7 @@ namespace krrTools.Tools.N2NC
                 }
             }
             var random = options.Seed.HasValue ? new Random(options.Seed.Value) : new Random();
-            var (matrix, timeAxis) = beatmap.BuildMatrix();
+            var (matrix, timeAxis) = beatmap.getExpandHoldBodyMTXandTimeAxis();
             var processedMatrix = ProcessMatrix(matrix, timeAxis, beatmap, options, random);
             ApplyChangesToHitObjects(beatmap, processedMatrix, options);
             MetadetaChange(beatmap, options);
@@ -74,7 +77,7 @@ namespace krrTools.Tools.N2NC
         /// <summary>
         /// 处理音符矩阵
         /// </summary>
-        private NoteMatrix ProcessMatrix(NoteMatrix matrix, List<int> timeAxis, Beatmap beatmap, N2NCOptions options,
+        private Matrix ProcessMatrix(Matrix matrix, List<int> timeAxis, Beatmap beatmap, N2NCOptions options,
             Random random)
         {
             return ConvertMatrix(matrix, timeAxis, beatmap, options, random);
@@ -83,43 +86,84 @@ namespace krrTools.Tools.N2NC
         /// <summary>
         /// 将处理后的矩阵应用到谱面对象
         /// </summary>
-        private void ApplyChangesToHitObjects(Beatmap beatmap, NoteMatrix processedMatrix, N2NCOptions options)
+        private void ApplyChangesToHitObjects(Beatmap beatmap, Matrix processedMatrix, N2NCOptions options)
         {
             NewHitObjects(beatmap, processedMatrix, options);
         }
 
-        private NoteMatrix ConvertMatrix(NoteMatrix matrix, List<int> timeAxis, Beatmap beatmap, N2NCOptions options,
+        private Matrix ConvertMatrix(Matrix matrix, List<int> timeAxis, Beatmap beatmap, N2NCOptions options,
             Random random)
         {
+            var notes = beatmap.HitObjects.AsManiaNotes();
             var CS = (int)beatmap.DifficultySection.CircleSize;
             var targetKeys = (int)options.TargetKeys.Value;
             var turn = targetKeys - CS;
-
+            var convertTime = Math.Max(1, options.TransformSpeed.Value * 6000 / beatmap.MainBPM * 4 - 10);
             // 使用传入的随机数生成器
             var RG = random;
-
-            if (CS == targetKeys && (int)options.TargetKeys.Value == targetKeys)
-            {
-                return matrix;
-            }
-
-            var BPM = beatmap.GetBPM();
-            // _logger.LogDebug($"BPM：{BPM}");
-            var beatLength = 60000 / BPM * 4;
-            // Logger.WriteLine("BPM：" + BPM);
-            var convertTime = Math.Max(1, options.TransformSpeed.Value * beatLength - 10);
-
-            var newMatrix = turn >= 0
+            
+            // 初始化矩阵
+            var beatlengthAxis = GenerateBeatLengthAxis(matrix, timeAxis, notes);
+            var beatLengthMtx = GenerateBeatLengthMTX(matrix, beatlengthAxis);           
+            var (oldMTX, insertMTX) = convertMTX(turn, timeAxis, convertTime, CS , random);
+            
+            
+            
+            /*Matrix newMatrix = turn >= 0
                 ? DoAddKeys(matrix, timeAxis, turn, convertTime, CS, targetKeys, beatLength, RG, options)
-                : DoRemoveKeys(matrix, timeAxis, turn, convertTime, beatLength, RG, CS, options);
-
-            return newMatrix;
+                : DoRemoveKeys(matrix, timeAxis, turn, convertTime, beatLength, RG, CS, options);*/
+           
+            return new Matrix(matrix.Rows, matrix.Cols);
         }
 
-        private NoteMatrix DoAddKeys(NoteMatrix matrix, List<int> timeAxis, int turn, double convertTime,
+        private List<double> GenerateBeatLengthAxis(Matrix matrix1, List<int>timeAxis, List<ManiaNote> maniaObjects)
+        {
+            List<double> result = Enumerable.Repeat(-1.0, timeAxis.Count).ToList();
+            int cols = matrix1.Cols;
+            var matrix1Span = matrix1.AsSpan();
+            for (int i = 0; i < matrix1Span.Length; i++)
+            {
+                int row = i / cols;
+                int col = i % cols;
+                for (int j = 0; j < col; j++)
+                {
+                    if (matrix1Span[i] >= 0)
+                    {
+                        result[row] = maniaObjects[matrix1Span[i]].BeatLengthOfThisNote;
+                        break;
+                    }
+                }               
+            }
+            for (int i = 1; i < result.Count; i++)
+            {
+                if (result[i] < 0 && result[i - 1] >= 0)
+                {
+                    result[i] = result[i - 1];
+                }
+            }
+            return result;
+        }
+
+        private DoubleMatrix GenerateBeatLengthMTX(Matrix matrix1, List<double> BeatLengthAxis)
+        {
+            DoubleMatrix beatLengthMtx = new DoubleMatrix(matrix1.Rows, matrix1.Cols);
+            var beatLengthMtxSpan = beatLengthMtx.AsSpan();   
+            var matrix1Span = matrix1.AsSpan();
+            for (int i = 0; i < matrix1Span.Length; i++)
+            {
+                if (matrix1Span[i] >= 0)
+                {
+                    int row = i / matrix1.Cols;
+                    beatLengthMtxSpan[i] = BeatLengthAxis[row];
+                }
+            }
+            return beatLengthMtx;
+        }
+        
+        
+        private Matrix DoAddKeys(Matrix matrix, List<int> timeAxis, int turn, double convertTime,
             int CS, int targetKeys, double beatLength, Random random, N2NCOptions options)
         {
-            // TODO: 这里可能需要优化，直接用传入NoteMatrix matrix 生成oldMTX和insertMTX
             var (oldMTX, insertMTX) = convertMTX(turn, timeAxis, convertTime, CS, random);
             var newMatrix = convert(matrix, oldMTX, insertMTX, timeAxis, targetKeys, beatLength, random);
             DensityReducer(newMatrix, (int)options.TargetKeys.Value - (int)options.MaxKeys.Value,
@@ -127,37 +171,32 @@ namespace krrTools.Tools.N2NC
             return newMatrix;
         }
 
-        private NoteMatrix DoRemoveKeys(NoteMatrix matrix, List<int> timeAxis, int turn, double convertTime,
+        private Matrix DoRemoveKeys(Matrix matrix, List<int> timeAxis, int turn, double convertTime,
             double beatLength, Random random, int originalCS, N2NCOptions options)
         {
-#pragma warning disable CS0219 // Variable is assigned but its value is never used
             var _ = originalCS;
-#pragma warning restore CS0219
             var newMatrix = SmartReduceColumns(matrix, timeAxis, -turn, convertTime, beatLength, random);
             DensityReducer(newMatrix, (int)options.TargetKeys.Value - (int)options.MaxKeys.Value,
                 (int)options.MinKeys.Value, (int)options.TargetKeys.Value, random);
             return newMatrix;
         }
 
-        // 未来库完善，矩阵可弃用，仅供测试模式下输出运行模型
-        public (NoteMatrix, NoteMatrix) convertMTX(int turn, List<int> timeAxis,
+       public (Matrix, Matrix) convertMTX(int turn, List<int> timeAxis,
             double convertTime, int CS, Random random)
         {
             var rows = timeAxis.Count;
             var cols = turn; // 需要添加的列数
 
             if (rows == 0 || cols == 0)
-                return (new NoteMatrix(rows, cols), new NoteMatrix(rows, cols));
+                throw new ArgumentException("行或者列为0，无法创建convert矩阵.");
 
             // 初始化两个矩阵
-            var oldMTX = new NoteMatrix(rows, cols);
-            var insertMTX = new NoteMatrix(rows, cols);
+            var oldMTX = new Matrix(rows, cols);
+            var insertMTX = new Matrix(rows, cols);
 
             // 生成 oldMTX 矩阵
             for (var col = 0; col < cols; col++)
             {
-                // TODO: 这里1key谱会传入0，需确认是否合理，或者功能是否还正常
-                // 为每一列创建一个震荡数字生成器，范围是 0 到 CS-1
                 var oldIndex = new OscillatorGenerator(CS - 1, random);
                 // 重置时间计数器
                 double timeCounter = 0;
@@ -180,12 +219,10 @@ namespace krrTools.Tools.N2NC
                 var randomMoves = random.Next(0, CS - 1);
                 for (var i = 0; i < randomMoves; i++) oldIndex.Next();
             }
-
-            // 生成 insertMTX 矩阵
+            
             for (var col = 0; col < cols; col++)
             {
-                // 为每一列创建一个震荡数字生成器，范围是 0 到 (CS + col)
-                // 随着列的增加，可插入位置也在增加
+
                 var insertIndex = new OscillatorGenerator(CS + col, random);
                 double timeCounter = 0;
                 var lastTime = timeAxis[0];
@@ -212,7 +249,7 @@ namespace krrTools.Tools.N2NC
         }
 
         // 转换操作
-        public NoteMatrix convert(NoteMatrix matrix, NoteMatrix oldMTX, NoteMatrix insertMTX, List<int> timeAxis1,
+        public Matrix convert(Matrix matrix, Matrix oldMTX, Matrix insertMTX, List<int> timeAxis1,
             int targetKeys,
             double beatLength, Random random)
         {
@@ -224,7 +261,7 @@ namespace krrTools.Tools.N2NC
                 var turn1 = oldMTX.Cols; // oldMTX的列数
 
                 // 创建一个新的矩阵，列数为目标键数，行数与原矩阵相同，初始化为-1
-                var newMatrix = new NoteMatrix(rows, newCols);
+                var newMatrix = new Matrix(rows, newCols);
 
                 // 处理每一行
                 for (var i = 0; i < rows; i++)
@@ -319,7 +356,7 @@ namespace krrTools.Tools.N2NC
                 }
 
                 //位置映射，拷贝newMatrix到colsMatrix;    
-                var colsMatrix = new NoteMatrix(newMatrix.Rows, newMatrix.Cols);
+                var colsMatrix = new Matrix(newMatrix.Rows, newMatrix.Cols);
                 newMatrix.CopyTo(colsMatrix);
 
                 for (var j = 0; j < newCols; j++)
@@ -385,7 +422,7 @@ namespace krrTools.Tools.N2NC
             }
         }
 
-        private bool AreRowsDifferent(NoteMatrix matrix, int row1, int row2)
+        private bool AreRowsDifferent(Matrix matrix, int row1, int row2)
         {
             var colCount = matrix.Cols;
             for (var j = 0; j < colCount; j++)
@@ -412,28 +449,26 @@ namespace krrTools.Tools.N2NC
             }
         }
 
-        private void NewHitObjects(Beatmap beatmap, NoteMatrix newMatrix, N2NCOptions options)
+        private void NewHitObjects(Beatmap beatmap, Matrix newMatrix, N2NCOptions options)
         {
             // 创建临时列表存储对象
-            var newObjects = new List<HitObject>();
-            //遍历newMatrix
+            var notes = beatmap.HitObjects.AsManiaNotes();
+            var newObjects = new List<HitObject>().AsManiaNotes();
+            //遍历newMatrix添加对象
             for (var i = 0; i < newMatrix.Rows; i++)
             for (var j = 0; j < newMatrix.Cols; j++)
             {
                 var oldIndex = newMatrix[i, j];
                 if (oldIndex >= 0)
-                    newObjects.Add(BeatmapExtensions.CopyHitObjectByPositionX(beatmap.HitObjects[oldIndex],
-                        ColumnPositionMapper.ColumnToPositionX((int)options.TargetKeys.Value, j)
-                    ));
+                    newObjects.Add(notes[oldIndex].CloneNote(NewColumn:j));
             }
-
             beatmap.HitObjects.Clear();
             // 在遍历完成后添加所有新对象
             beatmap.HitObjects.AddRange(newObjects);
             beatmap.SortHitObjects();
         }
 
-        private void DensityReducer(NoteMatrix matrix, int maxToRemovePerRow, int minKeys, int targetKeys,
+        private void DensityReducer(Matrix matrix, int maxToRemovePerRow, int minKeys, int targetKeys,
             Random random)
         {
             if (maxToRemovePerRow <= 0) return;
@@ -513,7 +548,7 @@ namespace krrTools.Tools.N2NC
 
 
 
-        public NoteMatrix SmartReduceColumns(NoteMatrix orgMTX, List<int> timeAxis, int turn, double convertTime,
+        public Matrix SmartReduceColumns(Matrix orgMTX, List<int> timeAxis, int turn, double convertTime,
             double beatLength, Random random)
         {
             var rows = orgMTX.Rows;
@@ -521,7 +556,7 @@ namespace krrTools.Tools.N2NC
             var targetCols = originalCols - turn;
 
             // 创建新矩阵，初始化为-1（空）
-            var newMatrix = new NoteMatrix(rows, targetCols);
+            var newMatrix = new Matrix(rows, targetCols);
             for (var i = 0; i < rows; i++)
             for (var j = 0; j < targetCols; j++)
                 newMatrix[i, j] = -1;
@@ -558,7 +593,7 @@ namespace krrTools.Tools.N2NC
             return newMatrix;
         }
 
-        private void ProcessRegion(NoteMatrix orgMTX, NoteMatrix newMatrix, List<int> timeAxis,
+        private void ProcessRegion(Matrix orgMTX, Matrix newMatrix, List<int> timeAxis,
             int regionStart, int regionEnd, int targetCols, double beatLength, Random random)
         {
             var originalCols = orgMTX.Cols;
@@ -608,7 +643,7 @@ namespace krrTools.Tools.N2NC
                 random);
         }
 
-        private void ApplyMinimumNotesConstraint(NoteMatrix matrix, NoteMatrix orgMTX, int startRow, int endRow,
+        private void ApplyMinimumNotesConstraint(Matrix matrix, Matrix orgMTX, int startRow, int endRow,
             int targetCols,
             List<int> timeAxis, double beatLength, Random random)
         {
@@ -664,7 +699,7 @@ namespace krrTools.Tools.N2NC
         }
 
         private List<int> GetColumnsToRemove(int[] columnWeights, int targetCols, int originalCols,
-            NoteMatrix orgMTX, int regionStart, int regionEnd)
+            Matrix orgMTX, int regionStart, int regionEnd)
         {
             var colsToRemove = originalCols - targetCols;
             if (colsToRemove <= 0) return new List<int>();
@@ -696,7 +731,7 @@ namespace krrTools.Tools.N2NC
             return columnList.Take(colsToRemove).Select(x => x.index).ToList();
         }
 
-        private double CalculateColumnRisk(NoteMatrix matrix, int colIndex, int totalCols, int regionStart,
+        private double CalculateColumnRisk(Matrix matrix, int colIndex, int totalCols, int regionStart,
             int regionEnd)
         {
             var totalRows = 0;
@@ -741,7 +776,7 @@ namespace krrTools.Tools.N2NC
             return mapping;
         }
 
-        private bool IsPositionAvailable(NoteMatrix matrix, int row, int col, List<int> timeAxis, double beatLength)
+        private bool IsPositionAvailable(Matrix matrix, int row, int col, List<int> timeAxis, double beatLength)
         {
             if (matrix[row, col] != -1)
                 return false;
@@ -762,7 +797,7 @@ namespace krrTools.Tools.N2NC
             return true;
         }
 
-        private void HandleLongNoteExtensions(NoteMatrix newMatrix, int row, int targetCols)
+        private void HandleLongNoteExtensions(Matrix newMatrix, int row, int targetCols)
         {
             // 处理延续到当前行的长条身体部分
             for (var col = 0; col < targetCols; col++)
@@ -772,7 +807,7 @@ namespace krrTools.Tools.N2NC
                         newMatrix[row, col] = -7;
         }
 
-        private void CopyLongNoteBody(NoteMatrix orgMTX, NoteMatrix newMatrix, int startRow, int oldCol, int newCol,
+        private void CopyLongNoteBody(Matrix orgMTX, Matrix newMatrix, int startRow, int oldCol, int newCol,
             int totalRows)
         {
             // 复制长条的身体部分
@@ -785,7 +820,7 @@ namespace krrTools.Tools.N2NC
             }
         }
 
-        private void ProcessEmptyRows(NoteMatrix orgMTX, NoteMatrix newMatrix, List<int> timeAxis, double beatLength,
+        private void ProcessEmptyRows(Matrix orgMTX, Matrix newMatrix, List<int> timeAxis, double beatLength,
             Random random)
         {
             var rows = newMatrix.Rows;
@@ -819,7 +854,7 @@ namespace krrTools.Tools.N2NC
         }
 
         // 尝试直接插入note到当前行的可用位置
-        private bool TryInsertNoteDirectly(NoteMatrix newMatrix, NoteMatrix orgMTX, List<int> timeAxis, int row,
+        private bool TryInsertNoteDirectly(Matrix newMatrix, Matrix orgMTX, List<int> timeAxis, int row,
             int targetCols, int originalCols, double beatLength, Random random)
         {
             // 收集当前行中所有可用的位置（前后时间窗口内无冲突）
@@ -854,9 +889,9 @@ namespace krrTools.Tools.N2NC
 
             return true;
         }
-
+        
         // 检查长条尾部是否过于接近下一个note
-        private bool IsHoldNoteTailTooClose(NoteMatrix newMatrix, NoteMatrix orgMTX, List<int> timeAxis,
+        private bool IsHoldNoteTailTooClose(Matrix newMatrix, Matrix orgMTX, List<int> timeAxis,
             int row, int orgCol, int targetCol, double beatLength)
         {
             var minTimeDistance = beatLength / 16 - 10; // 注意这里是-10
@@ -894,7 +929,7 @@ namespace krrTools.Tools.N2NC
         }
 
         // 尝试通过删除其他列的note来腾出空间并插入note
-        private void TryClearSpaceAndInsert(NoteMatrix orgMTX, NoteMatrix newMatrix, List<int> timeAxis,
+        private void TryClearSpaceAndInsert(Matrix orgMTX, Matrix newMatrix, List<int> timeAxis,
             int emptyRow, int targetCols, int originalCols,
             double beatLength, Random random)
         {
@@ -986,7 +1021,7 @@ namespace krrTools.Tools.N2NC
         }
 
 
-        private bool IsPositionAvailableForEmptyRow(NoteMatrix matrix, List<int> timeAxis,
+        private bool IsPositionAvailableForEmptyRow(Matrix matrix, List<int> timeAxis,
             int row, int col, double beatLength)
         {
             if (matrix[row, col] != -1)
@@ -1007,7 +1042,9 @@ namespace krrTools.Tools.N2NC
 
             return true;
         }
-
+        
+        
+        
         // 辅助方法：随机打乱列表
         private void ShuffleList<T>(List<T> list, Random random)
         {
