@@ -91,11 +91,11 @@ namespace krrTools.Tools.N2NC
             // 初始化矩阵
             var beatlengthAxis = GenerateBeatLengthAxis(matrix, timeAxis, notes);
             var beatLengthMtx = GenerateBeatLengthMTX(matrix, beatlengthAxis);           
-            var orgCloIndexMTX = GenerateOrgCloIndexMTX(matrix, beatLengthMtx);
+            var orgCloIndexMTX = GenerateOrgCloIndexMTX(matrix, notes);
             
             // DoAddKeys
             var (oldMTX, insertMTX) = convertMTX(turn, timeAxis, convertTime, CS , random);
-            
+            var newMatrix = convert(matrix, oldMTX, insertMTX, timeAxis, targetKeys, orgCloIndexMTX, random);
             
             
             /*Matrix newMatrix = turn >= 0
@@ -189,7 +189,7 @@ namespace krrTools.Tools.N2NC
             
             return orgCloIndexMTX;
         }
-        private Matrix DoAddKeys(Matrix matrix, List<int> timeAxis, int turn, double convertTime,
+        /*private Matrix DoAddKeys(Matrix matrix, List<int> timeAxis, int turn, double convertTime,
             int CS, int targetKeys, double beatLength, Random random, N2NCOptions options)
         {
             var (oldMTX, insertMTX) = convertMTX(turn, timeAxis, convertTime, CS, random);
@@ -197,7 +197,7 @@ namespace krrTools.Tools.N2NC
             DensityReducer(newMatrix, (int)options.TargetKeys.Value - (int)options.MaxKeys.Value,
                 (int)options.MinKeys.Value, (int)options.TargetKeys.Value, random);
             return newMatrix;
-        }
+        }*/
 
         private Matrix DoRemoveKeys(Matrix matrix, List<int> timeAxis, int turn, double convertTime,
             double beatLength, Random random, int originalCS, N2NCOptions options)
@@ -278,7 +278,7 @@ namespace krrTools.Tools.N2NC
 
         // 转换操作
         public Matrix convert(Matrix matrix, Matrix oldMTX, Matrix insertMTX, List<int> timeAxis1,
-            int targetKeys,
+            int targetKeys, Matrix orgColIndexMtx,
             List<double> beatLengthAxis, Random random)
         {
             try
@@ -407,7 +407,7 @@ namespace krrTools.Tools.N2NC
                 }
 
                 //删除矩阵
-                var needDeleteMTX = new bool[colsMatrix.Rows, colsMatrix.Cols];
+                var needDeleteMTX = new BoolMatrix(colsMatrix.Rows, colsMatrix.Cols);
 
                 for (var j = 0; j < newCols; j++)
                 for (var i = 0; i < rows - 1; i++)
