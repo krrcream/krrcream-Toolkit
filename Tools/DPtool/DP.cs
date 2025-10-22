@@ -124,7 +124,7 @@ namespace krrTools.Tools.DPtool
             beatmap.HitObjects.Clear();
             beatmap.HitObjects.AddRange(newObjects);
             beatmap.SortHitObjects();
-            // 另外统一修改metadeta的形参，在这里修改CS
+            // 统一修改metadeta的形参，在这里修改CS
             if (options.SingleSideKeyCount.Value.HasValue)
             {
                 beatmap.DifficultySection.CircleSize = (int)options.SingleSideKeyCount.Value.Value * 2;
