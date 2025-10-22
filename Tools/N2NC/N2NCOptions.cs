@@ -21,7 +21,7 @@ namespace krrTools.Tools.N2NC
         public Bindable<double> MinKeys { get; } = new Bindable<double>(2);
 
         [Option(LabelKey = nameof(N2NCTransformSpeedTemplate), Min = 0, Max = 8, UIType = UIType.Slider, DisplayMapField = nameof(TransformSpeedDict), DataType = typeof(double), IsRefresher = true)]
-        public Bindable<double> TransformSpeed { get; } = new Bindable<double>(4);
+        public Bindable<double> TransformSpeed { get; } = new Bindable<double>(3);
 
         /// <summary>
         /// 默认构造函数，使用默认值

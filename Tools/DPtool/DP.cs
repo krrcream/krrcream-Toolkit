@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using krrTools.Beatmaps;
 using OsuParsers.Extensions;
 using OsuParsers.Beatmaps;
 using OsuParsers.Enums;
 using OsuParsers.Beatmaps.Objects;
 using krrTools.Localization;
+using OsuParsers.Beatmaps.Objects.Mania;
 
 namespace krrTools.Tools.DPtool
 {
@@ -84,22 +86,25 @@ namespace krrTools.Tools.DPtool
             var RG = new Random(RANDOM_SEED);
             var CS = (int)beatmap.DifficultySection.CircleSize;
             
-            
+            var timeAxisSpan =  CollectionsMarshal.AsSpan(timeAxis);
             // 初始化原始矩阵和节拍长度轴
             var notes = beatmap.HitObjects.AsManiaNotes();
-            var beatlengthAxis = Conv.GenerateBeatLengthAxis(matrix, timeAxis, notes);
+            var beatlengthAxis = Conv.GenerateBeatLengthAxis( timeAxisSpan, notes);
             var orgColIndex = Conv.GenerateOrgColIndex(matrix);
             var targetKeys = (int)options.SingleSideKeyCount.Value;
             var convertTime = Math.Max(1, 60000 / beatmap.MainBPM * 4 - 10);
+            /*
+            var EndTimeMtx = Conv.GenerateEndTimeMatrix(matrix, notes);
             var (LMaxKeys, LMinKeys, RMaxKeys, RMinKeys) = ((int)options.LMaxKeys.Value
                     , (int)options.LMinKeys.Value
                     , (int)options.RMaxKeys.Value
                     , (int)options.RMinKeys.Value
                 );
 
-            Matrix LMTX = Conv.DoKeys(matrix, timeAxis,  beatlengthAxis, orgColIndex, CS, targetKeys, LMaxKeys, LMinKeys, convertTime,RG);    
-            Matrix RMTX = Conv.DoKeys(matrix, timeAxis,  beatlengthAxis, orgColIndex, CS, targetKeys, RMaxKeys, RMinKeys, convertTime,RG); 
-            return ConcatenateHorizontal(LMTX, RMTX);
+            Matrix LMTX = Conv.DoKeys(matrix, EndTimeMtx, timeAxisSpan,  beatlengthAxis, orgColIndex, CS, targetKeys, LMaxKeys, LMinKeys, convertTime,RG);    
+            Matrix RMTX = Conv.DoKeys(matrix, EndTimeMtx, timeAxisSpan,  beatlengthAxis, orgColIndex, CS, targetKeys, RMaxKeys, RMinKeys, convertTime,RG); 
+            */
+            return new Matrix(1,2);
         }
 
         /// <summary>
@@ -113,14 +118,20 @@ namespace krrTools.Tools.DPtool
             int targetKeys = processedMatrix.Cols;
             //遍历newMatrix添加对象
             var MTXspan = processedMatrix.AsSpan();
+            var PX = new newPositionX(targetKeys);
+            
             for (int i = 0; i < MTXspan.Length; i++)
             { 
-                int oldIndex = MTXspan[i]; 
+                int oldIndex = MTXspan[i];
+                int col = i % targetKeys;
                 if (oldIndex >= 0)
                 {
-                    newObjects.Add(notes[oldIndex].CloneNote(NewColumn: i % targetKeys));
+                    var newNote = notes[oldIndex].CloneNote();
+                    newNote.Position = PX.Vector2(col);
+                    newObjects.Add(newNote);
                 }
             }
+            
             beatmap.HitObjects.Clear();
             beatmap.HitObjects.AddRange(newObjects);
             beatmap.SortHitObjects();
