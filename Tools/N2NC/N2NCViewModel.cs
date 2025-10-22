@@ -120,7 +120,7 @@ public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProv
                     OnPropertyChanged(nameof(MinKeysMaximum)); // 通知计算属性更新
                     break;
                 case nameof(Options.TransformSpeed):
-                    OnPropertyChanged(nameof(TransformSpeedDisplay));
+                    OnPropertyChanged(nameof(TransformSpeedSlotDict));
                     OnPropertyChanged(nameof(TransformSpeedSlot));
                     break;
             }
@@ -325,23 +325,7 @@ public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProv
 
     private double _transformSpeedSlot = 5.0; // 默认为档位5 (速度1.0)
 
-    public string TransformSpeedDisplay
-    {
-        get
-        {
-            // 根据当前速度值显示对应的节拍标签
-            var v = Options.TransformSpeed.Value;
-            if (Math.Abs(v - 0.0625) < 1e-8) return "1/16";
-            if (Math.Abs(v - 0.125) < 1e-8) return "1/8";
-            if (Math.Abs(v - 0.25) < 1e-8) return "1/4";
-            if (Math.Abs(v - 0.5) < 1e-8) return "1/2";
-            if (Math.Abs(v - 1.0) < 1e-8) return "1";
-            if (Math.Abs(v - 2.0) < 1e-8) return "2";
-            if (Math.Abs(v - 4.0) < 1e-8) return "4";
-            if (Math.Abs(v - 8.0) < 1e-8) return "8";
-            return v.ToString("G");
-        }
-    }
+
 
 
     public N2NCOptions GetConversionOptions()
