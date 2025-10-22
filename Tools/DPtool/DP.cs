@@ -88,7 +88,7 @@ namespace krrTools.Tools.DPtool
             // 初始化原始矩阵和节拍长度轴
             var notes = beatmap.HitObjects.AsManiaNotes();
             var beatlengthAxis = Conv.GenerateBeatLengthAxis(matrix, timeAxis, notes);
-            var orgColIndexMTX = Conv.GenerateOrgCloIndexMTX(matrix, notes);
+            var orgColIndex = Conv.GenerateOrgColIndex(matrix);
             var targetKeys = (int)options.SingleSideKeyCount.Value;
             var convertTime = Math.Max(1, 60000 / beatmap.MainBPM * 4 - 10);
             var (LMaxKeys, LMinKeys, RMaxKeys, RMinKeys) = ((int)options.LMaxKeys.Value
@@ -97,8 +97,8 @@ namespace krrTools.Tools.DPtool
                     , (int)options.RMinKeys.Value
                 );
 
-            Matrix LMTX = Conv.DoKeys(matrix, timeAxis,  beatlengthAxis, orgColIndexMTX, CS, targetKeys, LMaxKeys, LMinKeys, convertTime,RG);    
-            Matrix RMTX = Conv.DoKeys(matrix, timeAxis,  beatlengthAxis, orgColIndexMTX, CS, targetKeys, RMaxKeys, RMinKeys, convertTime,RG); 
+            Matrix LMTX = Conv.DoKeys(matrix, timeAxis,  beatlengthAxis, orgColIndex, CS, targetKeys, LMaxKeys, LMinKeys, convertTime,RG);    
+            Matrix RMTX = Conv.DoKeys(matrix, timeAxis,  beatlengthAxis, orgColIndex, CS, targetKeys, RMaxKeys, RMinKeys, convertTime,RG); 
             return ConcatenateHorizontal(LMTX, RMTX);
         }
 
