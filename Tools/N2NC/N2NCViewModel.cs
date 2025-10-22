@@ -36,29 +36,18 @@ public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProv
 
     public static readonly Dictionary<double, string> TransformSpeedSlotDict = new()
     {
-        { 1, "1/16" },
-        { 2, "1/8" },
-        { 3, "1/4" },
-        { 4, "1/2" },
-        { 5, "1" },
-        { 6, "2" },
+        { 0, "1/8" },
+        { 1, "1/4" },
+        { 2, "1/2" },
+        { 3, "3/4" },
+        { 4, "1" },
+        { 5, "2" },
+        { 6, "3" },
         { 7, "4" },
-        { 8, "8" }
+        { 8, "∞" }
     };
 
-    // 实际值映射 - 滑条值转换为实际速度值
-    private static readonly Dictionary<double, double> TransformSpeedActualDict = new()
-    {
-        { 1, 0.0625 },
-        { 2, 0.125 },
-        { 3, 0.25 },
-        { 4, 0.5 },
-        { 5, 1.0 },
-        { 6, 2.0 },
-        { 7, 4.0 },
-        { 8, 8.0 }
-    };
-
+ 
     private bool _isUpdatingOptions;
 
     public N2NCViewModel(N2NCOptions options) : base(ConverterEnum.N2NC, true, options)
@@ -316,8 +305,6 @@ public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProv
             if (Math.Abs(_transformSpeedSlot - value) > TOLERANCE)
             {
                 _transformSpeedSlot = value;
-                // 自动映射到实际速度值
-                if (TransformSpeedActualDict.TryGetValue(value, out var actualSpeed)) TransformSpeed = actualSpeed;
                 OnPropertyChanged();
             }
         }

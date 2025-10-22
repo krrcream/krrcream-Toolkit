@@ -67,7 +67,7 @@ namespace krrTools.Tools.N2NC
             if (TargetKeys.Value > 18) TargetKeys.Value = 18;
 
             // 确保 TransformSpeed 在有效范围内
-            if (TransformSpeed.Value < 1) TransformSpeed.Value = 1;
+            if (TransformSpeed.Value < 0) TransformSpeed.Value = 0;
             if (TransformSpeed.Value > 8) TransformSpeed.Value = 8;
 
             // 确保 MinKeys 和 MaxKeys 在合理范围内
