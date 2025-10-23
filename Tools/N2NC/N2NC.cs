@@ -91,7 +91,6 @@ namespace krrTools.Tools.N2NC
         /// </summary>
         public void TransformBeatmap(Beatmap beatmap, N2NCOptions options)
         {
-            Console.WriteLine($"[N2NC options.speed] {options.TransformSpeed.Value} 对应值：{TransformSpeedValues[(int)options.TransformSpeed.Value]}");
             //在最开头判断，减少不必要的进程
             var keyFlags = options.SelectedKeyFlags;
             if (keyFlags.HasValue && keyFlags.Value != KeySelectionFlags.None)

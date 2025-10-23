@@ -82,7 +82,7 @@ namespace krrTools.Bindable
             _ = NotifyValueChangedAsync(_value);
 
             // 调试测试绑定变化
-            Logger.WriteLine(LogLevel.Debug,$"[Bindable] Property '{propertyName}' changed to '{value}'");
+            /*Logger.WriteLine(LogLevel.Debug,$"[Bindable] Property '{propertyName}' changed to '{value}'");*/
             OnPropertyChanged(propertyName ?? nameof(Value));
         }
 

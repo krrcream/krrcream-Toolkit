@@ -1,3 +1,4 @@
+using System.IO;
 using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Core;
