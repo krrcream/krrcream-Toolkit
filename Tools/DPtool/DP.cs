@@ -68,43 +68,51 @@ namespace krrTools.Tools.DPtool
         /// </summary>
         private Matrix ProcessMatrix(Matrix matrix, List<int> timeAxis, Beatmap beatmap, DPToolOptions options)
         {
+            int CS = matrix.Cols;
             bool LmirroFlag = options.LMirror.Value;
             bool RmirroFlag = options.RMirror.Value;
-            
+            int targetKeys = CS;
             // 如果 SingleSideKeyCount 为 null，不进行转换
             if (!options.SingleSideKeyCount.Value.HasValue)
             {
                 Matrix LMTXorg = matrix.Clone();
                 Matrix RMTXorg = matrix.Clone();
+                
                 if (LmirroFlag)
                     MirrorMtx(LMTXorg);
                 if (RmirroFlag)
                     MirrorMtx(RMTXorg);
                 return ConcatenateHorizontal(LMTXorg, RMTXorg);
             }
+            // 
+            targetKeys = (int)options.SingleSideKeyCount.Value.Value;
+            Double convertTime = 60000 / beatmap.MainBPM * 2 + 10;
             var Conv = new N2NC.N2NC();
-            var RG = new Random(RANDOM_SEED);
-            var CS = (int)beatmap.DifficultySection.CircleSize;
-            
-            var timeAxisSpan =  CollectionsMarshal.AsSpan(timeAxis);
-            // 初始化原始矩阵和节拍长度轴
+            // 使用传入的随机数生成器
+            Random RG = new Random(RANDOM_SEED);
+            var timeAxisSpan = CollectionsMarshal.AsSpan(timeAxis);
+            // 初始化所需轴
             var notes = beatmap.HitObjects.AsManiaNotes();
-            var beatlengthAxis = Conv.GenerateBeatLengthAxis( timeAxisSpan, notes);
-            var orgColIndex = Conv.GenerateOrgColIndex(matrix);
-            var targetKeys = (int)options.SingleSideKeyCount.Value;
-            var convertTime = Math.Max(1, 60000 / beatmap.MainBPM * 4 - 10);
-            /*
-            var EndTimeMtx = Conv.GenerateEndTimeMatrix(matrix, notes);
+            // 时间轴
+            Span<double> beatLengthAxis = Conv.GenerateBeatLengthAxis(timeAxisSpan, notes);
+            // 索引轴
+            Span<int> endTimeIndexAxis = Conv.GenerateEndTimeIndex(notes); 
+            var orgColIndex= Conv.GenerateOrgColIndex(matrix);
+            
+            
             var (LMaxKeys, LMinKeys, RMaxKeys, RMinKeys) = ((int)options.LMaxKeys.Value
                     , (int)options.LMinKeys.Value
                     , (int)options.RMaxKeys.Value
                     , (int)options.RMinKeys.Value
                 );
 
-            Matrix LMTX = Conv.DoKeys(matrix, EndTimeMtx, timeAxisSpan,  beatlengthAxis, orgColIndex, CS, targetKeys, LMaxKeys, LMinKeys, convertTime,RG);    
-            Matrix RMTX = Conv.DoKeys(matrix, EndTimeMtx, timeAxisSpan,  beatlengthAxis, orgColIndex, CS, targetKeys, RMaxKeys, RMinKeys, convertTime,RG); 
-            */
-            return new Matrix(1,2);
+            Matrix LMTX = Conv.DoKeys(matrix, endTimeIndexAxis, timeAxisSpan,  beatLengthAxis, orgColIndex, CS, targetKeys, LMaxKeys, LMinKeys, convertTime,RG);    
+            Matrix RMTX = Conv.DoKeys(matrix, endTimeIndexAxis, timeAxisSpan,  beatLengthAxis, orgColIndex, CS, targetKeys, RMaxKeys, RMinKeys, convertTime,RG); 
+            if (LmirroFlag)
+                MirrorMtx(LMTX);
+            if (RmirroFlag)
+                MirrorMtx(RMTX);
+            return ConcatenateHorizontal(LMTX, RMTX);
         }
 
         /// <summary>

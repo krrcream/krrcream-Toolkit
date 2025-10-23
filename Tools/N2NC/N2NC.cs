@@ -58,7 +58,7 @@ namespace krrTools.Tools.N2NC
         private void ApplyChangesToHitObjects(Beatmap beatmap, Matrix processedMatrix, N2NCOptions options)
         {
 
-            PrintMatrixRows(20,processedMatrix);
+           
             // 创建临时列表存储对象
             var notes = beatmap.HitObjects.AsManiaNotes();
             var newObjects = new List<HitObject>().AsManiaNotes();
@@ -71,6 +71,8 @@ namespace krrTools.Tools.N2NC
             { 
                 int oldIndex = MTXspan[i];
                 int col = i % targetKeys;
+           
+                
                 if (oldIndex >= 0)
                 {
                     var newNote = notes[oldIndex].CloneNote();
@@ -289,16 +291,12 @@ namespace krrTools.Tools.N2NC
                 var rows = matrix.Rows;
                 var originalCols = matrix.Cols;
                 var turn = oldMTX.Cols; // oldMTX的列数
-
                 // 1.初步convert。MappingStep1
                 var newMatrix = PerformInitialConvert(matrix, oldMTX, insertMTX, targetKeys, turn, rows, originalCols, maxKeysEqualTargetKeys);
-                
                 // 2.生成位置映射
                 var Mark = GenerateDeleteMark(newMatrix,timeAxis ,EndTimeIndexAxis, beatLengthAxis, orgColIndex , targetKeys);
-
                 // 3.根据位置映射删除note
                 ApplyPositionBasedDeletion(newMatrix, Mark);
-                
                 return newMatrix;
             }
             catch (Exception ex)
@@ -362,7 +360,7 @@ namespace krrTools.Tools.N2NC
         /// <summary>
         /// 生成位置映射
         /// </summary>
-        private BoolMatrix GenerateDeleteMark(Matrix newMatrix,Span<int> timeAxis , Span<int>  EndTimeIndexAxis 
+        private BoolMatrix GenerateDeleteMark(Matrix newMatrix,Span<int> timeAxis , Span<int> EndTimeIndexAxis 
             , Span<double> beatLengthAxis,  Span<int> orgColIndexAxis, int targetKeys)
         {
             var mark = new BoolMatrix(newMatrix.Rows, newMatrix.Cols);
@@ -370,33 +368,45 @@ namespace krrTools.Tools.N2NC
             var newMatrixSpan = newMatrix.AsSpan();
             var endTimeTempRow= new Span<int>(new int[targetKeys]);
             var convertTimePointRow = new Span<int>(new int[targetKeys]);
-            
-            for (int i = 0; i < newMatrixSpan.Length; i++)
+            var orgColIndexRow = new Span<int>(new int[targetKeys]);
+            convertTimePointRow.Fill(timeAxis[0]);
+            orgColIndexRow.Fill(-1);
+            //临时index
+            int oldIndex = -1;
+            int preOldIndex = -1;
+            int preRowI = -1;
+            int row = -1;
+            int col = -1;
+            for (int i = targetKeys; i < newMatrixSpan.Length; i++)
             {
-                int row = i / targetKeys;   
-                int col = i % targetKeys;
+                oldIndex = newMatrixSpan[i];
+                preRowI = i - targetKeys;
+                preOldIndex = newMatrixSpan[preRowI];
+                row = i / targetKeys;
+                col = i % targetKeys;
+                Console.WriteLine($"preRowI:{preRowI}，row:{row}，col:{col}");
                 //1/4节拍时间，计算的时候+10作为子弹处理时间，-10作为面尾处理时间
-                double space = beatLengthAxis[row]/ 4 ;
-                endTimeTempRow[col] = Math.Max(EndTimeIndexAxis[i], endTimeTempRow[col]);
-                if (i >= targetKeys && i<= newMatrixSpan.Length )
+                double space = beatLengthAxis[row - 1] / 4 ;
+                //处理面尾（注意是索引轴）
+                if (preOldIndex >= 0)
                 {
-                    //处理面尾
-                    if(timeAxis[row] < endTimeTempRow[col] +  space - 10)
-                    {
-                        markSpan[i] = true;                        
-                    }
-                    //处理子弹
-                    if (orgColIndexAxis[i] != orgColIndexAxis[i - targetKeys])
-                    {
-                        convertTimePointRow[col] = timeAxis[row];
-                    }
-                    if (timeAxis[row] < convertTimePointRow[col] + space + 10)
-                    {
-                        markSpan[i] = true;
-                    }
+                    endTimeTempRow[col] = Math.Max(EndTimeIndexAxis[preOldIndex], endTimeTempRow[col]);
+                }
+                if(timeAxis[row] < endTimeTempRow[col] +  space - 10)
+                {
+                    markSpan[i] = true;                        
+                }
+                //处理子弹（注意是时间轴）
+                if (oldIndex >= 0 && orgColIndexAxis[oldIndex] != orgColIndexRow[col])
+                {
+                    orgColIndexRow[col] = orgColIndexAxis[oldIndex];
+                    convertTimePointRow[col] = timeAxis[row - 1];
+                }
+                if (timeAxis[row] < convertTimePointRow[col] + space + 10)
+                {
+                    markSpan[i] = true;
                 }
             }
-            
             return mark;
         }
 
