@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Core;
@@ -37,8 +34,7 @@ namespace krrTools.Utilities
                     return maniaBeatmap;
                 }
                 
-                Logger.WriteLine(LogLevel.Warning, "[BeatmapTransformationService] ApplyToBeatmap Fail. Is Tool {0}", converter);
-                return input;
+                throw new InvalidOperationException("Tool not found");
             }
             catch (Exception ex)
             {

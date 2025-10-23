@@ -1,10 +1,5 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Text;
 using System.Windows;
 using krrTools.Configuration;
 using krrTools.Core;
@@ -37,6 +32,12 @@ namespace krrTools.Utilities
             {
                 throw new InvalidOperationException("IModuleManager not found");
             }
+        }
+
+        // 构造函数重载，用于测试
+        public FileDispatcher(IModuleManager moduleManager)
+        {
+            _transformationService = new BeatmapTransformationService(moduleManager);
         }
 
         public ConverterEnum ActiveTabTag { get; set; }
@@ -125,7 +126,7 @@ namespace krrTools.Utilities
                 }
                 else
                 {
-                    var sb = new System.Text.StringBuilder();
+                    var sb = new StringBuilder();
                     sb.AppendLine($"成功转换 {created.Count} 个文件：");
                     int maxShow = 5;
                     for (int i = 0; i < Math.Min(created.Count, maxShow); i++)

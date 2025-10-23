@@ -1,9 +1,7 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.Bindable
 {
@@ -82,6 +80,9 @@ namespace krrTools.Bindable
 
             // 异步通知，避免阻塞
             _ = NotifyValueChangedAsync(_value);
+
+            // 调试测试绑定变化
+            Logger.WriteLine(LogLevel.Debug,$"[Bindable] Property '{propertyName}' changed to '{value}'");
             OnPropertyChanged(propertyName ?? nameof(Value));
         }
 

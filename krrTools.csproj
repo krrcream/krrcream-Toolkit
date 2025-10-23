@@ -8,6 +8,7 @@
         <ApplicationIcon>fq.ico</ApplicationIcon>
         <Nullable>enable</Nullable>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
         <NoWarn>CA1416</NoWarn>
     </PropertyGroup>
 

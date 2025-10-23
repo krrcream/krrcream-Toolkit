@@ -1,13 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Windows;
 using System.Reflection;
+using System.Windows;
 using krrTools.Bindable;
 using krrTools.Configuration;
 using krrTools.Core;
-using krrTools.Localization;
 using Microsoft.Extensions.Logging;
-using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 
 namespace krrTools.Tools.Preview;
@@ -73,6 +69,13 @@ public class PreviewViewModel : ReactiveViewModelBase
     /// </summary>
     private void OnSettingsChanged(SettingsChangedEvent settingsEvent)
     {
+        // // Debug日志：显示所有发生的设置变化，由于异步通知管线，这里不生效
+        // Logger.WriteLine(LogLevel.Debug, "[SettingsChanged] Tool: {0}, Property: {1}, Type: {2}, Value: {3}", 
+        //     _currentTool?.ToString() ?? "None", 
+        //     settingsEvent.PropertyName ?? "null", 
+        //     settingsEvent.SettingsType?.Name ?? "Unknown", 
+        //     settingsEvent.NewValue?.ToString() ?? "null");
+
         // 只处理当前工具的设置变化
         if (_currentTool == null || settingsEvent.SettingsType == null) return;
         ConverterEnum current = _currentTool.Value;
@@ -241,7 +244,7 @@ public class PreviewViewModel : ReactiveViewModelBase
                 ConvertedVisual = Processor.BuildConvertedVisual(beatmap);
 
             var duration = DateTime.Now - decodeStartTime;
-            Logger.WriteLine(LogLevel.Debug, "[PreviewViewModel] 转换后预览刷新完成，耗时: {0:F1}ms", duration.TotalMilliseconds);
+            Logger.WriteLine(LogLevel.Information, "[PreviewViewModel] 转换后预览刷新完成，耗时: {0:F1}ms", duration.TotalMilliseconds);
         }
         catch (Exception ex)
         {

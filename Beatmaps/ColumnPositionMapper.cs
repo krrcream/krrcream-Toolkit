@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace krrTools.Beatmaps
+﻿namespace krrTools.Beatmaps
 {
     public static class ColumnPositionMapper
     {
@@ -49,23 +46,18 @@ namespace krrTools.Beatmaps
 
         public static int ColumnToPositionX(int keyCount, int column)
         {
-            if (!KeyValueMap.TryGetValue(keyCount, out var row))
+            if (KeyValueMap.TryGetValue(keyCount, out var row) && column >= 0 && column < row.Length)
             {
-                Console.WriteLine($"[ERROR] Unsupported key count: {keyCount}");
-                throw new ArgumentOutOfRangeException(nameof(keyCount), $"Unsupported key count: {keyCount}");
+                return row[column];
             }
-            if (column < 0 || column >= row.Length)
-            {
-                Console.WriteLine($"[ERROR] Column index out of range for keyCount {keyCount}: {column}");
-                throw new ArgumentOutOfRangeException(nameof(column), $"Column index out of range for keyCount {keyCount}: {column}");
-            }
-            return row[column];
+            // 备选计算方式
+            return GetPositionX(keyCount, column + 1);
         }
-
-        public static int GetPositionX(int base_cs, int set_x)
+        
+        public static int GetPositionX(int column, int index)
         {
-            set_x = ((set_x - 1) * 512 / base_cs) + (256 / base_cs);
-            return set_x;
+            // 拟合公式，结果四舍五入，和编辑器结果基本一致
+            return ((index - 1) * 512 / column) + (256 / column);
         }
     }
 }

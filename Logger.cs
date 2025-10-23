@@ -1,4 +1,3 @@
-using System;
 using Microsoft.Extensions.Logging;
 
 namespace krrTools
@@ -32,13 +31,13 @@ namespace krrTools
             _logger?.Log(level, message, args);
 
             // 如果有外部logger，就不输出到控制台，避免双重输出
-            if (_logger != null || !_consoleOutputEnabled)
-                return;
+            // if (_logger != null || !_consoleOutputEnabled)
+            //     return;
 
             ConsoleColor color = level switch
             {
                 LogLevel.Debug => ConsoleColor.Gray,
-                LogLevel.Information => ConsoleColor.White,
+                LogLevel.Information => ConsoleColor.Green,
                 LogLevel.Warning => ConsoleColor.Yellow,
                 LogLevel.Error => ConsoleColor.Red,
                 LogLevel.Critical => ConsoleColor.Magenta,
@@ -47,8 +46,18 @@ namespace krrTools
 
             string formatted = args.Length > 0 ? string.Format(message, args) : message;
 
+            string levelString = level switch
+            {
+                LogLevel.Debug => "Debug",
+                LogLevel.Information => "Info",
+                LogLevel.Warning => "Warning",
+                LogLevel.Error => "Error",
+                LogLevel.Critical => "Critical",
+                _ => "unkn",
+            };
+
             Console.ForegroundColor = color;
-            Console.WriteLine($"[{level}] {formatted}");
+            Console.WriteLine($"{levelString}: {formatted}");
             Console.ResetColor();
         }
     }

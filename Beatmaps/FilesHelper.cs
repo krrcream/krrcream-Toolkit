@@ -1,14 +1,14 @@
-﻿using System;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Interop;
 using Application = System.Windows.Application;
+using IWin32Window = System.Windows.Forms.IWin32Window;
 
 namespace krrTools.Beatmaps
 {
     public static class FilesHelper
     {
-        private class Win32Window(IntPtr handle) : System.Windows.Forms.IWin32Window
+        private class Win32Window(IntPtr handle) : IWin32Window
         {
             public IntPtr Handle { get; } = handle;
         }
@@ -20,7 +20,6 @@ namespace krrTools.Beatmaps
         {
             using var dialog = new FolderBrowserDialog();
             dialog.Description = description;
-            dialog.RootFolder = Environment.SpecialFolder.MyComputer;
             dialog.ShowNewFolderButton = true;
 
             if (owner != null)

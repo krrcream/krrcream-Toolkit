@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
@@ -416,6 +414,17 @@ namespace krrTools.Configuration
             }
 
             var checkEnabled = checkPropertySelector != null;
+
+            // 对于可空类型的 Bindable，自动启用勾选框
+            if (!checkEnabled && propertyInfo.PropertyType.IsGenericType && 
+                propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
+            {
+                var genericArg = propertyInfo.PropertyType.GetGenericArguments()[0];
+                if (Nullable.GetUnderlyingType(genericArg) != null)
+                {
+                    checkEnabled = true;
+                }
+            }
 
             if (IsNumericType(propertyInfo.PropertyType))
             {

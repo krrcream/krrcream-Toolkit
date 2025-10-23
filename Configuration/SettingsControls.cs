@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -355,7 +353,8 @@ namespace krrTools.Configuration
                     }
                 }
                 
-                // Console.WriteLine($"[SettingsControls] Binding to path: {path}, Source: {Source}");
+                // Logger.WriteLine(LogLevel.Debug,$"[SettingsControls] Binding to path: {path}, Source: {Source}");
+                
                 var binding = new Binding
                 {
                     Path = new PropertyPath(path),
@@ -366,6 +365,7 @@ namespace krrTools.Configuration
                 InnerSlider.SetBinding(RangeBase.ValueProperty, binding);
                 InnerSlider.ValueChanged += (_, ev) =>
                 {
+                    if (CheckEnabled && CheckBox?.IsChecked == false) return; // 如果有勾选框且未勾选，不更新源
                     _pendingValue = ev.NewValue;
                     _debounceTimer?.Stop();
                     _debounceTimer?.Start();

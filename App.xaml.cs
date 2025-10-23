@@ -1,7 +1,7 @@
-using System;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
+using krrTools.Beatmaps;
 using krrTools.Bindable;
 using krrTools.Configuration;
 using krrTools.Core;
@@ -36,8 +36,8 @@ namespace krrTools
                 // 注册日志服务
                 services.AddLogging(builder =>
                 {
-                    builder.AddConsole();
-                    builder.SetMinimumLevel(LogLevel.Information);
+                    // builder.AddConsole(); // 移除控制台日志，避免重复输出和category前缀
+                    builder.SetMinimumLevel(LogLevel.Trace); // 与appsettings.json保持一致
                 });
 
                 // 注册事件总线
@@ -45,6 +45,9 @@ namespace krrTools
 
                 // 注册状态栏管理器
                 services.AddSingleton<StateBarManager>();
+
+                // 注册谱面分析服务
+                services.AddSingleton<BeatmapAnalysisService>();
 
                 // 注册选项服务 - 已迁移到 ReactiveOptions
                 services.AddSingleton(sp => new ReactiveOptions<N2NCOptions>(ConverterEnum.N2NC, sp.GetRequiredService<IEventBus>()));

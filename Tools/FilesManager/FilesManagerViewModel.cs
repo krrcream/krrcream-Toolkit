@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Diagnostics;
 using System.Windows.Data;
 using CommunityToolkit.Mvvm.Input;
 using krrTools.Beatmaps;
@@ -73,6 +70,7 @@ namespace krrTools.Tools.FilesManager
 
         public async Task ProcessFilesAsync(string[] files)
         {
+            var stopwatch = Stopwatch.StartNew();
             StateBarManager.ProgressValue.Value = 0;
 
             try
@@ -137,6 +135,8 @@ namespace krrTools.Tools.FilesManager
                         "[FilesManagerViewModel] FilteredOsuFiles refreshed in ProcessFilesAsync, count: {0}",
                         FilteredOsuFiles.Value.Cast<object>().Count());
                 });
+                stopwatch.Stop();
+                Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] 文件管理器处理完成，用时: {0:F2}s", stopwatch.Elapsed.TotalSeconds);
             }
         }
 

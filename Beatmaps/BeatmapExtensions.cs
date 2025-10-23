@@ -1,12 +1,9 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using OsuParsers.Beatmaps;
 using OsuParsers.Beatmaps.Objects;
+using OsuParsers.Beatmaps.Objects.Mania;
 
 namespace krrTools.Beatmaps
 {
@@ -46,7 +43,7 @@ namespace krrTools.Beatmaps
             var bpmMax = beatmap.MaxBPM;
             var bpmMin = beatmap.MinBPM;
             
-            string BPMFormat = string.Format(CultureInfo.InvariantCulture, "{0}({1} - {2})", bpm, bpmMin, bpmMax);
+            string BPMFormat = string.Format(CultureInfo.InvariantCulture, "{0:F0}({1:F0} - {2:F0})", bpm, bpmMin, bpmMax);
                 
             return BPMFormat;
         }
@@ -99,7 +96,6 @@ namespace krrTools.Beatmaps
 
         private static int columnToPositionX(int CS, int column)
         {
-            // int set_x = ((column - 1) * 512 / CS) + (256 / CS); // 不要删
             var x = (int)Math.Floor((column + 0.5) * (512.0 / CS));
             return x;
         }
@@ -193,7 +189,7 @@ namespace krrTools.Beatmaps
 
             if (isHoldNote)
                 // 创建ManiaHoldNote对象
-                return new OsuParsers.Beatmaps.Objects.Mania.ManiaHoldNote(
+                return new ManiaHoldNote(
                     newPosition,
                     startTime,
                     endTime,
@@ -204,7 +200,7 @@ namespace krrTools.Beatmaps
                 );
             else
                 // 创建普通HitObject对象
-                return new OsuParsers.Beatmaps.Objects.Mania.ManiaNote(
+                return new ManiaNote(
                     newPosition,
                     startTime,
                     endTime,

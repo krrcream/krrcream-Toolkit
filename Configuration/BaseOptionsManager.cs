@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading;
 using krrTools.Bindable;
 using Microsoft.Extensions.Logging;
 
@@ -93,6 +89,7 @@ namespace krrTools.Configuration
                     var json = File.ReadAllText(path);
                     var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                     opts.Converters.Add(new BindableJsonConverter<string>());
+                    opts.Converters.Add(new BindableJsonConverter<Dictionary<string, List<int>>>());
                     _cachedConfig = JsonSerializer.Deserialize<AppConfig>(json, opts) ?? new AppConfig();
 
                     return _cachedConfig;
@@ -123,6 +120,7 @@ namespace krrTools.Configuration
                     var opts = new JsonSerializerOptions
                         { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
                     opts.Converters.Add(new BindableJsonConverter<string>());
+                    opts.Converters.Add(new BindableJsonConverter<Dictionary<string, List<int>>>());
                     var json = JsonSerializer.Serialize(_cachedConfig, opts);
                     File.WriteAllText(path, json);
                 }

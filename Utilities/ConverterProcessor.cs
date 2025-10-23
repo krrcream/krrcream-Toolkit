@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using krrTools.Beatmaps;
@@ -9,6 +6,7 @@ using krrTools.Core;
 using krrTools.Tools.Preview;
 using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
+using OsuParsers.Beatmaps.Objects;
 
 namespace krrTools.Utilities
 {
@@ -22,17 +20,17 @@ namespace krrTools.Utilities
 
         public Func<IToolOptions>? OptionsProvider { get; init; } // 选项提供器，从主程序传入模块设置
 
-        private readonly BeatmapTransformationService _transformationService;
+        private readonly BeatmapTransformationService? _transformationService;
 
         // 注意：转换预览必须实时生成，不可缓存。因为预览需要反映最新的选项变化和谱面状态。
         // 每次调用BuildConvertedVisual时，都应重新执行转换以确保准确性。
         // 不可添加任何形式的缓存机制，禁止深克隆！
 
-        public ConverterProcessor(IModuleManager moduleManager, Func<IToolOptions>? optionsProvider = null)
+        public ConverterProcessor(IModuleManager? moduleManager, Func<IToolOptions>? optionsProvider = null)
         {
             ModuleScheduler = moduleManager;
             OptionsProvider = optionsProvider;
-            _transformationService = new BeatmapTransformationService(moduleManager);
+            _transformationService = moduleManager != null ? new BeatmapTransformationService(moduleManager) : null;
         }
 
         /// <summary>
@@ -54,16 +52,30 @@ namespace krrTools.Utilities
         public FrameworkElement BuildConvertedVisual(Beatmap input)
         {
             if (ModuleTool == null)
-                return new TextBlock { Text = "ModuleTool is null" };
+                return new TextBlock { Text = "ModuleTool == null" };
+
+            if (ModuleScheduler == null)
+                return new TextBlock { Text = "ModuleScheduler == null" };
 
             try
             {
                 // 使用转换服务应用转换
+                if (_transformationService == null)
+                    throw new InvalidOperationException("ModuleScheduler == null");
+                    
                 var transformedBeatmap = _transformationService.TransformBeatmap(input, ModuleTool.Value);
                 if (transformedBeatmap.HitObjects.Count == 0)
                     return new TextBlock { Text = "Notes is 0" };
 
                 return BuildManiaTimeRowsFromNotes(transformedBeatmap);
+            }
+            catch (InvalidOperationException ex) when (ex.Message == "Tool not found")
+            {
+                return new TextBlock { Text = "Tool not found" };
+            }
+            catch (InvalidOperationException ex) when (ex.Message == "ModuleScheduler == null")
+            {
+                return new TextBlock { Text = "ModuleScheduler == null" };
             }
             catch (Exception ex)
             {
@@ -144,8 +156,8 @@ namespace krrTools.Utilities
                 cloned.DifficultySection.SliderTickRate = input.DifficultySection.SliderTickRate;
             }
             
-            cloned.TimingPoints = new List<OsuParsers.Beatmaps.Objects.TimingPoint>(input.TimingPoints);
-            cloned.HitObjects = new List<OsuParsers.Beatmaps.Objects.HitObject>(input.HitObjects);
+            cloned.TimingPoints = new List<TimingPoint>(input.TimingPoints);
+            cloned.HitObjects = new List<HitObject>(input.HitObjects);
             
             return cloned;
         }
