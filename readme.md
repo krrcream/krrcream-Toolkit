@@ -1,5 +1,4 @@
-﻿Readme Outdated. Waiting for the new version to be tested before updating.
-# 🎵 krrcream's Toolkit
+﻿# 🎵 krrcream's Toolkit
 
 <p align="center">
   <b>A collection of tools for osumania beatmap</b>
@@ -39,16 +38,15 @@ Automatically rates beatmaps based on KRR LV.
 
 ## 📸 Screenshots
 
-### krr AnyKeys Converter / YLS LN Transformer / DP Tool
-![img_LI.png](img/LI.png)
-![img_1.png](img/1.png)
-![img_S.png](img/S.png)
+### krr AnyKeys Converter / LN Transformer / DP Tool
+![img.png](img/1.jpg)
+![img_1.png](img/2.jpg)
+![img_S.png](img/3.jpg)
 ### .osu File Manager
-![img_2.png](img/I2.png)
+![img_2.png](img/4.jpg)
 
 ### krr LV Auto Rating
-![img_3.png](img/I3.png)
-
+![img_3.png](img/5.jpg)
 ---
 
 ## 📞 Contact
