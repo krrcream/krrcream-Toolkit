@@ -10,7 +10,7 @@ namespace krrTools.Tools.DPtool
     public class DPToolOptions : ToolOptionsBase
     {
         [Option(LabelKey = nameof(DPKeysSliderLabel), Min = 1, Max = 10, UIType = UIType.Slider, IsRefresher = true)]
-        public Bindable<double?> ModifyKeys { get; } = new(5);        
+        public Bindable<double?> ModifyKeys { get; } = new();        
         
         #region 左手区
 

@@ -85,13 +85,13 @@ namespace krrTools.Tools.DPtool
                 MirrorMtx(RMTX);
             }
 
-            int targetFlag = 1;
-           
+            
+            
             int LMAX = (int) options.LMaxKeys.Value;
             int LMIN = (int) options.LMinKeys.Value;
             int RMAX = (int) options.RMaxKeys.Value;
             int RMin = (int) options.RMinKeys.Value;
-            Console.WriteLine($"[Target Keys]={options.ModifyKeys.Value};[LMaxKeys]={LMAX}; [MinKeys]={LMIN}; [RMaxKeys]={RMAX}; [RMinKeys]={RMin}");
+            Console.WriteLine($"[Target Keys has value={options.ModifyKeys.Value.HasValue}]={options.ModifyKeys.Value};[LMaxKeys]={LMAX}; [MinKeys]={LMIN}; [RMaxKeys]={RMAX}; [RMinKeys]={RMin}");
             
             // 3 reduce
             
