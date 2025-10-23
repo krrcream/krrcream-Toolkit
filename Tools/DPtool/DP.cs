@@ -86,17 +86,12 @@ namespace krrTools.Tools.DPtool
             }
 
             int targetFlag = 1;
-            // 2 如果是普通DP则直接return
-            if (options.SingleSideKeyCount.Value.HasValue)
-            { 
-                targetFlag = (int)options.SingleSideKeyCount.Value;
-                targetKeys = (int) options.SingleSideKeyCount.Value.Value;
-            }
+           
             int LMAX = (int) options.LMaxKeys.Value;
             int LMIN = (int) options.LMinKeys.Value;
             int RMAX = (int) options.RMaxKeys.Value;
             int RMin = (int) options.RMinKeys.Value;
-            Console.WriteLine($"[Target Keys]={targetFlag} : {targetKeys}];[LMaxKeys]={LMAX}; [MinKeys]={LMIN}; [RMaxKeys]={RMAX}; [RMinKeys]={RMin}");
+            Console.WriteLine($"[Target Keys]={options.ModifyKeys.Value};[LMaxKeys]={LMAX}; [MinKeys]={LMIN}; [RMaxKeys]={RMAX}; [RMinKeys]={RMin}");
             
             // 3 reduce
             
@@ -133,7 +128,7 @@ namespace krrTools.Tools.DPtool
             beatmap.HitObjects.Clear();
             beatmap.HitObjects.AddRange(newObjects);
             beatmap.SortHitObjects();
-            // 统一修改metadeta的形参，在这里修改CS
+            /*// 统一修改metadeta的形参，在这里修改CS
             if (options.SingleSideKeyCount.Value.HasValue)
             {
                 beatmap.DifficultySection.CircleSize = (int)options.SingleSideKeyCount.Value.Value * 2;
@@ -141,7 +136,7 @@ namespace krrTools.Tools.DPtool
             else
             {
                 beatmap.DifficultySection.CircleSize = (float)(originalCircleSize * 2);
-            }
+            }*/
         }
         
         //矩阵镜像

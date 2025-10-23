@@ -104,9 +104,7 @@ namespace krrTools.Localization
         public const string DPLeftMinKeysTemplate = "Min Keys: {0}|最小键数: {0}";
         public const string DPRightMaxKeysTemplate = "Max Keys: {0}|最大键数: {0}";
         public const string DPRightMinKeysTemplate = "Min Keys: {0}|最小键数: {0}";
-        public const string DPModifyKeysCheckbox = "Enable Modify keys|启用修改键数";
-        public const string DPModifyKeysTooltip = "Enable modification of single-side key count|启用键位修改";
-        public const string DPKeysTooltip = "Keys explanation|键数说明";
+        public const string DPKeysSliderLabel = "Keys: {0}|键数: {0}";
         public const string DPLeftLabel = "Left|左手";
         public const string DPRightLabel = "Right|右手";
         public const string DPMirrorLabel = "Mirror|镜像";

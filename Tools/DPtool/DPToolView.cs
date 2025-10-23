@@ -25,20 +25,19 @@ namespace krrTools.Tools.DPtool
 
         private void BuildUI()
         {
+            // OD设置 - 带勾选的滑条
+            var changeKeyPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ModifyKeys);
+            
             // 创建模板化控件，但保持自定义布局
-            // var modifyKeysCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.ModifySingleSideKeyCount);
-            var keysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.SingleSideKeyCount);
-
+       
             var lMirrorCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.LMirror);
             var lDensityCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.LDensity);
-            var lRemoveCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.LRemove);
             var lMaxKeysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LMaxKeys);
             var lMinKeysSlider = SettingsBinder.CreateTemplatedSliderWithDynamicMax(_viewModel.Options, o => o.LMinKeys, 
                 _viewModel, nameof(_viewModel.LMinKeysMaximum));
 
             var rMirrorCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.RMirror);
             var rDensityCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.RDensity);
-            var rRemoveCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.RRemove);
             var rMaxKeysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.RMaxKeys);
             var rMinKeysSlider = SettingsBinder.CreateTemplatedSliderWithDynamicMax(_viewModel.Options, o => o.RMinKeys, 
                 _viewModel, nameof(_viewModel.RMinKeysMaximum));
@@ -55,7 +54,6 @@ namespace krrTools.Tools.DPtool
                 new Binding("Value") { Source = Strings.DPLeftLabel.GetLocalizedString() });
             lMirrorCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
             lDensityCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
-            lRemoveCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
 
             var leftChecks = new StackPanel
             {
@@ -64,7 +62,7 @@ namespace krrTools.Tools.DPtool
             };
             leftChecks.Children.Add(lMirrorCheckBox);
             leftChecks.Children.Add(lDensityCheckBox);
-            leftChecks.Children.Add(lRemoveCheckBox);
+    
 
             var leftPanel = new StackPanel
                 { Margin = new Thickness(0, 0, 10, 0), HorizontalAlignment = HorizontalAlignment.Stretch };
@@ -79,7 +77,6 @@ namespace krrTools.Tools.DPtool
                 new Binding("Value") { Source = Strings.DPRightLabel.GetLocalizedString() });
             rMirrorCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
             rDensityCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
-            rRemoveCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
 
             var rightChecks = new StackPanel
             {
@@ -88,7 +85,6 @@ namespace krrTools.Tools.DPtool
             };
             rightChecks.Children.Add(rMirrorCheckBox);
             rightChecks.Children.Add(rDensityCheckBox);
-            rightChecks.Children.Add(rRemoveCheckBox);
 
             var rightPanel = new StackPanel
                 { Margin = new Thickness(10, 0, 0, 0), HorizontalAlignment = HorizontalAlignment.Stretch };
@@ -120,7 +116,6 @@ namespace krrTools.Tools.DPtool
                 {
                     if (opt == null) return;
                     var target = _viewModel.Options;
-                    target.SingleSideKeyCount.Value = opt.SingleSideKeyCount.Value;
 
                     target.LMirror.Value = opt.LMirror.Value;
                     target.LDensity.Value = opt.LDensity.Value;
@@ -144,8 +139,8 @@ namespace krrTools.Tools.DPtool
                 Margin = new Thickness(15), HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch
             };
-            stackPanel.Children.Add(keysSlider);
-            // stackPanel.Children.Add(keysPanel);
+         
+            stackPanel.Children.Add(changeKeyPanel);
             stackPanel.Children.Add(grid);
             stackPanel.Children.Add(presetsPanel);
 
