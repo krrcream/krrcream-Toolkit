@@ -59,6 +59,7 @@ namespace krrTools.Tools.DPtool
             var originalCircleSize = beatmap.DifficultySection.CircleSize;
             var (matrix, timeAxis) = beatmap.getMTXandTimeAxis();
             var processedMatrix = ProcessMatrix(matrix, timeAxis, beatmap, options);
+            var Conv = new N2NC.N2NC();
             ApplyChangesToHitObjects(beatmap, processedMatrix, options, originalCircleSize);
             MetadetaChange(beatmap, options);
         }
@@ -84,19 +85,46 @@ namespace krrTools.Tools.DPtool
             {
                 MirrorMtx(RMTX);
             }
+            // 3 设置默认参数
+            bool ifUseN2NC = false;
+            int LMAX = CS;
+            int LMIN = CS;
+            int RMAX = CS;
+            int RMIN = CS;
+            // 2 修改CS
+            if (options.ModifyKeys.Value.HasValue)
+            {
+                targetKeys = (int)options.ModifyKeys.Value;
+                ifUseN2NC = true;
+            }
 
-            
-            
-            int LMAX = (int) options.LMaxKeys.Value;
-            int LMIN = (int) options.LMinKeys.Value;
-            int RMAX = (int) options.RMaxKeys.Value;
-            int RMin = (int) options.RMinKeys.Value;
-            Console.WriteLine($"[Target Keys has value={options.ModifyKeys.Value.HasValue}]={options.ModifyKeys.Value};[LMaxKeys]={LMAX}; [MinKeys]={LMIN}; [RMaxKeys]={RMAX}; [RMinKeys]={RMin}");
-            
-            // 3 reduce
-            
-            
-            
+            // 3-1 是否修改
+            if (options.LDensity.Value)
+            {
+                LMAX = (int) options.LMaxKeys.Value;
+                LMIN = (int) options.LMinKeys.Value;
+                ifUseN2NC = true;
+            }
+            if (options.RDensity.Value)
+            {
+                RMAX = (int) options.RMaxKeys.Value;
+                RMIN = (int) options.RMinKeys.Value;
+                ifUseN2NC = true;
+            }
+            // 4 创建矩阵
+            if (ifUseN2NC)
+            {
+                var Conv = new N2NC.N2NC();
+                var RG = new Random(RANDOM_SEED);
+                // 4-1在这里初始化所需内容
+                var notes = beatmap.HitObjects.AsManiaNotes();
+                var timeAxisSpan = CollectionsMarshal.AsSpan(timeAxis);
+                Span<double> beatLengthAxis = Conv.GenerateBeatLengthAxis(timeAxisSpan, notes);
+                Span<int> endTimeIndexAxis = Conv.GenerateEndTimeIndex(notes); 
+                var orgColIndex= Conv.GenerateOrgColIndex(matrix);
+                LMTX = Conv.DoKeys(LMTX, endTimeIndexAxis, timeAxisSpan,  beatLengthAxis, orgColIndex, CS, targetKeys, LMAX, LMIN, convertTime,RG);
+                RMTX = Conv.DoKeys(RMTX, endTimeIndexAxis, timeAxisSpan, beatLengthAxis, orgColIndex, CS, targetKeys, RMAX, RMIN, convertTime, RG);
+            }
             return ConcatenateHorizontal(LMTX, RMTX);
         }
 
@@ -128,15 +156,15 @@ namespace krrTools.Tools.DPtool
             beatmap.HitObjects.Clear();
             beatmap.HitObjects.AddRange(newObjects);
             beatmap.SortHitObjects();
-            /*// 统一修改metadeta的形参，在这里修改CS
-            if (options.SingleSideKeyCount.Value.HasValue)
+            // 统一修改metadeta的形参，在这里修改CS
+            if (options.ModifyKeys.Value.HasValue)
             {
-                beatmap.DifficultySection.CircleSize = (int)options.SingleSideKeyCount.Value.Value * 2;
+                beatmap.DifficultySection.CircleSize = (int)options.ModifyKeys.Value.Value * 2;
             }
             else
             {
                 beatmap.DifficultySection.CircleSize = (float)(originalCircleSize * 2);
-            }*/
+            }
         }
         
         //矩阵镜像
