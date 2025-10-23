@@ -5,7 +5,7 @@ namespace krrTools.Localization
     /// </summary>
     public static class Strings
     {
-        public const string WindowTitle = "krrcream's Toolkit V3.0.1";
+        public const string WindowTitle = "krrcream's Toolkit V3.0.2";
 
         // Metadeta
         public const string ConverterTag = "Converter";
@@ -15,7 +15,6 @@ namespace krrTools.Localization
         
         // Tab headers
         public const string TabN2NC = "NtoN Converter|NtoN转换器";
-        // public const string TabYLsLN = "YLS LN Transformer|凉雨转面器";
         public const string TabKRRsLN = "KRR LN Transformer|KRR转面器";
         public const string TabDPTool = "DP Tool|DP 工具";
         public const string TabKrrLV = "KRR LV Analysis|KRR LV分析器";
@@ -57,7 +56,7 @@ namespace krrTools.Localization
         // N2NC
         public const string N2NCMaxKeysTemplate = "Max Keys: {0}|上限权重: {0}";
         public const string N2NCMinKeysTemplate = "Min Keys: {0}|下限权重: {0}";
-        public const string N2NCTransformSpeedTemplate = "Transform Speed: {0}|转换速度: {0}";
+        public const string N2NCTransformSpeedTemplate = "Transform Speed: {0} Bar|转换速度: {0}小节";
 
         // LN Transformer
         public const string LevelTooltip = "Density Level (hover to see detailed description)\n-3: Very Low 0: Low 3: Medium 6: High 10: Very High|密度等级（鼠标悬停查看详细说明）\n-3: 极低 0: 低 3: 中等 6: 高 10: 极高";
@@ -75,10 +74,10 @@ namespace krrTools.Localization
         public const string InstructionsLink = "Instructions|使用说明";
 
         // KRR LN Transformer texts
-        public const string LengthThresholdLabel = "Length Threshold {0}|长度阈值 {0}";
+        public const string LengthThresholdLabel = "Length Threshold {0} Beat|长度阈值 {0}节拍";
         public const string KRRShortLNHeader = "Short LN|短面";
         public const string KRRShortPercentageLabel = "Short LN {0}%|短面占比 {0}%";
-        public const string KRRShortLevelLabel = "Short Length {0}|短面长度 {0}";
+        public const string KRRShortLevelLabel = "Short Length {0} Beat|短面长度 {0}节拍";
         public const string KRRShortLimitLabel = "Short Limit {0}|短面限制 {0}";
         public const string KRRShortRandomLabel = "Short Random {0}|短面随机 {0}";
         public const string KRRLongLNHeader = "Long LN|长面条";
@@ -86,7 +85,7 @@ namespace krrTools.Localization
         public const string KRRLongLevelLabel = "Long Length {0}%|长面长度 {0}%";
         public const string KRRLongLimitLabel = "Long Limit {0}|长面限制 {0}";
         public const string KRRLongRandomLabel = "Long Random {0}|长面随机 {0}";
-        public const string KRRAlignLabel = "Align {0}|对齐 {0}";
+        public const string KRRAlignLabel = "Align {0} Beat|对齐 {0}节拍";
          public const string ProcessOriginalLabel = "Process Original|处理原始谱面";
         // public const string KRRLNAlignLabel = "Long&Short Align {0}|LN长短对齐 {0}";
 
@@ -100,10 +99,10 @@ namespace krrTools.Localization
 
 
         // DP Tool专用
-        public const string DPLeftMaxKeysTemplate = "Max Keys: {0}|最大键数: {0}";
-        public const string DPLeftMinKeysTemplate = "Min Keys: {0}|最小键数: {0}";
-        public const string DPRightMaxKeysTemplate = "Max Keys: {0}|最大键数: {0}";
-        public const string DPRightMinKeysTemplate = "Min Keys: {0}|最小键数: {0}";
+        public const string DPLeftMaxKeysTemplate = "Max Keys: {0}|上限权重: {0}";
+        public const string DPLeftMinKeysTemplate = "Min Keys: {0}|下限权重: {0}";
+        public const string DPRightMaxKeysTemplate = "Max Keys: {0}|上限权重: {0}";
+        public const string DPRightMinKeysTemplate = "Min Keys: {0}|下限权重: {0}";
         public const string DPKeysSliderLabel = "Keys: {0}|键数: {0}";
         public const string DPLeftLabel = "Left|左手";
         public const string DPRightLabel = "Right|右手";

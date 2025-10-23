@@ -20,7 +20,7 @@ namespace krrTools.Tools.N2NC
                     opts.TargetKeys.Value = 8;
                     opts.MaxKeys.Value = 8;
                     opts.MinKeys.Value = 2;
-                    opts.TransformSpeed.Value = 4;
+                    opts.TransformSpeed.Value = 2;
                     opts.Seed = 114514;
                     opts.SelectedKeyFlags = KeySelectionFlags.None;
                 })),
@@ -28,15 +28,23 @@ namespace krrTools.Tools.N2NC
                     opts.TargetKeys.Value = 10;
                     opts.MaxKeys.Value = 8;
                     opts.MinKeys.Value = 2;
-                    opts.TransformSpeed.Value = 3;
+                    opts.TransformSpeed.Value = 1;
                     opts.Seed = 0;
                     opts.SelectedKeyFlags = (KeySelectionFlags)0b0001111110;
+                })),
+                [PresetKind.NineK] = ("9K Preset", CreatePreset(opts => {
+                    opts.TargetKeys.Value = 9;
+                    opts.MaxKeys.Value = 8;
+                    opts.MinKeys.Value = 2;
+                    opts.TransformSpeed.Value = 2;
+                    opts.Seed = 0;
+                    opts.SelectedKeyFlags = (KeySelectionFlags)0b0000111110;
                 })),
                 [PresetKind.EightK] = ("8K Preset", CreatePreset(opts => {
                     opts.TargetKeys.Value = 8;
                     opts.MaxKeys.Value = 8;
                     opts.MinKeys.Value = 2;
-                    opts.TransformSpeed.Value = 4;
+                    opts.TransformSpeed.Value = 2;
                     opts.Seed = 0;
                     opts.SelectedKeyFlags = (KeySelectionFlags)0b0000011110;
                 })),
@@ -44,10 +52,35 @@ namespace krrTools.Tools.N2NC
                     opts.TargetKeys.Value = 7;
                     opts.MaxKeys.Value = 7;
                     opts.MinKeys.Value = 2;
-                    opts.TransformSpeed.Value = 4;
+                    opts.TransformSpeed.Value = 2;
                     opts.Seed = 0;
                     opts.SelectedKeyFlags = (KeySelectionFlags)0b0000001110;
-                }))
+                })),
+                [PresetKind.A8K7] = ("7K A8K", CreatePreset(opts => {
+                    opts.TargetKeys.Value = 8;
+                    opts.MaxKeys.Value = 7;
+                    opts.MinKeys.Value = 7;
+                    opts.TransformSpeed.Value = 2;
+                    opts.Seed = 0;
+                    opts.SelectedKeyFlags = (KeySelectionFlags)0b0000010000;
+                })),
+                [PresetKind.A9K7] = ("7K A9K", CreatePreset(opts => {
+                    opts.TargetKeys.Value = 9;
+                    opts.MaxKeys.Value = 7;
+                    opts.MinKeys.Value = 7;
+                    opts.TransformSpeed.Value = 2;
+                    opts.Seed = 0;
+                    opts.SelectedKeyFlags = (KeySelectionFlags)0b0000010000;
+                })),
+                [PresetKind.A10K7] = ("7K A10K", CreatePreset(opts => {
+                    opts.TargetKeys.Value = 10;
+                    opts.MaxKeys.Value = 7;
+                    opts.MinKeys.Value = 7;
+                    opts.TransformSpeed.Value = 2;
+                    opts.Seed = 0;
+                    opts.SelectedKeyFlags = (KeySelectionFlags)0b0000010000;
+                })),
+                
             };
 
         private static N2NCOptions CreatePreset(Action<N2NCOptions> modifier)
