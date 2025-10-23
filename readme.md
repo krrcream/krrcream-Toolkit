@@ -23,7 +23,7 @@ These tools allows creating new maps by either dragging batch files into the win
 ### 🎵 krr AnyKeys Converter
 Converts osu! beatmap files with any keys layout.
 
-### 📝 YLS LN Transformer
+### 📝 LN Transformer
 Customize the proportion and length of Long Notes.
 
 ### 🗝 DP Tool

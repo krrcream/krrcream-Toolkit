@@ -41,7 +41,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <EmbeddedResource Remove="tools\YLsLNTransformer\**" />
         <EmbeddedResource Remove="publish\**" />
         <EmbeddedResource Remove="tests\**" />
     </ItemGroup>
@@ -49,13 +48,11 @@
     <ItemGroup>
         <None Remove="img\**" />
         <Content Remove="img\**" />
-        <None Remove="tools\YLsLNTransformer\**" />
-        <None Remove="publish\**" />
+         <None Remove="publish\**" />
         <None Remove="tests\**" />
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Remove="tools\YLsLNTransformer\**" />
         <Compile Remove="publish\**" />
         <Compile Remove="tests\bin" />
         <Compile Remove="tests\obj" />
@@ -63,7 +60,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Page Remove="tools\YLsLNTransformer\**" />
         <Page Remove="publish\**" />
         <Page Remove="tests\**" />
     </ItemGroup>
