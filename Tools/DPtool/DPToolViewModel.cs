@@ -29,15 +29,6 @@ namespace krrTools.Tools.DPtool
             // 处理约束逻辑，与原SetupPropertyConstraints方法相同
             switch (e.PropertyName)
             {
-                case nameof(Options.SingleSideKeyCount):
-                    // 约束逻辑：确保SingleSideKeyCount在合理范围内
-                    if (Options.SingleSideKeyCount.Value.HasValue)
-                    {
-                        if (Options.SingleSideKeyCount.Value < 1) Options.SingleSideKeyCount.Value = 1;
-                        if (Options.SingleSideKeyCount.Value > 12) Options.SingleSideKeyCount.Value = 12;
-                    }
-                    break;
-
                 case nameof(Options.LMinKeys):
                     // 约束逻辑：LMinKeys不能大于LMaxKeys
                     if (Options.LMinKeys.Value > Options.LMaxKeys.Value)

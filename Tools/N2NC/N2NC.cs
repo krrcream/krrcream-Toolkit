@@ -384,7 +384,6 @@ namespace krrTools.Tools.N2NC
                 preOldIndex = newMatrixSpan[preRowI];
                 row = i / targetKeys;
                 col = i % targetKeys;
-                Console.WriteLine($"preRowI:{preRowI}，row:{row}，col:{col}");
                 //1/4节拍时间，计算的时候+10作为子弹处理时间，-10作为面尾处理时间
                 double space = beatLengthAxis[row - 1] / 4 ;
                 //处理面尾（注意是索引轴）

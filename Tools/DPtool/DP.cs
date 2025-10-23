@@ -69,49 +69,39 @@ namespace krrTools.Tools.DPtool
         private Matrix ProcessMatrix(Matrix matrix, List<int> timeAxis, Beatmap beatmap, DPToolOptions options)
         {
             int CS = matrix.Cols;
+            int targetKeys = CS;
             bool LmirroFlag = options.LMirror.Value;
             bool RmirroFlag = options.RMirror.Value;
-            int targetKeys = CS;
-            // 如果 SingleSideKeyCount 为 null，不进行转换
-            if (!options.SingleSideKeyCount.Value.HasValue)
-            {
-                Matrix LMTXorg = matrix.Clone();
-                Matrix RMTXorg = matrix.Clone();
-                
-                if (LmirroFlag)
-                    MirrorMtx(LMTXorg);
-                if (RmirroFlag)
-                    MirrorMtx(RMTXorg);
-                return ConcatenateHorizontal(LMTXorg, RMTXorg);
-            }
-            // 
-            targetKeys = (int)options.SingleSideKeyCount.Value.Value;
             Double convertTime = 60000 / beatmap.MainBPM * 2 + 10;
-            var Conv = new N2NC.N2NC();
-            // 使用传入的随机数生成器
-            Random RG = new Random(RANDOM_SEED);
-            var timeAxisSpan = CollectionsMarshal.AsSpan(timeAxis);
-            // 初始化所需轴
-            var notes = beatmap.HitObjects.AsManiaNotes();
-            // 时间轴
-            Span<double> beatLengthAxis = Conv.GenerateBeatLengthAxis(timeAxisSpan, notes);
-            // 索引轴
-            Span<int> endTimeIndexAxis = Conv.GenerateEndTimeIndex(notes); 
-            var orgColIndex= Conv.GenerateOrgColIndex(matrix);
-            
-            
-            var (LMaxKeys, LMinKeys, RMaxKeys, RMinKeys) = ((int)options.LMaxKeys.Value
-                    , (int)options.LMinKeys.Value
-                    , (int)options.RMaxKeys.Value
-                    , (int)options.RMinKeys.Value
-                );
-
-            Matrix LMTX = Conv.DoKeys(matrix, endTimeIndexAxis, timeAxisSpan,  beatLengthAxis, orgColIndex, CS, targetKeys, LMaxKeys, LMinKeys, convertTime,RG);    
-            Matrix RMTX = Conv.DoKeys(matrix, endTimeIndexAxis, timeAxisSpan,  beatLengthAxis, orgColIndex, CS, targetKeys, RMaxKeys, RMinKeys, convertTime,RG); 
+            // 1 mirror
+            Matrix LMTX = matrix.Clone();
+            Matrix RMTX = matrix.Clone();
             if (LmirroFlag)
+            {
                 MirrorMtx(LMTX);
-            if (RmirroFlag)
+            }
+            if(RmirroFlag)
+            {
                 MirrorMtx(RMTX);
+            }
+
+            int targetFlag = 1;
+            // 2 如果是普通DP则直接return
+            if (options.SingleSideKeyCount.Value.HasValue)
+            { 
+                targetFlag = (int)options.SingleSideKeyCount.Value;
+                targetKeys = (int) options.SingleSideKeyCount.Value.Value;
+            }
+            int LMAX = (int) options.LMaxKeys.Value;
+            int LMIN = (int) options.LMinKeys.Value;
+            int RMAX = (int) options.RMaxKeys.Value;
+            int RMin = (int) options.RMinKeys.Value;
+            Console.WriteLine($"[Target Keys]={targetFlag} : {targetKeys}];[LMaxKeys]={LMAX}; [MinKeys]={LMIN}; [RMaxKeys]={RMAX}; [RMinKeys]={RMin}");
+            
+            // 3 reduce
+            
+            
+            
             return ConcatenateHorizontal(LMTX, RMTX);
         }
 
