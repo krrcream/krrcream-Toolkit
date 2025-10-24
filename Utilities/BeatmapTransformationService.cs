@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using krrTools.Beatmaps;
 using krrTools.Configuration;
@@ -25,16 +27,17 @@ namespace krrTools.Utilities
         {
             try
             {
-                var maniaBeatmap = input;
+                Beatmap maniaBeatmap = input;
 
                 // 获取工具并应用转换
-                var tool = _moduleManager.GetToolByName(converter.ToString());
+                IToolModule? tool = _moduleManager.GetToolByName(converter.ToString());
+
                 if (tool is IApplyToBeatmap applier)
                 {
                     applier.ApplyToBeatmap(maniaBeatmap);
                     return maniaBeatmap;
                 }
-                
+
                 throw new InvalidOperationException("Tool not found");
             }
             catch (Exception ex)
@@ -49,25 +52,39 @@ namespace krrTools.Utilities
         /// </summary>
         /// <param name="inputPath">输入文件路径</param>
         /// <param name="converter">转换模块枚举</param>
-        /// <returns>输出文件路径，失败返回null</returns>
+        /// <returns>输出文件路径，失败或无需转换返回null</returns>
         public string? TransformAndSaveBeatmap(string inputPath, ConverterEnum converter)
         {
             try
             {
                 // 解码谱面
-                var beatmap = BeatmapDecoder.Decode(inputPath).GetManiaBeatmap();
-                if (beatmap == null)
+                Beatmap? beatmap = BeatmapDecoder.Decode(inputPath).GetManiaBeatmap();
+                if (beatmap == null) return null;
+
+                // 转换谱面
+                Beatmap transformedBeatmap = TransformBeatmap(beatmap, converter);
+
+                // 获取工具检查是否有变化
+                IToolModule? tool = _moduleManager.GetToolByName(converter.ToString());
+                bool hasChanges = true; // 默认假设有变化
+
+                if (tool != null)
                 {
+                    dynamic dynamicTool = tool;
+                    hasChanges = dynamicTool.HasChanges;
+                }
+
+                if (!hasChanges)
+                {
+                    // 没有实际转换，跳过保存
+                    Logger.WriteLine(LogLevel.Information, $"谱面无需转换，已跳过保存: {inputPath}");
                     return null;
                 }
 
-                // 转换谱面
-                var transformedBeatmap = TransformBeatmap(beatmap, converter);
-
                 // 保存转换后谱面，如果文件存在则删除旧的再保存
-                var outputPath = transformedBeatmap.GetOutputOsuFileName();
-                var outputDir = Path.GetDirectoryName(inputPath);
-                var fullOutputPath = Path.Combine(outputDir!, outputPath);
+                string outputPath = transformedBeatmap.GetOutputOsuFileName();
+                string? outputDir = Path.GetDirectoryName(inputPath);
+                string fullOutputPath = Path.Combine(outputDir!, outputPath);
 
                 // 检查输出路径是否已存在，记录冲突
                 if (File.Exists(fullOutputPath))
@@ -101,7 +118,7 @@ namespace krrTools.Utilities
                 return null;
             }
         }
-        
+
         // 如果需要克隆Beatmap方法，最好由库实现，而不是手动克隆
     }
 }

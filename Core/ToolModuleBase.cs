@@ -31,7 +31,7 @@ namespace krrTools.Core
         where TViewModel : ToolViewModelBase<TOptions>
         where TControl : ToolViewBase<TOptions>
     {
-        private TOptions _currentOptions = new();
+        private TOptions _currentOptions = new TOptions();
         private ReactiveOptions<TOptions>? _reactiveOptions;
 
         protected ToolModuleBase(ReactiveOptions<TOptions>? reactiveOptions = null)
@@ -52,7 +52,9 @@ namespace krrTools.Core
         /// </summary>
         private void LoadCurrentOptions()
         {
-            _currentOptions = BaseOptionsManager.LoadOptions<TOptions>((ConverterEnum)Enum.Parse(typeof(ConverterEnum), ModuleType.ToString())) ?? CreateDefaultOptionsInternal();
+            _currentOptions = BaseOptionsManager.LoadOptions<TOptions>(
+                                  (ConverterEnum)Enum.Parse(typeof(ConverterEnum), ModuleType.ToString())) ??
+                              CreateDefaultOptionsInternal();
         }
 
         /// <summary>
@@ -92,17 +94,12 @@ namespace krrTools.Core
             try
             {
                 // 优先使用注入的ReactiveOptions
-                if (_reactiveOptions != null)
-                {
-                    return _reactiveOptions.Options;
-                }
+                if (_reactiveOptions != null) return _reactiveOptions.Options;
 
                 // 回退到从DI容器获取
-                var services = App.Services;
+                IServiceProvider services = App.Services;
                 if (services.GetService(typeof(ReactiveOptions<TOptions>)) is ReactiveOptions<TOptions> reactOptions)
-                {
                     return reactOptions.Options;
-                }
 
                 Console.WriteLine($"[{ModuleType}Module] 无法获取ReactiveOptions，使用默认设置");
                 return _currentOptions;
@@ -116,17 +113,35 @@ namespace krrTools.Core
 
         /// <summary>
         /// 应用转换到谱面（内部实现，由子类提供具体逻辑）
+        /// 子类应在此方法中：
+        /// 1. 获取最新选项设置
+        /// 2. 判断是否需要转换
+        /// 3. 如果需要转换，则执行转换逻辑并返回true，否则返回false
         /// </summary>
         /// <param name="beatmap">谱面对象</param>
-        protected abstract void ApplyToBeatmapInternal(Beatmap beatmap);
+        /// <returns>true如果发生了实际转换，false如果没有变化</returns>
+        protected abstract bool ApplyToBeatmapInternal(Beatmap beatmap);
+
+        /// <summary>
+        /// 是否有实际的转换修改（用于避免不必要的文件保存）
+        /// </summary>
+        public bool HasChanges { get; protected set; }
+
+        /// <summary>
+        /// 重置修改状态
+        /// </summary>
+        public void ResetChangesState()
+        {
+            HasChanges = false;
+        }
 
         /// <summary>
         /// 实现 IApplyToBeatmap 接口
         /// </summary>
         public void ApplyToBeatmap(Beatmap beatmap)
         {
-            var b = beatmap; // as Beatmap ?? throw new ArgumentException("IBeatmap must be Beatmap"); // 类型检查已在调用处完成
-            ApplyToBeatmapInternal(b);
+            Beatmap b = beatmap; // as Beatmap ?? throw new ArgumentException("IBeatmap must be Beatmap"); // 类型检查已在调用处完成
+            HasChanges = ApplyToBeatmapInternal(b);
         }
     }
 }

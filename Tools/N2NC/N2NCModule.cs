@@ -1,6 +1,7 @@
 using krrTools.Core;
 using krrTools.Localization;
 using OsuParsers.Beatmaps;
+using System;
 
 namespace krrTools.Tools.N2NC
 {
@@ -17,13 +18,40 @@ namespace krrTools.Tools.N2NC
         /// 应用转换到谱面（内部实现）- 获取最新的运行时设置
         /// </summary>
         /// <param name="beatmap">谱面对象</param>
-        protected override void ApplyToBeatmapInternal(Beatmap beatmap)
+        /// <returns>true如果发生了实际转换，false如果没有变化</returns>
+        protected override bool ApplyToBeatmapInternal(Beatmap beatmap)
         {
             // 获取最新的选项设置 - 响应式系统实时更新
-            var options = GetLatestOptions();
-            
+            N2NCOptions options = GetLatestOptions();
+
+            // 判断是否需要转换
+            bool willTransform = WillTransformOccur(beatmap, options);
+
+            if (!willTransform) return false; // 不需要转换，直接返回
+
+            // 执行转换
             var transformer = new N2NC();
             transformer.TransformBeatmap(beatmap, options);
+            return true;
+        }
+
+        /// <summary>
+        /// 判断根据当前选项是否会发生实际转换
+        /// </summary>
+        private bool WillTransformOccur(Beatmap beatmap, N2NCOptions options)
+        {
+            // 检查KeySelectionFlags
+            KeySelectionFlags? keyFlags = options.SelectedKeyFlags;
+
+            if (keyFlags.HasValue && keyFlags.Value != KeySelectionFlags.None)
+            {
+                int AlignmentPreProcessCS = Math.Clamp((int)beatmap.DifficultySection.CircleSize - 3, 0, 8);
+                bool isSelected = ((int)keyFlags.Value & (1 << AlignmentPreProcessCS)) != 0;
+                if (!isSelected) return false;
+            }
+
+            // 如果目标键数与当前键数相同，不会转换
+            return Math.Abs(options.TargetKeys.Value - beatmap.DifficultySection.CircleSize) > 0.01;
         }
     }
 }
