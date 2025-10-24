@@ -1,8 +1,14 @@
-﻿# 🎵 krrcream's Toolkit
+﻿[中文版readme](readme_cn.md)
+
+# 🎵 krrcream's Toolkit
 
 <p align="center">
   <b>A collection of tools for osumania beatmap</b>
 </p>
+
+## How to Use
+
+ See the [Guide](guide.md) for detailed instructions.
 
 ## 📥 Download
 
@@ -16,7 +22,7 @@
 Supports drag-and-drop of files or folders for batch beatmap conversion.
 
 ### ⌨️ In-Game Hotkey
-Supports beatmap conversion by either dragging batch files into the window or pressing hotkeys directly in-game.
+Supports beatmap conversion by pressing hotkeys directly in-game.
 
 ### 🔄 One-Click Conversion
 Converts beatmaps with default settings or choose from various built-in presets if you're unsure about parameter adjustment.
@@ -36,7 +42,7 @@ Keys doubling tool with adjustable density.
 Helps you organize and delete unwanted .osu files from your songs.
 
 ### 📊 krr LV Auto Rating
-Automatically rates beatmaps based on KRR LV.
+Automatically rates beatmaps based on XXY SR.
 
 ---
 
