@@ -6,68 +6,61 @@ using krrTools.Configuration;
 using krrTools.Core;
 using krrTools.Localization;
 using krrTools.UI;
-using Button = Wpf.Ui.Controls.Button;
 
 namespace krrTools.Tools.KRRLNTransformer
 {
     public class KRRLNTransformerView : ToolViewBase<KRRLNTransformerOptions>
     {
         private readonly KRRLNTransformerViewModel _viewModel;
+        private FrameworkElement seedPanel => SettingsBinder.CreateSeedPanel(_viewModel, x => x.Options.Seed);
 
-        public KRRLNTransformerView()
-            : base(ConverterEnum.KRRLN)
+        public event EventHandler? SettingsChanged;
+
+        public KRRLNTransformerView() : base(ConverterEnum.KRRLN)
         {
             _viewModel = new KRRLNTransformerViewModel(Options);
             DataContext = _viewModel;
             BuildUI();
         }
 
-        private FrameworkElement seedPanel
-        {
-            get => SettingsBinder.CreateSeedPanel(_viewModel, x => x.Options.Seed);
-        }
-
-        public event EventHandler? SettingsChanged;
-
         private void BuildUI()
         {
             var root = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
-            var stack = new StackPanel
-                { Margin = new Thickness(15), HorizontalAlignment = HorizontalAlignment.Stretch };
+            var stack = new StackPanel { Margin = new Thickness(15), HorizontalAlignment = HorizontalAlignment.Stretch };
 
             // 长度阈值设置 - 可空滑条自动带勾选框
-            UIElement lengthThresholdPanel = SettingsBinder.CreateTemplatedSlider(
-                _viewModel.Options,
+            var lengthThresholdPanel = SettingsBinder.CreateTemplatedSlider(
+                _viewModel.Options, 
                 o => o.LengthThreshold);
             stack.Children.Add(lengthThresholdPanel);
-
+            
             // 短面条设置区域标题
             var shortHeader = new TextBlock
             {
-                FontSize = UIConstants.HeaderFontSize,
+                FontSize = UIConstants.HeaderFontSize, 
                 FontWeight = FontWeights.Bold,
                 Margin = new Thickness(0, 0, 0, 5)
             };
             shortHeader.SetBinding(TextBlock.TextProperty,
-                                   new Binding("Value") { Source = Strings.KRRShortLNHeader.GetLocalizedString() });
+                new Binding("Value") { Source = Strings.KRRShortLNHeader.GetLocalizedString() });
             stack.Children.Add(shortHeader);
 
             // 短面条设置 - 使用模板化控件
-            UIElement shortPercPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortPercentage);
+            var shortPercPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortPercentage);
             stack.Children.Add(shortPercPanel);
-
-            UIElement shortLevelPanel = SettingsBinder.CreateTemplatedSliderWithDynamicMax(_viewModel.Options,
-                                                                                           o => o.ShortLevel,
-                                                                                           _viewModel,
-                                                                                           nameof(_viewModel.ShortLevelMaximum),
-                                                                                           valueDisplayMap: Options.ShortLengthDict);
+            
+            var shortLevelPanel = SettingsBinder.CreateTemplatedSliderWithDynamicMax(_viewModel.Options, 
+                o => o.ShortLevel, 
+                _viewModel, 
+                nameof(_viewModel.ShortLevelMaximum),
+                valueDisplayMap: Options.ShortLengthDict );
 
             stack.Children.Add(shortLevelPanel);
 
-            UIElement shortLimitPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortLimit);
+            var shortLimitPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortLimit);
             stack.Children.Add(shortLimitPanel);
 
-            UIElement shortRandomPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortRandom);
+            var shortRandomPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ShortRandom);
             stack.Children.Add(shortRandomPanel);
 
             // 分隔线
@@ -77,33 +70,33 @@ namespace krrTools.Tools.KRRLNTransformer
             // 长面条设置区域标题
             var longHeader = new TextBlock
             {
-                FontSize = UIConstants.HeaderFontSize,
+                FontSize = UIConstants.HeaderFontSize, 
                 FontWeight = FontWeights.Bold,
                 Margin = new Thickness(0, 0, 0, 5)
             };
             longHeader.SetBinding(TextBlock.TextProperty,
-                                  new Binding("Value") { Source = Strings.KRRLongLNHeader.GetLocalizedString() });
+                new Binding("Value") { Source = Strings.KRRLongLNHeader.GetLocalizedString() });
             stack.Children.Add(longHeader);
 
             // 长面条设置 - 使用模板化控件
-            UIElement longPercPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LongPercentage);
+            var longPercPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LongPercentage);
             stack.Children.Add(longPercPanel);
 
-            UIElement longLevelPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LongLevel);
+            var longLevelPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LongLevel);
             stack.Children.Add(longLevelPanel);
 
-            UIElement longLimitPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LongLimit);
+            var longLimitPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LongLimit);
             stack.Children.Add(longLimitPanel);
 
-            UIElement longRandomPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LongRandom);
+            var longRandomPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LongRandom);
             stack.Children.Add(longRandomPanel);
 
             // 分隔线
             var separator2 = new Separator { Margin = new Thickness(0, 5, 0, 5) };
             stack.Children.Add(separator2);
-
+            
             // 对齐设置 - 可空滑条自动带勾选框
-            UIElement alignPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.Alignment);
+            var alignPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.Alignment);
             stack.Children.Add(alignPanel);
 
             // LN对齐设置 - 可空滑条自动带勾选框 暂时隐藏
@@ -111,24 +104,22 @@ namespace krrTools.Tools.KRRLNTransformer
             stack.Children.Add(lnAlignPanel);*/
 
             // 处理原始面条复选框
-            FrameworkElement processOriginalPanel =
-                SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.ProcessOriginalIsChecked);
+            var processOriginalPanel = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.ProcessOriginalIsChecked);
             stack.Children.Add(processOriginalPanel);
 
             // OD设置 - 带勾选的滑条
-            UIElement odPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ODValue);
+            var odPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ODValue);
             stack.Children.Add(odPanel);
 
             stack.Children.Add(seedPanel);
-
+            
             // 预设面板
-            FrameworkElement presetsBorder = PresetPanelFactory.CreatePresetPanel(
+            var presetsBorder = PresetPanelFactory.CreatePresetPanel(
                 "KRRLN",
                 () => _viewModel.GetPreviewOptions() as KRRLNTransformerOptions,
-                opt =>
+                (opt) =>
                 {
                     if (opt == null) return;
-
                     _viewModel.Options.CopyFrom(opt);
                 }
             );
@@ -136,24 +127,23 @@ namespace krrTools.Tools.KRRLNTransformer
             // 预设面板中插入内置预设按钮
             if (presetsBorder is StackPanel outerPanel)
             {
-                var builtinPresetsPanel = new WrapPanel
-                    { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
-
-                foreach ((PresetKind kind, string _, KRRLNTransformerOptions options) in KRRLNPresetBottom.GetPresetTemplates())
+                var builtinPresetsPanel = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
+                foreach (var (kind, _, options) in KRRLNPresetBottom.GetPresetTemplates())
                 {
-                    Button btn = SharedUIComponents.CreateStandardButton(KRRLNPresetBottom.GetEnumDescription(kind));
+                    var btn = SharedUIComponents.CreateStandardButton(KRRLNPresetBottom.GetEnumDescription(kind));
                     btn.Width = 100;
-                    btn.Click += (_, _) => { _viewModel.Options.CopyFrom(options); };
+                    btn.Click += (_, _) =>
+                    {
+                        _viewModel.Options.CopyFrom(options);
+                    };
                     builtinPresetsPanel.Children.Add(btn);
                 }
-
                 outerPanel.Children.Insert(0, builtinPresetsPanel);
             }
 
-            FrameworkElement presetsPanel =
-                SharedUIComponents.CreateLabeledRow(Strings.PresetsLabel, presetsBorder, new Thickness(0, 6, 0, 6));
+            var presetsPanel = SharedUIComponents.CreateLabeledRow(Strings.PresetsLabel, presetsBorder, new Thickness(0, 6, 0, 6));
             stack.Children.Add(presetsPanel);
-
+            
             root.Content = stack;
             Content = root;
 

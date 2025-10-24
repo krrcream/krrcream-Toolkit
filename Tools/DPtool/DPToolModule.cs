@@ -32,10 +32,7 @@ namespace krrTools.Tools.DPtool
             // 判断是否需要转换
             bool willTransform = WillTransformOccur(options);
 
-            if (!willTransform)
-            {
-                return false; // 不需要转换，直接返回
-            }
+            if (!willTransform) return false; // 不需要转换，直接返回
 
             // 执行转换
             var transformer = new DP();
@@ -49,7 +46,7 @@ namespace krrTools.Tools.DPtool
         private bool WillTransformOccur(DPToolOptions options)
         {
             // 如果没有指定单侧键数，不会进行转换
-            return options.SingleSideKeyCount.Value.HasValue;
+            return options.ModifyKeys.Value.HasValue;
         }
     }
 }

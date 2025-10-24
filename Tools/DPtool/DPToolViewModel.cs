@@ -12,8 +12,7 @@ namespace krrTools.Tools.DPtool
     /// </summary>
     public class DPToolViewModel : ToolViewModelBase<DPToolOptions>, IPreviewOptionsProvider
     {
-        public DPToolViewModel(DPToolOptions options)
-            : base(ConverterEnum.DP, true, options)
+        public DPToolViewModel(DPToolOptions options) : base(ConverterEnum.DP, true, options)
         {
             // 本地化事件处理器委托引用，用于Dispose时取消订阅
             PropertyChangedEventHandler optionsPropertyChangedHandler =
@@ -21,7 +20,7 @@ namespace krrTools.Tools.DPtool
                 OnOptionsPropertyChanged;
             Options.PropertyChanged += optionsPropertyChangedHandler;
         }
-
+        
         /// <summary>
         /// Options属性变化事件处理器 - 处理约束逻辑
         /// </summary>
@@ -30,49 +29,42 @@ namespace krrTools.Tools.DPtool
             // 处理约束逻辑，与原SetupPropertyConstraints方法相同
             switch (e.PropertyName)
             {
-                case nameof(Options.SingleSideKeyCount):
-                    // 约束逻辑：确保SingleSideKeyCount在合理范围内
-                    if (Options.SingleSideKeyCount.Value.HasValue)
-                    {
-                        if (Options.SingleSideKeyCount.Value < 1) Options.SingleSideKeyCount.Value = 1;
-                        if (Options.SingleSideKeyCount.Value > 12) Options.SingleSideKeyCount.Value = 12;
-                    }
-
-                break;
-
+                case nameof(Options.ModifyKeys):
+                    OnPropertyChanged(nameof(ModifyKeys));
+                    break;
                 case nameof(Options.LMinKeys):
                     // 约束逻辑：LMinKeys不能大于LMaxKeys
                     if (Options.LMinKeys.Value > Options.LMaxKeys.Value)
                         Options.LMinKeys.Value = Options.LMaxKeys.Value;
-                break;
+                    break;
 
                 case nameof(Options.LMaxKeys):
                     // 约束逻辑：LMaxKeys不能小于LMinKeys
                     if (Options.LMaxKeys.Value < Options.LMinKeys.Value)
                         Options.LMaxKeys.Value = Options.LMinKeys.Value;
-                break;
+                    break;
 
                 case nameof(Options.RMinKeys):
                     // 约束逻辑：RMinKeys不能大于RMaxKeys
                     if (Options.RMinKeys.Value > Options.RMaxKeys.Value)
                         Options.RMinKeys.Value = Options.RMaxKeys.Value;
-                break;
+                    break;
 
                 case nameof(Options.RMaxKeys):
                     // 约束逻辑：RMaxKeys不能小于RMinKeys
                     if (Options.RMaxKeys.Value < Options.RMinKeys.Value)
                         Options.RMaxKeys.Value = Options.RMinKeys.Value;
-                break;
+                    break;
             }
         }
 
         // 公开属性 - 响应式架构，与N2NC保持一致
-        public double? SingleSideKeyCount
+        public double? ModifyKeys
         {
-            get => Options.SingleSideKeyCount.Value;
-            set => Options.SingleSideKeyCount.Value = value;
+            get => Options.ModifyKeys.Value;
+            set => Options.ModifyKeys.Value = value;
         }
-
+        
         public bool LMirror
         {
             get => Options.LMirror.Value;
@@ -90,6 +82,8 @@ namespace krrTools.Tools.DPtool
             get => Options.LRemove.Value;
             set => Options.LRemove.Value = value;
         }
+
+
 
         public bool RMirror
         {
@@ -109,10 +103,11 @@ namespace krrTools.Tools.DPtool
             set => Options.RRemove.Value = value;
         }
 
+
+
         public IToolOptions GetPreviewOptions()
         {
             var previewOptions = new DPToolOptions();
-            previewOptions.SingleSideKeyCount.Value = Options.SingleSideKeyCount.Value;
             previewOptions.LMirror.Value = Options.LMirror.Value;
             previewOptions.LDensity.Value = Options.LDensity.Value;
             previewOptions.LRemove.Value = Options.LRemove.Value;
@@ -127,14 +122,8 @@ namespace krrTools.Tools.DPtool
         }
 
         // 计算属性 - 动态最大值约束
-        public double LMinKeysMaximum
-        {
-            get => Options.LMaxKeys.Value;
-        }
-        public double RMinKeysMaximum
-        {
-            get => Options.RMaxKeys.Value;
-        }
+        public double LMinKeysMaximum => Options.LMaxKeys.Value;
+        public double RMinKeysMaximum => Options.RMaxKeys.Value;
 
         /// <summary>
         /// 释放资源，取消所有事件订阅

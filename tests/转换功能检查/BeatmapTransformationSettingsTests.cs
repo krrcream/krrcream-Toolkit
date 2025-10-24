@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using krrTools.Tools.DPtool;
@@ -7,14 +8,35 @@ using krrTools.Tools.N2NC;
 using krrTools.Tools.Preview;
 using Moq;
 using Xunit;
+using krrTools.Bindable;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace krrTools.Tests.转换功能检查
 {
     /// <summary>
     /// 谱面转换模块测试 - 专注于设置响应、事件通知和随机一致性
     /// </summary>
-    public class BeatmapTransformationSettingsTests
+    public class BeatmapTransformationSettingsTests : IDisposable
     {
+        private readonly ServiceProvider _serviceProvider;
+
+        public BeatmapTransformationSettingsTests()
+        {
+            // 设置测试用的依赖注入服务提供者
+            var mockEventBus = new Mock<IEventBus>();
+            var services = new ServiceCollection();
+            services.AddSingleton(mockEventBus.Object);
+            _serviceProvider = services.BuildServiceProvider();
+            Injector.SetTestServiceProvider(_serviceProvider);
+        }
+
+        public void Dispose()
+        {
+            // 清理测试服务提供者
+            Injector.SetTestServiceProvider(null);
+            _serviceProvider.Dispose();
+        }
+
         [Fact]
         public void N2NCOptions_PropertyChanged_ShouldFireEvents()
         {
@@ -103,17 +125,17 @@ namespace krrTools.Tests.转换功能检查
             options.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
 
             // Act
-            options.SingleSideKeyCount.Value = 8;
+            options.ModifyKeys.Value = 8;
             options.LMirror.Value = true;
             options.LDensity.Value = true; // 从默认false改为true才会触发事件
 
             // Assert
-            Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(options.SingleSideKeyCount));
+            Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(options.ModifyKeys));
             Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(options.LMirror));
             Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(options.LDensity));
 
             // 验证值确实已更新
-            Assert.Equal(8, options.SingleSideKeyCount.Value);
+            Assert.Equal(8, options.ModifyKeys.Value);
             Assert.True(options.LMirror.Value);
             Assert.True(options.LDensity.Value);
         }
@@ -121,52 +143,48 @@ namespace krrTools.Tests.转换功能检查
         [Fact]
         public void N2NCViewModel_SettingsChange_ShouldTriggerPropertyChanged()
         {
-            STATestHelper.RunInSTA(() =>
+            // Arrange
+            var options = new N2NCOptions
             {
-                // Arrange
-                var options = new N2NCOptions();
-                options.TargetKeys.Value = 7;
-                options.TransformSpeed.Value = 2.0;
-                options.Seed = 12345;
-                var viewModel = new N2NCViewModel(options);
-                var propertyChangedEvents = new List<PropertyChangedEventArgs>();
+                TargetKeys = { Value = 7 },
+                TransformSpeed = { Value = 2.0 },
+                Seed = 12345
+            };
+            var viewModel = new N2NCViewModel(options);
+            var propertyChangedEvents = new List<PropertyChangedEventArgs>();
 
-                viewModel.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
-                //
-                // // Act
-                viewModel.TargetKeys = 10; // 修改设置
+            viewModel.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
+            //
+            // // Act
+            viewModel.TargetKeys = 10; // 修改设置
 
-                // Assert
-                Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(viewModel.TargetKeys));
-                Assert.Equal(10, viewModel.TargetKeys); // 设置应该已更新
-                Assert.Equal(10, options.TargetKeys.Value); // 底层选项应该被更新为新值
-            });
+            // Assert
+            Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(viewModel.TargetKeys));
+            Assert.Equal(10, viewModel.TargetKeys); // 设置应该已更新
+            Assert.Equal(10, options.TargetKeys.Value); // 底层选项应该被更新为新值
         }
 
         [Fact]
         public void N2NCViewModel_TransformSpeed_ShouldUpdateRelatedProperties()
         {
-            STATestHelper.RunInSTA(() =>
-            {
-                // Arrange
-                var options = new N2NCOptions();
-                options.TransformSpeed.Value = 2.0;
-                var viewModel = new N2NCViewModel(options);
-                var propertyChangedEvents = new List<PropertyChangedEventArgs>();
+            // Arrange
+            var options = new N2NCOptions();
+            options.TransformSpeed.Value = 2.0;
+            var viewModel = new N2NCViewModel(options);
+            var propertyChangedEvents = new List<PropertyChangedEventArgs>();
 
-                viewModel.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
-                //
-                // // Act
-                viewModel.TransformSpeed = 4.0;
+            viewModel.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
+            //
+            // // Act
+            viewModel.TransformSpeed = 4.0;
 
-                // Assert
-                Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(viewModel.TransformSpeed));
-                Assert.Contains(propertyChangedEvents, e => e.PropertyName == "TransformSpeedDisplay");
-                Assert.Contains(propertyChangedEvents, e => e.PropertyName == "TransformSpeedSlot");
+            // Assert
+            Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(viewModel.TransformSpeed));
+            Assert.Contains(propertyChangedEvents, e => e.PropertyName == "TransformSpeedSlotDict");
+            Assert.Contains(propertyChangedEvents, e => e.PropertyName == "TransformSpeedSlot");
 
-                // Assert.Equal(4.0, viewModel.TransformSpeed);
-                Assert.Equal(4.0, options.TransformSpeed.Value);
-            });
+            // Assert.Equal(4.0, viewModel.TransformSpeed);
+            Assert.Equal(4.0, options.TransformSpeed.Value);
         }
 
         [Fact]
@@ -221,16 +239,20 @@ namespace krrTools.Tests.转换功能检查
         }
 
         [Theory]
-        [InlineData(4, 7, 12345)]
-        [InlineData(4, 10, 54321)]
-        [InlineData(6, 8, 99999)]
-        public void N2NCOptions_ParameterizedSettings_ShouldRetainValues(int originalKeys, int targetKeys, int seed)
+        [InlineData(7, 12345)]
+        [InlineData(10, 54321)]
+        [InlineData(8, 99999)]
+        public void N2NCOptions_ParameterizedSettings_ShouldRetainValues(int targetKeys, int seed)
         {
             // Arrange & Act
-            var options = new N2NCOptions();
-            options.TargetKeys.Value = targetKeys;
-            options.TransformSpeed.Value = 2.0;
-            options.Seed = seed; // Assert
+            var options = new N2NCOptions
+            {
+                TargetKeys = { Value = targetKeys },
+                TransformSpeed = { Value = 2.0 },
+                Seed = seed
+            };
+
+            // Assert
             Assert.Equal(targetKeys, options.TargetKeys.Value);
             Assert.Equal(2.0, options.TransformSpeed.Value);
             Assert.Equal(seed, options.Seed);
@@ -241,22 +263,36 @@ namespace krrTools.Tests.转换功能检查
         {
             STATestHelper.RunInSTA(() =>
             {
-                // Arrange
-                var previewViewModel = new PreviewViewModel();
-                var mockProcessor = new Mock<IPreviewProcessor>();
-                var propertyChangedEvents = new List<PropertyChangedEventArgs>();
+                // 在STA线程中设置服务提供者
+                var mockEventBus = new Mock<IEventBus>();
+                var services = new ServiceCollection();
+                services.AddSingleton(mockEventBus.Object);
+                ServiceProvider serviceProvider = services.BuildServiceProvider();
+                Injector.SetTestServiceProvider(serviceProvider);
 
-                previewViewModel.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
+                try
+                {
+                    // Arrange
+                    var previewViewModel = new PreviewViewModel();
+                    var mockProcessor = new Mock<IPreviewProcessor>();
+                    var propertyChangedEvents = new List<PropertyChangedEventArgs>();
 
-                // Act
-                previewViewModel.SetProcessor(mockProcessor.Object);
+                    previewViewModel.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
 
-                // Assert
-                Assert.Equal(mockProcessor.Object, previewViewModel.Processor);
+                    // Act
+                    previewViewModel.SetProcessor(mockProcessor.Object);
 
-                // 应该触发相关属性变化事件
-                // 注意：具体的属性名可能需要根据实际实现调整
-                Assert.NotEmpty(propertyChangedEvents);
+                    // Assert
+                    Assert.Equal(mockProcessor.Object, previewViewModel.Processor);
+
+                    // 应该触发相关属性变化事件
+                    Assert.NotEmpty(propertyChangedEvents);
+                }
+                finally
+                {
+                    Injector.SetTestServiceProvider(null);
+                    serviceProvider.Dispose();
+                }
             });
         }
 

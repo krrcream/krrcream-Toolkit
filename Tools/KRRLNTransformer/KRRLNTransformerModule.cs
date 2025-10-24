@@ -6,15 +6,9 @@ namespace krrTools.Tools.KRRLNTransformer
 {
     public class KRRLNTransformerModule : ToolModuleBase<KRRLNTransformerOptions, KRRLNTransformerViewModel, KRRLNTransformerView>
     {
-        public override ToolModuleType ModuleType
-        {
-            get => ToolModuleType.KRRLN;
-        }
+        public override ToolModuleType ModuleType => ToolModuleType.KRRLN;
 
-        public override string DisplayName
-        {
-            get => Strings.TabKRRsLN;
-        }
+        public override string DisplayName => Strings.TabKRRsLN;
 
         /// <summary>
         /// 应用转换到谱面（内部实现）- 获取最新的运行时设置
@@ -27,7 +21,7 @@ namespace krrTools.Tools.KRRLNTransformer
             KRRLNTransformerOptions options = GetLatestOptions();
 
             // 判断是否需要转换
-            bool willTransform = WillTransformOccur(beatmap, options);
+            bool willTransform = WillTransformOccur(options);
 
             if (!willTransform) return false; // 不需要转换，直接返回
 
@@ -40,15 +34,16 @@ namespace krrTools.Tools.KRRLNTransformer
         /// <summary>
         /// 判断根据当前选项是否会发生实际转换
         /// </summary>
-        private bool WillTransformOccur(Beatmap beatmap, KRRLNTransformerOptions options)
+        private bool WillTransformOccur(KRRLNTransformerOptions options)
         {
-            // 检查是否需要生成LN
-            bool needLN = options.LongPercentage.Value > 0 || options.ShortPercentage.Value > 0;
+            // 如果长按和短按百分比都是0，不会生成任何LN
+            if (options.LongPercentage.Value <= 0 && options.ShortPercentage.Value <= 0)
+            {
+                // 还需要检查OD是否会改变
+                return options.ODValue.Value.HasValue;
+            }
 
-            // 检查OD是否需要改变
-            bool needOD = options.ODValue.Value.HasValue && Math.Abs(options.ODValue.Value.Value - beatmap.DifficultySection.OverallDifficulty) > 0.01;
-
-            return needLN || needOD;
+            return true;
         }
     }
 }

@@ -1,6 +1,10 @@
 using System;
 using System.Reflection;
 using krrTools.Tools.KRRLVAnalysis;
+using krrTools.Bindable;
+using krrTools.Utilities;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -14,11 +18,20 @@ namespace krrTools.Tests.PerformanceTests
         {
             _testOutputHelper = testOutputHelper;
             Logger.SetConsoleOutputEnabled(false);
+
+            // Setup dependency injection for tests
+            var mockEventBus = new Mock<IEventBus>();
+            var services = new ServiceCollection();
+            services.AddSingleton(mockEventBus.Object);
+            services.AddSingleton<StateBarManager>();
+            var serviceProvider = services.BuildServiceProvider();
+            Injector.SetTestServiceProvider(serviceProvider);
         }
 
         public void Dispose()
         {
             Logger.SetConsoleOutputEnabled(true);
+            Injector.SetTestServiceProvider(null);
         }
 
         [Fact]
@@ -63,34 +76,50 @@ namespace krrTools.Tests.PerformanceTests
         [Fact]
         public void DataTable_ShouldPreserveCompletedResults()
         {
-            var viewModel = new KRRLVAnalysisViewModel();
+            // Setup dependency injection for this test
+            var mockEventBus = new Mock<IEventBus>();
+            var services = new ServiceCollection();
+            services.AddSingleton(mockEventBus.Object);
+            services.AddSingleton<StateBarManager>();
+            var serviceProvider = services.BuildServiceProvider();
+            Injector.SetTestServiceProvider(serviceProvider);
 
-            // 模拟完成的分析项目
-            var completedItem = new KRRLVAnalysisItem
+            try
             {
-                Title = "Completed Song",
-                Artist = "Test Artist",
-                KRR_LV = 5.67,
-                YLs_LV = 8.92,
-                XXY_SR = 4.23,
-                Phase = AnalysisStatus.Completed
-            };
+                var viewModel = new KRRLVAnalysisViewModel();
 
-            viewModel.OsuFiles.Value.Add(completedItem);
+                // 模拟完成的分析项目
+                var completedItem = new KRRLVAnalysisItem
+                {
+                    Title = "Completed Song",
+                    Artist = "Test Artist",
+                    KRR_LV = 5.67,
+                    YLs_LV = 8.92,
+                    XXY_SR = 4.23,
+                    Phase = AnalysisStatus.Completed
+                };
 
-            // 验证数据完整性
-            Assert.Equal(1, viewModel.OsuFiles.Value.Count);
-            Assert.Equal("Completed Song", viewModel.OsuFiles.Value[0].Title);
-            Assert.Equal("Test Artist", viewModel.OsuFiles.Value[0].Artist);
-            Assert.Equal(5.67, viewModel.OsuFiles.Value[0].KRR_LV);
-            Assert.Equal(8.92, viewModel.OsuFiles.Value[0].YLs_LV);
-            Assert.Equal(4.23, viewModel.OsuFiles.Value[0].XXY_SR);
-            Assert.Equal("√", viewModel.OsuFiles.Value[0].Status);
-            Assert.Equal(AnalysisStatus.Completed, viewModel.OsuFiles.Value[0].Phase);
+                viewModel.OsuFiles.Value.Add(completedItem);
 
-            _testOutputHelper.WriteLine("✅ 验证通过：数据表可以正确保存完整的分析结果");
+                // 验证数据完整性
+                Assert.Single(viewModel.OsuFiles.Value);
+                Assert.Equal("Completed Song", viewModel.OsuFiles.Value[0].Title);
+                Assert.Equal("Test Artist", viewModel.OsuFiles.Value[0].Artist);
+                Assert.Equal(5.67, viewModel.OsuFiles.Value[0].KRR_LV);
+                Assert.Equal(8.92, viewModel.OsuFiles.Value[0].YLs_LV);
+                Assert.Equal(4.23, viewModel.OsuFiles.Value[0].XXY_SR);
+                Assert.Equal("√", viewModel.OsuFiles.Value[0].Status);
+                Assert.Equal(AnalysisStatus.Completed, viewModel.OsuFiles.Value[0].Phase);
 
-            viewModel.Dispose();
+                _testOutputHelper.WriteLine("✅ 验证通过：数据表可以正确保存完整的分析结果");
+
+                viewModel.Dispose();
+            }
+            finally
+            {
+                // Clean up
+                Injector.SetTestServiceProvider(null);
+            }
         }
     }
 }

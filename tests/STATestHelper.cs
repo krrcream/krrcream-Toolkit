@@ -24,12 +24,12 @@ namespace krrTools.Tests
             {
                 try
                 {
-                    // 确保只有一个Application实例
-                    lock (_applicationLock)
-                    {
-                        if (_application == null)
-                            _application = new Application();
-                    }
+                    // 对于单元测试，不需要WPF Application
+                    // lock (_applicationLock)
+                    // {
+                    //     if (_application == null)
+                    //         _application = new Application();
+                    // }
 
                     testAction();
                 }

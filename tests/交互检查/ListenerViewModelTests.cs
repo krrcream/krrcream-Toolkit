@@ -7,28 +7,33 @@ using krrTools.Configuration;
 using krrTools.Tools.Listener;
 using krrTools.Utilities;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using Xunit;
 
 namespace krrTools.Tests.交互检查
 {
-    public class ListenerViewModelTests
+    public class ListenerViewModelTests : IDisposable
     {
         public ListenerViewModelTests()
         {
-            // Setup dependency injection for tests using reflection
+            // Setup dependency injection for tests
+            var mockEventBus = new Mock<IEventBus>();
             var services = new ServiceCollection();
-            services.AddSingleton<IEventBus, EventBus>();
+            services.AddSingleton(mockEventBus.Object);
             services.AddSingleton<StateBarManager>();
             services.AddSingleton<OsuMonitorService>();
             services.AddSingleton<BeatmapAnalysisService>();
-            ServiceProvider serviceProvider = services.BuildServiceProvider();
-
-            // Use reflection to set the private Services property
-            PropertyInfo? servicesProperty = typeof(App).GetProperty("Services", BindingFlags.Public | BindingFlags.Static);
-            servicesProperty?.SetValue(null, serviceProvider);
+            var serviceProvider = services.BuildServiceProvider();
+            Injector.SetTestServiceProvider(serviceProvider);
 
             // Reset global settings to defaults for each test
             ResetGlobalSettingsToDefaults();
+        }
+
+        public void Dispose()
+        {
+            // Clean up test service provider
+            Injector.SetTestServiceProvider(null);
         }
 
         private void ResetGlobalSettingsToDefaults()

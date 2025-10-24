@@ -9,6 +9,7 @@ using krrTools.Bindable;
 using krrTools.Tools.KRRLVAnalysis;
 using krrTools.Utilities;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 using Xunit;
@@ -26,19 +27,23 @@ namespace krrTools.Tests.PerformanceTests
             Logger.SetConsoleOutputEnabled(false);
 
             // Setup dependency injection for tests
+            var mockEventBus = new Mock<IEventBus>();
             var services = new ServiceCollection();
+            services.AddSingleton(mockEventBus.Object);
             services.AddSingleton<StateBarManager>();
-            services.AddSingleton<IEventBus, EventBus>();
             ServiceProvider serviceProvider = services.BuildServiceProvider();
-
-            // Use reflection to set the private Services property
-            PropertyInfo servicesProperty = typeof(App).GetProperty("Services", BindingFlags.Public | BindingFlags.Static);
-            servicesProperty?.SetValue(null, serviceProvider);
+            Injector.SetTestServiceProvider(serviceProvider);
         }
 
         public void Dispose()
         {
             Logger.SetConsoleOutputEnabled(true);
+            Injector.SetTestServiceProvider(null);
+        }
+
+        private static double BytesToMB(long bytes)
+        {
+            return bytes / (1024.0 * 1024.0);
         }
 
         [Fact]
@@ -48,7 +53,7 @@ namespace krrTools.Tests.PerformanceTests
             GC.Collect();
             GC.WaitForPendingFinalizers();
             long initialMemory = GC.GetTotalMemory(true);
-            _testOutputHelper.WriteLine($"Initial memory: {initialMemory:N0} bytes");
+            _testOutputHelper.WriteLine($"Initial memory: {BytesToMB(initialMemory):F2} MB");
 
             // 创建ViewModel实例（依赖注入会自动处理）
             var viewModel = new KRRLVAnalysisViewModel();
@@ -60,7 +65,7 @@ namespace krrTools.Tests.PerformanceTests
             GC.Collect();
             GC.WaitForPendingFinalizers();
             long afterCreationMemory = GC.GetTotalMemory(true);
-            _testOutputHelper.WriteLine($"After creation memory: {afterCreationMemory:N0} bytes");
+            _testOutputHelper.WriteLine($"After creation memory: {BytesToMB(afterCreationMemory):F2} MB");
 
             // Dispose ViewModel
             viewModel.Dispose();
@@ -69,15 +74,15 @@ namespace krrTools.Tests.PerformanceTests
             GC.Collect();
             GC.WaitForPendingFinalizers();
             long afterDisposeMemory = GC.GetTotalMemory(true);
-            _testOutputHelper.WriteLine($"After dispose memory: {afterDisposeMemory:N0} bytes");
+            _testOutputHelper.WriteLine($"After dispose memory: {BytesToMB(afterDisposeMemory):F2} MB");
 
             // 检查内存是否被合理释放（允许一些余量）
             long memoryDifference = afterDisposeMemory - initialMemory;
-            _testOutputHelper.WriteLine($"Memory difference: {memoryDifference:N0} bytes");
+            _testOutputHelper.WriteLine($"Memory difference: {BytesToMB(memoryDifference):F2} MB");
 
             // 断言：Dispose后内存使用应该接近初始水平
             // 允许一定的余量，因为GC可能不会释放所有内存
-            Assert.True(memoryDifference < 1024 * 1024, $"Memory leak detected: {memoryDifference:N0} bytes not released");
+            Assert.True(BytesToMB(memoryDifference) < 50, $"Memory leak detected: {BytesToMB(memoryDifference):F2} MB not released");
         }
 
         [Fact]
@@ -107,7 +112,7 @@ namespace krrTools.Tests.PerformanceTests
             GC.Collect();
             GC.WaitForPendingFinalizers();
             long initialMemory = GC.GetTotalMemory(true);
-            _testOutputHelper.WriteLine($"Initial memory: {initialMemory:N0} bytes");
+            _testOutputHelper.WriteLine($"Initial memory: {BytesToMB(initialMemory):F2} MB");
 
             // 模拟高并发计算：100次SR计算，每次解码新Beatmap
             const int iterations = 100;
@@ -125,15 +130,15 @@ namespace krrTools.Tests.PerformanceTests
             GC.Collect(2, GCCollectionMode.Forced, true);
             GC.WaitForPendingFinalizers();
             long afterGCMemory = GC.GetTotalMemory(true);
-            _testOutputHelper.WriteLine($"After {iterations} calculations and forced GC: {afterGCMemory:N0} bytes");
+            _testOutputHelper.WriteLine($"After {iterations} calculations and forced GC: {BytesToMB(afterGCMemory):F2} MB");
 
             // 检查内存增长
             long memoryIncrease = afterGCMemory - initialMemory;
-            _testOutputHelper.WriteLine($"Memory increase: {memoryIncrease:N0} bytes");
+            _testOutputHelper.WriteLine($"Memory increase: {BytesToMB(memoryIncrease):F2} MB");
 
             // 断言：内存增长应该在合理范围内（例如小于50MB）
             // 由于LOH和可能的外部库，允许一些增长，但不应过大
-            Assert.True(memoryIncrease < 50 * 1024 * 1024, $"Potential memory leak: {memoryIncrease:N0} bytes increase after {iterations} calculations");
+            Assert.True(BytesToMB(memoryIncrease) < 50.0, $"Potential memory leak: {BytesToMB(memoryIncrease):F2} MB increase after {iterations} calculations");
         }
 
         [Fact]
@@ -156,7 +161,7 @@ namespace krrTools.Tests.PerformanceTests
             GC.Collect();
             GC.WaitForPendingFinalizers();
             long initialMemory = GC.GetTotalMemory(true);
-            _testOutputHelper.WriteLine($"Initial memory before decodes: {initialMemory:N0} bytes");
+            _testOutputHelper.WriteLine($"Initial memory before decodes: {BytesToMB(initialMemory):F2} MB");
 
             // 模拟多次解码同一个文件：100次
             const int iterations = 100;
@@ -171,14 +176,14 @@ namespace krrTools.Tests.PerformanceTests
             GC.Collect(2, GCCollectionMode.Forced, true);
             GC.WaitForPendingFinalizers();
             long afterDecodeMemory = GC.GetTotalMemory(true);
-            _testOutputHelper.WriteLine($"After {iterations} decodes and forced GC: {afterDecodeMemory:N0} bytes");
+            _testOutputHelper.WriteLine($"After {iterations} decodes and forced GC: {BytesToMB(afterDecodeMemory):F2} MB");
 
             // 检查内存增长（只解码，不计算SR）
             long memoryIncrease = afterDecodeMemory - initialMemory;
-            _testOutputHelper.WriteLine($"Memory increase from decodes: {memoryIncrease:N0} bytes");
+            _testOutputHelper.WriteLine($"Memory increase from decodes: {BytesToMB(memoryIncrease):F2} MB");
 
             // 断言：解码不应导致显著内存泄露（例如小于10MB）
-            Assert.True(memoryIncrease < 100 * 1024 * 1024, $"Potential memory leak in BeatmapDecoder: {memoryIncrease:N0} bytes increase after {iterations} decodes");
+            Assert.True(BytesToMB(memoryIncrease) < 100.0, $"Potential memory leak in BeatmapDecoder: {BytesToMB(memoryIncrease):F2} MB increase after {iterations} decodes");
         }
 
         [Fact]
@@ -208,7 +213,7 @@ namespace krrTools.Tests.PerformanceTests
             GC.Collect();
             GC.WaitForPendingFinalizers();
             long initialMemory = GC.GetTotalMemory(true);
-            _testOutputHelper.WriteLine($"Initial memory: {initialMemory:N0} bytes");
+            _testOutputHelper.WriteLine($"Initial memory: {BytesToMB(initialMemory):F2} MB");
 
             // 模拟高并发计算：100次SR计算，使用同一个Beatmap对象
             const int iterations = 100;
@@ -221,14 +226,14 @@ namespace krrTools.Tests.PerformanceTests
             GC.Collect(2, GCCollectionMode.Forced, true);
             GC.WaitForPendingFinalizers();
             long afterGCMemory = GC.GetTotalMemory(true);
-            _testOutputHelper.WriteLine($"After {iterations} calculations with same Beatmap and forced GC: {afterGCMemory:N0} bytes");
+            _testOutputHelper.WriteLine($"After {iterations} calculations with same Beatmap and forced GC: {BytesToMB(afterGCMemory):F2} MB");
 
             // 检查内存增长
             long memoryIncrease = afterGCMemory - initialMemory;
-            _testOutputHelper.WriteLine($"Memory increase: {memoryIncrease:N0} bytes");
+            _testOutputHelper.WriteLine($"Memory increase: {BytesToMB(memoryIncrease):F2} MB");
 
             // 断言：使用同一个Beatmap，内存增长应该更小（例如小于20MB）
-            Assert.True(memoryIncrease < 20 * 1024 * 1024, $"Potential memory leak in SRCalculator: {memoryIncrease:N0} bytes increase after {iterations} calculations with same Beatmap");
+            Assert.True(BytesToMB(memoryIncrease) < 20.0, $"Potential memory leak in SRCalculator: {BytesToMB(memoryIncrease):F2} MB increase after {iterations} calculations with same Beatmap");
         }
     }
 }

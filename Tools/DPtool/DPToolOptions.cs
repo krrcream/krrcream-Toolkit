@@ -9,9 +9,9 @@ namespace krrTools.Tools.DPtool
     /// </summary>
     public class DPToolOptions : ToolOptionsBase
     {
-        [Option(LabelKey = nameof(KeysSliderLabel), Min = 1, Max = 12, UIType = UIType.Slider, DataType = typeof(double), IsRefresher = true)]
-        public Bindable<double?> SingleSideKeyCount { get; } = new Bindable<double?>(5);
-
+        [Option(LabelKey = nameof(DPKeysSliderLabel), Min = 1, Max = 10, UIType = UIType.Slider, IsRefresher = true)]
+        public Bindable<double?> ModifyKeys { get; } = new();        
+        
         #region 左手区
 
         [Option(LabelKey = nameof(DPMirrorLabel), TooltipKey = nameof(DPMirrorTooltipLeft), UIType = UIType.Toggle, IsRefresher = true)]
@@ -24,11 +24,11 @@ namespace krrTools.Tools.DPtool
         public Bindable<bool> LRemove { get; } = new Bindable<bool>();
 
         [Option(LabelKey = nameof(DPLeftMaxKeysTemplate), Min = 1, Max = 5, UIType = UIType.Slider,
-                DataType = typeof(double), IsRefresher = true)]
+            DataType = typeof(double), IsRefresher = true)]
         public Bindable<double> LMaxKeys { get; } = new Bindable<double>(5);
 
         [Option(LabelKey = nameof(DPLeftMinKeysTemplate), Min = 1, Max = 5, UIType = UIType.Slider,
-                DataType = typeof(double), IsRefresher = true)]
+            DataType = typeof(double), IsRefresher = true)]
         public Bindable<double> LMinKeys { get; } = new Bindable<double>(1);
 
         #endregion
@@ -45,11 +45,11 @@ namespace krrTools.Tools.DPtool
         public Bindable<bool> RRemove { get; } = new Bindable<bool>();
 
         [Option(LabelKey = nameof(DPRightMaxKeysTemplate), Min = 1, Max = 5, UIType = UIType.Slider,
-                DataType = typeof(double), IsRefresher = true)]
+            DataType = typeof(double), IsRefresher = true)]
         public Bindable<double> RMaxKeys { get; } = new Bindable<double>(5);
 
         [Option(LabelKey = nameof(DPRightMinKeysTemplate), Min = 1, Max = 5, UIType = UIType.Slider,
-                DataType = typeof(double), IsRefresher = true)]
+            DataType = typeof(double), IsRefresher = true)]
         public Bindable<double> RMinKeys { get; } = new Bindable<double>(1);
 
         #endregion
@@ -57,7 +57,7 @@ namespace krrTools.Tools.DPtool
         public DPToolOptions()
         {
             // Wire up property changed events for Bindable<T> properties
-            SingleSideKeyCount.PropertyChanged += (_, _) => OnPropertyChanged(nameof(SingleSideKeyCount));
+            ModifyKeys.PropertyChanged += (_, _) => OnPropertyChanged(nameof(ModifyKeys));
             LMirror.PropertyChanged += (_, _) => OnPropertyChanged(nameof(LMirror));
             LDensity.PropertyChanged += (_, _) => OnPropertyChanged(nameof(LDensity));
             LRemove.PropertyChanged += (_, _) => OnPropertyChanged(nameof(LRemove));
@@ -75,13 +75,6 @@ namespace krrTools.Tools.DPtool
         {
             base.Validate(); // First clamp to Min/Max
             IsValidating = true;
-
-            // SingleSideKeyCount 约束
-            if (SingleSideKeyCount.Value.HasValue)
-            {
-                if (SingleSideKeyCount.Value < 1) SingleSideKeyCount.Value = 1;
-                if (SingleSideKeyCount.Value > 12) SingleSideKeyCount.Value = 12;
-            }
 
             // 左手键数约束
             if (LMinKeys.Value < 1) LMinKeys.Value = 1;
