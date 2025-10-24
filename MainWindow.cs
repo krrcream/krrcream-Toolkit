@@ -196,6 +196,23 @@ namespace krrTools
                 // 使用转换服务
                 Beatmap transformedBeatmap = transformationService.TransformBeatmap(beatmap, converter);
 
+                // 获取工具检查是否有变化
+                IToolModule? tool = moduleManager.GetToolByName(converter.ToString());
+                bool hasChanges = true; // 默认假设有变化
+
+                if (tool != null)
+                {
+                    dynamic dynamicTool = tool;
+                    hasChanges = dynamicTool.HasChanges;
+                }
+
+                if (!hasChanges)
+                {
+                    // 没有实际转换，跳过保存和打包
+                    Logger.WriteLine(LogLevel.Information, $"谱面无需转换，已跳过: {beatmapPath}");
+                    return;
+                }
+
                 // 保存转换后谱面
                 string outputPath = transformedBeatmap.GetOutputOsuFileName();
                 string? outputDir = Path.GetDirectoryName(beatmapPath);
