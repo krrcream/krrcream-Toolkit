@@ -1,4 +1,4 @@
-﻿[中文版readme](readme_cn.md)
+﻿[中文版readme](doc/readme_zh.md)
 
 # 🎵 krrcream's Toolkit
 

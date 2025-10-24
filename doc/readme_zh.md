@@ -1,4 +1,4 @@
-﻿[英文版readme](readme.md)
+﻿[English Version Readme](../readme.md)
 
 # 🎵 krrcream's Toolkit
 
