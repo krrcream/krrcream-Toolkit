@@ -34,6 +34,38 @@ namespace krrTools.Tools.KRRLNTransformer
                     opts.ODValue.Value = 5;
                     opts.Seed.Value = 114514;
                 })),
+                [PresetKind.Inverse2] = ("Inverse Space=1/2", CreatePreset(opts => {
+                    opts.LengthThreshold.Value = KRRLNTransformerOptions.SAllIsLongLN;
+                    opts.ShortPercentage.Value = 100;
+                    opts.ShortLevel.Value = 0;
+                    opts.ShortLimit.Value = 10;
+                    opts.ShortRandom.Value = 0;
+                    opts.LongPercentage.Value = 100;
+                    opts.LongLevel.Value = 100;
+                    opts.LongLimit.Value = 10;
+                    opts.LongRandom.Value = 0;
+                    opts.Alignment.Value = 7;
+                    opts.LNAlignment.Value = 5;
+                    opts.ProcessOriginalIsChecked.Value = true;
+                    opts.ODValue.Value = 5;
+                    opts.Seed.Value = 114514;
+                })),
+                [PresetKind.ReleaseHard] = ("ReleaseHard", CreatePreset(opts => {
+                    opts.LengthThreshold.Value = 2;
+                    opts.ShortPercentage.Value = 50;
+                    opts.ShortLevel.Value = 8;
+                    opts.ShortLimit.Value = 10;
+                    opts.ShortRandom.Value = 0;
+                    opts.LongPercentage.Value = 100;
+                    opts.LongLevel.Value = 80;
+                    opts.LongLimit.Value = 10;
+                    opts.LongRandom.Value = 40;
+                    opts.Alignment.Value = 7;
+                    opts.LNAlignment.Value = 5;
+                    opts.ProcessOriginalIsChecked.Value = true;
+                    opts.ODValue.Value = 5;
+                    opts.Seed.Value = 114514;
+                })),
                 [PresetKind.NoteToOneHalfLN] = ("NoteToOneHalfLN", CreatePreset(opts => {
                     opts.LengthThreshold.Value = KRRLNTransformerOptions.SAllIsShortLN;
                     opts.ShortPercentage.Value = 100;

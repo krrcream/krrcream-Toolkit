@@ -102,8 +102,18 @@ namespace krrTools.Tools.N2NC
                     return;
                 }
             }
-            var random = options.Seed.HasValue ? new Random(options.Seed.Value) : new Random();
-            var (matrix, timeAxisTemp) = beatmap.getMTXandTimeAxis();
+            Random random = options.Seed.HasValue ? new Random(options.Seed.Value) : new Random();
+            Matrix matrix;
+            List<int> timeAxisTemp;
+            if ((int)options.TargetKeys.Value - (int)beatmap.DifficultySection.CircleSize >= 0)
+            {
+                (matrix, timeAxisTemp) = beatmap.getMTXandTimeAxis();
+            }
+            else
+            {
+                (matrix, timeAxisTemp) = beatmap.getExpandHoldBodyMTXandTimeAxis();
+            }
+            
             var timeAxis = CollectionsMarshal.AsSpan(timeAxisTemp);
             
             var processedMatrix = ProcessMatrix(matrix, timeAxis, beatmap, options, random);
@@ -533,9 +543,7 @@ namespace krrTools.Tools.N2NC
 
             // 创建新矩阵，初始化为-1（空）
             var newMatrix = new Matrix(rows, targetCols);
-            for (var i = 0; i < rows; i++)
-            for (var j = 0; j < targetCols; j++)
-                newMatrix[i, j] = -1;
+            var originColumnMap = new Matrix(rows, targetCols);
 
             // 按时间段处理
             var regionStart = 0;
@@ -552,7 +560,7 @@ namespace krrTools.Tools.N2NC
                     if (isLastRow && !isRegionEnd) regionEnd = rows - 1;
 
                     // 处理当前区域
-                    ProcessRegion(orgMTX, newMatrix, timeAxis, regionStart, regionEnd, targetCols, beatLengthAxis, random);
+                    ProcessRegion(orgMTX, newMatrix, originColumnMap, timeAxis, regionStart, regionEnd, targetCols, beatLengthAxis, random);
 
                     // 更新下一个区域的起始点
                     regionStart = regionEnd;
@@ -561,7 +569,7 @@ namespace krrTools.Tools.N2NC
 
             // 处理可能剩余的行（如果最后一段不足一个完整区域）
             if (regionStart < rows - 1)
-                ProcessRegion(orgMTX, newMatrix, timeAxis, regionStart, rows - 1, targetCols, beatLengthAxis, random);
+                ProcessRegion(orgMTX, newMatrix, originColumnMap, timeAxis, regionStart, rows - 1, targetCols, beatLengthAxis, random);
 
             // 处理空行
             ProcessEmptyRows(orgMTX, newMatrix, timeAxis, beatLengthAxis, random);
@@ -569,7 +577,7 @@ namespace krrTools.Tools.N2NC
             return newMatrix;
         }
 
-        private void ProcessRegion(Matrix orgMTX, Matrix newMatrix, Span<int> timeAxis,
+        private void ProcessRegion(Matrix orgMTX, Matrix newMatrix,Matrix originColumnMap ,Span<int> timeAxis,
             int regionStart, int regionEnd, int targetCols, Span<double> beatLengthAxis, Random random)
         {
             var originalCols = orgMTX.Cols;
@@ -601,9 +609,10 @@ namespace krrTools.Tools.N2NC
                         if (newCol >= 0) // 该列未被移除
                             // 检查目标位置是否可用（避免冲突）
                     
-                            if (IsPositionAvailable(newMatrix, row, newCol, timeAxis, beatLengthAxis[row]))
+                            if (IsPositionAvailable(newMatrix, originColumnMap, col ,row, newCol, timeAxis, beatLengthAxis[row]))
                             {
                                 newMatrix[row, newCol] = newValue;
+                                originColumnMap[row, newCol] = col;
 
                                 // 如果是长条头部，复制整个长条
                                 CopyLongNoteBody(orgMTX, newMatrix, row, col, newCol, rows);
@@ -614,8 +623,7 @@ namespace krrTools.Tools.N2NC
             // 处理长条延续部分
             for (var row = regionStart; row <= regionEnd; row++) HandleLongNoteExtensions(newMatrix, row, targetCols);
 
-            // 应用约束条件：确保每行至少有一个note
-            // 应用约束条件：确保每行至少有一个note
+            // 应用约束条件：尽量确保每行至少有一个note，但存在无法添加note的可能
             ApplyMinimumNotesConstraint(newMatrix, orgMTX, regionStart, regionEnd, targetCols, timeAxis, beatLengthAxis,
                 random);
         }
@@ -753,21 +761,21 @@ namespace krrTools.Tools.N2NC
             return mapping;
         }
 
-        private bool IsPositionAvailable(Matrix matrix, int row, int col, Span<int> timeAxis, double beatLength)
+        private bool IsPositionAvailable(Matrix matrix, Matrix originColumnMap, int oldcol, int row, int col, Span<int> timeAxis, double beatLength)
         {
             if (matrix[row, col] != -1)
                 return false;
 
             // 检查前面几行
             for (var r = Math.Max(0, row - 3); r < row; r++)
-                if (timeAxis[row] - timeAxis[r] <= beatLength / 14 + 10)
+                if (timeAxis[row] - timeAxis[r] <= beatLength / 2.5 + 10 && originColumnMap[r, col] != oldcol)
                     if (matrix[r, col] >= 0 || matrix[r, col] == -7)
                         return false;
 
             // 检查后面几行
             var rows = matrix.Rows;
             for (var r = row + 1; r <= Math.Min(rows - 1, row + 3); r++)
-                if (timeAxis[r] - timeAxis[row] <= beatLength / 14 + 10)
+                if (timeAxis[r] - timeAxis[row] <= beatLength / 2.5 + 10 && originColumnMap[r, col] != oldcol)
                     if (matrix[r, col] >= 0 || matrix[r, col] == -7)
                         return false;
 
@@ -871,7 +879,7 @@ namespace krrTools.Tools.N2NC
         private bool IsHoldNoteTailTooClose(Matrix newMatrix, Matrix orgMTX, Span<int> timeAxis,
             int row, int orgCol, int targetCol, double beatLength)
         {
-            var minTimeDistance = beatLength / 14 - 10; // 注意这里是-10
+            var minTimeDistance = beatLength / 2.5 - 10; // 注意这里是-10
 
             // 检查原始矩阵中该位置是否为长条头部
             var rows = orgMTX.Rows;
@@ -1007,13 +1015,13 @@ namespace krrTools.Tools.N2NC
             // 检查前面几行
             var rows = matrix.Rows;
             for (var r = Math.Max(0, row - 3); r < row; r++)
-                if (timeAxis[row] - timeAxis[r] <= beatLength / 14 + 10)
+                if (timeAxis[row] - timeAxis[r] <= beatLength / 2.5 + 10)
                     if (matrix[r, col] >= 0 || matrix[r, col] == -7)
                         return false;
 
             // 检查后面几行
             for (var r = row + 1; r <= Math.Min(rows - 1, row + 3); r++)
-                if (timeAxis[r] - timeAxis[row] <= beatLength / 14 + 10)
+                if (timeAxis[r] - timeAxis[row] <= beatLength / 2.5 + 10)
                     if (matrix[r, col] >= 0 || matrix[r, col] == -7)
                         return false;
 

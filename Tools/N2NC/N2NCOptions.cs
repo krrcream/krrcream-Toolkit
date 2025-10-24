@@ -11,7 +11,7 @@ namespace krrTools.Tools.N2NC
     public class N2NCOptions : ToolOptionsBase
     {
         [Option(LabelKey = nameof(KeysSliderLabel), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double), IsRefresher = true)]
-        public Bindable<double> TargetKeys { get; } = new Bindable<double>(10);
+        public Bindable<double> TargetKeys { get; } = new Bindable<double>(8);
 
         // 动态最大值将由ViewModel的约束管理处理
         [Option(LabelKey = nameof(N2NCMaxKeysTemplate), Min = 1, Max = 18, UIType = UIType.Slider, DataType = typeof(double), IsRefresher = true)]
@@ -56,7 +56,7 @@ namespace krrTools.Tools.N2NC
             set => SetProperty(ref _seed, value);
         }
         private int? _seed = 114514;
-        public KeySelectionFlags? SelectedKeyFlags { get; set; } = KeySelectionFlags.None;
+        public KeySelectionFlags? SelectedKeyFlags { get; set; } = (KeySelectionFlags)0b0011111111;
         
         public override void Validate()
         {

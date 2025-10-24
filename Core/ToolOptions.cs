@@ -220,12 +220,16 @@ namespace krrTools.Core
         [Description("8K Preset|8K预设")] EightK = 3,
         [Description("7K Preset|7K预设")] SevenK = 4,
         [Description("Inverse Space=1/4|反键 间隔1/4")] Inverse4 = 5,
-        [Description("Note→1/2LN|米变1/2面条")] NoteToOneHalfLN = 6,
-        [Description("Easy LN|轻面")] ShortLN1 = 7,
-        [Description("Mid LN=1/4|中面")] MidLN1 = 8,
-        [Description("Hard LN=1/4|大面")] LongLN1 = 9,
-        [Description("A10K(7K)")] A10K7 = 10,
-        [Description("A9K(7K)")] A9K7 = 11,
-        [Description("A8K(7K)")] A8K7 = 12
+        [Description("Inverse Space=1/2|反键 间隔1/2")] Inverse2 = 6,
+        [Description("Note→1/2LN|米变1/2面条")] NoteToOneHalfLN = 7,
+        [Description("Easy LN|轻面")] ShortLN1 = 8,
+        [Description("Mid LN|中面")] MidLN1 = 9,
+        [Description("Hard LN|大面")] LongLN1 = 10,
+        [Description("A10K|散至10K")] A10K7 = 11,
+        [Description("A9K|散至9K")] A9K7 = 12,
+        [Description("A8K|散至8K")] A8K7 = 13,
+        [Description("DownTo6K|降至6K")] DT6 = 14,
+        [Description("DownTo4K|降至4K")] DT4 = 15,
+        [Description("Release H|放手 难")] ReleaseHard = 17
     }
 }
