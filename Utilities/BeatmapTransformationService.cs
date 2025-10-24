@@ -52,7 +52,7 @@ namespace krrTools.Utilities
         /// </summary>
         /// <param name="inputPath">输入文件路径</param>
         /// <param name="converter">转换模块枚举</param>
-        /// <returns>输出文件路径，失败返回null</returns>
+        /// <returns>输出文件路径，失败或无需转换返回null</returns>
         public string? TransformAndSaveBeatmap(string inputPath, ConverterEnum converter)
         {
             try
@@ -63,6 +63,23 @@ namespace krrTools.Utilities
 
                 // 转换谱面
                 Beatmap transformedBeatmap = TransformBeatmap(beatmap, converter);
+
+                // 获取工具检查是否有变化
+                IToolModule? tool = _moduleManager.GetToolByName(converter.ToString());
+                bool hasChanges = true; // 默认假设有变化
+
+                if (tool != null)
+                {
+                    dynamic dynamicTool = tool;
+                    hasChanges = dynamicTool.HasChanges;
+                }
+
+                if (!hasChanges)
+                {
+                    // 没有实际转换，跳过保存
+                    Logger.WriteLine(LogLevel.Information, $"谱面无需转换，已跳过保存: {inputPath}");
+                    return null;
+                }
 
                 // 保存转换后谱面，如果文件存在则删除旧的再保存
                 string outputPath = transformedBeatmap.GetOutputOsuFileName();

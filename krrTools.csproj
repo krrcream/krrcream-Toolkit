@@ -9,6 +9,7 @@
         <Nullable>enable</Nullable>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
         <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+        <ImplicitUsings>enable</ImplicitUsings>
         <NoWarn>CA1416</NoWarn>
     </PropertyGroup>
 

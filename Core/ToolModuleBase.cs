@@ -13,7 +13,6 @@ namespace krrTools.Core
     {
         N2NC,
         DP,
-
         KRRLN
         // 新模块在此添加
     }
@@ -53,10 +52,9 @@ namespace krrTools.Core
         /// </summary>
         private void LoadCurrentOptions()
         {
-            _currentOptions =
-                BaseOptionsManager.LoadOptions<TOptions>(
-                    (ConverterEnum)Enum.Parse(typeof(ConverterEnum), ModuleType.ToString())) ??
-                CreateDefaultOptionsInternal();
+            _currentOptions = BaseOptionsManager.LoadOptions<TOptions>(
+                                  (ConverterEnum)Enum.Parse(typeof(ConverterEnum), ModuleType.ToString())) ??
+                              CreateDefaultOptionsInternal();
         }
 
         /// <summary>

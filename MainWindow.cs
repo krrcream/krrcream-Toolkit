@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -197,7 +197,7 @@ namespace krrTools
                 Beatmap transformedBeatmap = transformationService.TransformBeatmap(beatmap, converter);
 
                 // 获取工具检查是否有变化
-                IToolModule? tool = moduleManager.GetToolByName(converter.ToString());
+                IToolModule? tool = moduleManager?.GetToolByName(converter.ToString());
                 bool hasChanges = true; // 默认假设有变化
 
                 if (tool != null)
@@ -535,6 +535,7 @@ namespace krrTools
             {
                 DependencyObject child = VisualTreeHelper.GetChild(parent, i);
                 if (child is T t) return t;
+
                 var result = FindVisualChild<T>(child);
                 if (result != null) return result;
             }

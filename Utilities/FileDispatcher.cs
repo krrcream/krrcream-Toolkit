@@ -61,8 +61,7 @@ namespace krrTools.Utilities
             int processedCount = 0;
 
             // 并行处理每个文件，记录数量，限制并行度为4（I/O密集型）
-            Parallel.ForEach(paths,
-                             new ParallelOptions { MaxDegreeOfParallelism = 4 },
+            Parallel.ForEach(paths, new ParallelOptions { MaxDegreeOfParallelism = 4 },
                              p =>
                              {
                                  _ioSemaphore.Wait();

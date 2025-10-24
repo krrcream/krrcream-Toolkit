@@ -16,11 +16,7 @@ namespace krrTools.Utilities
     public sealed class FileDropZone : Border
     {
         private Button? StartConversionButton;
-        private FileDropZoneViewModel _viewModel;
-        public FileDropZoneViewModel ViewModel
-        {
-            get => _viewModel;
-        }
+        public FileDropZoneViewModel ViewModel { get; private set; }
 
         // 本地化字符串对象
         private readonly DynamicLocalizedString _startButtonTextLocalized = new DynamicLocalizedString(Strings.StartButtonText);
@@ -28,25 +24,25 @@ namespace krrTools.Utilities
         public FileDropZone()
         {
             var fileDispatcher = new FileDispatcher();
-            _viewModel = new FileDropZoneViewModel(fileDispatcher);
-            Injector.InjectServices(_viewModel); // 注入依赖项
-            DataContext = _viewModel;
+            ViewModel = new FileDropZoneViewModel(fileDispatcher);
+            Injector.InjectServices(ViewModel); // 注入依赖项
+            DataContext = ViewModel;
             InitializeUI();
         }
 
         public FileDropZone(FileDispatcher fileDispatcher)
         {
-            _viewModel = new FileDropZoneViewModel(fileDispatcher);
-            Injector.InjectServices(_viewModel); // 注入依赖项
-            DataContext = _viewModel;
+            ViewModel = new FileDropZoneViewModel(fileDispatcher);
+            Injector.InjectServices(ViewModel); // 注入依赖项
+            DataContext = ViewModel;
             InitializeUI();
         }
 
         // 专门用于测试的构造函数，不进行依赖注入
         public FileDropZone(FileDispatcher fileDispatcher, bool skipInjection)
         {
-            _viewModel = new FileDropZoneViewModel(fileDispatcher);
-            DataContext = _viewModel;
+            ViewModel = new FileDropZoneViewModel(fileDispatcher);
+            DataContext = ViewModel;
             InitializeUI();
         }
 
@@ -62,7 +58,7 @@ namespace krrTools.Utilities
             AllowDrop = true; // 启用文件拖放
 
             // 绑定 BorderBrush 到 ProgressBrush
-            var borderBrushBinding = new Binding("ProgressBrush") { Source = _viewModel };
+            var borderBrushBinding = new Binding("ProgressBrush") { Source = ViewModel };
             SetBinding(BorderBrushProperty, borderBrushBinding);
 
             var mainGrid = new Grid();
@@ -112,8 +108,8 @@ namespace krrTools.Utilities
         public FileDropZone(FileDropZoneViewModel viewModel)
             : base()
         {
-            _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
-            DataContext = _viewModel;
+            ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+            DataContext = ViewModel;
         }
 
         /// <summary>
@@ -121,8 +117,8 @@ namespace krrTools.Utilities
         /// </summary>
         public void SetViewModel(FileDropZoneViewModel viewModel)
         {
-            _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
-            DataContext = _viewModel;
+            ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+            DataContext = ViewModel;
         }
 
         private void OnLanguageChanged()
@@ -133,13 +129,14 @@ namespace krrTools.Utilities
         private void OnDrop(object sender, DragEventArgs e)
         {
             if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+
             string[]? files = e.Data.GetData(DataFormats.FileDrop) as string[];
             if (files == null || files.Length == 0) return;
 
-            List<string> osuFiles = _viewModel.CollectOsuFiles(files);
+            List<string> osuFiles = ViewModel.CollectOsuFiles(files);
             if (osuFiles.Count == 0) return;
 
-            _viewModel.SetFiles(osuFiles.ToArray(), FileSource.Dropped);
+            ViewModel.SetFiles(osuFiles.ToArray(), FileSource.Dropped);
         }
 
         private void OnDragOver(object sender, DragEventArgs e)
@@ -153,7 +150,7 @@ namespace krrTools.Utilities
 
         private void StartConversionButton_Click(object sender, RoutedEventArgs e)
         {
-            _viewModel.ConvertFiles();
+            ViewModel.ConvertFiles();
         }
 
         private void FileDropZone_Unloaded(object sender, RoutedEventArgs e)

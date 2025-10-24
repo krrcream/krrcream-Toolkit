@@ -33,10 +33,7 @@ namespace krrTools.Tools.N2NC
             // 判断是否需要转换
             bool willTransform = WillTransformOccur(beatmap, options);
 
-            if (!willTransform)
-            {
-                return false; // 不需要转换，直接返回
-            }
+            if (!willTransform) return false; // 不需要转换，直接返回
 
             // 执行转换
             var transformer = new N2NC();
@@ -51,6 +48,7 @@ namespace krrTools.Tools.N2NC
         {
             // 检查KeySelectionFlags
             KeySelectionFlags? keyFlags = options.SelectedKeyFlags;
+
             if (keyFlags.HasValue && keyFlags.Value != KeySelectionFlags.None)
             {
                 int AlignmentPreProcessCS = Math.Clamp((int)beatmap.DifficultySection.CircleSize - 3, 0, 8);
