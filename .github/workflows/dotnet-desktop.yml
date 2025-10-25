@@ -57,9 +57,9 @@ jobs:
           git config --local user.name "GitHub Actions"
           git config --local user.email "actions@github.com"
 
-      - name: Add Gitee remote
+      - name: Push to Gitee
         run: |
-          git remote add gitee https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/krrcream/krrcream-Toolkit.git
+          git push --mirror https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/krrcream/krrcream-Toolkit.git
 
       - name: Push to Gitee
         run: |          
