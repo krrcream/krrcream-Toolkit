@@ -3,8 +3,10 @@
 # 🎵 krrcream's Toolkit
 
 <p align="center">
-  <b>A collection of tools for osumania beatmap</b>
+  <b>专为 osumania 转谱打造的工具集合</b>
 </p>
+
+特别感谢 [SK-la](https://github.com/SK-la) 对 UI 设计的贡献以及持续的维护支持。
 
 ## 如何使用
 

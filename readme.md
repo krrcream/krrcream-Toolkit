@@ -4,7 +4,9 @@
 
 <p align="center">
   <b>A collection of tools for osumania beatmap</b>
-</p>
+</p>  
+
+Special thanks to [SK-la](https://github.com/SK-la) for the contribution to UI design and ongoing maintenance support.
 
 ## How to Use
 
