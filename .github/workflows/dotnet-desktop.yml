@@ -49,8 +49,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+
       - name: Configure Git
         run: |          
           git config --local user.name "GitHub Actions"
@@ -58,9 +57,10 @@ jobs:
 
       - name: Push to Gitee
         run: |
-          git ls-remote --tags origin | sed 's/.*\///' | xargs -I {} git push --delete origin {}
-          git push --force https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/krrcream/krrcream-Toolkit.git --all
-          git push --force https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/krrcream/krrcream-Toolkit.git --tags
+          run: |    
+              git push --force https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/krrcream/krrcream-Toolkit.git --all
+              git push --force https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/krrcream/krrcream-Toolkit.git --tags
+              git push --force https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/krrcream/krrcream-Toolkit.git master
       - name: Push to Gitee
         run: |          
           git push gitee HEAD:master
