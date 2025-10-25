@@ -388,9 +388,7 @@ namespace krrTools.Configuration
         /// </summary>
         public static bool GetForceChinese()
         {
-            bool value = GetGlobalSettings().ForceChinese.Value;
-            Logger.WriteLine(LogLevel.Debug, $"[BaseOptionsManager] GetForceChinese: returning {value}");
-            return value;
+            return GetGlobalSettings().ForceChinese.Value;
         }
 
         /// <summary>

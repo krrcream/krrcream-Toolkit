@@ -15,35 +15,26 @@ namespace krrTools.Bindable
             // Deserialize as JsonElement to handle object
             var element = JsonSerializer.Deserialize<JsonElement>(ref reader, options);
 
-            if (element.ValueKind == JsonValueKind.Null)
-            {
-                return new Bindable<T>();
-            }
+            if (element.ValueKind == JsonValueKind.Null) return new Bindable<T>();
 
             if (element.ValueKind == JsonValueKind.Object)
             {
                 // Try to get Value
                 T value = default!;
 
-                if (element.TryGetProperty("Value", out var valueProp))
-                {
-                    value = JsonSerializer.Deserialize<T>(valueProp.GetRawText(), options) ?? default!;
-                }
+                if (element.TryGetProperty("Value", out JsonElement valueProp)) value = JsonSerializer.Deserialize<T>(valueProp.GetRawText(), options) ?? default!;
 
                 var bindable = new Bindable<T>(value);
 
                 // Try to get Disabled
-                if (element.TryGetProperty("Disabled", out var disabledProp) && disabledProp.ValueKind == JsonValueKind.True)
-                {
-                    bindable.Disabled = true;
-                }
+                if (element.TryGetProperty("Disabled", out JsonElement disabledProp) && disabledProp.ValueKind == JsonValueKind.True) bindable.Disabled = true;
 
                 return bindable;
             }
             else
             {
                 // Backward compatibility: if it's not object, assume it's the value
-                var value = JsonSerializer.Deserialize<T>(element.GetRawText(), options) ?? default!;
+                T value = JsonSerializer.Deserialize<T>(element.GetRawText(), options) ?? default!;
                 return new Bindable<T>(value);
             }
         }

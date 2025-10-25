@@ -8,11 +8,11 @@ namespace krrTools.Bindable
 {
     /// <summary>
     /// Base class for reactive ViewModels using the custom Bindable system.
-    /// Alternative to ReactiveUI's ReactiveObject.
+    /// <para>Alternative to ReactiveUI's ReactiveObject.</para>
     /// Automatically injects services marked with [Inject] attribute.
-    /// 
+    /// <para></para>
     /// 推荐使用属性注入方式注入依赖服务：
-    /// [Inject] public IServiceType ServiceName { get; set; } = null!;
+    /// <code>[Inject] public IServiceType ServiceName { get; set; } = null!;</code>
     /// 这样可以避免构造函数参数过多，并支持条件注入。
     /// </summary>
     public abstract class ReactiveViewModelBase : INotifyPropertyChanged, IDisposable

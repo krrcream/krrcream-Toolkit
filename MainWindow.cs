@@ -49,12 +49,12 @@ namespace krrTools
     public class MainWindow : FluentWindow
     {
         private readonly Dictionary<object, ContentControl> _settingsHosts = new Dictionary<object, ContentControl>();
-        private readonly Grid root;
-        private readonly TabView MainTabControl;
-        private readonly Grid _mainGrid;
+        private readonly Grid                               root;
+        private readonly TabView                            MainTabControl;
+        private readonly Grid                               _mainGrid;
 
-        private PreviewViewDual _previewDual = null!;
-        private ContentControl _currentSettingsContainer = null!;
+        private          PreviewViewDual _previewDual              = null!;
+        private          ContentControl  _currentSettingsContainer = null!;
         private readonly StateBarManager _StateBarManager;
 
         // 全局快捷键管理器
@@ -64,20 +64,20 @@ namespace krrTools
         private SnackbarPresenter _snackbarPresenter = null!;
 
         // 跟踪选项卡拖动/分离
-        private Point _dragStartPoint;
-        private DateTime _dragStartTime;
+        private Point        _dragStartPoint;
+        private DateTime     _dragStartTime;
         private TabViewItem? _draggedTab;
 
         // 工具调度器
         private IModuleManager ModuleManager { get; }
 
-        private N2NCView _convWindowInstance = null!;
-        private DPToolView _dpToolWindowInstance = null!;
+        private N2NCView             _convWindowInstance       = null!;
+        private DPToolView           _dpToolWindowInstance     = null!;
         private KRRLNTransformerView _krrLnTransformerInstance = null!;
-        private ListenerControl _listenerControlInstance = null!;
+        private ListenerControl      _listenerControlInstance  = null!;
 
         private readonly Dictionary<ConverterEnum, Func<IToolOptions>> _optionsProviders = new Dictionary<ConverterEnum, Func<IToolOptions>>();
-        private readonly Dictionary<ConverterEnum, Func<object?>> _viewModelGetters = new Dictionary<ConverterEnum, Func<object?>>();
+        private readonly Dictionary<ConverterEnum, Func<object?>>      _viewModelGetters = new Dictionary<ConverterEnum, Func<object?>>();
 
         private ContentControl? N2NCSettingsHost
         {
@@ -114,34 +114,34 @@ namespace krrTools
             // 从服务容器获取状态管理器
             _StateBarManager = App.Services.GetRequiredService<StateBarManager>();
 
-            Title = Strings.WindowTitle; // 初始化
-            Width = 1000;
-            Height = 750;
-            ResizeMode = ResizeMode.CanResize;
+            Title                 = Strings.WindowTitle; // 初始化
+            Width                 = 1000;
+            Height                = 750;
+            ResizeMode            = ResizeMode.CanResize;
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             Content = root = new Grid
             {
                 RowDefinitions =
                 {
-                    new RowDefinition { Height = GridLength.Auto }, // 标题栏
-                    new RowDefinition { Height = GridLength.Auto }, // 选项卡行
+                    new RowDefinition { Height = GridLength.Auto },                      // 标题栏
+                    new RowDefinition { Height = GridLength.Auto },                      // 选项卡行
                     new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }, // 主内容区域（设置 + 预览）
-                    new RowDefinition { Height = GridLength.Auto } // Footer状态栏行
+                    new RowDefinition { Height = GridLength.Auto }                       // Footer状态栏行
                 }
             };
             MainTabControl = new TabView
             {
-                Background = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)),
+                Background                 = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)),
                 HorizontalContentAlignment = HorizontalAlignment.Stretch,
-                VerticalContentAlignment = VerticalAlignment.Stretch,
-                ItemsPanel = new ItemsPanelTemplate(new FrameworkElementFactory(typeof(CustomTabPanel))),
-                Height = 30 // 只显示选项卡头
+                VerticalContentAlignment   = VerticalAlignment.Stretch,
+                ItemsPanel                 = new ItemsPanelTemplate(new FrameworkElementFactory(typeof(CustomTabPanel))),
+                Height                     = 30 // 只显示选项卡头
             };
             _mainGrid = new Grid
             {
                 ColumnDefinitions =
                 {
-                    new ColumnDefinition { Width = new GridLength(320) }, // 设置 - 320宽
+                    new ColumnDefinition { Width = new GridLength(320) },                 // 设置 - 320宽
                     new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) } // 预览器 - 动态适应剩余宽度
                 }
             };
@@ -150,11 +150,11 @@ namespace krrTools
             LoadToolSettingsHosts();
             InitializeProviders();
 
-            Loaded += ApplyToThemeLoaded;
+            Loaded                                    += ApplyToThemeLoaded;
             MainTabControl.PreviewMouseLeftButtonDown += TabControl_PreviewMouseLeftButtonDown;
-            MainTabControl.PreviewMouseMove += TabControl_PreviewMouseMove;
-            MainTabControl.PreviewMouseLeftButtonUp += TabControl_PreviewMouseLeftButtonUp;
-            MainTabControl.SelectionChanged += MainTabControl_SelectionChanged;
+            MainTabControl.PreviewMouseMove           += TabControl_PreviewMouseMove;
+            MainTabControl.PreviewMouseLeftButtonUp   += TabControl_PreviewMouseLeftButtonUp;
+            MainTabControl.SelectionChanged           += MainTabControl_SelectionChanged;
 
             // 添加窗口关闭时的资源清理
             Closed += MainWindow_Closed;
@@ -190,15 +190,15 @@ namespace krrTools
                 }
 
                 // 初始化转换服务
-                var moduleManager = App.Services.GetService(typeof(IModuleManager)) as IModuleManager;
+                var moduleManager         = App.Services.GetService(typeof(IModuleManager)) as IModuleManager;
                 var transformationService = new BeatmapTransformationService(moduleManager!);
 
                 // 使用转换服务
                 Beatmap transformedBeatmap = transformationService.TransformBeatmap(beatmap, converter);
 
                 // 获取工具检查是否有变化
-                IToolModule? tool = moduleManager?.GetToolByName(converter.ToString());
-                bool hasChanges = true; // 默认假设有变化
+                IToolModule? tool       = moduleManager?.GetToolByName(converter.ToString());
+                bool         hasChanges = true; // 默认假设有变化
 
                 if (tool != null)
                 {
@@ -214,9 +214,9 @@ namespace krrTools
                 }
 
                 // 保存转换后谱面
-                string outputPath = transformedBeatmap.GetOutputOsuFileName();
-                string? outputDir = Path.GetDirectoryName(beatmapPath);
-                string fullOutputPath = Path.Combine(outputDir!, outputPath);
+                string  outputPath     = transformedBeatmap.GetOutputOsuFileName();
+                string? outputDir      = Path.GetDirectoryName(beatmapPath);
+                string  fullOutputPath = Path.Combine(outputDir!, outputPath);
 
                 // 限制完整路径长度不超过255个字符，注意getdirectoryname已经标准化非法字符，不需要重新判断
                 if (fullOutputPath.Length > 255)
@@ -249,8 +249,8 @@ namespace krrTools
 
                 Console.WriteLine($"已创建 {zipFilePath}");
 
-                string songsPath = BaseOptionsManager.GetGlobalSettings().SongsPath.Value;
-                string? osuDir = Path.GetDirectoryName(songsPath);
+                string  songsPath = BaseOptionsManager.GetGlobalSettings().SongsPath.Value;
+                string? osuDir    = Path.GetDirectoryName(songsPath);
                 if (osuDir == null)
                     throw new InvalidOperationException("Invalid songs path");
 
@@ -295,12 +295,12 @@ namespace krrTools
 
         private void InitializeProviders()
         {
-            _optionsProviders[ConverterEnum.N2NC] = () => (_convWindowInstance.DataContext as N2NCViewModel)?.Options ?? new N2NCOptions();
-            _optionsProviders[ConverterEnum.DP] = () => (_dpToolWindowInstance.DataContext as DPToolViewModel)?.Options ?? new DPToolOptions();
+            _optionsProviders[ConverterEnum.N2NC]  = () => (_convWindowInstance.DataContext as N2NCViewModel)?.Options ?? new N2NCOptions();
+            _optionsProviders[ConverterEnum.DP]    = () => (_dpToolWindowInstance.DataContext as DPToolViewModel)?.Options ?? new DPToolOptions();
             _optionsProviders[ConverterEnum.KRRLN] = () => (_krrLnTransformerInstance.DataContext as KRRLNTransformerViewModel)?.Options ?? new KRRLNTransformerOptions();
 
-            _viewModelGetters[ConverterEnum.N2NC] = () => _convWindowInstance.DataContext;
-            _viewModelGetters[ConverterEnum.DP] = () => _dpToolWindowInstance.DataContext;
+            _viewModelGetters[ConverterEnum.N2NC]  = () => _convWindowInstance.DataContext;
+            _viewModelGetters[ConverterEnum.DP]    = () => _dpToolWindowInstance.DataContext;
             _viewModelGetters[ConverterEnum.KRRLN] = () => _krrLnTransformerInstance.DataContext;
         }
 
@@ -310,27 +310,27 @@ namespace krrTools
             _currentSettingsContainer = new ContentControl
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Stretch
+                VerticalAlignment   = VerticalAlignment.Stretch
             };
 
             BuildTabs(Enum.GetValues<ConverterEnum>(), converter => converter switch
                                                                     {
-                                                                        ConverterEnum.N2NC => Strings.TabN2NC,
+                                                                        ConverterEnum.N2NC  => Strings.TabN2NC,
                                                                         ConverterEnum.KRRLN => Strings.TabKRRsLN,
-                                                                        ConverterEnum.DP => Strings.TabDPTool,
-                                                                        _ => converter.ToString()
+                                                                        ConverterEnum.DP    => Strings.TabDPTool,
+                                                                        _                   => converter.ToString()
                                                                     }, true);
 
             BuildTabs(Enum.GetValues<ModuleEnum>(), module => module switch
                                                               {
                                                                   ModuleEnum.LVCalculator => Strings.TabKrrLV,
                                                                   ModuleEnum.FilesManager => Strings.TabFilesManager,
-                                                                  ModuleEnum.Listener => Strings.OSUListener,
-                                                                  _ => module.ToString()
+                                                                  ModuleEnum.Listener     => Strings.OSUListener,
+                                                                  _                       => module.ToString()
                                                               }, false);
 
-            Grid previewGrid = BuildPreview();
-            StatusBarControl footer = BuildFooter();
+            Grid             previewGrid = BuildPreview();
+            StatusBarControl footer      = BuildFooter();
 
             // 设置Grid行
             System.Windows.Controls.Grid.SetRow(MainTabControl, 1);
@@ -365,9 +365,9 @@ namespace krrTools
                 headerLabel.FontSize = 14;
                 var tab = new TabViewItem
                 {
-                    Header = headerLabel,
-                    Tag = cfg,
-                    Width = double.NaN,
+                    Header              = headerLabel,
+                    Tag                 = cfg,
+                    Width               = double.NaN,
                     HorizontalAlignment = HorizontalAlignment.Left
                 };
                 var settingsHost = new ContentControl();
@@ -377,7 +377,7 @@ namespace krrTools
                 {
                     var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
                     settingsHost.Content = null;
-                    scroll.Content = settingsHost;
+                    scroll.Content       = settingsHost;
                     SharedUIComponents.CreateStandardPanel(scroll, new Thickness(8));
                 }
                 else
@@ -400,17 +400,17 @@ namespace krrTools
                 {
                     var snackbar = new Snackbar(_snackbarPresenter)
                     {
-                        Title = title,
-                        Content = message,
+                        Title      = title,
+                        Content    = message,
                         Appearance = ControlAppearance.Success,
-                        Timeout = TimeSpan.FromSeconds(5)
+                        Timeout    = TimeSpan.FromSeconds(5)
                     };
                     snackbar.Show();
                 }
             };
             var unused = new FileDropZoneViewModel(fileDispatcher)
             {
-                PreviewDual = _previewDual,
+                PreviewDual     = _previewDual,
                 GetActiveTabTag = GetActiveTabTag
             };
             unused.InjectServices(); // 注入依赖项
@@ -419,7 +419,7 @@ namespace krrTools
                 ViewModel =
                 {
                     GetActiveTabTag = GetActiveTabTag,
-                    PreviewDual = _previewDual
+                    PreviewDual     = _previewDual
                 }
             };
 
@@ -463,12 +463,12 @@ namespace krrTools
                     if (frozen)
                     {
                         statusBarControl.RealTimeToggle.IsEnabled = false;
-                        statusBarControl.TopmostToggle.IsEnabled = false;
+                        statusBarControl.TopmostToggle.IsEnabled  = false;
                     }
                     else
                     {
                         statusBarControl.RealTimeToggle.IsEnabled = true;
-                        statusBarControl.TopmostToggle.IsEnabled = true;
+                        statusBarControl.TopmostToggle.IsEnabled  = true;
                     }
                 });
             });
@@ -518,14 +518,14 @@ namespace krrTools
         {
             if (element is FrameworkElement fe)
             {
-                fe.Width = double.NaN;
-                fe.Height = double.NaN;
-                fe.MinWidth = 0;
-                fe.MinHeight = 0;
-                fe.MaxWidth = double.PositiveInfinity;
-                fe.MaxHeight = double.PositiveInfinity;
+                fe.Width               = double.NaN;
+                fe.Height              = double.NaN;
+                fe.MinWidth            = 0;
+                fe.MinHeight           = 0;
+                fe.MaxWidth            = double.PositiveInfinity;
+                fe.MaxHeight           = double.PositiveInfinity;
                 fe.HorizontalAlignment = HorizontalAlignment.Stretch;
-                fe.VerticalAlignment = VerticalAlignment.Stretch;
+                fe.VerticalAlignment   = VerticalAlignment.Stretch;
             }
 
             // 递归处理逻辑子项
@@ -558,13 +558,13 @@ namespace krrTools
             return null;
         }
 
-        #region 嵌入各工具设置窗口
+#region 嵌入各工具设置窗口
 
         private class ToolEmbeddingConfig
         {
-            public required Func<UserControl> ControlFactory { get; init; }
-            public required Func<ContentControl?> HostGetter { get; init; }
-            public Action<UserControl>? InstanceSetter { get; init; }
+            public required Func<UserControl>     ControlFactory { get; init; }
+            public required Func<ContentControl?> HostGetter     { get; init; }
+            public          Action<UserControl>?  InstanceSetter { get; init; }
         }
 
         // 通用方法：将工具控件的内容嵌入到指定的宿主容器中
@@ -575,8 +575,8 @@ namespace krrTools
 
             // 将整个工具控件嵌入到宿主，保留绑定和事件处理器
             host.DataContext = toolControl.DataContext;
-            host.Content = toolControl;
-            host.AllowDrop = true; // 允许拖拽事件传递到内容
+            host.Content     = toolControl;
+            host.AllowDrop   = true; // 允许拖拽事件传递到内容
         }
 
         private void LoadToolSettingsHosts()
@@ -586,43 +586,43 @@ namespace krrTools
                 new ToolEmbeddingConfig
                 {
                     ControlFactory = () => new N2NCView(),
-                    HostGetter = () => N2NCSettingsHost,
+                    HostGetter     = () => N2NCSettingsHost,
                     InstanceSetter = control => _convWindowInstance = (N2NCView)control
                 },
                 new ToolEmbeddingConfig
                 {
                     ControlFactory = () => new KRRLNTransformerView(),
-                    HostGetter = () => KRRLNSettingsHost,
+                    HostGetter     = () => KRRLNSettingsHost,
                     InstanceSetter = control => _krrLnTransformerInstance = (KRRLNTransformerView)control
                 },
                 new ToolEmbeddingConfig
                 {
                     ControlFactory = () => new DPToolView(),
-                    HostGetter = () => DPSettingsHost,
+                    HostGetter     = () => DPSettingsHost,
                     InstanceSetter = control => _dpToolWindowInstance = (DPToolView)control
                 },
                 new ToolEmbeddingConfig
                 {
                     ControlFactory = () => new KRRLVAnalysisView(),
-                    HostGetter = () => LVCalSettingsHost
+                    HostGetter     = () => LVCalSettingsHost
                 },
                 new ToolEmbeddingConfig
                 {
                     ControlFactory = () => new FilesManagerView(),
-                    HostGetter = () => FilesManagerHost
+                    HostGetter     = () => FilesManagerHost
                 },
                 new ToolEmbeddingConfig
                 {
                     ControlFactory = () => new ListenerControl(),
-                    HostGetter = () => ListenerSettingsHost,
+                    HostGetter     = () => ListenerSettingsHost,
                     InstanceSetter = control => { _listenerControlInstance = (ListenerControl)control; }
                 }
             };
 
             foreach (ToolEmbeddingConfig config in toolConfigs)
             {
-                UserControl control = config.ControlFactory();
-                ContentControl? host = config.HostGetter();
+                UserControl     control = config.ControlFactory();
+                ContentControl? host    = config.HostGetter();
 
                 if (host != null)
                 {
@@ -632,15 +632,15 @@ namespace krrTools
             }
         }
 
-        #endregion
+#endregion
 
         // 选项卡拖动/分离处理 - 克隆内容用于分离窗口，保持原选项卡不变
         private void TabControl_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             _dragStartPoint = e.GetPosition(this);
-            _dragStartTime = DateTime.Now;
+            _dragStartTime  = DateTime.Now;
             // 查找鼠标下的 Tab
-            var source = e.OriginalSource as DependencyObject;
+            var source                                                = e.OriginalSource as DependencyObject;
             while (source != null && !(source is TabViewItem)) source = VisualTreeHelper.GetParent(source);
 
             _draggedTab = source as TabViewItem;
@@ -653,9 +653,9 @@ namespace krrTools
             // 检查按下时间是否超过阈值，避免误触
             if ((DateTime.Now - _dragStartTime).TotalMilliseconds < 300) return;
 
-            Point pos = e.GetPosition(this);
-            double dx = Math.Abs(pos.X - _dragStartPoint.X);
-            double dy = Math.Abs(pos.Y - _dragStartPoint.Y);
+            Point        pos           = e.GetPosition(this);
+            double       dx            = Math.Abs(pos.X - _dragStartPoint.X);
+            double       dy            = Math.Abs(pos.Y - _dragStartPoint.Y);
             const double dragThreshold = 15.0; // 最小拖动距离以触发分离
 
             if (dx > dragThreshold || dy > dragThreshold)
@@ -670,7 +670,7 @@ namespace krrTools
             _draggedTab = null;
         }
 
-        #region 构建独立选项卡，切换时更新设置和预览
+#region 构建独立选项卡，切换时更新设置和预览
 
         private void DetachTab(TabViewItem tab)
         {
@@ -698,18 +698,18 @@ namespace krrTools
             UserControl CreateFreshWindow() => (UserControl)Activator.CreateInstance(controlType)!;
 
             UserControl control = CreateFreshWindow(); // 创建新控件实例
-            var win = new Window // 独立窗口
+            var win = new Window                       // 独立窗口
             {
-                Title = header,
+                Title   = header,
                 Content = control,
-                Width = 800,
-                Height = 600,
-                Owner = this
+                Width   = 800,
+                Height  = 600,
+                Owner   = this
             };
 
             System.Drawing.Point cursor = System.Windows.Forms.Cursor.Position;
             win.Left = cursor.X - 40;
-            win.Top = cursor.Y - 10;
+            win.Top  = cursor.Y - 10;
 
             int insertIndex = MainTabControl.Items.IndexOf(tab);
             MainTabControl.Items.Remove(tab);
@@ -719,12 +719,12 @@ namespace krrTools
             {
                 System.Drawing.Point p = System.Windows.Forms.Cursor.Position;
                 win.Left = p.X - 40;
-                win.Top = p.Y - 10;
+                win.Top  = p.Y - 10;
 
                 if ((Control.MouseButtons & MouseButtons.Left) !=
                     MouseButtons.Left)
                 {
-                    var tabPanel = FindVisualChild<TabPanel>(MainTabControl);
+                    var  tabPanel = FindVisualChild<TabPanel>(MainTabControl);
                     Rect headerRect;
 
                     if (tabPanel != null)
@@ -771,7 +771,7 @@ namespace krrTools
             win.Show();
         }
 
-        #endregion
+#endregion
 
         private ConverterEnum GetActiveTabTag()
         {
@@ -786,13 +786,13 @@ namespace krrTools
             protected override Size MeasureOverride(Size availableSize)
             {
                 double totalWidth = 0;
-                double maxHeight = 0;
+                double maxHeight  = 0;
 
                 foreach (UIElement child in InternalChildren)
                 {
                     child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
                     totalWidth += child.DesiredSize.Width;
-                    maxHeight = Math.Max(maxHeight, child.DesiredSize.Height);
+                    maxHeight  =  Math.Max(maxHeight, child.DesiredSize.Height);
                 }
 
                 return new Size(totalWidth, maxHeight);
@@ -802,7 +802,7 @@ namespace krrTools
         private void MainTabControl_SelectionChanged(object? sender, SelectionChangedEventArgs? e)
         {
             object? selectedTag = (MainTabControl.SelectedItem as TabViewItem)?.Tag;
-            bool isConverter = selectedTag is ConverterEnum;
+            bool    isConverter = selectedTag is ConverterEnum;
 
             if (selectedTag != null)
             {
