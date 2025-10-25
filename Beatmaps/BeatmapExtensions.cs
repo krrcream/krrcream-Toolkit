@@ -116,24 +116,28 @@ namespace krrTools.Beatmaps
             var title = beatmap.MetadataSection.Title ?? "";
             var creator = beatmap.MetadataSection.Creator ?? "";
             var version = beatmap.MetadataSection.Version ?? "";
-
+            
+            
             // 使用正则表达式移除所有非法字符
             var invalidCharsPattern = $"[{Regex.Escape(new string(Path.GetInvalidFileNameChars()))}]";
             artist = Regex.Replace(artist, invalidCharsPattern, "");
             title = Regex.Replace(title, invalidCharsPattern, "");
             creator = Regex.Replace(creator, invalidCharsPattern, "");
             version = Regex.Replace(version, invalidCharsPattern, "");
+            
+            // 限制artist和title长度
+            if (artist.Length > 81)
+                artist = artist.Substring(0, 78) + "...";
+                beatmap.MetadataSection.Artist = artist;    
+                
+            if (title.Length > 81)
+                title = title.Substring(0, 78) + "...";
+                beatmap.MetadataSection.Title = title;    
+            
             var FileName = isPreview == true
                 ? $"{title} // {version}"
                 : $"{artist} - {title} ({creator}) [{version}]";
-
-            var remainder = 250 - beatmap.OriginalFilePath.Length;
-
-            if (FileName.Length > remainder) FileName = FileName.Substring(0, remainder) + "...";
-
-            // 清理最终文件名中的非法字符
-            FileName = Regex.Replace(FileName, invalidCharsPattern, "");
-
+            
             return FileName + ".osu";
         }
 
