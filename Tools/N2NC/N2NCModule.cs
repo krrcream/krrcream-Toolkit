@@ -49,9 +49,10 @@ namespace krrTools.Tools.N2NC
                 bool isSelected = ((int)keyFlags.Value & (1 << AlignmentPreProcessCS)) != 0;
                 if (!isSelected) return false;
             }
-
-            // 如果目标键数与当前键数相同，不会转换
-            return Math.Abs(options.TargetKeys.Value - beatmap.DifficultySection.CircleSize) > 0.01;
+            if ((int)options.MaxKeys.Value == (int)beatmap.DifficultySection.CircleSize 
+                && (int)options.TargetKeys.Value == (int)beatmap.DifficultySection.CircleSize)
+                return false;    
+            return true;
         }
     }
 }
