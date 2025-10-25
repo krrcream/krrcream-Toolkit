@@ -74,5 +74,33 @@ namespace krrTools.Beatmaps
 
             return false;
         }
+
+        /// <summary>
+        /// 限制文件路径长度不超过255个字符
+        /// </summary>
+        /// <param name="fullPath">完整文件路径</param>
+        /// <returns>处理后的文件路径</returns>
+        public static string Limit255PathLength(this string fullPath)
+        {
+            if (fullPath.Length <= 255)
+                return fullPath;
+
+            int excessLength = fullPath.Length - 255;
+            string directory = Path.GetDirectoryName(fullPath);
+            string fileName = Path.GetFileName(fullPath);
+
+            // 减掉文件名开头的第0到excessLength+3个字符，然后在文件名开头加".."
+            if (excessLength + 3 < fileName.Length)
+            {
+                fileName = ".." + fileName.Substring(excessLength + 3);
+                return Path.Combine(directory, fileName);
+            }
+            else
+            {
+                // 如果超出了太多以至于无法简单添加".."，则使用原来的处理方式
+                string pathWithoutExtension = fullPath.Substring(0, fullPath.Length - 4);
+                return pathWithoutExtension.Substring(0, 249) + "...osu";
+            }
+        }
     }
 }

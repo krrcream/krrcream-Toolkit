@@ -7,108 +7,100 @@ using krrTools.Utilities;
 using Moq;
 using Xunit;
 
-namespace krrTools.Tests.交互检查;
-
-public class FileDropZoneViewModelSimpleTests
+namespace krrTools.Tests.交互检查
 {
-    [Fact]
-    public void Constructor_ShouldInitializeWithDefaultValues()
+    public class FileDropZoneViewModelSimpleTests
     {
-        STATestHelper.RunInSTA(() =>
+        [Fact]
+        public void Constructor_ShouldInitializeWithDefaultValues()
         {
-            // Arrange - Create instances in STA thread for WPF components
-            var mockPreviewViewModel = new Mock<PreviewViewModel>();
-            var previewDual = new PreviewViewDual(mockPreviewViewModel.Object);
-            var fileDispatcher = new FileDispatcher();
-
-            static ConverterEnum getActiveTabTag()
+            STATestHelper.RunInSTA(() =>
             {
-                return ConverterEnum.N2NC;
-            }
+                // Arrange - Create instances in STA thread for WPF components
+                var mockPreviewViewModel = new Mock<PreviewViewModel>();
+                var previewDual = new PreviewViewDual(mockPreviewViewModel.Object);
+                var fileDispatcher = new FileDispatcher();
 
-            var viewModel = new FileDropZoneViewModel(fileDispatcher)
-            {
-                PreviewDual = previewDual,
-                GetActiveTabTag = getActiveTabTag
-            };
+                static ConverterEnum getActiveTabTag() => ConverterEnum.N2NC;
 
-            // Assert
-            Assert.False(viewModel.IsConversionEnabled);
-            Assert.NotEmpty(viewModel.DisplayText);
-        });
-    }
+                var viewModel = new FileDropZoneViewModel(fileDispatcher)
+                {
+                    PreviewDual = previewDual,
+                    GetActiveTabTag = getActiveTabTag
+                };
 
-    [Fact]
-    public void SetFiles_WithValidFiles_ShouldEnableConversion()
-    {
-        STATestHelper.RunInSTA(() =>
+                // Assert
+                Assert.False(viewModel.IsConversionEnabled);
+                Assert.NotEmpty(viewModel.DisplayText);
+            });
+        }
+
+        [Fact]
+        public void SetFiles_WithValidFiles_ShouldEnableConversion()
         {
-            // Arrange
-            var mockPreviewViewModel = new Mock<PreviewViewModel>();
-            var previewDual = new PreviewViewDual(mockPreviewViewModel.Object);
-            var fileDispatcher = new FileDispatcher();
-
-            ConverterEnum getActiveTabTag()
+            STATestHelper.RunInSTA(() =>
             {
-                return ConverterEnum.N2NC;
-            }
+                // Arrange
+                var mockPreviewViewModel = new Mock<PreviewViewModel>();
+                var previewDual = new PreviewViewDual(mockPreviewViewModel.Object);
+                var fileDispatcher = new FileDispatcher();
 
-            var viewModel = new FileDropZoneViewModel(fileDispatcher)
-            {
-                PreviewDual = previewDual,
-                GetActiveTabTag = getActiveTabTag
-            };
+                ConverterEnum getActiveTabTag() => ConverterEnum.N2NC;
 
-            var testFiles = new[] { "test1.osu", "test2.osu" };
-            var filesDroppedEventFired = false;
-            string[]? droppedFiles = null;
+                var viewModel = new FileDropZoneViewModel(fileDispatcher)
+                {
+                    PreviewDual = previewDual,
+                    GetActiveTabTag = getActiveTabTag
+                };
 
-            viewModel.FilesDropped += (_, files) =>
-            {
-                filesDroppedEventFired = true;
-                droppedFiles = files;
-            };
+                string[] testFiles = new[] { "test1.osu", "test2.osu" };
+                bool filesDroppedEventFired = false;
+                string[]? droppedFiles = null;
 
-            // Act
-            viewModel.SetFiles(testFiles);
+                viewModel.FilesDropped += (_, files) =>
+                {
+                    filesDroppedEventFired = true;
+                    droppedFiles = files;
+                };
 
-            // Assert
-            Assert.True(viewModel.IsConversionEnabled);
-            Assert.True(filesDroppedEventFired);
-            Assert.Equal(testFiles, droppedFiles);
-        });
-    }
+                // Act
+                viewModel.SetFiles(testFiles);
 
-    [Fact]
-    public void PropertyChanged_ShouldFireWhenFilesChange()
-    {
-        STATestHelper.RunInSTA(() =>
+                // Assert
+                Assert.True(viewModel.IsConversionEnabled);
+                Assert.True(filesDroppedEventFired);
+                Assert.Equal(testFiles, droppedFiles);
+            });
+        }
+
+        [Fact]
+        public void PropertyChanged_ShouldFireWhenFilesChange()
         {
-            // Arrange
-            var mockPreviewViewModel = new Mock<PreviewViewModel>();
-            var previewDual = new PreviewViewDual(mockPreviewViewModel.Object);
-            var fileDispatcher = new FileDispatcher();
-
-            ConverterEnum getActiveTabTag()
+            STATestHelper.RunInSTA(() =>
             {
-                return ConverterEnum.N2NC;
-            }
+                // Arrange
+                var mockPreviewViewModel = new Mock<PreviewViewModel>();
+                var previewDual = new PreviewViewDual(mockPreviewViewModel.Object);
+                var fileDispatcher = new FileDispatcher();
 
-            var viewModel = new FileDropZoneViewModel(fileDispatcher)
-            {
-                PreviewDual = previewDual,
-                GetActiveTabTag = getActiveTabTag
-            };
+                ConverterEnum getActiveTabTag() => ConverterEnum.N2NC;
 
-            var propertyChangedEvents = new List<PropertyChangedEventArgs>();
-            viewModel.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
+                var viewModel = new FileDropZoneViewModel(fileDispatcher)
+                {
+                    PreviewDual = previewDual,
+                    GetActiveTabTag = getActiveTabTag
+                };
 
-            // Act
-            viewModel.SetFiles(["test.osu"]);
+                var propertyChangedEvents = new List<PropertyChangedEventArgs>();
+                viewModel.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
 
-            // Assert
-            Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(viewModel.DisplayText));
-            Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(viewModel.IsConversionEnabled));
-        });
+                // Act
+                viewModel.SetFiles(["test.osu"]);
+
+                // Assert
+                Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(viewModel.DisplayText));
+                Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(viewModel.IsConversionEnabled));
+            });
+        }
     }
 }

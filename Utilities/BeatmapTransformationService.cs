@@ -84,21 +84,7 @@ namespace krrTools.Utilities
                 // 保存转换后谱面，如果文件存在则删除旧的再保存
                 string outputPath = transformedBeatmap.GetOutputOsuFileName();
                 string? outputDir = Path.GetDirectoryName(inputPath);
-                string fullOutputPath = Path.Combine(outputDir!, outputPath);
-
-                // 限制完整路径长度不超过255个字符，注意getdirectoryname已经标准化非法字符，不需要重新判断
-                if (fullOutputPath.Length > 255)
-                {
-                    // 直接处理路径超长情况
-                    if (fullOutputPath.Length > 255)
-                    {
-                        // 去掉最后的".osu"扩展名
-                        string pathWithoutExtension = fullOutputPath.Substring(0, fullOutputPath.Length - 4);
-
-                        // 截取到247个字符，然后加上".osu"
-                        fullOutputPath = pathWithoutExtension.Substring(0, 247) + "....osu";
-                    }
-                }
+                string fullOutputPath = Path.Combine(outputDir!, outputPath).Limit255PathLength();
 
                 // 检查输出路径是否已存在，记录冲突
                 if (File.Exists(fullOutputPath))

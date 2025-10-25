@@ -237,9 +237,12 @@ namespace krrTools.Tools.KRRLVAnalysis
         {
             if (dataGrid == null) return;
             GlobalSettings config = BaseOptionsManager.GetGlobalSettings();
+
             if (config.DataGridColumnOrders.Value.TryGetValue(ToolName, out List<int>? orders) && orders.Count == dataGrid.Columns.Count)
+            {
                 for (int i = 0; i < orders.Count; i++)
                     dataGrid.Columns[i].DisplayIndex = orders[i];
+            }
         }
 
         private void OnColumnReordered(object? sender, DataGridColumnEventArgs e)

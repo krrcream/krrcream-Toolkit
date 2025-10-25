@@ -128,14 +128,18 @@ namespace krrTools.Beatmaps
             creator = Regex.Replace(creator, invalidCharsPattern, "");
             version = Regex.Replace(version, invalidCharsPattern, "");
 
-            // 限制artist和title长度
-            if (artist.Length > 81)
-                artist = artist.Substring(0, 78) + "...";
-            beatmap.MetadataSection.Artist = artist;
+            // 限制artist和title长度，官方要求81，但是为了给标签腾出安全位置 81 - 17 = 64
+            if (artist.Length > 64)
+            {
+                artist = artist.Substring(0, 61) + "...";
+                beatmap.MetadataSection.Artist = artist;
+            }
 
-            if (title.Length > 81)
-                title = title.Substring(0, 78) + "...";
-            beatmap.MetadataSection.Title = title;
+            if (title.Length > 64)
+            {
+                title = title.Substring(0, 61) + "...";
+                beatmap.MetadataSection.Title = title;
+            }
 
             string FileName = isPreview == true
                                   ? $"{title} // {version}"

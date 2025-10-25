@@ -493,7 +493,7 @@ namespace krrTools.Tools.KRRLNTransformer
             int cols = MTX.Cols;
 
             // 收集所有true的位置
-            List<(int row, int col)> truePositions = new List<(int row, int col)>();
+            var truePositions = new List<(int row, int col)>();
 
             for (int i = 0; i < mtxSpan.Length; i++)
             {

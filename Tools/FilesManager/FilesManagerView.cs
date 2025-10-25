@@ -339,9 +339,12 @@ namespace krrTools.Tools.FilesManager
         {
             if (_fileDataGrid == null) return;
             GlobalSettings config = BaseOptionsManager.GetGlobalSettings();
+
             if (config.DataGridColumnOrders.Value.TryGetValue(ToolName, out List<int>? orders) && orders.Count == _fileDataGrid.Columns.Count)
+            {
                 for (int i = 0; i < orders.Count; i++)
                     _fileDataGrid.Columns[i].DisplayIndex = orders[i];
+            }
         }
 
         private void OnColumnReordered(object? sender, DataGridColumnEventArgs e)

@@ -101,15 +101,21 @@ namespace krrTools.Beatmaps
 
             // 优化：预计算LN序列长度，避免Where().ToArray()
             int lnCount = 0;
+
             foreach (Note note in noteSeq)
+            {
                 if (note.T >= 0)
                     lnCount++;
+            }
 
             LNSeq = new Note[lnCount];
             int lnIndex = 0;
+
             foreach (Note note in noteSeq)
+            {
                 if (note.T >= 0)
                     LNSeq[lnIndex++] = note;
+            }
 
             // 优化：直接排序LNSeq而不是创建新数组
             Array.Sort(LNSeq, (a, b) => a.T.CompareTo(b.T));

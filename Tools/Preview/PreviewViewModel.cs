@@ -196,9 +196,7 @@ namespace krrTools.Tools.Preview
                 if (beatmap == null) return;
 
                 if (Application.Current != null)
-                {
                     Application.Current.Dispatcher.Invoke(() => { OriginalVisual = Processor.BuildOriginalVisual(beatmap); });
-                }
                 else
                     OriginalVisual = Processor.BuildOriginalVisual(beatmap);
 
@@ -233,9 +231,7 @@ namespace krrTools.Tools.Preview
                 if (beatmap == null) return;
 
                 if (Application.Current != null)
-                {
                     Application.Current.Dispatcher.Invoke(() => { ConvertedVisual = Processor.BuildConvertedVisual(beatmap); });
-                }
                 else
                     ConvertedVisual = Processor.BuildConvertedVisual(beatmap);
 

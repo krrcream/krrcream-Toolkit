@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace krrTools.Tests.交互检查
 {
-    class Program
+    internal class Program
     {
         [DllImport("user32.dll")]
         private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);

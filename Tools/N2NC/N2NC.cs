@@ -204,9 +204,13 @@ namespace krrTools.Tools.N2NC
             var OrgColIndex = new List<int>();
             int cols = matrix.Cols;
             Span<int> matrixSpan = matrix.AsSpan();
+
             for (int i = 0; i < matrixSpan.Length; i++)
+            {
                 if (matrixSpan[i] >= 0)
                     OrgColIndex.Add(i % cols);
+            }
+
             return CollectionsMarshal.AsSpan(OrgColIndex);
         }
 
@@ -407,9 +411,12 @@ namespace krrTools.Tools.N2NC
         {
             Span<int> newMatrixSpan = newMatrix.AsSpan();
             Span<bool> MarkSpan = Mark.AsSpan();
+
             for (int i = 0; i < newMatrixSpan.Length; i++)
+            {
                 if (MarkSpan[i])
                     newMatrixSpan[i] = -1;
+            }
         }
 
         private void ShiftInsert<T>(T nums, int insertIndex) where T : IList<int>
