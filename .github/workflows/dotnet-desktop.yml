@@ -60,7 +60,7 @@ jobs:
       - name: Push to Gitee
         run: |
           git remote add gitee https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/krrcream/krrcream-Toolkit.git
-          git push gitee HEAD:master
+          git push --force gitee HEAD:master
           git push gitee --tags
-          git push gitee --all
+          git push --force gitee --all
     
