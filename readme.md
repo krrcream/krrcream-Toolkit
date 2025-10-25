@@ -10,7 +10,7 @@ Special thanks to [SK-la](https://github.com/SK-la) for the contribution to UI d
 
 ## How to Use
 
- See the [Guide](guide.md) for detailed instructions.
+ See the [Guide](doc/guide.md) for detailed instructions.
 
 ## 📥 Download
 
