@@ -57,8 +57,8 @@ jobs:
 
       - name: Push to Gitee
         run: |
-          git push --mirror https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/krrcream/krrcream-Toolkit.git
-
+          run: |    git push --force https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/krrcream/krrcream-Toolkit.git --all
+          git push --force https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/krrcream/krrcream-Toolkit.git --tags
       - name: Push to Gitee
         run: |          
           git push gitee HEAD:master
