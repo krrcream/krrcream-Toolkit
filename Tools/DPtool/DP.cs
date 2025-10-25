@@ -55,8 +55,13 @@ namespace krrTools.Tools.DPtool
         public void TransformBeatmap(Beatmap beatmap, DPToolOptions options)
         {
             float originalCircleSize = beatmap.DifficultySection.CircleSize;
-            (Matrix? matrix, List<int>? timeAxis) = beatmap.getMTXandTimeAxis();
-            Matrix processedMatrix = ProcessMatrix(matrix, timeAxis, beatmap, options);
+            Matrix matrix;
+            List<int> timeAxisTemp;
+            if ((int)options.ModifyKeys.Value - (int)beatmap.DifficultySection.CircleSize >= 0)
+                (matrix, timeAxisTemp) = beatmap.getMTXandTimeAxis();
+            else
+                (matrix, timeAxisTemp) = beatmap.getExpandHoldBodyMTXandTimeAxis();
+            Matrix processedMatrix = ProcessMatrix(matrix, timeAxisTemp, beatmap, options);
             var Conv = new N2NC.N2NC();
             ApplyChangesToHitObjects(beatmap, processedMatrix, options, originalCircleSize);
             MetadetaChange(beatmap, options);
