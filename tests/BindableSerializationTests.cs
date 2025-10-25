@@ -18,11 +18,29 @@ namespace krrTools.Tests
             string json = JsonSerializer.Serialize(bindable, options);
 
             // Assert
-            Assert.Equal("\"test path\"", json);
+            Assert.Contains("\"Value\":\"test path\"", json);
+            Assert.Contains("\"Disabled\":false", json);
         }
 
         [Fact]
         public void BindableString_DeserializesCorrectly()
+        {
+            // Arrange
+            string json = "{\"Value\":\"test path\",\"Disabled\":false}";
+
+            // Act
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(new BindableJsonConverter<string>());
+            var bindable = JsonSerializer.Deserialize<Bindable<string>>(json, options);
+
+            // Assert
+            Assert.NotNull(bindable);
+            Assert.Equal("test path", bindable.Value);
+            Assert.False(bindable.Disabled);
+        }
+
+        [Fact]
+        public void BindableString_BackwardCompatibility()
         {
             // Arrange
             string json = "\"test path\"";

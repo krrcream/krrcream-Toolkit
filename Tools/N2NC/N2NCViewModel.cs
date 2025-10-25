@@ -120,7 +120,7 @@ public class N2NCViewModel : ToolViewModelBase<N2NCOptions>, IPreviewOptionsProv
         }
     }
 
-    private KeySelectionFlags _keySelection = KeySelectionFlags.None;
+    private KeySelectionFlags _keySelection = (KeySelectionFlags)0b0011111111;
 
     private void InitializeLocalized()
     {

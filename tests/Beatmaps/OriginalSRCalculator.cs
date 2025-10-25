@@ -562,8 +562,13 @@ namespace krrTools.Tests.Beatmaps
             }
         }
 
-        private double CalculateSection3(double[] JBar, double[] XBar, double[] PBar,
-                                         double[] ABar, double[] RBar, int[] KS)
+        private double CalculateSection3(
+            double[] JBar,
+            double[] XBar,
+            double[] PBar,
+            double[] ABar,
+            double[] RBar,
+            int[] KS)
         {
             double[] C = new double[T];
             int start = 0, end = 0;

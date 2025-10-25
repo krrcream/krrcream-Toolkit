@@ -24,7 +24,7 @@ namespace krrTools.Tests.PerformanceTests
             var services = new ServiceCollection();
             services.AddSingleton(mockEventBus.Object);
             services.AddSingleton<StateBarManager>();
-            var serviceProvider = services.BuildServiceProvider();
+            ServiceProvider serviceProvider = services.BuildServiceProvider();
             Injector.SetTestServiceProvider(serviceProvider);
         }
 
@@ -81,7 +81,7 @@ namespace krrTools.Tests.PerformanceTests
             var services = new ServiceCollection();
             services.AddSingleton(mockEventBus.Object);
             services.AddSingleton<StateBarManager>();
-            var serviceProvider = services.BuildServiceProvider();
+            ServiceProvider serviceProvider = services.BuildServiceProvider();
             Injector.SetTestServiceProvider(serviceProvider);
 
             try

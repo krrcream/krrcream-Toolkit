@@ -32,12 +32,6 @@ namespace krrTools.Utilities
         // 菜单项引用，用于语言切换时更新
         private MenuItem _themeMenuItem = null!;
 
-        public StatusBarControl()
-        {
-            InitializeComponent();
-            LocalizationService.LanguageChanged += OnLanguageChanged;
-        }
-
         public StatusBarControl(StateBarManager stateBarManager)
         {
             _stateBarManager = stateBarManager;

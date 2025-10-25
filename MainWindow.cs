@@ -217,6 +217,21 @@ namespace krrTools
                 string outputPath = transformedBeatmap.GetOutputOsuFileName();
                 string? outputDir = Path.GetDirectoryName(beatmapPath);
                 string fullOutputPath = Path.Combine(outputDir!, outputPath);
+
+                // 限制完整路径长度不超过255个字符，注意getdirectoryname已经标准化非法字符，不需要重新判断
+                if (fullOutputPath.Length > 255)
+                {
+                    // 直接处理路径超长情况
+                    if (fullOutputPath.Length > 255)
+                    {
+                        // 去掉最后的".osu"扩展名
+                        string pathWithoutExtension = fullOutputPath.Substring(0, fullOutputPath.Length - 4);
+
+                        // 截取到247个字符，然后加上".osu"
+                        fullOutputPath = pathWithoutExtension.Substring(0, 247) + "....osu";
+                    }
+                }
+
                 transformedBeatmap.Save(fullOutputPath);
 
                 // 打包成.osz并打开
@@ -863,6 +878,9 @@ namespace krrTools
         // 处理窗口关闭时的资源清理
         private void MainWindow_Closed(object? sender, EventArgs e)
         {
+            // 确保设置保存
+            BaseOptionsManager.GetGlobalSettings().Flush();
+
             // 清理预览ViewModel的资源
             if (_previewDual.ViewModel is IDisposable disposableViewModel) disposableViewModel.Dispose();
 

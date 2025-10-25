@@ -96,9 +96,11 @@ namespace krrTools.Configuration
                 {
                     string json = File.ReadAllText(path);
                     var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    opts.Converters.Add(new BindableJsonConverter<bool>());
                     opts.Converters.Add(new BindableJsonConverter<string>());
                     opts.Converters.Add(new BindableJsonConverter<Dictionary<string, List<int>>>());
                     _cachedConfig = JsonSerializer.Deserialize<AppConfig>(json, opts) ?? new AppConfig();
+                    _cachedConfig.GlobalSettings.SetupAutoSave();
 
                     return _cachedConfig;
                 }
@@ -150,6 +152,7 @@ namespace krrTools.Configuration
             AppConfig config = LoadConfig();
             object? value = config.Converters.GetValueOrDefault(converter);
             if (value is JsonElement jsonElement) return jsonElement.Deserialize<T>();
+
             return (T?)value;
         }
 
@@ -172,6 +175,7 @@ namespace krrTools.Configuration
             AppConfig config = LoadConfig();
             object? value = config.Modules.GetValueOrDefault(module);
             if (value is JsonElement jsonElement) return jsonElement.Deserialize<T>();
+
             return (T?)value;
         }
 
@@ -384,7 +388,9 @@ namespace krrTools.Configuration
         /// </summary>
         public static bool GetForceChinese()
         {
-            return GetGlobalSettings().ForceChinese.Value;
+            bool value = GetGlobalSettings().ForceChinese.Value;
+            Logger.WriteLine(LogLevel.Debug, $"[BaseOptionsManager] GetForceChinese: returning {value}");
+            return value;
         }
 
         /// <summary>

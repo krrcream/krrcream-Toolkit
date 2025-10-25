@@ -59,7 +59,35 @@ namespace krrTools.Beatmaps
         public static int GetPositionX(int column, int index)
         {
             // 拟合公式，结果四舍五入，和编辑器结果基本一致
-            return (index - 1) * 512 / column + 256 / column;
+            double result = (index - 1) * 512.0 / column + 256.0 / column;
+            return (int)Math.Round(result);
+        }
+
+        public static int PositionXToColumn(int keyCount, int x)
+        {
+            if (KeyValueMap.TryGetValue(keyCount, out int[]? row))
+            {
+                int minDiff = int.MaxValue;
+                int closestColumn = 0;
+
+                for (int i = 0; i < row.Length; i++)
+                {
+                    int diff = Math.Abs(row[i] - x);
+
+                    if (diff < minDiff)
+                    {
+                        minDiff = diff;
+                        closestColumn = i;
+                    }
+                }
+
+                return closestColumn;
+            }
+
+            // 备选计算方式，反算index
+            double index = (x - 256.0 / keyCount) * (keyCount / 512.0) + 1;
+            int col = (int)Math.Round(index) - 1;
+            return Math.Clamp(col, 0, keyCount - 1);
         }
     }
 }

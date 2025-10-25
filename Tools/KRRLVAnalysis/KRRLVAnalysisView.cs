@@ -216,6 +216,7 @@ namespace krrTools.Tools.KRRLVAnalysis
         private void LoadColumnOrder()
         {
             if (dataGrid == null) return;
+
             GlobalSettings config = BaseOptionsManager.GetGlobalSettings();
 
             if (config.DataGridColumnOrders.Value.TryGetValue(ToolName, out List<int>? orders) && orders.Count == dataGrid.Columns.Count)

@@ -23,7 +23,7 @@ namespace krrTools.Tests.交互检查
             services.AddSingleton<StateBarManager>();
             services.AddSingleton<OsuMonitorService>();
             services.AddSingleton<BeatmapAnalysisService>();
-            var serviceProvider = services.BuildServiceProvider();
+            ServiceProvider serviceProvider = services.BuildServiceProvider();
             Injector.SetTestServiceProvider(serviceProvider);
 
             // Reset global settings to defaults for each test

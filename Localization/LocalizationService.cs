@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Windows;
 using krrTools.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.Localization
 {
@@ -69,7 +70,7 @@ namespace krrTools.Localization
                 _enumCache[type] = dict;
             }
 
-            if (dict.TryGetValue(enumValue.ToString(), out string[]? parts) && IsChineseLanguage() && parts.Length > 1)
+            if (dict.TryGetValue(enumValue.ToString(), out string[]? parts) && IsChinese && parts.Length > 1)
                 return parts[1];
 
             return parts != null ? parts[0] : enumValue.ToString();
@@ -107,10 +108,18 @@ namespace krrTools.Localization
 
         #region 核心语言管理
 
-        private static bool _forceChinese = true; // 默认中文
         private static readonly ConcurrentDictionary<string, string[]> _localizationCache = new ConcurrentDictionary<string, string[]>();
         private static readonly ConcurrentDictionary<string, DynamicLocalizedString> _localizedStringCache = new ConcurrentDictionary<string, DynamicLocalizedString>();
         private static readonly ConcurrentDictionary<Type, ConcurrentDictionary<string, string[]>> _enumCache = new ConcurrentDictionary<Type, ConcurrentDictionary<string, string[]>>();
+
+        static LocalizationService()
+        {
+            // 从设置加载语言偏好
+            bool forceChinese = BaseOptionsManager.GetForceChinese();
+            Logger.WriteLine(LogLevel.Debug, $"[LocalizationService] GetForceChinese returned: {forceChinese}");
+            IsChinese = forceChinese;
+            Logger.WriteLine(LogLevel.Debug, $"[LocalizationService] IsChinese initialized to: {IsChinese}");
+        }
 
         /// <summary>
         ///     语言改变事件
@@ -119,34 +128,22 @@ namespace krrTools.Localization
         public static event Action? LanguageChanged;
 
         /// <summary>
-        ///     设置强制中文模式
-        /// </summary>
-        /// <param name="forceChinese">
-        ///     true=中文, false=英文
-        /// </param>
-        private static void SetForceChinese(bool forceChinese)
-        {
-            _forceChinese = forceChinese;
-            BaseOptionsManager.SetForceChinese(forceChinese);
-            LanguageChanged?.Invoke();
-        }
-
-        /// <summary>
         ///     切换语言（中英文互换）
         /// </summary>
         public static void ToggleLanguage()
         {
-            SetForceChinese(!_forceChinese);
+            IsChinese = !IsChinese;
+            Logger.WriteLine(LogLevel.Debug, $"[LocalizationService] ToggleLanguage: IsChinese changed to {IsChinese}");
+            BaseOptionsManager.SetForceChinese(IsChinese);
+            Logger.WriteLine(LogLevel.Debug, $"[LocalizationService] ToggleLanguage: ForceChinese set to {IsChinese}");
+            LanguageChanged?.Invoke();
         }
 
         /// <summary>
         ///     检查当前是否为中文语言
         /// </summary>
         /// <returns>true=中文模式, false=英文模式</returns>
-        private static bool IsChineseLanguage()
-        {
-            return _forceChinese;
-        }
+        public static bool IsChinese { get; private set; }
 
         #endregion
 
@@ -174,7 +171,7 @@ namespace krrTools.Localization
                 _localizationCache[text] = parts;
             }
 
-            return IsChineseLanguage() && parts.Length > 1 ? parts[1] : parts[0];
+            return IsChinese && parts.Length > 1 ? parts[1] : parts[0];
         }
 
         /// <summary>

@@ -47,27 +47,27 @@ namespace krrTools.Configuration
         /// <summary>
         /// 实时预览设置
         /// </summary>
-        public Bindable<bool> MonitoringEnable { get; } = new Bindable<bool>();
+        public Bindable<bool> MonitoringEnable { get; set; } = new Bindable<bool>();
 
         /// <summary>
         /// 应用程序主题设置
         /// </summary>
-        public Bindable<string> ApplicationTheme { get; } = new Bindable<string>();
+        public Bindable<string> ApplicationTheme { get; set; } = new Bindable<string>();
 
         /// <summary>
         /// 窗口背景类型设置
         /// </summary>
-        public Bindable<string> WindowBackdropType { get; } = new Bindable<string>();
+        public Bindable<string> WindowBackdropType { get; set; } = new Bindable<string>();
 
         /// <summary>
         /// 是否更新主题色设置
         /// </summary>
-        public Bindable<bool> UpdateAccent { get; } = new Bindable<bool>();
+        public Bindable<bool> UpdateAccent { get; set; } = new Bindable<bool>();
 
         /// <summary>
         /// 是否强制中文设置
         /// </summary>
-        public Bindable<bool> ForceChinese { get; } = new Bindable<bool>();
+        public Bindable<bool> ForceChinese { get; set; } = new Bindable<bool>();
 
         /// <summary>
         /// osu! Songs文件夹路径
@@ -108,7 +108,7 @@ namespace krrTools.Configuration
             SetupAutoSave();
         }
 
-        private void SetupAutoSave()
+        public void SetupAutoSave()
         {
             MonitoringEnable.OnValueChanged(_ => ScheduleSave());
             ApplicationTheme.OnValueChanged(_ => ScheduleSave());
@@ -165,6 +165,15 @@ namespace krrTools.Configuration
             {
                 _isSaving = false;
             }
+        }
+
+        /// <summary>
+        /// 立即保存设置，取消任何延迟保存
+        /// </summary>
+        public void Flush()
+        {
+            _saveDelayCts?.Cancel();
+            SaveSettingsImmediate();
         }
     }
 }

@@ -46,7 +46,7 @@ namespace krrTools.Tools.DPtool
         private bool WillTransformOccur(DPToolOptions options)
         {
             // 如果没有指定单侧键数，不会进行转换
-            return options.ModifyKeys.Value.HasValue;
+            return true;
         }
     }
 }
