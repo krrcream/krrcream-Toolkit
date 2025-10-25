@@ -581,6 +581,9 @@ namespace krrTools.Tools.N2NC
             List<int> columnsToRemove =
                 GetColumnsToRemove(columnWeights, targetCols, originalCols, orgMTX, regionStart, regionEnd);
 
+            // 添加随机因素来轻微调整选择结果
+            ApplyRandomAdjustmentToColumnSelection(columnsToRemove, columnWeights, originalCols, random);
+
             // 创建列映射关系（原列 -> 新列）
             int[] columnMapping = CreateColumnMapping(originalCols, columnsToRemove);
 
@@ -618,6 +621,38 @@ namespace krrTools.Tools.N2NC
             // 应用约束条件：尽量确保每行至少有一个note，但存在无法添加note的可能
             ApplyMinimumNotesConstraint(newMatrix, orgMTX, regionStart, regionEnd, targetCols, timeAxis, beatLengthAxis,
                                         random);
+        }
+
+        private void ApplyRandomAdjustmentToColumnSelection(List<int> columnsToRemove, int[] columnWeights, int originalCols, Random random)
+        {
+            // 以一定概率替换某些被选中的列，用其他权重相近但不同的列替换
+            for (int i = 0; i < columnsToRemove.Count; i++)
+            {
+                // 25%概率进行调整
+                if (random.NextDouble() < 0.25)
+                {
+                    int currentCol = columnsToRemove[i];
+                    int currentWeight = columnWeights[currentCol];
+
+                    // 寻找权重相近但未被选中的列
+                    var candidates = new List<int>();
+
+                    for (int col = 0; col < originalCols; col++)
+                    {
+                        if (!columnsToRemove.Contains(col) && Math.Abs(columnWeights[col] - currentWeight) <= 1)
+                        {
+                            candidates.Add(col);
+                        }
+                    }
+
+                    // 如果找到候选列，随机替换
+                    if (candidates.Count > 0)
+                    {
+                        int replacement = candidates[random.Next(candidates.Count)];
+                        columnsToRemove[i] = replacement;
+                    }
+                }
+            }
         }
 
         private void ApplyMinimumNotesConstraint(Matrix matrix, Matrix orgMTX, int startRow, int endRow,
@@ -712,6 +747,7 @@ namespace krrTools.Tools.N2NC
                 int weightComparison = a.weight.CompareTo(b.weight);
                 if (weightComparison != 0)
                     return weightComparison;
+
                 return a.risk.CompareTo(b.risk);
             });
 
@@ -942,6 +978,7 @@ namespace krrTools.Tools.N2NC
                     {
                         double timeDistance = timeAxis[r] - timeAxis[row + holdLength];
                         if (timeDistance < minTimeDistance) return true; // 时间距离太近
+
                         break;
                     }
                 }
@@ -1100,7 +1137,7 @@ namespace krrTools.Tools.N2NC
             private readonly int _maxValue;
             private int _currentValue;
             private int _direction;
-            private bool _isSpecialCase;
+            private readonly bool _isSpecialCase;
 
             public OscillatorGenerator(int maxValue, Random? random = null)
             {
