@@ -40,8 +40,6 @@ name: .NET Core Desktop
 
 on:
   push:
-    branches:
-      - master
     tags:
       - 'V*.*.*'  
 
