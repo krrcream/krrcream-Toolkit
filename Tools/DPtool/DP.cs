@@ -57,7 +57,7 @@ namespace krrTools.Tools.DPtool
             float originalCircleSize = beatmap.DifficultySection.CircleSize;
             Matrix matrix;
             List<int> timeAxisTemp;
-            if ((int)options.ModifyKeys.Value - (int)beatmap.DifficultySection.CircleSize >= 0)
+            if (options.ModifyKeys.Value.HasValue && (int)options.ModifyKeys.Value - (int)beatmap.DifficultySection.CircleSize >= 0)
                 (matrix, timeAxisTemp) = beatmap.getMTXandTimeAxis();
             else
                 (matrix, timeAxisTemp) = beatmap.getExpandHoldBodyMTXandTimeAxis();
@@ -160,7 +160,7 @@ namespace krrTools.Tools.DPtool
             beatmap.HitObjects.AddRange(newObjects);
             beatmap.SortHitObjects();
             // 统一修改metadeta的形参，在这里修改CS
-            if (options.ModifyKeys.Value.HasValue)
+            if (options.ModifyKeys.RawValue.HasValue && options.ModifyKeys.Value.HasValue)
                 beatmap.DifficultySection.CircleSize = (int)options.ModifyKeys.Value.Value * 2;
             else
                 beatmap.DifficultySection.CircleSize = (float)(originalCircleSize * 2);

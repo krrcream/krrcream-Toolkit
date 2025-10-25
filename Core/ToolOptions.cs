@@ -247,6 +247,8 @@ namespace krrTools.Core
         [Description("DownTo4K|降至4K")]
         DT4 = 15,
         [Description("Release H|放手 难")]
-        ReleaseHard = 17
+        ReleaseHard = 17,
+        [Description("Delete LN|删面")]
+        DeleteLN = 18
     }
 }

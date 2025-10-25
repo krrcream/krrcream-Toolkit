@@ -22,6 +22,23 @@ namespace krrTools.Tools.KRRLNTransformer
                                            {
                                                /* 默认设置 */
                                            })),
+                [PresetKind.DeleteLN] = ("Delete LN", CreatePreset(opts =>
+                                            {
+                                                opts.LengthThreshold.Value = KRRLNTransformerOptions.SAllIsShortLN;
+                                                opts.ShortPercentage.Value = 100;
+                                                opts.ShortLevel.Value = 0;
+                                                opts.ShortLimit.Value = 10;
+                                                opts.ShortRandom.Value = 0;
+                                                opts.LongPercentage.Value = 100;
+                                                opts.LongLevel.Value = 0;
+                                                opts.LongLimit.Value = 10;
+                                                opts.LongRandom.Value = 0;
+                                                opts.Alignment.Value = 5;
+                                                opts.LNAlignment.Value = 5;
+                                                opts.ProcessOriginalIsChecked.Value = true;
+                                                opts.ODValue.Value = 5;
+                                                opts.Seed.Value = 114514;
+                                            })),
                 [PresetKind.Inverse4] = ("Inverse Space=1/4", CreatePreset(opts =>
                                             {
                                                 opts.LengthThreshold.Value = KRRLNTransformerOptions.SAllIsLongLN;
