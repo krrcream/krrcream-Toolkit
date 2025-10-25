@@ -12,7 +12,7 @@ namespace krrTools.Localization
         public const string KRRLNTag = "LN.";
         public const string NToNCTag = "NtNC.";
         public const string DPTag = "DP.";
-        
+
         // Tab headers
         public const string TabN2NC = "NtoN Converter|NtoN转换器";
         public const string TabKRRsLN = "KRR LN Transformer|KRR转面器";
@@ -86,7 +86,7 @@ namespace krrTools.Localization
         public const string KRRLongLimitLabel = "Long Limit {0}|长面限制 {0}";
         public const string KRRLongRandomLabel = "Long Random {0}|长面随机 {0}";
         public const string KRRAlignLabel = "Align {0} Beat|对齐 {0}节拍";
-         public const string ProcessOriginalLabel = "Process Original|处理原始谱面";
+        public const string ProcessOriginalLabel = "Process Original|处理原始谱面";
         // public const string KRRLNAlignLabel = "Long&Short Align {0}|LN长短对齐 {0}";
 
         // 通用控件名称
@@ -96,7 +96,6 @@ namespace krrTools.Localization
         public const string SeedButtonLabel = "Seed|种子";
         public const string SeedGenerateLabel = "Generate|随机生成";
         public const string SeedGenerateTooltip = "Generate a random seed value|生成一个随机种子值";
-
 
         // DP Tool专用
         public const string DPLeftMaxKeysTemplate = "Max Keys: {0}|上限权重: {0}";
@@ -129,7 +128,8 @@ namespace krrTools.Localization
         public const string ConversionNoOutputMessage = "Conversion did not produce any output.";
         public const string DPSettingsLoadFallback = "DP settings failed to load here — showing fallback. If this persists, try reopening the DP tool.";
         public const string LVSettingsLoadFallback = "LV Calculator failed to load here — showing fallback.";
-        public const string GetFilesSettingsLoadFallback = "osu! file manager failed to load here — showing fallback.\nTry opening it in a separate window if the issue persists.|osu! 文件管理器加载失败 — 显示备用方案。\n如果问题持续，请尝试在单独窗口中打开。";
+        public const string GetFilesSettingsLoadFallback =
+            "osu! file manager failed to load here — showing fallback.\nTry opening it in a separate window if the issue persists.|osu! 文件管理器加载失败 — 显示备用方案。\n如果问题持续，请尝试在单独窗口中打开。";
 
         // Error messages
         public const string ErrorProcessingFile = "Error processing file|处理文件时出错";
@@ -216,5 +216,4 @@ namespace krrTools.Localization
             return string.Format(localized, args);
         }
     }
-
 }

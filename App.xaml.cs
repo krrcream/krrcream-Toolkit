@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
@@ -86,6 +87,22 @@ namespace krrTools
                 Logger.WriteLine(LogLevel.Error, "StackTrace: {0}", ex.StackTrace ?? "N/A");
                 MessageBox.Show($"应用启动失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            // 在应用退出时保存设置
+            try
+            {
+                BaseOptionsManager.GetGlobalSettings().Flush();
+            }
+            catch (Exception ex)
+            {
+                // 如果Logger可用，记录错误
+                Logger.WriteLine(LogLevel.Error, "保存设置时发生错误: {0}", ex.Message);
+            }
+
+            base.OnExit(e);
         }
     }
 }
