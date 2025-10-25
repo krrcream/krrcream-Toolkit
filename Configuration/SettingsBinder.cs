@@ -9,6 +9,7 @@ using krrTools.Core;
 using krrTools.Localization;
 using krrTools.UI;
 using Microsoft.Extensions.Logging;
+using Button = Wpf.Ui.Controls.Button;
 using Expression = System.Linq.Expressions.Expression;
 using Grid = Wpf.Ui.Controls.Grid;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
@@ -20,8 +21,8 @@ namespace krrTools.Configuration
         private static string GetLocalizedString(string? key)
         {
             if (string.IsNullOrEmpty(key)) return "";
-            var stringsType = typeof(Strings);
-            var field = stringsType.GetField(key, BindingFlags.Public | BindingFlags.Static);
+            Type stringsType = typeof(Strings);
+            FieldInfo? field = stringsType.GetField(key, BindingFlags.Public | BindingFlags.Static);
             if (field != null && field.FieldType == typeof(string)) return field.GetValue(null) as string ?? key;
 
             return key;
@@ -37,7 +38,7 @@ namespace krrTools.Configuration
             // 检查 Bindable<T> 类型
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Bindable<>))
             {
-                var genericArg = type.GetGenericArguments()[0];
+                Type genericArg = type.GetGenericArguments()[0];
                 return genericArg == typeof(int) || genericArg == typeof(double) || genericArg == typeof(float) || genericArg == typeof(decimal) ||
                        genericArg == typeof(int?) || genericArg == typeof(double?) || genericArg == typeof(float?) || genericArg == typeof(decimal?);
             }
@@ -52,16 +53,16 @@ namespace krrTools.Configuration
             where T : class
         {
             // 直接从lambda表达式获取属性信息
-            var propertyInfo = GetPropertyInfoFromExpression(propertySelector);
+            PropertyInfo? propertyInfo = GetPropertyInfoFromExpression(propertySelector);
             if (propertyInfo == null) return new TextBlock { Text = "Invalid property selector" };
 
             var attr = propertyInfo.GetCustomAttribute<OptionAttribute>();
             if (attr == null) return new TextBlock { Text = $"No OptionAttribute for {propertyInfo.Name}" };
 
-            var label = GetLocalizedString(attr.LabelKey);
-            var tooltip = string.IsNullOrEmpty(attr.TooltipKey) ? null : GetLocalizedString(attr.TooltipKey);
+            string label = GetLocalizedString(attr.LabelKey);
+            string? tooltip = string.IsNullOrEmpty(attr.TooltipKey) ? null : GetLocalizedString(attr.TooltipKey);
 
-            var effectiveType = attr.DataType ?? propertyInfo.PropertyType;
+            Type effectiveType = attr.DataType ?? propertyInfo.PropertyType;
 
             // 根据UIType决定控件类型
             switch (attr.UIType)
@@ -69,14 +70,11 @@ namespace krrTools.Configuration
                 case UIType.Toggle:
                     if (effectiveType == typeof(bool) || (effectiveType.IsGenericType && effectiveType.GetGenericTypeDefinition() == typeof(Bindable<>)))
                     {
-                        var checkBox = SharedUIComponents.CreateStandardCheckBox(label, tooltip);
+                        CheckBox checkBox = SharedUIComponents.CreateStandardCheckBox(label, tooltip);
 
-                        var path = GetPropertyPathFromExpression(propertySelector);
+                        string path = GetPropertyPathFromExpression(propertySelector);
                         // 检查是否是 Bindable<T> 类型，如果是则添加 .Value
-                        if (effectiveType.IsGenericType && effectiveType.GetGenericTypeDefinition() == typeof(Bindable<>))
-                        {
-                            path += ".Value";
-                        }
+                        if (effectiveType.IsGenericType && effectiveType.GetGenericTypeDefinition() == typeof(Bindable<>)) path += ".Value";
                         var binding = new Binding(path)
                         {
                             Source = options,
@@ -86,23 +84,20 @@ namespace krrTools.Configuration
                         checkBox.SetBinding(ToggleButton.IsCheckedProperty, binding);
                         return checkBox;
                     }
+
                     break;
+
                 case UIType.Slider:
-                    if (IsNumericType(effectiveType))
-                    {
-                        return (FrameworkElement)CreateEnhancedTemplatedSlider(options, propertySelector, propertyInfo);
-                    }
+                    if (IsNumericType(effectiveType)) return (FrameworkElement)CreateEnhancedTemplatedSlider(options, propertySelector, propertyInfo);
                     break;
+
                 case UIType.NumberBox:
                     // 对于数字输入框，使用TextBox
-                    var numberBox = SharedUIComponents.CreateStandardTextBox();
+                    Wpf.Ui.Controls.TextBox numberBox = SharedUIComponents.CreateStandardTextBox();
                     // 使用标准WPF绑定
-                    var numberPath = GetPropertyPathFromExpression(propertySelector);
+                    string numberPath = GetPropertyPathFromExpression(propertySelector);
                     // 检查是否是 Bindable<T> 类型，如果是则添加 .Value
-                    if (effectiveType.IsGenericType && effectiveType.GetGenericTypeDefinition() == typeof(Bindable<>))
-                    {
-                        numberPath += ".Value";
-                    }
+                    if (effectiveType.IsGenericType && effectiveType.GetGenericTypeDefinition() == typeof(Bindable<>)) numberPath += ".Value";
                     var numberBinding = new Binding(numberPath)
                     {
                         Source = options,
@@ -111,11 +106,12 @@ namespace krrTools.Configuration
                     };
                     numberBox.SetBinding(TextBox.TextProperty, numberBinding);
                     return numberBox;
+
                 case UIType.Text:
                     // 对于文本，使用TextBox
-                    var textBox = SharedUIComponents.CreateStandardTextBox();
+                    Wpf.Ui.Controls.TextBox textBox = SharedUIComponents.CreateStandardTextBox();
                     // 使用标准WPF绑定
-                    var textPath = GetPropertyPathFromExpression(propertySelector);
+                    string textPath = GetPropertyPathFromExpression(propertySelector);
                     var textBinding = new Binding(textPath)
                     {
                         Source = options,
@@ -124,6 +120,7 @@ namespace krrTools.Configuration
                     };
                     textBox.SetBinding(TextBox.TextProperty, textBinding);
                     return textBox;
+
                 case UIType.ComboBox:
                     if (effectiveType.IsEnum)
                     {
@@ -132,9 +129,9 @@ namespace krrTools.Configuration
 
                         // 设置枚举项源
                         comboBox.ItemsSource = Enum.GetValues(effectiveType);
-                        
+
                         // 使用标准WPF绑定
-                        var enumPath = GetPropertyPathFromExpression(propertySelector);
+                        string enumPath = GetPropertyPathFromExpression(propertySelector);
                         var enumBinding = new Binding(enumPath)
                         {
                             Source = options,
@@ -144,6 +141,7 @@ namespace krrTools.Configuration
                         comboBox.SetBinding(Selector.SelectedItemProperty, enumBinding);
                         return comboBox;
                     }
+
                     break;
             }
 
@@ -154,45 +152,44 @@ namespace krrTools.Configuration
         /// 创建模板化的滑块控件（使用表达式，可选勾选框，可选字典映射）
         /// </summary>
         public static UIElement CreateTemplatedSlider<T>(T options, Expression<Func<T, object>> propertySelector,
-            Expression<Func<T, object>>? checkPropertySelector = null, Dictionary<double, string>? valueDisplayMap = null) where T : class
+                                                         Expression<Func<T, object>>? checkPropertySelector = null, Dictionary<double, string>? valueDisplayMap = null) where T : class
         {
-            var propertyInfo = GetPropertyInfoFromExpression(propertySelector);
+            PropertyInfo? propertyInfo = GetPropertyInfoFromExpression(propertySelector);
             if (propertyInfo == null) return new TextBlock { Text = "Invalid property selector" };
 
-            var checkPropertyInfo =
+            PropertyInfo? checkPropertyInfo =
                 checkPropertySelector != null ? GetPropertyInfoFromExpression(checkPropertySelector) : null;
-            var checkEnabled = checkPropertyInfo != null;
+            bool checkEnabled = checkPropertyInfo != null;
 
             // 如果没有显式指定checkPropertySelector，但属性是可空的Bindable<T>，则自动启用勾选框
-            if (!checkEnabled && propertyInfo.PropertyType.IsGenericType && 
+            if (!checkEnabled && propertyInfo.PropertyType.IsGenericType &&
                 propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
             {
-                var genericArg = propertyInfo.PropertyType.GetGenericArguments()[0];
+                Type genericArg = propertyInfo.PropertyType.GetGenericArguments()[0];
                 checkEnabled = Nullable.GetUnderlyingType(genericArg) != null;
             }
 
             var attr = propertyInfo.GetCustomAttribute<OptionAttribute>();
             if (attr == null) return new TextBlock { Text = $"No OptionAttribute for {propertyInfo.Name}" };
 
-            var labelKey = GetLocalizedString(attr.LabelKey);
-            var tooltip = string.IsNullOrEmpty(attr.TooltipKey) ? null : GetLocalizedString(attr.TooltipKey);
+            string labelKey = GetLocalizedString(attr.LabelKey);
+            string? tooltip = string.IsNullOrEmpty(attr.TooltipKey) ? null : GetLocalizedString(attr.TooltipKey);
 
             // 如果没有提供 valueDisplayMap，但属性有 DisplayMapField，则尝试获取
             if (valueDisplayMap == null && !string.IsNullOrEmpty(attr.DisplayMapField))
             {
-                var optionsType = options.GetType();
-                var mapField = optionsType.GetField(attr.DisplayMapField, BindingFlags.Public | BindingFlags.Static);
-                if (mapField != null && mapField.FieldType.IsGenericType && 
+                Type optionsType = options.GetType();
+                FieldInfo? mapField = optionsType.GetField(attr.DisplayMapField, BindingFlags.Public | BindingFlags.Static);
+                if (mapField != null && mapField.FieldType.IsGenericType &&
                     mapField.FieldType.GetGenericTypeDefinition() == typeof(Dictionary<,>))
-                {
                     valueDisplayMap = mapField.GetValue(null) as Dictionary<double, string>;
-                }
             }
 
             if (IsNumericType(propertyInfo.PropertyType))
             {
                 // 处理 Bindable<T> 类型
                 double min, max;
+
                 if (propertyInfo.PropertyType.IsGenericType && propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
                 {
                     // 对于 Bindable<T>，使用属性定义的 Min/Max
@@ -230,7 +227,7 @@ namespace krrTools.Configuration
         /// </summary>
         private static PropertyInfo? GetPropertyInfoFromExpression<T, TResult>(Expression<Func<T, TResult>> propertySelector)
         {
-            var current = propertySelector.Body;
+            Expression current = propertySelector.Body;
 
             // 处理可能的转换 (如 int -> double)
             if (current is UnaryExpression { NodeType: ExpressionType.Convert } unary) current = unary.Operand;
@@ -246,9 +243,10 @@ namespace krrTools.Configuration
         private static string GetPropertyPathFromExpression<T, TResult>(Expression<Func<T, TResult>> propertySelector)
         {
             var path = new List<string>();
-            var current = propertySelector.Body;
+            Expression? current = propertySelector.Body;
 
             while (current != null)
+            {
                 if (current is MemberExpression member)
                 {
                     path.Insert(0, member.Member.Name);
@@ -260,9 +258,8 @@ namespace krrTools.Configuration
                     current = unaryMember.Expression;
                 }
                 else
-                {
                     break;
-                }
+            }
 
             return string.Join(".", path);
         }
@@ -278,21 +275,18 @@ namespace krrTools.Configuration
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            var label = SharedUIComponents.CreateHeaderLabel(Strings.SeedButtonLabel);
-            var generateButton =
+            TextBlock label = SharedUIComponents.CreateHeaderLabel(Strings.SeedButtonLabel);
+            Button generateButton =
                 SharedUIComponents.CreateStandardButton(Strings.SeedGenerateLabel, Strings.SeedGenerateTooltip);
 
-            var SeedTextBox = SharedUIComponents.CreateStandardTextBox();
+            Wpf.Ui.Controls.TextBox SeedTextBox = SharedUIComponents.CreateStandardTextBox();
             SeedTextBox.Margin = new Thickness(5, 0, 5, 0);
             SeedTextBox.IsReadOnly = false;
 
             // 绑定 Seed 属性
-            var seedPath = GetPropertyPathFromExpression(seedProperty);
-            var propertyInfo = GetPropertyInfoFromExpression(seedProperty);
-            if (propertyInfo != null && propertyInfo.PropertyType.IsGenericType && propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
-            {
-                seedPath += ".Value";
-            }
+            string seedPath = GetPropertyPathFromExpression(seedProperty);
+            PropertyInfo? propertyInfo = GetPropertyInfoFromExpression(seedProperty);
+            if (propertyInfo != null && propertyInfo.PropertyType.IsGenericType && propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>)) seedPath += ".Value";
             var binding = new Binding(seedPath)
             {
                 Source = dataContext,
@@ -322,30 +316,31 @@ namespace krrTools.Configuration
         /// 创建支持动态最大值的模板化滑块控件
         /// </summary>
         public static UIElement CreateTemplatedSliderWithDynamicMax<T>(
-            T options, 
+            T options,
             Expression<Func<T, object>> propertySelector,
             object dynamicMaxSource,
             string dynamicMaxPath,
-            Expression<Func<T, object>>? checkPropertySelector = null, 
+            Expression<Func<T, object>>? checkPropertySelector = null,
             Dictionary<double, string>? valueDisplayMap = null) where T : class
         {
-            var propertyInfo = GetPropertyInfoFromExpression(propertySelector);
+            PropertyInfo? propertyInfo = GetPropertyInfoFromExpression(propertySelector);
             if (propertyInfo == null) return new TextBlock { Text = "Invalid property selector" };
 
-            var checkPropertyInfo =
+            PropertyInfo? checkPropertyInfo =
                 checkPropertySelector != null ? GetPropertyInfoFromExpression(checkPropertySelector) : null;
-            var checkEnabled = checkPropertyInfo != null;
+            bool checkEnabled = checkPropertyInfo != null;
 
             var attr = propertyInfo.GetCustomAttribute<OptionAttribute>();
             if (attr == null) return new TextBlock { Text = $"No OptionAttribute for {propertyInfo.Name}" };
 
-            var labelKey = GetLocalizedString(attr.LabelKey);
-            var tooltip = string.IsNullOrEmpty(attr.TooltipKey) ? null : GetLocalizedString(attr.TooltipKey);
+            string labelKey = GetLocalizedString(attr.LabelKey);
+            string? tooltip = string.IsNullOrEmpty(attr.TooltipKey) ? null : GetLocalizedString(attr.TooltipKey);
 
             if (IsNumericType(propertyInfo.PropertyType))
             {
                 // 处理 Bindable<T> 类型
                 double min, max;
+
                 if (propertyInfo.PropertyType.IsGenericType && propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
                 {
                     // 对于 Bindable<T>，使用属性定义的 Min/Max
@@ -389,41 +384,39 @@ namespace krrTools.Configuration
             var attr = propertyInfo.GetCustomAttribute<OptionAttribute>();
             if (attr == null) return new TextBlock { Text = $"No OptionAttribute for {propertyInfo.Name}" };
 
-            var labelKey = GetLocalizedString(attr.LabelKey);
-            var tooltip = string.IsNullOrEmpty(attr.TooltipKey) ? null : GetLocalizedString(attr.TooltipKey);
+            string labelKey = GetLocalizedString(attr.LabelKey);
+            string? tooltip = string.IsNullOrEmpty(attr.TooltipKey) ? null : GetLocalizedString(attr.TooltipKey);
 
             // 获取滑条配置
-            var sliderConfig = GetSliderConfiguration(attr, options.GetType());
-        
+            SliderConfiguration sliderConfig = GetSliderConfiguration(attr, options.GetType());
+
             // 检查是否有勾选框配置
             Expression<Func<T, object>>? checkPropertySelector = null;
+
             if (sliderConfig.HasCheckBox && !string.IsNullOrEmpty(attr.CheckBoxProperty))
             {
-                try 
+                try
                 {
-                    var param = Expression.Parameter(typeof(T), "x");
-                    var checkProperty = Expression.Property(param, attr.CheckBoxProperty);
-                    var convertToObject = Expression.Convert(checkProperty, typeof(object));
+                    ParameterExpression param = Expression.Parameter(typeof(T), "x");
+                    MemberExpression checkProperty = Expression.Property(param, attr.CheckBoxProperty);
+                    UnaryExpression convertToObject = Expression.Convert(checkProperty, typeof(object));
                     checkPropertySelector = Expression.Lambda<Func<T, object>>(convertToObject, param);
                 }
                 catch (Exception ex)
                 {
-                    Logger.WriteLine(LogLevel.Warning, "[SettingsBinder] Failed to create checkbox selector for {0}: {1}", 
-                        attr.CheckBoxProperty, ex.Message);
+                    Logger.WriteLine(LogLevel.Warning, "[SettingsBinder] Failed to create checkbox selector for {0}: {1}",
+                                     attr.CheckBoxProperty, ex.Message);
                 }
             }
 
-            var checkEnabled = checkPropertySelector != null;
+            bool checkEnabled = checkPropertySelector != null;
 
             // 对于可空类型的 Bindable，自动启用勾选框
-            if (!checkEnabled && propertyInfo.PropertyType.IsGenericType && 
+            if (!checkEnabled && propertyInfo.PropertyType.IsGenericType &&
                 propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
             {
-                var genericArg = propertyInfo.PropertyType.GetGenericArguments()[0];
-                if (Nullable.GetUnderlyingType(genericArg) != null)
-                {
-                    checkEnabled = true;
-                }
+                Type genericArg = propertyInfo.PropertyType.GetGenericArguments()[0];
+                if (Nullable.GetUnderlyingType(genericArg) != null) checkEnabled = true;
             }
 
             if (IsNumericType(propertyInfo.PropertyType))
@@ -466,15 +459,11 @@ namespace krrTools.Configuration
             {
                 try
                 {
-                    var field = containerType.GetField(attr.DisplayMapField, BindingFlags.Public | BindingFlags.Static);
+                    FieldInfo? field = containerType.GetField(attr.DisplayMapField, BindingFlags.Public | BindingFlags.Static);
                     if (field?.GetValue(null) is Dictionary<double, string> displayMap)
-                    {
                         config.DisplayValueMap = displayMap;
-                    }
                     else
-                    {
                         Logger.WriteLine(LogLevel.Warning, "[SettingsBinder] DisplayMapField {0} not found or invalid type", attr.DisplayMapField);
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -487,15 +476,11 @@ namespace krrTools.Configuration
             {
                 try
                 {
-                    var field = containerType.GetField(attr.ActualMapField, BindingFlags.Public | BindingFlags.Static);
+                    FieldInfo? field = containerType.GetField(attr.ActualMapField, BindingFlags.Public | BindingFlags.Static);
                     if (field?.GetValue(null) is Dictionary<double, double> actualMap)
-                    {
                         config.ActualValueMap = actualMap;
-                    }
                     else
-                    {
                         Logger.WriteLine(LogLevel.Warning, "[SettingsBinder] ActualMapField {0} not found or invalid type", attr.ActualMapField);
-                    }
                 }
                 catch (Exception ex)
                 {

@@ -20,14 +20,14 @@ namespace krrTools.Beatmaps
 
         public string? FilePath;
         public string? FileName;
-        
+
         // Basic metadata
         public string? Diff { get; set; }
         public string? Title { get; set; }
         public string? Artist { get; set; }
         public string? Creator { get; set; }
         public string? BPMDisplay { get; set; }
-        
+
         // Difficulty settings
         public double KeyCount { get; set; }
         public double OD { get; set; }
@@ -35,7 +35,7 @@ namespace krrTools.Beatmaps
 
         // Analysis results
         public double XXY_SR { get; set; }
-        public double KRR_LV { get; set; }        
+        public double KRR_LV { get; set; }
         public double YLs_LV { get; set; }
         public double LNPercent { get; set; }
 
@@ -64,11 +64,8 @@ namespace krrTools.Beatmaps
         {
             try
             {
-                var beatmap = await Task.Run(() => BeatmapDecoder.Decode(filePath));
-                if (beatmap == null)
-                {
-                    throw new InvalidDataException($"OsuAnalyzer Decode Skip:{filePath}.");
-                }
+                Beatmap? beatmap = await Task.Run(() => BeatmapDecoder.Decode(filePath));
+                if (beatmap == null) throw new InvalidDataException($"OsuAnalyzer Decode Skip:{filePath}.");
 
                 // 填充基础信息
                 var result = new OsuAnalysisResult
@@ -91,7 +88,7 @@ namespace krrTools.Beatmaps
 
                     // Beatmap identifiers
                     BeatmapID = beatmap.MetadataSection.BeatmapID,
-                    BeatmapSetID = beatmap.MetadataSection.BeatmapSetID,
+                    BeatmapSetID = beatmap.MetadataSection.BeatmapSetID
                 };
 
                 // 检查是否为Mania模式
@@ -101,23 +98,23 @@ namespace krrTools.Beatmaps
                     return result;
                 }
 
-                if (beatmap.HitObjects.Count == 0) 
+                if (beatmap.HitObjects.Count == 0)
                 {
                     result.Status = "no-notes";
                     return result;
                 }
-            
+
                 // 转换为Mania beatmap
-                var maniaBeatmap = beatmap;
+                Beatmap maniaBeatmap = beatmap;
 
                 // 异步并行计算
-                var srTask = Task.Run(() => PerformAnalysis(maniaBeatmap));
-                var kpsTask = Task.Run(() => CalculateKPSMetrics(maniaBeatmap));
+                Task<(double xxySR, double krrLV, double ylsLV)> srTask = Task.Run(() => PerformAnalysis(maniaBeatmap));
+                Task<(int notesCount, double maxKPS, double avgKPS)> kpsTask = Task.Run(() => CalculateKPSMetrics(maniaBeatmap));
                 // 异步等待并行任务完成
                 await Task.WhenAll(srTask, kpsTask);
 
-                var (xxySR, krrLV, ylsLV) = srTask.Result;
-                var (notesCount, maxKPS, avgKPS) = kpsTask.Result;
+                (double xxySR, double krrLV, double ylsLV) = srTask.Result;
+                (int notesCount, double maxKPS, double avgKPS) = kpsTask.Result;
 
                 // 填充Mania特定分析结果
                 result.XXY_SR = xxySR;
@@ -152,16 +149,13 @@ namespace krrTools.Beatmaps
             // 创建新的SRCalculator实例，避免多线程竞争
             var calculator = new SRCalculator();
 
-            var keys = (int)beatmap.DifficultySection.CircleSize;
-            var od = beatmap.DifficultySection.OverallDifficulty;
-            var notes = calculator.getNotes(beatmap);
-            
+            int keys = (int)beatmap.DifficultySection.CircleSize;
+            float od = beatmap.DifficultySection.OverallDifficulty;
+            List<Note> notes = calculator.getNotes(beatmap);
+
             // Handle beatmaps with no hit objects
-            if (notes.Count == 0)
-            {
-                return (0, 0, 0);
-            }
-            
+            if (notes.Count == 0) return (0, 0, 0);
+
             double xxySR = calculator.Calculate(notes, keys, od, out _);
             double krrLV = CalculateKrrLevel(keys, xxySR);
             double ylsLV = CalculateYlsLevel(xxySR);
@@ -171,14 +165,14 @@ namespace krrTools.Beatmaps
 
         private static (int notesCount, double maxKPS, double avgKPS) CalculateKPSMetrics(Beatmap beatmap)
         {
-            var hitObjects = beatmap.HitObjects;
+            List<HitObject>? hitObjects = beatmap.HitObjects;
             if (hitObjects.Count == 0)
                 return (0, 0, 0);
 
             // 计算KPS
-            var notes = hitObjects.Where(obj => obj is HitCircle || obj is Slider || obj is Spinner)
-                .OrderBy(obj => obj.StartTime)
-                .ToList();
+            List<HitObject> notes = hitObjects.Where(obj => obj is HitCircle || obj is Slider || obj is Spinner)
+                                              .OrderBy(obj => obj.StartTime)
+                                              .ToList();
 
             if (notes.Count == 0)
                 return (0, 0, 0);
@@ -187,16 +181,19 @@ namespace krrTools.Beatmaps
             const int windowMs = 1000; // 1秒窗口
             double maxKPS = 0;
             double totalKPS = 0;
-            var windowCount = 0;
+            int windowCount = 0;
 
-            for (var i = 0; i < notes.Count; i++)
+            for (int i = 0; i < notes.Count; i++)
             {
-                var count = 1;
-                for (var j = i + 1; j < notes.Count; j++)
+                int count = 1;
+
+                for (int j = i + 1; j < notes.Count; j++)
+                {
                     if (notes[j].StartTime - notes[i].StartTime <= windowMs)
                         count++;
                     else
                         break;
+                }
 
                 double kps = count;
                 maxKPS = Math.Max(maxKPS, kps);
@@ -204,7 +201,7 @@ namespace krrTools.Beatmaps
                 windowCount++;
             }
 
-            var avgKPS = windowCount > 0 ? totalKPS / windowCount : 0;
+            double avgKPS = windowCount > 0 ? totalKPS / windowCount : 0;
 
             return (notes.Count, maxKPS, avgKPS);
         }
@@ -212,11 +209,12 @@ namespace krrTools.Beatmaps
         private static double CalculateKrrLevel(int keys, double xxySr)
         {
             double krrLv = -1;
+
             if (keys <= 10)
             {
-                var (a, b, c) = keys == 10
-                    ? (-0.0773, 3.8651, -3.4979)
-                    : (-0.0644, 3.6139, -3.0677);
+                (double a, double b, double c) = keys == 10
+                                                     ? (-0.0773, 3.8651, -3.4979)
+                                                     : (-0.0644, 3.6139, -3.0677);
 
                 double LV = a * xxySr * xxySr + b * xxySr + c;
                 krrLv = LV > 0 ? LV : -1;
@@ -231,20 +229,11 @@ namespace krrTools.Beatmaps
             const double LOWER_BOUND = 2.76257856739498;
             const double UPPER_BOUND = 10.5541834716376;
 
-            if (xxyStarRating is >= LOWER_BOUND and <= UPPER_BOUND)
-            {
-                return FittingFormula(xxyStarRating);
-            }
+            if (xxyStarRating is >= LOWER_BOUND and <= UPPER_BOUND) return FittingFormula(xxyStarRating);
 
-            if (xxyStarRating is < LOWER_BOUND and > 0)
-            {
-                return 3.6198 * xxyStarRating;
-            }
+            if (xxyStarRating is < LOWER_BOUND and > 0) return 3.6198 * xxyStarRating;
 
-            if (xxyStarRating is > UPPER_BOUND and < 12.3456789)
-            {
-                return (2.791 * xxyStarRating) + 0.5436;
-            }
+            if (xxyStarRating is > UPPER_BOUND and < 12.3456789) return 2.791 * xxyStarRating + 0.5436;
 
             return double.NaN;
         }

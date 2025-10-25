@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using krrTools.Configuration;
 using krrTools.Localization;
 using krrTools.Tools.Preview;
+using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 
 namespace krrTools.Utilities
@@ -56,10 +57,7 @@ namespace krrTools.Utilities
                     ProgressValue = 0;
                     ProgressMaximum = 100;
                     // 转换完成后清除拖拽状态，除单文件外
-                    if (!_isSingleFile)
-                    {
-                        SetFiles(null);
-                    }
+                    if (!_isSingleFile) SetFiles(null);
                 }
                 else
                 {
@@ -80,10 +78,10 @@ namespace krrTools.Utilities
         public Func<ConverterEnum>? GetActiveTabTag { get; set; }
 
         // 本地化
-        private readonly DynamicLocalizedString _dropHintLocalized = new(Strings.DropHint);
-        private readonly DynamicLocalizedString _dropFilesHintLocalized = new(Strings.DropFilesHint);
-        private readonly DynamicLocalizedString _droppedPrefixLocalized = new(Strings.DroppedPrefix);
-        private readonly DynamicLocalizedString _listenedPrefixLocalized = new(Strings.ListenedPrefix);
+        private readonly DynamicLocalizedString _dropHintLocalized = new DynamicLocalizedString(Strings.DropHint);
+        private readonly DynamicLocalizedString _dropFilesHintLocalized = new DynamicLocalizedString(Strings.DropFilesHint);
+        private readonly DynamicLocalizedString _droppedPrefixLocalized = new DynamicLocalizedString(Strings.DroppedPrefix);
+        private readonly DynamicLocalizedString _listenedPrefixLocalized = new DynamicLocalizedString(Strings.ListenedPrefix);
 
         // 属性
         private string _displayText = string.Empty;
@@ -166,15 +164,15 @@ namespace krrTools.Utilities
 
         public void SetFiles(string[]? files, FileSource source = FileSource.Dropped)
         {
-            var oldSource = _currentSource;
+            FileSource oldSource = _currentSource;
             _stagedPaths = files;
             _isSingleFile = files?.Length == 1;
             _backgroundPath = null; // Will be determined later
             _currentSource = files is { Length: > 0 } ? source : FileSource.None;
-            
+
             // 发布状态变化事件
             EventBus.Publish(new FileSourceChangedEvent(oldSource, _currentSource, _stagedPaths));
-            
+
             UpdateDisplayText();
             IsConversionEnabled = _stagedPaths is { Length: > 0 };
             LoadPreviewIfAvailable();
@@ -186,27 +184,20 @@ namespace krrTools.Utilities
             if (_stagedPaths is { Length: > 0 } && PreviewDual != null && _stagedPaths[0] != _lastLoadedFile)
             {
                 _lastLoadedFile = _stagedPaths[0];
+
                 try
                 {
                     // 只在用户拖拽文件时主动加载预览，监听模式由PreviewViewModel处理
-                    if (_currentSource == FileSource.Dropped)
-                    {
-                        PreviewDual.LoadPreview(_stagedPaths[0]);
-                    }
-                    
+                    if (_currentSource == FileSource.Dropped) PreviewDual.LoadPreview(_stagedPaths[0]);
+
                     if (string.IsNullOrEmpty(_backgroundPath))
                     {
-                        var beatmap = BeatmapDecoder.Decode(_stagedPaths[0]);
+                        Beatmap? beatmap = BeatmapDecoder.Decode(_stagedPaths[0]);
                         if (beatmap != null && !string.IsNullOrWhiteSpace(beatmap.EventsSection.BackgroundImage))
-                        {
                             _backgroundPath = Path.Combine(Path.GetDirectoryName(_stagedPaths[0])!, beatmap.EventsSection.BackgroundImage);
-                        }
                     }
-                    
-                    if (!string.IsNullOrEmpty(_backgroundPath))
-                    {
-                        PreviewDual.LoadBackgroundBrush(_backgroundPath);
-                    }
+
+                    if (!string.IsNullOrEmpty(_backgroundPath)) PreviewDual.LoadBackgroundBrush(_backgroundPath);
                 }
                 catch (Exception ex)
                 {
@@ -218,17 +209,15 @@ namespace krrTools.Utilities
         public void ConvertFiles()
         {
             Logger.WriteLine(LogLevel.Debug, "[FileDropZone] ConvertFiles called. _stagedPaths: {0}, GetActiveTabTag: {1}", _stagedPaths?.Length ?? 0, GetActiveTabTag?.Invoke().ToString() ?? "null");
+
             if (_stagedPaths is { Length: > 0 } && GetActiveTabTag != null)
             {
                 // 在UI层过滤非Mania谱面
-                var filteredPaths = _stagedPaths.Where(BeatmapFileHelper.IsManiaBeatmap).ToArray();
-                var skippedCount = _stagedPaths.Length - filteredPaths.Length;
-                if (skippedCount > 0)
-                {
-                    Logger.WriteLine(LogLevel.Information, "[FileDropZone] UI层过滤跳过 {0} 个非Mania文件", skippedCount);
-                }
+                string[] filteredPaths = _stagedPaths.Where(BeatmapFileHelper.IsManiaBeatmap).ToArray();
+                int skippedCount = _stagedPaths.Length - filteredPaths.Length;
+                if (skippedCount > 0) Logger.WriteLine(LogLevel.Information, "[FileDropZone] UI层过滤跳过 {0} 个非Mania文件", skippedCount);
 
-                var activeTab = GetActiveTabTag();
+                ConverterEnum activeTab = GetActiveTabTag();
                 Logger.WriteLine(LogLevel.Debug, "[FileDropZone] ActiveTabTag: {0}", activeTab);
 
                 // 开始处理
@@ -240,25 +229,22 @@ namespace krrTools.Utilities
                 _fileDispatcher.ConvertFiles(filteredPaths);
             }
             else
-            {
                 Logger.WriteLine(LogLevel.Debug, "[FileDropZone] ConvertFiles skipped. Has files: {0}, Has GetActiveTabTag: {1}", _stagedPaths is { Length: > 0 }, GetActiveTabTag != null);
-            }
         }
 
         public List<string> CollectOsuFiles(string[] items)
         {
             var osuFiles = new List<string>();
-            foreach (var item in items)
+
+            foreach (string item in items)
             {
                 if (File.Exists(item) && Path.GetExtension(item).Equals(".osu", StringComparison.OrdinalIgnoreCase))
-                {
                     osuFiles.Add(item);
-                }
                 else if (Directory.Exists(item))
                 {
                     try
                     {
-                        var found = Directory.GetFiles(item, "*.osu", SearchOption.AllDirectories);
+                        string[] found = Directory.GetFiles(item, "*.osu", SearchOption.AllDirectories);
                         osuFiles.AddRange(found);
                     }
                     catch (Exception ex)
@@ -267,6 +253,7 @@ namespace krrTools.Utilities
                     }
                 }
             }
+
             return osuFiles;
         }
 
@@ -280,11 +267,11 @@ namespace krrTools.Utilities
             else
             {
                 string prefix = _currentSource switch
-                {
-                    FileSource.Dropped => _droppedPrefixLocalized.Value,
-                    FileSource.Listened => _listenedPrefixLocalized.Value,
-                    _ => ""
-                };
+                                {
+                                    FileSource.Dropped => _droppedPrefixLocalized.Value,
+                                    FileSource.Listened => _listenedPrefixLocalized.Value,
+                                    _ => ""
+                                };
                 DisplayText = prefix + string.Format(_dropFilesHintLocalized.Value, _stagedPaths.Length);
             }
         }
@@ -326,22 +313,16 @@ namespace krrTools.Utilities
                 // 处理路径变化事件
                 if (e.ChangeType == BeatmapChangeType.FromMonitoring)
                 {
-                    if (!string.IsNullOrEmpty(e.FilePath) && File.Exists(e.FilePath))
-                    {
-                        SetFiles([e.FilePath], FileSource.Listened);
-                    }
+                    if (!string.IsNullOrEmpty(e.FilePath) && File.Exists(e.FilePath)) SetFiles([e.FilePath], FileSource.Listened);
                     return;
                 }
 
                 if (e.ChangeType == BeatmapChangeType.FromDropZone)
                 {
-                    if (!string.IsNullOrEmpty(e.FilePath) && File.Exists(e.FilePath))
-                    {
-                        SetFiles([e.FilePath], FileSource.Dropped);
-                    }
+                    if (!string.IsNullOrEmpty(e.FilePath) && File.Exists(e.FilePath)) SetFiles([e.FilePath], FileSource.Dropped);
                     return;
                 }
-                
+
                 EventBus.Publish(new ConvPrevRefreshOnlyEvent
                 {
                     NewValue = false
@@ -362,10 +343,7 @@ namespace krrTools.Utilities
                         NewValue = e.NewValue
                     });
                 }
-                else if (!e.NewValue)
-                {
-                    SetSource(FileSource.None);
-                }
+                else if (!e.NewValue) SetSource(FileSource.None);
             });
         }
     }

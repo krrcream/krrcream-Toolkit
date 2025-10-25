@@ -1,17 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace krrTools.Bindable
 {
     /// <summary>
     /// Base class for reactive ViewModels using the custom Bindable system.
-    /// Alternative to ReactiveUI's ReactiveObject.
+    /// <para>Alternative to ReactiveUI's ReactiveObject.</para>
     /// Automatically injects services marked with [Inject] attribute.
-    /// 
+    /// <para></para>
     /// 推荐使用属性注入方式注入依赖服务：
-    /// [Inject] public IServiceType ServiceName { get; set; } = null!;
+    /// <code>[Inject] public IServiceType ServiceName { get; set; } = null!;</code>
     /// 这样可以避免构造函数参数过多，并支持条件注入。
     /// </summary>
     public abstract class ReactiveViewModelBase : INotifyPropertyChanged, IDisposable
@@ -33,15 +34,16 @@ namespace krrTools.Bindable
 
         public void Dispose()
         {
-            foreach (var d in Disposables) d.Dispose();
+            foreach (IDisposable d in Disposables) d.Dispose();
             Disposables.Clear();
         }
 
         protected void SetupAutoBindableNotifications()
         {
             // Handle fields
-            var fields = GetType().GetFields(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            foreach (var field in fields)
+            FieldInfo[] fields = GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
+
+            foreach (FieldInfo field in fields)
             {
                 if (field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(Bindable<>))
                 {
@@ -55,15 +57,14 @@ namespace krrTools.Bindable
             }
 
             // Handle properties
-            var properties = GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-            foreach (var prop in properties)
+            PropertyInfo[] properties = GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+            foreach (PropertyInfo prop in properties)
             {
                 if (prop.PropertyType.IsGenericType && prop.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
                 {
                     if (prop.GetValue(this) is INotifyPropertyChanged bindable)
-                    {
                         bindable.PropertyChanged += (_, _) => OnPropertyChanged(prop.Name);
-                    }
                 }
             }
         }

@@ -24,18 +24,16 @@ namespace krrTools.Beatmaps
 
             if (owner != null)
             {
-                var hwnd = new WindowInteropHelper(owner).Handle;
+                IntPtr hwnd = new WindowInteropHelper(owner).Handle;
                 dialog.ShowDialog(new Win32Window(hwnd));
             }
             else if (Application.Current?.MainWindow != null)
             {
-                var hwnd = new WindowInteropHelper(Application.Current.MainWindow).Handle;
+                IntPtr hwnd = new WindowInteropHelper(Application.Current.MainWindow).Handle;
                 dialog.ShowDialog(new Win32Window(hwnd));
             }
             else
-            {
                 dialog.ShowDialog();
-            }
 
             return dialog.SelectedPath;
         }

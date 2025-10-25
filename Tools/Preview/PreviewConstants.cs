@@ -18,19 +18,19 @@ namespace krrTools.Tools.Preview
         public const double NoteFixedHeight = 5; // note 的固定高度（px）
 
         // 颜色/刷子（集中管理，方便修改）
-        public static readonly SolidColorBrush TapNoteBrush = new(Color.FromArgb(255, 70, 140, 235)); // 普通 Tap 颜色
-        public static readonly SolidColorBrush HoldHeadBrush = new(Color.FromArgb(255, 216, 111, 90)); // Hold 的头部颜色
-        private static readonly SolidColorBrush HoldBodyBrush = new(Color.FromArgb(255, 215, 147, 191)); // Hold 的延伸体颜色
+        public static readonly SolidColorBrush TapNoteBrush = new SolidColorBrush(Color.FromArgb(255, 70, 140, 235)); // 普通 Tap 颜色
+        public static readonly SolidColorBrush HoldHeadBrush = new SolidColorBrush(Color.FromArgb(255, 216, 111, 90)); // Hold 的头部颜色
+        private static readonly SolidColorBrush HoldBodyBrush = new SolidColorBrush(Color.FromArgb(255, 215, 147, 191)); // Hold 的延伸体颜色
 
         // 新增：统一的画笔/颜色
-        private static readonly SolidColorBrush OutlineBrush = new(Color.FromArgb(255, 40, 90, 180));
-        private static readonly SolidColorBrush LaneEvenBrush = new(Color.FromArgb(255, 235, 240, 247));
-        private static readonly SolidColorBrush LaneOddBrush = new(Color.FromArgb(255, 229, 236, 244));
-        public static readonly SolidColorBrush BarLineBrush = new(Color.FromArgb(250, 111, 111, 111));
+        private static readonly SolidColorBrush OutlineBrush = new SolidColorBrush(Color.FromArgb(255, 40, 90, 180));
+        private static readonly SolidColorBrush LaneEvenBrush = new SolidColorBrush(Color.FromArgb(255, 235, 240, 247));
+        private static readonly SolidColorBrush LaneOddBrush = new SolidColorBrush(Color.FromArgb(255, 229, 236, 244));
+        public static readonly SolidColorBrush BarLineBrush = new SolidColorBrush(Color.FromArgb(250, 111, 111, 111));
 
         // UI文本颜色
-        public static readonly SolidColorBrush UiHintTextBrush = new(Color.FromArgb(255, 51, 51, 51));
-        public static readonly SolidColorBrush UiSecondaryTextBrush = new(Color.FromArgb(255, 90, 99, 112));
+        public static readonly SolidColorBrush UiHintTextBrush = new SolidColorBrush(Color.FromArgb(255, 51, 51, 51));
+        public static readonly SolidColorBrush UiSecondaryTextBrush = new SolidColorBrush(Color.FromArgb(255, 90, 99, 112));
 
         // 预览窗口相关（集中管理），读取开始时间后，向后读取 N 个单位长度的时长
         public const int PreviewWindowUnitCount = 16; // N，单位个数（默认 8）

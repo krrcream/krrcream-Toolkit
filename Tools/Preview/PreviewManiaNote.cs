@@ -12,7 +12,7 @@ namespace krrTools.Tools.Preview
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(ManiaData));
             return BeatmapDecoder.Decode(stream);
         }
-    
+
         private const string ManiaData = @"
 osu file format v14
 

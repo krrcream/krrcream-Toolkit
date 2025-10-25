@@ -10,10 +10,9 @@ namespace krrTools.Tools.Preview
     public interface IPreviewProcessor
     {
         ConverterEnum? ModuleTool { get; set; }
-        
+
         FrameworkElement BuildOriginalVisual(Beatmap input);
-        
+
         FrameworkElement BuildConvertedVisual(Beatmap input);
     }
 }
-

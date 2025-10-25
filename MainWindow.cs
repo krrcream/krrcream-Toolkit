@@ -217,7 +217,7 @@ namespace krrTools
                 string outputPath = transformedBeatmap.GetOutputOsuFileName();
                 string? outputDir = Path.GetDirectoryName(beatmapPath);
                 string fullOutputPath = Path.Combine(outputDir!, outputPath);
-                
+
                 // 限制完整路径长度不超过255个字符，注意getdirectoryname已经标准化非法字符，不需要重新判断
                 if (fullOutputPath.Length > 255)
                 {
@@ -226,14 +226,14 @@ namespace krrTools
                     {
                         // 去掉最后的".osu"扩展名
                         string pathWithoutExtension = fullOutputPath.Substring(0, fullOutputPath.Length - 4);
-        
+
                         // 截取到247个字符，然后加上".osu"
                         fullOutputPath = pathWithoutExtension.Substring(0, 247) + "....osu";
                     }
                 }
-                
+
                 transformedBeatmap.Save(fullOutputPath);
-                
+
                 // 打包成.osz并打开
                 string? directoryPath = Path.GetDirectoryName(fullOutputPath);
                 string? directoryName = Path.GetFileName(directoryPath);

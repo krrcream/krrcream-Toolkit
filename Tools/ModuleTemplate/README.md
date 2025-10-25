@@ -5,15 +5,19 @@
 ## 使用步骤
 
 ### 1. 复制模板文件
+
 将此文件夹复制到一个新文件夹，命名为你的模块名称（例如：`MyNewModule`）。
 
 ### 2. 重命名和修改文件
+
 - 将所有 `.template` 文件重命名为 `.cs` 文件
 - 将文件中的所有 `ModuleName` 替换为你的实际模块名称
 - 修改相应的命名空间、类名和属性
 
 ### 3. 修改枚举
+
 在 `ToolModuleType` 枚举中添加新模块：
+
 ```csharp
 public enum ToolModuleType
 {
@@ -25,7 +29,9 @@ public enum ToolModuleType
 ```
 
 ### 4. 注册模块
+
 在 `ToolModuleRegistry.cs` 的静态构造函数中注册新模块：
+
 ```csharp
 static ToolModuleRegistry()
 {
@@ -37,16 +43,21 @@ static ToolModuleRegistry()
 ```
 
 ### 5. 实现核心算法
+
 在 `ModuleName.cs` 中实现你的转换逻辑。
 
 ### 6. 配置UI
+
 在 `View.cs` 中构建你的用户界面。
 
 ### 7. 添加选项
+
 在 `Options.cs` 中定义你的模块设置。
 
 ### 8. 添加枚举值
+
 在 `ConverterEnum` 枚举中添加新模块：
+
 ```csharp
 public enum ConverterEnum
 {
@@ -88,6 +99,7 @@ copy_module_template.bat MyNewModule
 ```
 
 此脚本会：
+
 1. 创建 `tools\MyNewModule\` 文件夹
 2. 复制所有模板文件并重命名为 `.cs` 文件
 3. 自动替换文件中的 `ModuleName` 为 `MyNewModule`
@@ -101,15 +113,16 @@ copy_module_template.bat MyNewModule
 1. 创建 `tools\SpeedChanger\` 文件夹
 2. 复制所有模板文件到该文件夹
 3. 重命名文件并替换内容：
-   - `ModuleName` → `SpeedChanger`
-   - `ModuleNameTool` → `SpeedChangerTool`
-   - 实现具体的转换逻辑
+    - `ModuleName` → `SpeedChanger`
+    - `ModuleNameTool` → `SpeedChangerTool`
+    - 实现具体的转换逻辑
 
 ## 自定义UI控件
 
 项目提供了丰富的自定义UI控件库，位于 `UI/` 文件夹中：
 
 ### SharedUIComponents.cs
+
 提供统一的UI组件：
 
 - `CreateStandardPanel(UIElement, Thickness?, Thickness?)` - 创建标准面板
@@ -120,6 +133,7 @@ copy_module_template.bat MyNewModule
 - `CreateStandardCheckBox(string, string?)` - 创建标准复选框
 
 ### UIConstants.cs
+
 UI常量定义：
 
 - `HeaderFontSize = 18.0` - 标题字体大小
@@ -130,11 +144,13 @@ UI常量定义：
 - `PanelPadding` - 面板内边距
 
 ### PresetPanelFactory.cs
+
 预设面板工厂：
 
 - `CreatePresetPanel<T>(string, Func<T?>, Action<T?>)` - 创建预设管理面板
 
 ### SettingsBinder.cs (位于 Configuration/)
+
 设置绑定器，提供模板化控件：
 
 - `CreateTemplatedSlider(Bindable<T>, Expression<Func<...>>)` - 创建模板滑块
@@ -144,6 +160,7 @@ UI常量定义：
 **详细使用说明请参考 `SettingsBinder_GUIDE.md`**
 
 ### 使用示例
+
 ```csharp
 // 在 View.cs 中使用
 private void BuildTemplatedUI()

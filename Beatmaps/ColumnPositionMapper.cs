@@ -2,7 +2,7 @@
 {
     public static class ColumnPositionMapper
     {
-        private static readonly Dictionary<int, int[]> KeyValueMap = new()
+        private static readonly Dictionary<int, int[]> KeyValueMap = new Dictionary<int, int[]>
         {
             [1] = [256],
             [2] = [128, 384],
@@ -42,22 +42,22 @@
         };
 
         // Expose a read-only view in case callers want the whole map
-        public static IReadOnlyDictionary<int, int[]> Map => KeyValueMap;
+        public static IReadOnlyDictionary<int, int[]> Map
+        {
+            get => KeyValueMap;
+        }
 
         public static int ColumnToPositionX(int keyCount, int column)
         {
-            if (KeyValueMap.TryGetValue(keyCount, out var row) && column >= 0 && column < row.Length)
-            {
-                return row[column];
-            }
+            if (KeyValueMap.TryGetValue(keyCount, out int[]? row) && column >= 0 && column < row.Length) return row[column];
             // 备选计算方式
             return GetPositionX(keyCount, column + 1);
         }
-        
+
         public static int GetPositionX(int column, int index)
         {
             // 拟合公式，结果四舍五入，和编辑器结果基本一致
-            return ((index - 1) * 512 / column) + (256 / column);
+            return (index - 1) * 512 / column + 256 / column;
         }
     }
 }

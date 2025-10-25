@@ -23,12 +23,18 @@ namespace krrTools.Beatmaps
         /// <summary>
         /// 行数
         /// </summary>
-        public int Rows => _data.GetLength(0);
+        public int Rows
+        {
+            get => _data.GetLength(0);
+        }
 
         /// <summary>
         /// 列数
         /// </summary>
-        public int Cols => _data.GetLength(1);
+        public int Cols
+        {
+            get => _data.GetLength(1);
+        }
 
         /// <summary>
         /// 构造函数
@@ -36,9 +42,12 @@ namespace krrTools.Beatmaps
         public NoteMatrix(int rows, int cols)
         {
             _data = new int[rows, cols];
-            for (var i = 0; i < rows; i++)
-            for (var j = 0; j < cols; j++)
-                _data[i, j] = Empty;
+
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < cols; j++)
+                    _data[i, j] = Empty;
+            }
         }
 
         /// <summary>
@@ -122,5 +131,4 @@ namespace krrTools.Beatmaps
             return clone;
         }
     }
-
 }

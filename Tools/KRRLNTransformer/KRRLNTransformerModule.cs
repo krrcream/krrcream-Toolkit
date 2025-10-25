@@ -6,9 +6,15 @@ namespace krrTools.Tools.KRRLNTransformer
 {
     public class KRRLNTransformerModule : ToolModuleBase<KRRLNTransformerOptions, KRRLNTransformerViewModel, KRRLNTransformerView>
     {
-        public override ToolModuleType ModuleType => ToolModuleType.KRRLN;
+        public override ToolModuleType ModuleType
+        {
+            get => ToolModuleType.KRRLN;
+        }
 
-        public override string DisplayName => Strings.TabKRRsLN;
+        public override string DisplayName
+        {
+            get => Strings.TabKRRsLN;
+        }
 
         /// <summary>
         /// 应用转换到谱面（内部实现）- 获取最新的运行时设置

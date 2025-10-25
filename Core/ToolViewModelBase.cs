@@ -6,14 +6,13 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using krrTools.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace krrTools.Core;
-
-
+namespace krrTools.Core
+{
     /// <summary>
     /// 基类，提供选项加载和保存功能
     /// </summary>
     /// <typeparam name="TOptions">The options type for this tool</typeparam>
-    public abstract class   ToolViewModelBase<TOptions> : ObservableObject, IDisposable where TOptions : class, IToolOptions, new()
+    public abstract class ToolViewModelBase<TOptions> : ObservableObject, IDisposable where TOptions : class, IToolOptions, new()
     {
         private TOptions _options;
         private readonly ConverterEnum _toolEnum;
@@ -21,8 +20,8 @@ namespace krrTools.Core;
         private readonly DispatcherTimer? _saveTimer;
 
         private bool _isInitializing = true;
-    
-        protected readonly List<IDisposable> Disposables = new();
+
+        protected readonly List<IDisposable> Disposables = new List<IDisposable>();
 
         protected ToolViewModelBase(ConverterEnum toolEnum, bool autoSave = true, TOptions? injectedOptions = null)
         {
@@ -41,11 +40,12 @@ namespace krrTools.Core;
                 _saveTimer.Tick += (_, _) =>
                 {
                     _saveTimer.Stop();
-                    if (!_isInitializing) 
+
+                    if (!_isInitializing)
                     {
                         try
                         {
-                            var optionsToSave = Options;
+                            TOptions optionsToSave = Options;
                             optionsToSave.Validate();
                             BaseOptionsManager.SaveOptions(_toolEnum, optionsToSave);
                         }
@@ -68,11 +68,8 @@ namespace krrTools.Core;
 
                     BaseOptionsManager.SettingsChanged += OnSettingsChanged;
 
-                    if (_autoSave)
-                    {
-                        PropertyChanged += OnPropertyChanged;
-                    }
-                
+                    if (_autoSave) PropertyChanged += OnPropertyChanged;
+
                     SetupReactiveConstraints();
                 }
                 finally
@@ -84,10 +81,7 @@ namespace krrTools.Core;
 
         private void OnSettingsChanged(ConverterEnum changedConverter)
         {
-            if (changedConverter == _toolEnum && !_isInitializing) 
-            {
-                DoLoadOptions();
-            }
+            if (changedConverter == _toolEnum && !_isInitializing) DoLoadOptions();
         }
 
         /// <summary>
@@ -102,6 +96,7 @@ namespace krrTools.Core;
                 {
                     // Validate the new options
                     _options.Validate();
+
                     // Unsubscribe from old options and subscribe to new ones
                     if (_autoSave)
                     {
@@ -119,14 +114,15 @@ namespace krrTools.Core;
             try
             {
                 var saved = BaseOptionsManager.LoadOptions<TOptions>(_toolEnum);
+
                 if (saved != null)
                 {
                     var toolOptions = saved as ToolOptionsBase;
                     toolOptions!.IsLoading = true;
                     saved.Validate();
-                
+
                     // 临时禁用初始化状态来设置选项
-                    var wasInitializing = _isInitializing;
+                    bool wasInitializing = _isInitializing;
                     _isInitializing = true;
                     Options = saved;
                     _isInitializing = wasInitializing;
@@ -138,10 +134,10 @@ namespace krrTools.Core;
                 Logger.WriteLine(LogLevel.Debug, "[ToolOptions] Failed to load options; using defaults.");
             }
         }
-        
+
         private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (_autoSave && e.PropertyName != nameof(Options) && !_isInitializing) 
+            if (_autoSave && e.PropertyName != nameof(Options) && !_isInitializing)
             {
                 StartDelayedSave();
                 TriggerPreviewRefresh();
@@ -152,25 +148,22 @@ namespace krrTools.Core;
         {
             // 同步响应式属性
             OnOptionsPropertyChangedInternal(e);
-        
+
             // 触发ViewModel的PropertyChanged事件，以便UI（如预览）能监听到选项变化
             OnPropertyChanged(e.PropertyName);
-            if (!_isInitializing && _autoSave) 
-            {
-                StartDelayedSave();
-            }
+            if (!_isInitializing && _autoSave) StartDelayedSave();
         }
-    
+
         /// <summary>
         /// 处理选项属性变化 - 子类可以重写此方法来同步响应式属性
         /// </summary>
         protected virtual void OnOptionsPropertyChangedInternal(PropertyChangedEventArgs e) { }
-    
+
         /// <summary>
         /// 设置响应式约束 - 子类重写此方法来设置响应式属性和约束
         /// </summary>
         protected virtual void SetupReactiveConstraints() { }
-        
+
         protected virtual void TriggerPreviewRefresh()
         {
             // 子类可以重写此方法来触发预览刷新
@@ -190,7 +183,8 @@ namespace krrTools.Core;
         /// </summary>
         public void Dispose()
         {
-            foreach (var d in Disposables) d.Dispose();
+            foreach (IDisposable d in Disposables) d.Dispose();
             Disposables.Clear();
         }
     }
+}

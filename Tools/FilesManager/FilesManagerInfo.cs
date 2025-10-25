@@ -3,14 +3,14 @@ namespace krrTools.Tools.FilesManager
     public class FilesManagerInfo
     {
         // 可编辑属性
-        public EditableProperty<string> Artist { get; } = new() { Value = string.Empty };
-        public EditableProperty<string> Title { get; } = new() { Value = string.Empty };
-        public EditableProperty<string> Creator { get; } = new() { Value = string.Empty };
-        public EditableProperty<string> Diff { get; } = new() { Value = string.Empty };
-        public EditableProperty<string> FilePath { get; } = new() { Value = string.Empty };
-        public EditableProperty<double> OD { get; } = new();
-        public EditableProperty<double> HP { get; } = new();
-    
+        public EditableProperty<string> Artist { get; } = new EditableProperty<string> { Value = string.Empty };
+        public EditableProperty<string> Title { get; } = new EditableProperty<string> { Value = string.Empty };
+        public EditableProperty<string> Creator { get; } = new EditableProperty<string> { Value = string.Empty };
+        public EditableProperty<string> Diff { get; } = new EditableProperty<string> { Value = string.Empty };
+        public EditableProperty<string> FilePath { get; } = new EditableProperty<string> { Value = string.Empty };
+        public EditableProperty<double> OD { get; } = new EditableProperty<double>();
+        public EditableProperty<double> HP { get; } = new EditableProperty<double>();
+
         // 只读属性
         public int Keys { get; init; }
         public int BeatmapID { get; init; }

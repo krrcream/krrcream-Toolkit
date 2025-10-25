@@ -10,7 +10,7 @@ namespace krrTools.Tools.Listener
     /// </summary>
     public class ConversionHotkeyManager : IDisposable
     {
-        private readonly Dictionary<ConverterEnum, GlobalHotkey?> _hotkeys = new();
+        private readonly Dictionary<ConverterEnum, GlobalHotkey?> _hotkeys = new Dictionary<ConverterEnum, GlobalHotkey?>();
         private readonly Action<ConverterEnum> _convertAction;
         private readonly System.Windows.Window _window;
         private bool _hotkeysRegistered;
@@ -31,7 +31,7 @@ namespace krrTools.Tools.Listener
             UnregisterAllHotkeys();
 
             Logger.WriteLine(LogLevel.Debug, "[ConversionHotkeyManager] Registering hotkeys: N2NC='{0}', DP='{1}', KRRLN='{2}'",
-                settings.N2NCHotkey.Value, settings.DPHotkey.Value, settings.KRRLNHotkey.Value);
+                             settings.N2NCHotkey.Value, settings.DPHotkey.Value, settings.KRRLNHotkey.Value);
 
             RegisterHotkey(ConverterEnum.N2NC, settings.N2NCHotkey.Value);
             RegisterHotkey(ConverterEnum.DP, settings.DPHotkey.Value);
@@ -62,10 +62,7 @@ namespace krrTools.Tools.Listener
         /// </summary>
         public void UnregisterAllHotkeys()
         {
-            foreach (var hotkey in _hotkeys.Values)
-            {
-                hotkey?.Unregister();
-            }
+            foreach (GlobalHotkey? hotkey in _hotkeys.Values) hotkey?.Unregister();
             _hotkeys.Clear();
             _hotkeysRegistered = false;
         }

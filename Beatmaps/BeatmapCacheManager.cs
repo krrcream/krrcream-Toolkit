@@ -10,7 +10,8 @@ namespace krrTools.Beatmaps
     /// </summary>
     public class BeatmapCacheManager
     {
-        private readonly ConcurrentDictionary<string, (DateTime lastProcessTime, string contentHash)> _processedFiles = new();
+        private readonly ConcurrentDictionary<string, (DateTime lastProcessTime, string contentHash)> _processedFiles =
+            new ConcurrentDictionary<string, (DateTime lastProcessTime, string contentHash)>();
 
         /// <summary>
         /// 检查是否可以处理文件（避免重复处理）
@@ -20,17 +21,14 @@ namespace krrTools.Beatmaps
             if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
                 return false;
 
-            var now = DateTime.Now;
+            DateTime now = DateTime.Now;
             // var fileInfo = new FileInfo(filePath);
-            var contentHash = GetFileHash(filePath);
+            string contentHash = GetFileHash(filePath);
 
-            if (_processedFiles.TryGetValue(filePath, out var cached))
+            if (_processedFiles.TryGetValue(filePath, out (DateTime lastProcessTime, string contentHash) cached))
             {
                 // 检查时间窗口和内容哈希
-                if (cached.contentHash == contentHash)
-                {
-                    return false; // 重复处理，跳过
-                }
+                if (cached.contentHash == contentHash) return false; // 重复处理，跳过
             }
 
             // 更新缓存
@@ -59,21 +57,16 @@ namespace krrTools.Beatmaps
         /// </summary>
         public void CleanupExpiredEntries()
         {
-            var now = DateTime.Now;
+            DateTime now = DateTime.Now;
             var expiredKeys = new List<string>();
 
-            foreach (var kvp in _processedFiles)
+            foreach (KeyValuePair<string, (DateTime lastProcessTime, string contentHash)> kvp in _processedFiles)
             {
-                if ((now - kvp.Value.lastProcessTime) > TimeSpan.FromMinutes(5)) // 5分钟过期
-                {
+                if (now - kvp.Value.lastProcessTime > TimeSpan.FromMinutes(5)) // 5分钟过期
                     expiredKeys.Add(kvp.Key);
-                }
             }
 
-            foreach (var key in expiredKeys)
-            {
-                _processedFiles.TryRemove(key, out _);
-            }
+            foreach (string key in expiredKeys) _processedFiles.TryRemove(key, out _);
         }
     }
 }

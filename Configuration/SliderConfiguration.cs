@@ -59,6 +59,5 @@ namespace krrTools.Configuration
         /// 是否启用刻度对齐
         /// </summary>
         public bool SnapToTick { get; set; } = true;
-
     }
 }

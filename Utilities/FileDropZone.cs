@@ -15,10 +15,13 @@ namespace krrTools.Utilities
     {
         private Button? StartConversionButton;
         private FileDropZoneViewModel _viewModel;
-        public FileDropZoneViewModel ViewModel => _viewModel;
+        public FileDropZoneViewModel ViewModel
+        {
+            get => _viewModel;
+        }
 
         // 本地化字符串对象
-        private readonly DynamicLocalizedString _startButtonTextLocalized = new(Strings.StartButtonText);
+        private readonly DynamicLocalizedString _startButtonTextLocalized = new DynamicLocalizedString(Strings.StartButtonText);
 
         public FileDropZone()
         {
@@ -104,7 +107,8 @@ namespace krrTools.Utilities
         /// <summary>
         /// 构造函数 - 使用指定的 ViewModel（主要用于测试）
         /// </summary>
-        public FileDropZone(FileDropZoneViewModel viewModel) : base()
+        public FileDropZone(FileDropZoneViewModel viewModel)
+            : base()
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             DataContext = _viewModel;
@@ -127,21 +131,21 @@ namespace krrTools.Utilities
         private void OnDrop(object sender, DragEventArgs e)
         {
             if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
-            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+            string[]? files = e.Data.GetData(DataFormats.FileDrop) as string[];
             if (files == null || files.Length == 0) return;
 
-            var osuFiles = _viewModel.CollectOsuFiles(files);
+            List<string> osuFiles = _viewModel.CollectOsuFiles(files);
             if (osuFiles.Count == 0) return;
 
-            _viewModel.SetFiles(osuFiles.ToArray(), source: FileSource.Dropped);
+            _viewModel.SetFiles(osuFiles.ToArray(), FileSource.Dropped);
         }
 
         private void OnDragOver(object sender, DragEventArgs e)
         {
-            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) 
-                ? DragDropEffects.Copy 
-                : DragDropEffects.None;
-            
+            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop)
+                            ? DragDropEffects.Copy
+                            : DragDropEffects.None;
+
             e.Handled = true;
         }
 

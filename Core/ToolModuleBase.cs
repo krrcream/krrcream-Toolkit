@@ -70,7 +70,10 @@ namespace krrTools.Core
         /// <summary>
         /// 模块内部名称（用于配置和文件）
         /// </summary>
-        public virtual string ModuleName => ModuleType.ToString();
+        public virtual string ModuleName
+        {
+            get => ModuleType.ToString();
+        }
 
         /// <summary>
         /// 模块显示名称

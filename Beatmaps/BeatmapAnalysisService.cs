@@ -12,7 +12,7 @@ namespace krrTools.Beatmaps
     /// </summary>
     public class BeatmapAnalysisService
     {
-        private readonly BeatmapCacheManager _cacheManager = new();
+        private readonly BeatmapCacheManager _cacheManager = new BeatmapCacheManager();
 
         // 公共属性注入事件总线
         [Inject]
@@ -22,7 +22,7 @@ namespace krrTools.Beatmaps
         {
             // 自动注入标记了 [Inject] 的属性
             this.InjectServices();
-            
+
             // 订阅路径变化事件，收到后进行完整分析
             EventBus.Subscribe<BeatmapChangedEvent>(OnBeatmapPathChanged);
         }
@@ -32,12 +32,10 @@ namespace krrTools.Beatmaps
         /// </summary>
         private async Task ProcessBeatmapAsync(string filePath)
         {
-            if (string.IsNullOrEmpty(filePath) || 
+            if (string.IsNullOrEmpty(filePath) ||
                 !File.Exists(filePath) ||
                 !Path.GetExtension(filePath).Equals(".osu", StringComparison.OrdinalIgnoreCase))
-            {
                 return;
-            }
 
             await Task.Run(async () =>
             {
@@ -47,24 +45,23 @@ namespace krrTools.Beatmaps
                     if (!_cacheManager.CanProcessFile(filePath)) return;
 
                     // 完整分析
-                    var analysisResult = await OsuAnalyzer.AnalyzeAsync(filePath);
+                    OsuAnalysisResult analysisResult = await OsuAnalyzer.AnalyzeAsync(filePath);
                     if (analysisResult.Status != "√") return;
 
                     Logger.WriteLine(LogLevel.Debug,
-                        "[BeatmapAnalysisService] Beatmap analyzed: {0}, Keys: {1}, SR: {2:F2}",
-                        analysisResult.Title ?? "Unknown", analysisResult.KeyCount, analysisResult.XXY_SR);
-
+                                     "[BeatmapAnalysisService] Beatmap analyzed: {0}, Keys: {1}, SR: {2:F2}",
+                                     analysisResult.Title ?? "Unknown", analysisResult.KeyCount, analysisResult.XXY_SR);
 
                     // 发布专门的分析结果变化事件
                     EventBus.Publish(new AnalysisResultChangedEvent
                     {
-                        AnalysisResult = analysisResult,
+                        AnalysisResult = analysisResult
                     });
                 }
                 catch (Exception ex)
                 {
                     Logger.WriteLine(LogLevel.Error, "[BeatmapAnalysisService] ProcessBeatmapAsync failed: {0}",
-                        ex.Message);
+                                     ex.Message);
                 }
             });
         }

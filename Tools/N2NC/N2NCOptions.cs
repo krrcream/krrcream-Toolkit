@@ -57,11 +57,11 @@ namespace krrTools.Tools.N2NC
         }
         private int? _seed = 114514;
         public KeySelectionFlags? SelectedKeyFlags { get; set; } = (KeySelectionFlags)0b0011111111;
-        
+
         public override void Validate()
         {
             base.Validate(); // First clamp to Min/Max
-            
+
             // 确保 TargetKeys 在合理范围内
             if (TargetKeys.Value < 1) TargetKeys.Value = 1;
             if (TargetKeys.Value > 18) TargetKeys.Value = 18;

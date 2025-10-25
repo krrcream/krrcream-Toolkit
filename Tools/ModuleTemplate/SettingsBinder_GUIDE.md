@@ -12,18 +12,21 @@
 ## OptionAttribute 属性
 
 ### 基本属性
+
 - `LabelKey`: 本地化标签键名（必需）
 - `TooltipKey`: 本地化提示文本键名（可选）
 - `UIType`: UI控件类型（必需）
 - `DataType`: 数据类型（可选，自动推断）
 
 ### 数值控件属性
+
 - `Min`: 最小值
 - `Max`: 最大值
 - `TickFrequency`: 刻度频率（默认1）
 - `KeyboardStep`: 键盘步长（默认1）
 
 ### 高级属性
+
 - `DisplayMapField`: 显示值映射字典字段名
 - `ActualMapField`: 实际值映射字典字段名
 - `HasCheckBox`: 是否启用勾选框
@@ -56,6 +59,7 @@ public static FrameworkElement CreateTemplatedControl<T>(
 **用途**：根据属性的 `[Option]` 特性自动创建单个UI控件。
 
 **示例**：
+
 ```csharp
 // 在Options类中定义属性
 [Option(LabelKey = "MySettingLabel", UIType = UIType.Slider, Min = 1, Max = 10)]
@@ -78,11 +82,13 @@ public static UIElement CreateTemplatedSlider<T>(
 **用途**：创建增强的滑块控件，支持可选的勾选框和值显示映射。
 
 **特性**：
+
 - 自动检测可空类型并添加勾选框
 - 支持自定义显示值映射
 - 支持属性级别的显示映射（通过 `DisplayMapField`）
 
 **示例**：
+
 ```csharp
 // 带显示映射的滑块
 var speedSlider = SettingsBinder.CreateTemplatedSlider(
@@ -114,6 +120,7 @@ public static UIElement CreateTemplatedSliderWithDynamicMax<T>(
 **用途**：创建最大值动态变化的滑块控件。
 
 **示例**：
+
 ```csharp
 // 最大值绑定到另一个属性的滑块
 var minKeysSlider = SettingsBinder.CreateTemplatedSliderWithDynamicMax(
@@ -122,6 +129,7 @@ var minKeysSlider = SettingsBinder.CreateTemplatedSliderWithDynamicMax(
     _viewModel,
     nameof(_viewModel.MinKeysMaximum));
 ```
+
 **MinKeysMaximum是一个Dictionary<double, string>字典，映射：值→显示文本**
 
 ### 4. CreateSeedPanel
@@ -135,6 +143,7 @@ public static FrameworkElement CreateSeedPanel<T, TProperty>(
 **用途**：创建种子值输入面板，包含标签、文本框和随机生成按钮。
 
 **示例**：
+
 ```csharp
 var seedPanel = SettingsBinder.CreateSeedPanel(_viewModel, x => x.Seed);
 ```
@@ -218,4 +227,4 @@ public class MyView : ToolViewBase<MyOptions>
 - 表达式选择器必须是有效的属性访问表达式
 - `DataType` 通常可以自动推断，除非需要特殊处理
 - 动态最大值滑块需要确保 `dynamicMaxPath` 路径有效</content>
-<parameter name="filePath">e:\BASE CODE\GitHub\krrTools\Tools\ModuleTemplate\SettingsBinder_GUIDE.md
+  <parameter name="filePath">e:\BASE CODE\GitHub\krrTools\Tools\ModuleTemplate\SettingsBinder_GUIDE.md

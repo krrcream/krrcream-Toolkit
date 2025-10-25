@@ -28,7 +28,7 @@ namespace krrTools.UI
         public const double HeaderFontSize = UIConstants.HeaderFontSize;
         private const double ComFontSize = UIConstants.CommonFontSize;
 
-        private static SolidColorBrush _panelBackgroundBrush = new(Color.FromArgb(102, 255, 255, 255));
+        private static SolidColorBrush _panelBackgroundBrush = new SolidColorBrush(Color.FromArgb(102, 255, 255, 255));
 
         public static Brush PanelBackgroundBrush
         {
@@ -71,8 +71,10 @@ namespace krrTools.UI
             };
 
             if (!string.IsNullOrEmpty(text) && text.Contains('|'))
+            {
                 tb.SetBinding(System.Windows.Controls.TextBlock.TextProperty,
-                    new Binding("Value") { Source = text.GetLocalizedString() });
+                              new Binding("Value") { Source = text.GetLocalizedString() });
+            }
             else
                 tb.Text = text;
 
@@ -82,7 +84,7 @@ namespace krrTools.UI
         public static FrameworkElement CreateLabeledRow(string labelText, UIElement control, Thickness rowMargin)
         {
             var panel = new StackPanel { Orientation = Orientation.Vertical, Margin = rowMargin };
-            var label = CreateHeaderLabel(labelText);
+            TextBlock label = CreateHeaderLabel(labelText);
             label.Margin = new Thickness(0, 0, 0, 4);
             panel.Children.Add(label);
             if (control is FrameworkElement fe) panel.Children.Add(fe);
@@ -106,10 +108,13 @@ namespace krrTools.UI
             var tb = new TextBlock { FontSize = ComFontSize, TextTrimming = TextTrimming.CharacterEllipsis };
 
             if (!string.IsNullOrEmpty(content) && content.Contains('|'))
+            {
                 tb.SetBinding(System.Windows.Controls.TextBlock.TextProperty,
-                    new Binding("Value") { Source = content.GetLocalizedString() });
+                              new Binding("Value") { Source = content.GetLocalizedString() });
+            }
             else
                 tb.Text = content;
+
             var btn = new Button
             {
                 Content = tb,
@@ -123,7 +128,7 @@ namespace krrTools.UI
                 BorderThickness = new Thickness(1),
                 Foreground = UiTextBrush
             };
-        
+
             LocalizationService.SetLocalizedToolTip(btn, tooltip);
 
             return btn;
@@ -134,15 +139,19 @@ namespace krrTools.UI
             var cb = new CheckBox
                 { FontSize = ComFontSize, Margin = new Thickness(2, 0, 10, 0), Background = Brushes.Transparent };
             var tb = new TextBlock { FontSize = ComFontSize, TextWrapping = TextWrapping.Wrap };
+
             if (!string.IsNullOrEmpty(content) && content.Contains('|'))
+            {
                 tb.SetBinding(System.Windows.Controls.TextBlock.TextProperty,
-                    new Binding("Value") { Source = content.GetLocalizedString() });
+                              new Binding("Value") { Source = content.GetLocalizedString() });
+            }
             else
                 tb.Text = content;
+
             cb.Content = tb;
-        
+
             LocalizationService.SetLocalizedToolTip(cb, tooltip);
-        
+
             return cb;
         }
     }

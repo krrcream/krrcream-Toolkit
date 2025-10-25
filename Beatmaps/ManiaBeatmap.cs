@@ -35,22 +35,22 @@ namespace krrTools.Beatmaps
                 TimingPoints = beatmap.TimingPoints,
                 HitObjects = beatmap.HitObjects, // 直接使用原始HitObjects
                 ManiaHitObjects = beatmap.HitObjects
-                    .Select(ho =>
-                    {
-                        var obj = new ManiaHitObject();
-                        obj.InitFrom(ho);
-                        return obj;
-                    })
-                    .ToList()
+                                         .Select(ho =>
+                                          {
+                                              var obj = new ManiaHitObject();
+                                              obj.InitFrom(ho);
+                                              return obj;
+                                          })
+                                         .ToList()
             };
 
-            var bpmArray = beatmap.TimingPoints.Select(tp => 60000.0 / tp.BeatLength).ToArray();
+            double[] bpmArray = beatmap.TimingPoints.Select(tp => 60000.0 / tp.BeatLength).ToArray();
             mania.MinBPM = bpmArray.Min();
             mania.MaxBPM = bpmArray.Max();
             mania.BPM = beatmap.GetBPM();
             mania.BPMDisplay = !(Math.Abs(mania.MinBPM - mania.MaxBPM) < 0)
-                ? $"{mania.BPM}({mania.MinBPM} - {mania.MaxBPM})"
-                : mania.BPM.ToString(CultureInfo.CurrentCulture);
+                                   ? $"{mania.BPM}({mania.MinBPM} - {mania.MaxBPM})"
+                                   : mania.BPM.ToString(CultureInfo.CurrentCulture);
             mania.LNPercent = beatmap.GetLNPercent();
 
             mania.KeyCount = (int)beatmap.DifficultySection.CircleSize;

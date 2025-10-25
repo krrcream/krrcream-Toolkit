@@ -13,6 +13,7 @@ using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.UI;
 using Microsoft.Extensions.Logging;
+using Button = Wpf.Ui.Controls.Button;
 
 namespace krrTools.Tools.KRRLVAnalysis
 {
@@ -84,9 +85,9 @@ namespace krrTools.Tools.KRRLVAnalysis
             DataContext = _analysisViewModel;
             AllowDrop = true;
             Focusable = true;
-            
+
             BuildUI();
-            
+
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
             Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
         }
@@ -129,16 +130,16 @@ namespace krrTools.Tools.KRRLVAnalysis
             buttonGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             buttonGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             buttonGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            
-            var loadBtn = SharedUIComponents.CreateStandardButton("Load Folder|加载文件夹");
-            loadBtn.Width = Double.NaN; 
+
+            Button loadBtn = SharedUIComponents.CreateStandardButton("Load Folder|加载文件夹");
+            loadBtn.Width = double.NaN;
             loadBtn.Height = 35;
             loadBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
             loadBtn.Margin = new Thickness(0, 0, 5, 0); // 右边距5px，与导出按钮间隔
             loadBtn.Click += LoadBtn_Click;
 
-            var saveBtn = SharedUIComponents.CreateStandardButton("Export|导出");
-            saveBtn.Width = Double.NaN; 
+            Button saveBtn = SharedUIComponents.CreateStandardButton("Export|导出");
+            saveBtn.Width = double.NaN;
             saveBtn.Height = 35;
             saveBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
             saveBtn.SetBinding(ButtonBase.CommandProperty, new Binding(nameof(KRRLVAnalysisViewModel.SaveCommand)));
@@ -151,8 +152,7 @@ namespace krrTools.Tools.KRRLVAnalysis
             // testBtn.Click += TestBtn_Click;
             // Grid.SetColumn(testBtn, 1);
             // buttonGrid.Children.Add(testBtn);
-            
-            
+
             Grid.SetRow(dataGrid, 0);
             Grid.SetRow(buttonGrid, 1);
             Grid.SetColumn(loadBtn, 0);
@@ -177,13 +177,10 @@ namespace krrTools.Tools.KRRLVAnalysis
             if (dataGrid == null) return;
 
             // 使用共享的列配置
-            foreach (var config in KRRLVAnalysisColumnConfig.Columns)
+            foreach ((string Property, string Header, double Width, string Format) config in KRRLVAnalysisColumnConfig.Columns)
             {
                 var binding = new Binding($"Result.{config.Property}");
-                if (!string.IsNullOrEmpty(config.Format))
-                {
-                    binding.StringFormat = config.Format;
-                }
+                if (!string.IsNullOrEmpty(config.Format)) binding.StringFormat = config.Format;
 
                 var column = new DataGridTextColumn
                 {
@@ -200,7 +197,7 @@ namespace krrTools.Tools.KRRLVAnalysis
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+                string[]? files = e.Data.GetData(DataFormats.FileDrop) as string[];
                 if (files == null || files.Length == 0)
                     return;
 
@@ -210,21 +207,20 @@ namespace krrTools.Tools.KRRLVAnalysis
 
         private void Window_DragEnter(object sender, DragEventArgs e)
         {
-            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ?
-                DragDropEffects.Copy : DragDropEffects.None;
+            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
         }
 
         private void Window_DragOver(object sender, DragEventArgs e)
         {
-            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ?
-                DragDropEffects.Copy : DragDropEffects.None;
+            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
             e.Handled = true;
         }
 
         private void LoadBtn_Click(object sender, RoutedEventArgs e)
         {
             var owner = Window.GetWindow(this);
-            var selected = FilesHelper.ShowFolderBrowserDialog("选择文件夹", owner);
+            string selected = FilesHelper.ShowFolderBrowserDialog("选择文件夹", owner);
+
             if (!string.IsNullOrEmpty(selected))
             {
                 _analysisViewModel.PathInput.Value = selected;
@@ -240,14 +236,10 @@ namespace krrTools.Tools.KRRLVAnalysis
         private void LoadColumnOrder()
         {
             if (dataGrid == null) return;
-            var config = BaseOptionsManager.GetGlobalSettings();
-            if (config.DataGridColumnOrders.Value.TryGetValue(ToolName, out var orders) && orders.Count == dataGrid.Columns.Count)
-            {
+            GlobalSettings config = BaseOptionsManager.GetGlobalSettings();
+            if (config.DataGridColumnOrders.Value.TryGetValue(ToolName, out List<int>? orders) && orders.Count == dataGrid.Columns.Count)
                 for (int i = 0; i < orders.Count; i++)
-                {
                     dataGrid.Columns[i].DisplayIndex = orders[i];
-                }
-            }
         }
 
         private void OnColumnReordered(object? sender, DataGridColumnEventArgs e)
@@ -259,11 +251,8 @@ namespace krrTools.Tools.KRRLVAnalysis
         {
             if (dataGrid == null) return;
             var orders = new List<int>();
-            foreach (var col in dataGrid.Columns.OrderBy(c => c.DisplayIndex))
-            {
-                orders.Add(dataGrid.Columns.IndexOf(col));
-            }
-            var config = BaseOptionsManager.GetGlobalSettings();
+            foreach (DataGridColumn? col in dataGrid.Columns.OrderBy(c => c.DisplayIndex)) orders.Add(dataGrid.Columns.IndexOf(col));
+            GlobalSettings config = BaseOptionsManager.GetGlobalSettings();
             config.DataGridColumnOrders.Value[ToolName] = orders;
             BaseOptionsManager.SetGlobalSettingsSilent(config);
         }

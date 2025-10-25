@@ -8,6 +8,7 @@ using krrTools.Beatmaps;
 using krrTools.Bindable;
 using krrTools.Utilities;
 using Microsoft.Extensions.Logging;
+using OsuParsers.Beatmaps;
 using OsuParsers.Decoders;
 using Application = System.Windows.Application;
 
@@ -18,11 +19,11 @@ namespace krrTools.Tools.FilesManager
         [Inject]
         private StateBarManager StateBarManager { get; set; } = null!;
 
-        public Bindable<ObservableCollection<FilesManagerInfo>> OsuFiles { get; set; } = new(new ObservableCollection<FilesManagerInfo>());
+        public Bindable<ObservableCollection<FilesManagerInfo>> OsuFiles { get; set; } = new Bindable<ObservableCollection<FilesManagerInfo>>(new ObservableCollection<FilesManagerInfo>());
         public Bindable<ICollectionView> FilteredOsuFiles { get; set; }
-        public Bindable<int> FilteredFileCount { get; set; } = new();
-        public Bindable<int> TotalFileCount { get; set; } = new();
-        public Bindable<string> SelectedFolderPath { get; set; } = new("");
+        public Bindable<int> FilteredFileCount { get; set; } = new Bindable<int>();
+        public Bindable<int> TotalFileCount { get; set; } = new Bindable<int>();
+        public Bindable<string> SelectedFolderPath { get; set; } = new Bindable<string>("");
 
         public FilesManagerViewModel()
         {
@@ -39,16 +40,19 @@ namespace krrTools.Tools.FilesManager
             TotalFileCount.Value = OsuFiles.Value.Count;
             FilteredFileCount.Value = FilteredOsuFiles.Value?.Cast<object>().Count() ?? 0;
             OsuFiles.Value.CollectionChanged += (_, _) => TotalFileCount.Value = OsuFiles.Value.Count;
+
             if (FilteredOsuFiles.Value != null)
+            {
                 FilteredOsuFiles.Value.CollectionChanged += (_, _) =>
                     FilteredFileCount.Value = FilteredOsuFiles.Value.Cast<object>().Count();
+            }
         }
-
 
         [RelayCommand]
         private async Task SetSongsFolderAsync()
         {
-            var selectedPath = FilesHelper.ShowFolderBrowserDialog("Please select the osu! Songs folder");
+            string selectedPath = FilesHelper.ShowFolderBrowserDialog("Please select the osu! Songs folder");
+
             if (!string.IsNullOrEmpty(selectedPath))
             {
                 SelectedFolderPath.Value = selectedPath;
@@ -60,7 +64,7 @@ namespace krrTools.Tools.FilesManager
         {
             try
             {
-                var allOsuFiles = BeatmapFileHelper.EnumerateOsuFiles(files).ToArray();
+                string[] allOsuFiles = BeatmapFileHelper.EnumerateOsuFiles(files).ToArray();
                 await ProcessFilesAsync(allOsuFiles);
             }
             catch (Exception ex)
@@ -76,8 +80,8 @@ namespace krrTools.Tools.FilesManager
 
             try
             {
-                var validFiles = files.Where(f =>
-                    File.Exists(f) && Path.GetExtension(f).Equals(".osu", StringComparison.OrdinalIgnoreCase)).ToArray();
+                string[] validFiles = files.Where(f =>
+                                                      File.Exists(f) && Path.GetExtension(f).Equals(".osu", StringComparison.OrdinalIgnoreCase)).ToArray();
 
                 if (validFiles.Length > 0) SelectedFolderPath.Value = Path.GetDirectoryName(validFiles[0]) ?? "";
 
@@ -87,19 +91,19 @@ namespace krrTools.Tools.FilesManager
                 const int batchSize = 50;
                 var batch = new ObservableCollection<FilesManagerInfo>();
 
-                for (var i = 0; i < validFiles.Length; i++)
+                for (int i = 0; i < validFiles.Length; i++)
                 {
                     try
                     {
                         // 在后台线程解析文件
-                        var fileInfo = await Task.Run(() => ParseOsuFile(validFiles[i]));
+                        FilesManagerInfo? fileInfo = await Task.Run(() => ParseOsuFile(validFiles[i]));
 
                         if (fileInfo != null) batch.Add(fileInfo);
                     }
                     catch (Exception ex)
                     {
                         Logger.WriteLine(LogLevel.Error, "[FilesManagerViewModel] 解析文件 {0} 时出错: {1}", validFiles[i],
-                            ex.Message);
+                                         ex.Message);
                     }
 
                     // 更新进度
@@ -110,9 +114,9 @@ namespace krrTools.Tools.FilesManager
                     {
                         // 在UI线程上更新数据
                         Application.Current.Dispatcher.Invoke((Action)(() =>
-                        {
-                            foreach (var item in batch) OsuFiles.Value.Add(item);
-                        }));
+                                                                          {
+                                                                              foreach (FilesManagerInfo item in batch) OsuFiles.Value.Add(item);
+                                                                          }));
 
                         batch.Clear();
 
@@ -133,8 +137,8 @@ namespace krrTools.Tools.FilesManager
                     FilteredOsuFiles.Value = CollectionViewSource.GetDefaultView(OsuFiles.Value);
                     UpdateCounts();
                     Logger.WriteLine(LogLevel.Information,
-                        "[FilesManagerViewModel] FilteredOsuFiles refreshed in ProcessFilesAsync, count: {0}",
-                        FilteredOsuFiles.Value.Cast<object>().Count());
+                                     "[FilesManagerViewModel] FilteredOsuFiles refreshed in ProcessFilesAsync, count: {0}",
+                                     FilteredOsuFiles.Value.Cast<object>().Count());
                 });
                 stopwatch.Stop();
                 Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] 文件管理器处理完成，用时: {0:F2}s", stopwatch.Elapsed.TotalSeconds);
@@ -145,7 +149,7 @@ namespace krrTools.Tools.FilesManager
         {
             try
             {
-                var beatmap = BeatmapDecoder.Decode(filePath);
+                Beatmap? beatmap = BeatmapDecoder.Decode(filePath);
 
                 var fileInfo = new FilesManagerInfo
                 {
@@ -171,7 +175,5 @@ namespace krrTools.Tools.FilesManager
         }
 
         // 定义OsuFileInfo类来存储解析后的数据
-
-
     }
 }

@@ -13,27 +13,27 @@ namespace krrTools.Configuration
         /// <summary>
         /// 转换器工具设置
         /// </summary>
-        public Dictionary<ConverterEnum, object?> Converters { get; set; } = new();
+        public Dictionary<ConverterEnum, object?> Converters { get; set; } = new Dictionary<ConverterEnum, object?>();
 
         /// <summary>
         /// 其他模块设置
         /// </summary>
-        public Dictionary<ModuleEnum, object?> Modules { get; set; } = new();
+        public Dictionary<ModuleEnum, object?> Modules { get; set; } = new Dictionary<ModuleEnum, object?>();
 
         /// <summary>
         /// 工具预设，按工具名称分组
         /// </summary>
-        public Dictionary<string, Dictionary<string, object?>> Presets { get; set; } = new();
+        public Dictionary<string, Dictionary<string, object?>> Presets { get; set; } = new Dictionary<string, Dictionary<string, object?>>();
 
         /// <summary>
         /// 管道预设
         /// </summary>
-        public Dictionary<string, PipelineOptions> PipelinePresets { get; set; } = new();
+        public Dictionary<string, PipelineOptions> PipelinePresets { get; set; } = new Dictionary<string, PipelineOptions>();
 
         /// <summary>
         /// 全局设置
         /// </summary>
-        public GlobalSettings GlobalSettings { get; set; } = new();
+        public GlobalSettings GlobalSettings { get; set; } = new GlobalSettings();
     }
 
     /// <summary>
@@ -47,57 +47,57 @@ namespace krrTools.Configuration
         /// <summary>
         /// 实时预览设置
         /// </summary>
-        public Bindable<bool> MonitoringEnable { get; } = new();
+        public Bindable<bool> MonitoringEnable { get; set; } = new Bindable<bool>();
 
         /// <summary>
         /// 应用程序主题设置
         /// </summary>
-        public Bindable<string> ApplicationTheme { get; } = new();
+        public Bindable<string> ApplicationTheme { get; set; } = new Bindable<string>();
 
         /// <summary>
         /// 窗口背景类型设置
         /// </summary>
-        public Bindable<string> WindowBackdropType { get; } = new();
+        public Bindable<string> WindowBackdropType { get; set; } = new Bindable<string>();
 
         /// <summary>
         /// 是否更新主题色设置
         /// </summary>
-        public Bindable<bool> UpdateAccent { get; } = new();
+        public Bindable<bool> UpdateAccent { get; set; } = new Bindable<bool>();
 
         /// <summary>
         /// 是否强制中文设置
         /// </summary>
-        public Bindable<bool> ForceChinese { get; } = new();
+        public Bindable<bool> ForceChinese { get; set; } = new Bindable<bool>();
 
         /// <summary>
         /// osu! Songs文件夹路径
         /// </summary>
-        public Bindable<string> SongsPath { get; set; } = new(string.Empty);
+        public Bindable<string> SongsPath { get; set; } = new Bindable<string>(string.Empty);
 
         /// <summary>
         /// N2NC转换快捷键
         /// </summary>
-        public Bindable<string> N2NCHotkey { get; set; } = new("Ctrl+Shift+N");
+        public Bindable<string> N2NCHotkey { get; set; } = new Bindable<string>("Ctrl+Shift+N");
 
         /// <summary>
         /// DP转换快捷键
         /// </summary>
-        public Bindable<string> DPHotkey { get; set; } = new("Ctrl+Shift+D");
+        public Bindable<string> DPHotkey { get; set; } = new Bindable<string>("Ctrl+Shift+D");
 
         /// <summary>
         /// KRRLN转换快捷键
         /// </summary>
-        public Bindable<string> KRRLNHotkey { get; set; } = new("Ctrl+Shift+K");
+        public Bindable<string> KRRLNHotkey { get; set; } = new Bindable<string>("Ctrl+Shift+K");
 
         /// <summary>
         /// 最后一次预览路径
         /// </summary>
-        public Bindable<string> LastPreviewPath { get; set; } = new(string.Empty);
+        public Bindable<string> LastPreviewPath { get; set; } = new Bindable<string>(string.Empty);
 
         /// <summary>
         /// 数据表列顺序，按工具名称分组
         /// </summary>
-        public Bindable<Dictionary<string, List<int>>> DataGridColumnOrders { get; set; } = new(new Dictionary<string, List<int>>());
+        public Bindable<Dictionary<string, List<int>>> DataGridColumnOrders { get; set; } = new Bindable<Dictionary<string, List<int>>>(new Dictionary<string, List<int>>());
 
         /// <summary>
         /// 构造函数，设置自动保存回调
@@ -108,7 +108,7 @@ namespace krrTools.Configuration
             SetupAutoSave();
         }
 
-        private void SetupAutoSave()
+        public void SetupAutoSave()
         {
             MonitoringEnable.OnValueChanged(_ => ScheduleSave());
             ApplicationTheme.OnValueChanged(_ => ScheduleSave());
@@ -127,23 +127,20 @@ namespace krrTools.Configuration
         {
             // 取消之前的延迟保存
             _saveDelayCts?.Cancel();
-            
+
             // 创建新的延迟保存任务
             _saveDelayCts = new CancellationTokenSource();
-            var token = _saveDelayCts.Token;
-            
+            CancellationToken token = _saveDelayCts.Token;
+
             Task.Run(async () =>
             {
                 try
                 {
                     // 等待500ms
                     await Task.Delay(500, token);
-                    
+
                     // 如果没有被取消，执行保存
-                    if (!token.IsCancellationRequested)
-                    {
-                        await Task.Run(SaveSettingsImmediate, token);
-                    }
+                    if (!token.IsCancellationRequested) await Task.Run(SaveSettingsImmediate, token);
                 }
                 catch (TaskCanceledException)
                 {
@@ -156,8 +153,9 @@ namespace krrTools.Configuration
         {
             // 防止递归保存
             if (_isSaving) return;
-            
+
             _isSaving = true;
+
             try
             {
                 // 使用静默保存，避免触发事件循环
@@ -167,6 +165,15 @@ namespace krrTools.Configuration
             {
                 _isSaving = false;
             }
+        }
+
+        /// <summary>
+        /// 立即保存设置，取消任何延迟保存
+        /// </summary>
+        public void Flush()
+        {
+            _saveDelayCts?.Cancel();
+            SaveSettingsImmediate();
         }
     }
 }

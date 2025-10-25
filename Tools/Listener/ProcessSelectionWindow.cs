@@ -28,15 +28,21 @@ namespace krrTools.Tools.Listener
                     {
                         Title = "选择osu!进程|Selected osu! process";
                         // update any labels/buttons by rebuilding
-                        var dc = DataContext;
+                        object? dc = DataContext;
                         Content = null;
                         BuildUI(null); // rebuild without processes? but need to keep
                         DataContext = dc;
                     }
-                    catch (Exception ex) { Logger.WriteLine(LogLevel.Error, "[ProcessSelectionWindow] ProcessSelectionWindow inner rebuild failed: {0}", ex.Message); }
+                    catch (Exception ex)
+                    {
+                        Logger.WriteLine(LogLevel.Error, "[ProcessSelectionWindow] ProcessSelectionWindow inner rebuild failed: {0}", ex.Message);
+                    }
                 }));
             }
-            catch (Exception ex) { Logger.WriteLine(LogLevel.Error, "[ProcessSelectionWindow] ProcessSelectionWindow OnLanguageChanged invoke failed: {0}", ex.Message); }
+            catch (Exception ex)
+            {
+                Logger.WriteLine(LogLevel.Error, "[ProcessSelectionWindow] ProcessSelectionWindow OnLanguageChanged invoke failed: {0}", ex.Message);
+            }
         }
 
         private void BuildUI(Process[]? processes)
@@ -58,9 +64,10 @@ namespace krrTools.Tools.Listener
             grid.Children.Add(tb);
 
             ProcessListBox = new ListBox { Margin = new Thickness(0, 0, 0, 10) };
+
             if (processes != null)
             {
-                foreach (var p in processes)
+                foreach (Process p in processes)
                 {
                     try
                     {
@@ -73,6 +80,7 @@ namespace krrTools.Tools.Listener
                     }
                 }
             }
+
             Grid.SetRow(ProcessListBox, 1);
             grid.Children.Add(ProcessListBox);
 
@@ -100,9 +108,7 @@ namespace krrTools.Tools.Listener
                 DialogResult = true;
             }
             else
-            {
                 MessageBox.Show("请选择一个进程。");
-            }
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)

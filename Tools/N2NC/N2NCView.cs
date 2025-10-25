@@ -6,14 +6,18 @@ using krrTools.Configuration;
 using krrTools.Core;
 using krrTools.Localization;
 using krrTools.UI;
+using Button = Wpf.Ui.Controls.Button;
 
 namespace krrTools.Tools.N2NC
 {
     public class N2NCView : ToolViewBase<N2NCOptions>
     {
         private readonly N2NCViewModel _viewModel;
-        private readonly Dictionary<KeySelectionFlags, CheckBox> checkboxMap = new();
-        private FrameworkElement seedPanel => SettingsBinder.CreateSeedPanel(_viewModel, x => x.Seed);
+        private readonly Dictionary<KeySelectionFlags, CheckBox> checkboxMap = new Dictionary<KeySelectionFlags, CheckBox>();
+        private FrameworkElement seedPanel
+        {
+            get => SettingsBinder.CreateSeedPanel(_viewModel, x => x.Seed);
+        }
 
         private UIElement? TargetKeysSlider;
         private UIElement? MaxKeysSlider;
@@ -22,7 +26,8 @@ namespace krrTools.Tools.N2NC
 
         public event EventHandler? SettingsChanged;
 
-        public N2NCView() : base(ConverterEnum.N2NC)
+        public N2NCView()
+            : base(ConverterEnum.N2NC)
         {
             _viewModel = new N2NCViewModel(Options);
             DataContext = _viewModel;
@@ -43,12 +48,12 @@ namespace krrTools.Tools.N2NC
 
             // 创建模板化控件 - 绑定到Options的Bindable属性
             TargetKeysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.TargetKeys);
-            MaxKeysSlider = SettingsBinder.CreateTemplatedSliderWithDynamicMax(_viewModel.Options, o => o.MaxKeys, 
-                _viewModel, nameof(_viewModel.MaxKeysMaximum));
-            MinKeysSlider = SettingsBinder.CreateTemplatedSliderWithDynamicMax(_viewModel.Options, o => o.MinKeys, 
-                _viewModel, nameof(_viewModel.MinKeysMaximum));
+            MaxKeysSlider = SettingsBinder.CreateTemplatedSliderWithDynamicMax(_viewModel.Options, o => o.MaxKeys,
+                                                                               _viewModel, nameof(_viewModel.MaxKeysMaximum));
+            MinKeysSlider = SettingsBinder.CreateTemplatedSliderWithDynamicMax(_viewModel.Options, o => o.MinKeys,
+                                                                               _viewModel, nameof(_viewModel.MinKeysMaximum));
             TransformSpeedSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.TransformSpeed, null,
-                N2NCViewModel.TransformSpeedSlotDict);
+                                                                        N2NCViewModel.TransformSpeedSlotDict);
 
             grid.Children.Add(TargetKeysSlider);
             grid.Children.Add(MaxKeysSlider);
@@ -67,7 +72,7 @@ namespace krrTools.Tools.N2NC
             var keysWrap = new WrapPanel { Orientation = Orientation.Horizontal, ItemHeight = 33 };
             var flagOrder = new[]
             {
-                KeySelectionFlags.K3Minus,KeySelectionFlags.K4, KeySelectionFlags.K5, KeySelectionFlags.K6, KeySelectionFlags.K7,
+                KeySelectionFlags.K3Minus, KeySelectionFlags.K4, KeySelectionFlags.K5, KeySelectionFlags.K6, KeySelectionFlags.K7,
                 KeySelectionFlags.K8, KeySelectionFlags.K9, KeySelectionFlags.K10, KeySelectionFlags.K10Plus
             };
             var flagLabels = new Dictionary<KeySelectionFlags, string>
@@ -83,31 +88,31 @@ namespace krrTools.Tools.N2NC
                 [KeySelectionFlags.K10Plus] = "10K+"
             };
 
-            foreach (var flag in flagOrder)
+            foreach (KeySelectionFlags flag in flagOrder)
             {
-                var cb = SharedUIComponents.CreateStandardCheckBox(flagLabels[flag], flagLabels[flag]);
+                CheckBox cb = SharedUIComponents.CreateStandardCheckBox(flagLabels[flag], flagLabels[flag]);
                 cb.IsChecked = GetKeySelectionFlag(flag);
                 cb.Checked += (_, _) => SetKeySelectionFlag(flag, true);
                 cb.Unchecked += (_, _) => SetKeySelectionFlag(flag, false);
                 keysWrap.Children.Add(cb);
             }
 
-            var selectAllButton = SharedUIComponents.CreateStandardButton("Select All|全选");
+            Button selectAllButton = SharedUIComponents.CreateStandardButton("Select All|全选");
             selectAllButton.Width = 100;
             selectAllButton.Click += (_, _) =>
             {
-                foreach (var kvp in checkboxMap)
+                foreach (KeyValuePair<KeySelectionFlags, CheckBox> kvp in checkboxMap)
                 {
                     kvp.Value.IsChecked = true;
                     SetKeySelectionFlag(kvp.Key, true);
                 }
             };
 
-            var clearAllButton = SharedUIComponents.CreateStandardButton("Clear All|清空");
+            Button clearAllButton = SharedUIComponents.CreateStandardButton("Clear All|清空");
             clearAllButton.Width = 100;
             clearAllButton.Click += (_, _) =>
             {
-                foreach (var kvp in checkboxMap)
+                foreach (KeyValuePair<KeySelectionFlags, CheckBox> kvp in checkboxMap)
                 {
                     kvp.Value.IsChecked = false;
                     SetKeySelectionFlag(kvp.Key, false);
@@ -127,18 +132,24 @@ namespace krrTools.Tools.N2NC
             keysMainPanel.Children.Add(buttonPanel);
 
             checkboxMap.Clear();
-            foreach (var child in keysWrap.Children)
+
+            foreach (object? child in keysWrap.Children)
+            {
                 if (child is CheckBox cb)
                 {
-                    var flag = flagOrder[checkboxMap.Count];
+                    KeySelectionFlags flag = flagOrder[checkboxMap.Count];
                     checkboxMap[flag] = cb;
                 }
+            }
 
             _viewModel.PropertyChanged += (_, e) =>
             {
                 if (e.PropertyName == nameof(N2NCViewModel.KeySelection))
-                    foreach (var kvp in checkboxMap)
+                {
+                    foreach (KeyValuePair<KeySelectionFlags, CheckBox> kvp in checkboxMap)
                         kvp.Value.IsChecked = GetKeySelectionFlag(kvp.Key);
+                }
+
                 SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
 
@@ -150,7 +161,7 @@ namespace krrTools.Tools.N2NC
             grid.Children.Add(keysPanel);
 
             // 预设面板
-            var presetsBorder = PresetPanelFactory.CreatePresetPanel(
+            FrameworkElement presetsBorder = PresetPanelFactory.CreatePresetPanel(
                 "N2NC",
                 () => _viewModel.GetConversionOptions(),
                 (opt) =>
@@ -161,7 +172,7 @@ namespace krrTools.Tools.N2NC
                     _viewModel.MaxKeys = opt.MaxKeys.Value;
                     _viewModel.MinKeys = opt.MinKeys.Value;
                     _viewModel.Seed = opt.Seed;
-                    _viewModel.KeySelection = opt.SelectedKeyFlags ?? KeySelectionFlags.None; 
+                    _viewModel.KeySelection = opt.SelectedKeyFlags ?? KeySelectionFlags.None;
                 }
             );
 
@@ -169,9 +180,10 @@ namespace krrTools.Tools.N2NC
             if (presetsBorder is StackPanel outerPanel)
             {
                 var builtinPresetsPanel = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
-                foreach (var (kind, _, opt) in PresetBottom.GetPresetTemplates())
+
+                foreach ((PresetKind kind, string _, N2NCOptions opt) in PresetBottom.GetPresetTemplates())
                 {
-                    var btn = SharedUIComponents.CreateStandardButton(PresetBottom.GetEnumDescription(kind));
+                    Button btn = SharedUIComponents.CreateStandardButton(PresetBottom.GetEnumDescription(kind));
                     btn.Width = 100;
                     btn.Click += (_, _) =>
                     {
@@ -180,14 +192,15 @@ namespace krrTools.Tools.N2NC
                         _viewModel.MinKeys = (int)opt.MinKeys.Value;
                         _viewModel.TransformSpeed = opt.TransformSpeed.Value;
                         _viewModel.Seed = opt.Seed;
-                        _viewModel.KeySelection = opt.SelectedKeyFlags ?? KeySelectionFlags.None; 
+                        _viewModel.KeySelection = opt.SelectedKeyFlags ?? KeySelectionFlags.None;
                     };
                     builtinPresetsPanel.Children.Add(btn);
                 }
+
                 outerPanel.Children.Insert(0, builtinPresetsPanel);
             }
 
-            var presetsPanel = SharedUIComponents.CreateLabeledRow(Strings.PresetsLabel, presetsBorder, rowMargin);
+            FrameworkElement presetsPanel = SharedUIComponents.CreateLabeledRow(Strings.PresetsLabel, presetsBorder, rowMargin);
             grid.Children.Add(presetsPanel);
 
             scrollViewer.Content = grid;
@@ -208,7 +221,7 @@ namespace krrTools.Tools.N2NC
             else
                 _viewModel.KeySelection &= ~flag;
             // 直接设置属性，自动触发通知
-            var currentSelection = _viewModel.KeySelection;
+            KeySelectionFlags currentSelection = _viewModel.KeySelection;
             _viewModel.KeySelection = currentSelection;
         }
     }

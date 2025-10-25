@@ -10,10 +10,11 @@ namespace krrTools.Tools.KRRLNTransformer
     {
         private readonly IEventBus _eventBus;
 
-        public KRRLNTransformerViewModel(KRRLNTransformerOptions options) : base(ConverterEnum.KRRLN, true, options)
+        public KRRLNTransformerViewModel(KRRLNTransformerOptions options)
+            : base(ConverterEnum.KRRLN, true, options)
         {
             _eventBus = App.Services.GetRequiredService<IEventBus>();
-            
+
             // 监听 LengthThreshold 属性变化
             options.LengthThreshold.PropertyChanged += OnLengthThresholdChanged;
         }
@@ -24,17 +25,17 @@ namespace krrTools.Tools.KRRLNTransformer
             {
                 // 通知 ShortLevelMax 属性更新
                 OnPropertyChanged(nameof(ShortLevelMaximum));
-                
+
                 // 如果 ShortLevel 的值超过了新的最大值，则调整为最大值
-                if (Options.ShortLevel.Value > ShortLevelMaximum)
-                {
-                    Options.ShortLevel.Value = ShortLevelMaximum;
-                }
+                if (Options.ShortLevel.Value > ShortLevelMaximum) Options.ShortLevel.Value = ShortLevelMaximum;
             }
         }
 
         // ShortLevel 的最大值绑定到 LengthThreshold 的值
-        public double ShortLevelMaximum => (Options.LengthThreshold.Value * 4) > 256 ? 256 : Options.LengthThreshold.Value * 4;
+        public double ShortLevelMaximum
+        {
+            get => Options.LengthThreshold.Value * 4 > 256 ? 256 : Options.LengthThreshold.Value * 4;
+        }
 
         protected override void TriggerPreviewRefresh()
         {

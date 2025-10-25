@@ -9,6 +9,10 @@ namespace krrTools.Bindable
     /// <summary>
     /// Reactive module options wrapper that provides automatic persistence for module options.
     /// Similar to ReactiveOptions but for ModuleEnum instead of ConverterEnum.
+    /// <para></para>
+    /// ReactiveModuleOptions 是为 ModuleEnum 相关的模块设计的，类似于 ReactiveOptions 为 ConverterEnum 相关的工具设计。
+    /// <para>ModuleEnum枚举工具集成此基类后，在app中注册服务，实现模块私有设置的自动保存等支持</para>
+    /// LV分析器和文件管理器没有大量设置，因此没有使用此类。只使用了 ReactiveViewModelBase关联动作。
     /// </summary>
     /// <typeparam name="TOptions">Options type, should inherit from ToolOptionsBase.</typeparam>
     public class ReactiveModuleOptions<TOptions> : INotifyPropertyChanged, IDisposable where TOptions : ToolOptionsBase, new()
@@ -25,10 +29,7 @@ namespace krrTools.Bindable
             Options = BaseOptionsManager.LoadModuleOptions<TOptions>(module) ?? new TOptions();
 
             // Listen to options PropertyChanged for auto-save
-            if (Options is INotifyPropertyChanged notifyOptions)
-            {
-                notifyOptions.PropertyChanged += OnOptionsPropertyChanged;
-            }
+            if (Options is INotifyPropertyChanged notifyOptions) notifyOptions.PropertyChanged += OnOptionsPropertyChanged;
 
             // Listen to BaseOptionsManager settings changed to reload when options are saved externally
             BaseOptionsManager.SettingsChanged += OnExternalSettingsChanged;
@@ -70,10 +71,7 @@ namespace krrTools.Bindable
 
         public void Dispose()
         {
-            if (Options is INotifyPropertyChanged notifyOptions)
-            {
-                notifyOptions.PropertyChanged -= OnOptionsPropertyChanged;
-            }
+            if (Options is INotifyPropertyChanged notifyOptions) notifyOptions.PropertyChanged -= OnOptionsPropertyChanged;
 
             BaseOptionsManager.SettingsChanged -= OnExternalSettingsChanged;
         }

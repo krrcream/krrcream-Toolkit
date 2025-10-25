@@ -9,9 +9,15 @@ namespace krrTools.Tools.DPtool
     /// </summary>
     public class DPToolModule : ToolModuleBase<DPToolOptions, DPToolViewModel, DPToolView>
     {
-        public override ToolModuleType ModuleType => ToolModuleType.DP;
+        public override ToolModuleType ModuleType
+        {
+            get => ToolModuleType.DP;
+        }
 
-        public override string DisplayName => Strings.TabDPTool;
+        public override string DisplayName
+        {
+            get => Strings.TabDPTool;
+        }
 
         /// <summary>
         /// 应用转换到谱面（内部实现）- 获取最新的运行时设置
@@ -26,10 +32,7 @@ namespace krrTools.Tools.DPtool
             // 判断是否需要转换
             bool willTransform = WillTransformOccur(options);
 
-            if (!willTransform)
-            {
-                return false; // 不需要转换，直接返回
-            }
+            if (!willTransform) return false; // 不需要转换，直接返回
 
             // 执行转换
             var transformer = new DP();

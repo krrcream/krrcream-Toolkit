@@ -11,7 +11,7 @@ namespace krrTools.Configuration
         /// <summary>
         /// 管道步骤列表
         /// </summary>
-        public List<PipelineStep> Steps { get; set; } = new();
+        public List<PipelineStep> Steps { get; set; } = new List<PipelineStep>();
 
         /// <summary>
         /// 管道名称
@@ -24,10 +24,7 @@ namespace krrTools.Configuration
         public void Validate()
         {
             // 验证每个步骤的选项
-            foreach (var step in Steps)
-            {
-                step.Options?.Validate();
-            }
+            foreach (PipelineStep step in Steps) step.Options?.Validate();
         }
     }
 

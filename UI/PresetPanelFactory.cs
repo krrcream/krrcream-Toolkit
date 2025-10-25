@@ -3,6 +3,8 @@ using System.Windows;
 using System.Windows.Controls;
 using krrTools.Configuration;
 using krrTools.Localization;
+using Button = Wpf.Ui.Controls.Button;
+using TextBox = Wpf.Ui.Controls.TextBox;
 
 namespace krrTools.UI
 {
@@ -23,21 +25,22 @@ namespace krrTools.UI
             void Refresh()
             {
                 list.Children.Clear();
-                foreach (var (name, opt) in BaseOptionsManager.LoadPresets<T>(toolName))
+
+                foreach ((string name, T? opt) in BaseOptionsManager.LoadPresets<T>(toolName))
                 {
                     var row = new Grid { Margin = new Thickness(0, 2, 0, 2) };
                     row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                     row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
                     // Apply button uses shared button (handles language hooks internally)
-                    var btn = SharedUIComponents.CreateStandardButton(name);
+                    Button btn = SharedUIComponents.CreateStandardButton(name);
                     btn.HorizontalAlignment = HorizontalAlignment.Stretch;
                     btn.Click += (_, _) => applyOptions(opt);
                     Grid.SetColumn(btn, 0);
                     row.Children.Add(btn);
 
                     // Delete button - localized content using shared helper
-                    var del = SharedUIComponents.CreateStandardButton("Delete|删除");
+                    Button del = SharedUIComponents.CreateStandardButton("Delete|删除");
                     del.Click += (_, _) =>
                     {
                         BaseOptionsManager.DeletePreset(toolName, name);
@@ -55,38 +58,35 @@ namespace krrTools.UI
 
             // Input panel for new preset creation (initially hidden)
             var inputPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0), Visibility = Visibility.Collapsed };
-            var inputTextBox = SharedUIComponents.CreateStandardTextBox();
+            TextBox inputTextBox = SharedUIComponents.CreateStandardTextBox();
             inputTextBox.Width = 120; // Fixed width to match preset button width
             inputTextBox.KeyDown += (_, e) =>
             {
-                if (e.Key == System.Windows.Input.Key.Enter)
-                {
-                    SaveNewPreset();
-                }
+                if (e.Key == System.Windows.Input.Key.Enter) SaveNewPreset();
             };
-            
-            var confirmBtn = SharedUIComponents.CreateStandardButton("✓");
+
+            Button confirmBtn = SharedUIComponents.CreateStandardButton("✓");
             confirmBtn.Width = 30;
             confirmBtn.Click += (_, _) => SaveNewPreset();
-            
-            var cancelBtn = SharedUIComponents.CreateStandardButton("✕");
+
+            Button cancelBtn = SharedUIComponents.CreateStandardButton("✕");
             cancelBtn.Width = 30;
             cancelBtn.Click += (_, _) => ToggleInputMode(false);
-            
+
             inputPanel.Children.Add(inputTextBox);
             inputPanel.Children.Add(confirmBtn);
             inputPanel.Children.Add(cancelBtn);
 
             // Save as preset button - localized and uses shared button behavior
-            var saveBtn = SharedUIComponents.CreateStandardButton("Save as Preset|保存为预设");
+            Button saveBtn = SharedUIComponents.CreateStandardButton("Save as Preset|保存为预设");
             saveBtn.Width = 140; // 设置固定宽度以保持按钮大小一致
             saveBtn.Click += (_, _) => ToggleInputMode(true);
 
-            var refreshBtn = SharedUIComponents.CreateStandardButton("Refresh|刷新");
+            Button refreshBtn = SharedUIComponents.CreateStandardButton("Refresh|刷新");
             refreshBtn.Margin = new Thickness(8, 0, 0, 0);
             refreshBtn.Width = 90; // 设置固定宽度以保持按钮大小一致
             refreshBtn.Click += (_, _) => Refresh();
-            
+
             controlRow.Children.Add(saveBtn);
             controlRow.Children.Add(refreshBtn);
 
@@ -108,16 +108,19 @@ namespace krrTools.UI
 
             void SaveNewPreset()
             {
-                var name = inputTextBox.Text.Trim();
+                string name = inputTextBox.Text.Trim();
+
                 if (!string.IsNullOrEmpty(name))
                 {
-                    var current = getCurrentOptions();
+                    T? current = getCurrentOptions();
+
                     if (current != null)
                     {
                         BaseOptionsManager.SavePreset(toolName, name, current);
                         Refresh();
                     }
                 }
+
                 ToggleInputMode(false);
             }
 

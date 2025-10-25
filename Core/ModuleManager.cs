@@ -10,15 +10,15 @@ namespace krrTools.Core
     /// </summary>
     public class ModuleManager : IModuleManager
     {
-        private readonly ConcurrentDictionary<ToolModuleType, IToolModule> _modules = new();
-        private readonly ConcurrentDictionary<string, IToolModule> _tools = new();
+        private readonly ConcurrentDictionary<ToolModuleType, IToolModule> _modules = new ConcurrentDictionary<ToolModuleType, IToolModule>();
+        private readonly ConcurrentDictionary<string, IToolModule> _tools = new ConcurrentDictionary<string, IToolModule>();
 
         /// <summary>
         /// 构造函数，通过 DI 注入所有模块
         /// </summary>
         public ModuleManager(IEnumerable<IToolModule> modules)
         {
-            foreach (var module in modules) RegisterModule(module);
+            foreach (IToolModule module in modules) RegisterModule(module);
         }
 
         /// <summary>
@@ -46,7 +46,7 @@ namespace krrTools.Core
         {
             _tools[tool.ModuleName] = tool;
         }
-        
+
         /// <summary>
         /// 根据名称获取工具
         /// </summary>
@@ -54,16 +54,13 @@ namespace krrTools.Core
         {
             return _tools.GetValueOrDefault(toolName);
         }
-        
+
         /// <summary>
         /// 注销模块
         /// </summary>
         public void UnregisterModule(IToolModule module)
         {
-            if (_modules.TryRemove(module.ModuleType, out var dummy))
-            {
-                _tools.TryRemove(module.ModuleName, out _);
-            }
+            if (_modules.TryRemove(module.ModuleType, out IToolModule? dummy)) _tools.TryRemove(module.ModuleName, out _);
         }
 
         /// <summary>

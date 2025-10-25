@@ -39,8 +39,8 @@ namespace krrTools.Utilities
         public FrameworkElement BuildOriginalVisual(Beatmap input)
         {
             // 克隆beatmap以避免任何修改影响原始对象
-            var clonedBeatmap = CloneBeatmap(input);
-            var maniaBeatmap = clonedBeatmap;
+            Beatmap clonedBeatmap = CloneBeatmap(input);
+            Beatmap maniaBeatmap = clonedBeatmap;
             if (maniaBeatmap.HitObjects.Count > 0)
                 StartMs = maniaBeatmap.HitObjects.Min(n => n.StartTime);
             else
@@ -62,8 +62,8 @@ namespace krrTools.Utilities
                 // 使用转换服务应用转换
                 if (_transformationService == null)
                     throw new InvalidOperationException("ModuleScheduler == null");
-                    
-                var transformedBeatmap = _transformationService.TransformBeatmap(input, ModuleTool.Value);
+
+                Beatmap transformedBeatmap = _transformationService.TransformBeatmap(input, ModuleTool.Value);
                 if (transformedBeatmap.HitObjects.Count == 0)
                     return new TextBlock { Text = "Notes is 0" };
 
@@ -86,13 +86,14 @@ namespace krrTools.Utilities
 
         private FrameworkElement BuildManiaTimeRowsFromNotes(Beatmap beatmap)
         {
-            var columns = (int)beatmap.DifficultySection.CircleSize;
+            int columns = (int)beatmap.DifficultySection.CircleSize;
             if (columns == 0) return new TextBlock { Text = "BuildMania columns == 0" };
 
-            var quarterMs = beatmap.GetBPM(true);
+            double quarterMs = beatmap.GetBPM(true);
             var notes = new List<ManiaHitObject>();
 
-            foreach (var hit in beatmap.HitObjects.OrderBy(h => h.StartTime))
+            foreach (HitObject? hit in beatmap.HitObjects.OrderBy(h => h.StartTime))
+            {
                 notes.Add(new ManiaHitObject
                 {
                     Index = (int)hit.Position.X,
@@ -100,26 +101,24 @@ namespace krrTools.Utilities
                     EndTime = hit.EndTime,
                     IsHold = hit.StartTime != hit.EndTime
                 });
-        
-            if (notes.Count == 0)
-            {
-                return new TextBlock { Text = "转换后谱面无Mania notes" };
             }
-        
+
+            if (notes.Count == 0) return new TextBlock { Text = "转换后谱面无Mania notes" };
+
             // 使用新的分层控件 - 支持小节线和音符分离绘制
             var layeredControl = new LayeredPreviewControl
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch
             };
-        
+
             // 传递谱面路径用于判断小节线是否需要重绘
-            var beatmapPath = GetBeatmapPath(beatmap);
+            string beatmapPath = GetBeatmapPath(beatmap);
             layeredControl.UpdatePreview(notes, columns, quarterMs, beatmapPath);
-        
+
             return layeredControl;
         }
-    
+
         /// <summary>
         /// 克隆Beatmap以避免在预览时修改原始对象
         /// </summary>
@@ -127,11 +126,12 @@ namespace krrTools.Utilities
         {
             // 手动克隆以避免修改原始beatmap
             var cloned = new Beatmap();
-            
+
             // 复制所有属性
             cloned.GeneralSection = input.GeneralSection;
             // 克隆MetadataSection以避免修改Version
             cloned.MetadataSection = Activator.CreateInstance(input.MetadataSection.GetType()) as dynamic;
+
             if (cloned.MetadataSection != null)
             {
                 cloned.MetadataSection.Title = input.MetadataSection.Title;
@@ -144,8 +144,10 @@ namespace krrTools.Utilities
                 cloned.MetadataSection.Tags = input.MetadataSection.Tags;
                 // 其他属性如果不存在就算了
             }
+
             // 克隆DifficultySection以避免修改CircleSize
             cloned.DifficultySection = Activator.CreateInstance(input.DifficultySection.GetType()) as dynamic;
+
             if (cloned.DifficultySection != null)
             {
                 cloned.DifficultySection.HPDrainRate = input.DifficultySection.HPDrainRate;
@@ -155,13 +157,13 @@ namespace krrTools.Utilities
                 cloned.DifficultySection.SliderMultiplier = input.DifficultySection.SliderMultiplier;
                 cloned.DifficultySection.SliderTickRate = input.DifficultySection.SliderTickRate;
             }
-            
+
             cloned.TimingPoints = new List<TimingPoint>(input.TimingPoints);
             cloned.HitObjects = new List<HitObject>(input.HitObjects);
-            
+
             return cloned;
         }
-    
+
         /// <summary>
         /// 获取谱面的唯一标识路径，用于判断小节线是否需要重绘
         /// </summary>
@@ -170,9 +172,9 @@ namespace krrTools.Utilities
             // 如果是内置样本，返回固定标识
             if (beatmap.MetadataSection?.Title == "Built-in Sample")
                 return "builtin-sample";
-            
+
             // 使用Title作为唯一标识（简化版本，避免复杂判断）
-            var title = beatmap.MetadataSection?.Title;
+            string? title = beatmap.MetadataSection?.Title;
             return string.IsNullOrEmpty(title) ? "unknown" : title;
         }
     }

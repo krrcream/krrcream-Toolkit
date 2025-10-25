@@ -10,6 +10,7 @@ using krrTools.Bindable;
 using krrTools.Localization;
 using krrTools.UI;
 using Microsoft.Extensions.Logging;
+using Expression = System.Linq.Expressions.Expression;
 
 namespace krrTools.Configuration
 {
@@ -28,7 +29,7 @@ namespace krrTools.Configuration
         private DynamicLocalizedString? _labelTemplate;
         private double? _rememberedValue; // 记忆上一个有效值
 
-        public Bindable<string> LabelText { get; set; } = new(string.Empty);
+        public Bindable<string> LabelText { get; set; } = new Bindable<string>(string.Empty);
 
         public string LabelKey
         {
@@ -112,27 +113,31 @@ namespace krrTools.Configuration
             {
                 // 检查属性是否是可空类型
                 bool isNullableType = false;
+
                 if (PropertySelector != null)
                 {
-                    var propInfo = GetPropertyInfoFromExpression(PropertySelector);
-                    isNullableType = propInfo != null && 
-                        propInfo.PropertyType.IsGenericType && 
-                        propInfo.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>) &&
-                        Nullable.GetUnderlyingType(propInfo.PropertyType.GetGenericArguments()[0]) != null;
+                    PropertyInfo? propInfo = GetPropertyInfoFromExpression(PropertySelector);
+                    isNullableType = propInfo != null &&
+                                     propInfo.PropertyType.IsGenericType &&
+                                     propInfo.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>) &&
+                                     Nullable.GetUnderlyingType(propInfo.PropertyType.GetGenericArguments()[0]) != null;
                 }
 
                 bool initialChecked = false;
+
                 if (isNullableType && Source != null && PropertySelector != null)
                 {
                     // 对于可空类型，根据当前值设置初始勾选状态
-                    var propInfo = GetPropertyInfoFromExpression(PropertySelector);
+                    PropertyInfo? propInfo = GetPropertyInfoFromExpression(PropertySelector);
+
                     if (propInfo != null)
                     {
-                        var bindableValue = propInfo.GetValue(Source);
+                        object? bindableValue = propInfo.GetValue(Source);
+
                         if (bindableValue != null)
                         {
-                            var valueProperty = bindableValue.GetType().GetProperty("Value");
-                            var currentValue = valueProperty?.GetValue(bindableValue);
+                            PropertyInfo? valueProperty = bindableValue.GetType().GetProperty("Value");
+                            object? currentValue = valueProperty?.GetValue(bindableValue);
                             initialChecked = currentValue != null;
                         }
                     }
@@ -144,21 +149,25 @@ namespace krrTools.Configuration
                 CheckBox.Checked += (_, _) =>
                 {
                     InnerSlider.IsEnabled = true;
+
                     if (isNullableType && Source != null && PropertySelector != null)
                     {
                         // 对于可空类型，勾选时设置为默认值
                         SetNullableValue(true);
                     }
+
                     UpdateLabelWithValue(InnerSlider.Value);
                 };
                 CheckBox.Unchecked += (_, _) =>
                 {
                     InnerSlider.IsEnabled = false;
+
                     if (isNullableType && Source != null && PropertySelector != null)
                     {
                         // 对于可空类型，未勾选时设置为null
                         SetNullableValue(false);
                     }
+
                     UpdateLabelWithValue(InnerSlider.Value);
                 };
             }
@@ -170,13 +179,13 @@ namespace krrTools.Configuration
 
             try
             {
-                var propertyInfo = GetPropertyInfoFromExpression(PropertySelector);
+                PropertyInfo? propertyInfo = GetPropertyInfoFromExpression(PropertySelector);
                 if (propertyInfo == null) return;
 
-                var bindableProperty = propertyInfo.GetValue(Source);
+                object? bindableProperty = propertyInfo.GetValue(Source);
                 if (bindableProperty == null) return;
 
-                var valueProperty = bindableProperty.GetType().GetProperty("Value");
+                PropertyInfo? valueProperty = bindableProperty.GetType().GetProperty("Value");
                 if (valueProperty == null) return;
 
                 if (isChecked)
@@ -189,11 +198,8 @@ namespace krrTools.Configuration
                 else
                 {
                     // 未勾选时记住当前值，然后设置为null
-                    var currentValue = valueProperty.GetValue(bindableProperty);
-                    if (currentValue is double currentDouble)
-                    {
-                        _rememberedValue = currentDouble;
-                    }
+                    object? currentValue = valueProperty.GetValue(bindableProperty);
+                    if (currentValue is double currentDouble) _rememberedValue = currentDouble;
                     valueProperty.SetValue(bindableProperty, null);
                 }
             }
@@ -254,24 +260,30 @@ namespace krrTools.Configuration
 
                 // 监听动态最大值的变化
                 if (DynamicMaxSource is INotifyPropertyChanged notifier)
+                {
                     notifier.PropertyChanged += (_, e) =>
                     {
                         if (e.PropertyName == DynamicMaxPath)
+                        {
                             Dispatcher.Invoke(() =>
                             {
-                                var newMax = GetDynamicMaxValue();
+                                double newMax = GetDynamicMaxValue();
                                 InnerSlider.Maximum = newMax; // 直接设置最大值
                                 // 确保当前值不超过新的最大值
                                 if (InnerSlider.Value > newMax) InnerSlider.Value = newMax;
                             });
+                        }
                     };
+                }
             }
             else
             {
                 // 仅在调试时输出日志，避免生产环境日志污染，检查是否正确设置了动态绑定，没有定义动态绑定时不输出
                 if (!string.IsNullOrEmpty(DynamicMaxPath))
+                {
                     Console.WriteLine(
                         $"[SettingsControls] No dynamic max binding - Source: {DynamicMaxSource}, Path: {DynamicMaxPath}");
+                }
             }
 
             // 设置动态最小值绑定
@@ -287,17 +299,21 @@ namespace krrTools.Configuration
 
                 // 监听动态最小值的变化
                 if (DynamicMinSource is INotifyPropertyChanged notifier)
+                {
                     notifier.PropertyChanged += (_, e) =>
                     {
                         if (e.PropertyName == DynamicMinPath)
+                        {
                             Dispatcher.Invoke(() =>
                             {
-                                var newMin = GetDynamicMinValue();
+                                double newMin = GetDynamicMinValue();
                                 InnerSlider.Minimum = newMin; // 直接设置最小值
                                 // 确保当前值不低于新的最小值
                                 if (InnerSlider.Value < newMin) InnerSlider.Value = newMin;
                             });
+                        }
                     };
+                }
             }
         }
 
@@ -305,7 +321,7 @@ namespace krrTools.Configuration
         {
             if (DynamicMaxSource != null && !string.IsNullOrEmpty(DynamicMaxPath))
             {
-                var property = DynamicMaxSource.GetType().GetProperty(DynamicMaxPath);
+                PropertyInfo? property = DynamicMaxSource.GetType().GetProperty(DynamicMaxPath);
                 return property?.GetValue(DynamicMaxSource) is double value ? value : Max;
             }
 
@@ -314,7 +330,7 @@ namespace krrTools.Configuration
 
         private PropertyInfo? GetPropertyInfoFromExpression<T, TResult>(Expression<Func<T, TResult>> propertySelector)
         {
-            var current = propertySelector.Body;
+            Expression current = propertySelector.Body;
 
             // 处理可能的转换 (如 int -> double)
             if (current is UnaryExpression { NodeType: ExpressionType.Convert } unary) current = unary.Operand;
@@ -328,7 +344,7 @@ namespace krrTools.Configuration
         {
             if (DynamicMinSource != null && !string.IsNullOrEmpty(DynamicMinPath))
             {
-                var property = DynamicMinSource.GetType().GetProperty(DynamicMinPath);
+                PropertyInfo? property = DynamicMinSource.GetType().GetProperty(DynamicMinPath);
                 return property?.GetValue(DynamicMinSource) is double value ? value : Min;
             }
 
@@ -340,21 +356,19 @@ namespace krrTools.Configuration
             // 使用单向绑定显示值，debounce设置值
             try
             {
-                var path = GetPropertyPathFromExpression(PropertySelector!);
-                
+                string path = GetPropertyPathFromExpression(PropertySelector!);
+
                 // 检查属性是否是 Bindable<T> 类型，如果是则添加 .Value
                 if (Source != null && PropertySelector != null)
                 {
-                    var propertyInfo = GetPropertyInfoFromExpression(PropertySelector);
-                    if (propertyInfo != null && propertyInfo.PropertyType.IsGenericType && 
+                    PropertyInfo? propertyInfo = GetPropertyInfoFromExpression(PropertySelector);
+                    if (propertyInfo != null && propertyInfo.PropertyType.IsGenericType &&
                         propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
-                    {
                         path += ".Value";
-                    }
                 }
-                
+
                 // Logger.WriteLine(LogLevel.Debug,$"[SettingsControls] Binding to path: {path}, Source: {Source}");
-                
+
                 var binding = new Binding
                 {
                     Path = new PropertyPath(path),
@@ -379,7 +393,6 @@ namespace krrTools.Configuration
             }
         }
 
-
         private void UpdateLabelWithValue(double value)
         {
             if (_labelTemplate != null && !string.IsNullOrEmpty(_labelTemplate.Value))
@@ -387,25 +400,17 @@ namespace krrTools.Configuration
                 bool isEnabled = !CheckEnabled || (CheckBox?.IsChecked ?? false);
                 string displayValue;
                 if (!isEnabled)
-                {
                     displayValue = "off";
-                }
-                else if (ValueDisplayMap != null && ValueDisplayMap.TryGetValue(value, out var mappedValue))
-                {
+                else if (ValueDisplayMap != null && ValueDisplayMap.TryGetValue(value, out string? mappedValue))
                     displayValue = mappedValue;
-                }
                 else
-                {
                     displayValue = ((int)value).ToString();
-                }
 
                 if (_labelTemplate.Value.Contains("{0}"))
-                {
                     LabelText.Value = Strings.FormatLocalized(_labelTemplate.Value, displayValue);
-                }
                 else
                 {
-                    var localizedLabel = _labelTemplate.Value;
+                    string localizedLabel = _labelTemplate.Value;
                     LabelText.Value = localizedLabel + ": " + displayValue;
                 }
             }
@@ -414,37 +419,40 @@ namespace krrTools.Configuration
         private void OnDebounceTimerTick(object? sender, EventArgs e)
         {
             _debounceTimer!.Stop();
+
             try
             {
                 if (Source != null && PropertySelector != null)
                 {
                     // 直接设置属性值 - WPF绑定应该已经处理了双向同步
                     // 如果绑定不工作，可能是因为属性路径问题
-                    var path = GetPropertyPathFromExpression(PropertySelector);
-                    var propertyNames = path.Split('.');
-                    
+                    string path = GetPropertyPathFromExpression(PropertySelector);
+                    string[] propertyNames = path.Split('.');
+
                     object? currentObject = Source;
+
                     for (int i = 0; i < propertyNames.Length - 1; i++)
                     {
-                        var property = currentObject.GetType().GetProperty(propertyNames[i]);
+                        PropertyInfo? property = currentObject.GetType().GetProperty(propertyNames[i]);
                         currentObject = property?.GetValue(currentObject);
                         if (currentObject == null) break;
                     }
-                    
+
                     if (currentObject != null)
                     {
-                        var finalProperty = currentObject.GetType().GetProperty(propertyNames[^1]);
+                        PropertyInfo? finalProperty = currentObject.GetType().GetProperty(propertyNames[^1]);
+
                         if (finalProperty != null)
                         {
                             Type targetType;
                             object? targetObject;
-                            
+
                             // Check if the property is Bindable<T>
                             if (finalProperty.PropertyType.IsGenericType && finalProperty.PropertyType.GetGenericTypeDefinition() == typeof(Bindable<>))
                             {
                                 // For Bindable<T>, target is the Value property
                                 targetType = finalProperty.PropertyType.GetGenericArguments()[0];
-                                var bindableInstance = finalProperty.GetValue(currentObject);
+                                object? bindableInstance = finalProperty.GetValue(currentObject);
                                 if (bindableInstance == null) return;
                                 targetObject = bindableInstance;
                                 finalProperty = bindableInstance.GetType().GetProperty("Value");
@@ -455,21 +463,21 @@ namespace krrTools.Configuration
                                 targetType = finalProperty.PropertyType;
                                 targetObject = currentObject;
                             }
-                            
+
                             // 根据属性类型转换值
                             object? convertedValue = targetType switch
-                            {
-                                { } t when t == typeof(int) => (int)_pendingValue,
-                                { } t when t == typeof(float) => (float)_pendingValue,
-                                { } t when t == typeof(decimal) => (decimal)_pendingValue,
-                                { } t when t == typeof(double) => _pendingValue,
-                                { } t when t == typeof(int?) => (int?)_pendingValue,
-                                { } t when t == typeof(float?) => (float?)_pendingValue,
-                                { } t when t == typeof(decimal?) => (decimal?)_pendingValue,
-                                { } t when t == typeof(double?) => (double?)_pendingValue,
-                                _ => _pendingValue
-                            };
-                            
+                                                     {
+                                                         { } t when t == typeof(int) => (int)_pendingValue,
+                                                         { } t when t == typeof(float) => (float)_pendingValue,
+                                                         { } t when t == typeof(decimal) => (decimal)_pendingValue,
+                                                         { } t when t == typeof(double) => _pendingValue,
+                                                         { } t when t == typeof(int?) => (int?)_pendingValue,
+                                                         { } t when t == typeof(float?) => (float?)_pendingValue,
+                                                         { } t when t == typeof(decimal?) => (decimal?)_pendingValue,
+                                                         { } t when t == typeof(double?) => (double?)_pendingValue,
+                                                         _ => _pendingValue
+                                                     };
+
                             finalProperty.SetValue(targetObject, convertedValue);
                         }
                     }
@@ -499,7 +507,7 @@ namespace krrTools.Configuration
         {
             // DynamicLocalizedString will automatically update its Value when language changes
             // This will trigger the PropertyChanged event which calls UpdateLabelText
-            if (_isInitialized) 
+            if (_isInitialized)
                 UpdateLabelWithValue(InnerSlider.Value);
         }
 
@@ -509,9 +517,10 @@ namespace krrTools.Configuration
         private static string GetPropertyPathFromExpression<T, TResult>(Expression<Func<T, TResult>> propertySelector)
         {
             var path = new List<string>();
-            var current = propertySelector.Body;
+            Expression? current = propertySelector.Body;
 
             while (current != null)
+            {
                 if (current is MemberExpression member)
                 {
                     path.Insert(0, member.Member.Name);
@@ -523,9 +532,8 @@ namespace krrTools.Configuration
                     current = unaryMember.Expression;
                 }
                 else
-                {
                     break;
-                }
+            }
 
             return string.Join(".", path);
         }

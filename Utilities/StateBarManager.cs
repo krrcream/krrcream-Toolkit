@@ -15,21 +15,20 @@ namespace krrTools.Utilities
         [Inject]
         private IEventBus EventBus { get; set; } = null!;
 
-
         private bool _isTopmost;
 
         // 进度条自动隐藏定时器
         private readonly DispatcherTimer? _progressHideTimer;
 
         // 核心状态 - 直接使用全局设置
-        public Bindable<bool> IsOsuRunning { get; } = new();
-        public Bindable<string> CurrentBeatmapPath { get; } = new(string.Empty);
-        public Bindable<ListenerState> ListenerStateBindable { get; } = new();
-        public Bindable<bool> IsPlaying { get; } = new();
-        public Bindable<bool> IsFrozen { get; } = new();
-        public Bindable<bool> IsHidden { get; } = new();
-        public Bindable<double> ProgressValue { get; } = new();
-        public Bindable<bool> ProgressVisible { get; } = new();
+        public Bindable<bool> IsOsuRunning { get; } = new Bindable<bool>();
+        public Bindable<string> CurrentBeatmapPath { get; } = new Bindable<string>(string.Empty);
+        public Bindable<ListenerState> ListenerStateBindable { get; } = new Bindable<ListenerState>();
+        public Bindable<bool> IsPlaying { get; } = new Bindable<bool>();
+        public Bindable<bool> IsFrozen { get; } = new Bindable<bool>();
+        public Bindable<bool> IsHidden { get; } = new Bindable<bool>();
+        public Bindable<double> ProgressValue { get; } = new Bindable<double>();
+        public Bindable<bool> ProgressVisible { get; } = new Bindable<bool>();
 
         public StateBarManager()
         {
@@ -60,13 +59,8 @@ namespace krrTools.Utilities
             _isTopmost = value;
             // 检查隐藏逻辑
             if (IsPlaying.Value && value)
-            {
                 IsHidden.Value = true;
-            }
-            else if (!value)
-            {
-                IsHidden.Value = false;
-            }
+            else if (!value) IsHidden.Value = false;
         }
 
         #region 公共属性
@@ -81,8 +75,9 @@ namespace krrTools.Utilities
         }
 
         #endregion
-        
+
         #region 状态绑定设置
+
         private void SetupStateBindings()
         {
             // osu!运行状态变化时，更新监听器状态
@@ -91,14 +86,14 @@ namespace krrTools.Utilities
                 EventBus.Publish(new OsuRunningEvent
                 {
                     OldValue = !running,
-                    NewValue = running,
+                    NewValue = running
                 });
-                
+
                 if (IsMonitoringEnable)
                 {
-                    ListenerStateBindable.Value = running 
-                        ? ListenerState.Monitoring
-                        : ListenerState.WaitingForOsu;
+                    ListenerStateBindable.Value = running
+                                                      ? ListenerState.Monitoring
+                                                      : ListenerState.WaitingForOsu;
                 }
 
                 OnPropertyChanged(nameof(IsOsuRunning));
@@ -133,23 +128,13 @@ namespace krrTools.Utilities
             {
                 // 隐藏逻辑：只有置顶开启时才隐藏
                 if (playing && _isTopmost)
-                {
                     IsHidden.Value = true;
-                }
-                else if (!playing)
-                {
-                    IsHidden.Value = false;
-                }
+                else if (!playing) IsHidden.Value = false;
 
                 // 冻结逻辑：只有监听开启时才冻结
                 if (playing && IsMonitoringEnable)
-                {
                     IsFrozen.Value = true;
-                }
-                else if (!playing)
-                {
-                    IsFrozen.Value = false;
-                }
+                else if (!playing) IsFrozen.Value = false;
 
                 OnPropertyChanged(nameof(IsPlaying));
             });
@@ -167,30 +152,21 @@ namespace krrTools.Utilities
                 {
                     // 进度完成，先显示进度条，然后3秒后自动隐藏
                     ProgressVisible.Value = true;
-                    if (_progressHideTimer is { IsEnabled: false })
-                    {
-                        _progressHideTimer.Start();
-                    }
+                    if (_progressHideTimer is { IsEnabled: false }) _progressHideTimer.Start();
                 }
                 else if (value > 0)
                 {
                     // 进度进行中，显示进度条
                     ProgressVisible.Value = true;
                     // 如果定时器正在运行，停止它
-                    if (_progressHideTimer is { IsEnabled: true })
-                    {
-                        _progressHideTimer.Stop();
-                    }
+                    if (_progressHideTimer is { IsEnabled: true }) _progressHideTimer.Stop();
                 }
                 else
                 {
                     // 进度为0，隐藏进度条
                     ProgressVisible.Value = false;
                     // 停止定时器
-                    if (_progressHideTimer is { IsEnabled: true })
-                    {
-                        _progressHideTimer.Stop();
-                    }
+                    if (_progressHideTimer is { IsEnabled: true }) _progressHideTimer.Stop();
                 }
             });
         }
@@ -198,6 +174,7 @@ namespace krrTools.Utilities
         #endregion
 
         #region 事件订阅
+
         private void OnMonitoringEnabledChanged(MonitoringEnabledChangedEvent evt)
         {
             // 使用Dispatcher确保在UI线程上执行，避免跨线程访问错误
@@ -206,9 +183,9 @@ namespace krrTools.Utilities
                 // 当监控启用状态改变时，根据当前 osu! 运行状态更新监听器状态
                 if (evt.NewValue)
                 {
-                    ListenerStateBindable.Value = IsOsuRunning.Value 
-                        ? ListenerState.Monitoring 
-                        : ListenerState.WaitingForOsu;
+                    ListenerStateBindable.Value = IsOsuRunning.Value
+                                                      ? ListenerState.Monitoring
+                                                      : ListenerState.WaitingForOsu;
                 }
                 else
                 {
@@ -219,13 +196,8 @@ namespace krrTools.Utilities
 
                 // 检查冻结逻辑
                 if (IsPlaying.Value && evt.NewValue)
-                {
                     IsFrozen.Value = true;
-                }
-                else if (!evt.NewValue)
-                {
-                    IsFrozen.Value = false;
-                }
+                else if (!evt.NewValue) IsFrozen.Value = false;
             });
         }
 

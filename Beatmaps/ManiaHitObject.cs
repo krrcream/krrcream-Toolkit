@@ -14,16 +14,16 @@ namespace krrTools.Beatmaps
         public int Index { get; set; }
 
         public bool IsHold { get; set; }
-        public Extras Extras { get; set; } = new();
+        public Extras Extras { get; set; } = new Extras();
         public HitSoundType HitSound { get; set; }
-    
+
         public void InitFrom(HitObject ho)
         {
             Position = ho.Position;
             StartTime = ho.StartTime;
             EndTime = ho.EndTime;
             Index = (int)ho.Position.X;
-            IsHold = ho is ManiaHoldNote && (ho.EndTime > ho.StartTime);
+            IsHold = ho is ManiaHoldNote && ho.EndTime > ho.StartTime;
             Extras = ho.Extras;
             HitSound = ho.HitSound;
         }

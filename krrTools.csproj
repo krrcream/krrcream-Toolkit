@@ -14,54 +14,54 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
+        <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms"/>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="ClosedXML" Version="0.105.0" />
-        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-        <PackageReference Include="DataGridExtensions" Version="2.7.0" />
-        <PackageReference Include="krrcream.OsuParsers" Version="1.8.3.6" />
+        <PackageReference Include="ClosedXML" Version="0.105.0"/>
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0"/>
+        <PackageReference Include="DataGridExtensions" Version="2.7.0"/>
+        <PackageReference Include="krrcream.OsuParsers" Version="1.8.3.6"/>
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.0.0-1.25277.114">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.9" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.9" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.9" />
-        <PackageReference Include="NHotkey.Wpf" Version="3.0.0" />
-        <PackageReference Include="OsuMemoryDataProvider" Version="0.11.1" />
-        <PackageReference Include="ProcessMemoryDataFinder" Version="0.9.0" />
-        <PackageReference Include="WPF-UI" Version="4.0.3" />
-        <PackageReference Include="WPF-UI.Abstractions" Version="4.0.3" />
-        <PackageReference Include="WPF-UI.DependencyInjection" Version="4.0.3" />
-        <PackageReference Include="WPF-UI.Tray" Version="4.0.3" />
-        <PackageReference Include="WPF-UI.Violeta" Version="4.0.3.6" />
-        <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.9"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.9"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.9"/>
+        <PackageReference Include="NHotkey.Wpf" Version="3.0.0"/>
+        <PackageReference Include="OsuMemoryDataProvider" Version="0.11.1"/>
+        <PackageReference Include="ProcessMemoryDataFinder" Version="0.9.0"/>
+        <PackageReference Include="WPF-UI" Version="4.0.3"/>
+        <PackageReference Include="WPF-UI.Abstractions" Version="4.0.3"/>
+        <PackageReference Include="WPF-UI.DependencyInjection" Version="4.0.3"/>
+        <PackageReference Include="WPF-UI.Tray" Version="4.0.3"/>
+        <PackageReference Include="WPF-UI.Violeta" Version="4.0.3.6"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0"/>
     </ItemGroup>
 
     <ItemGroup>
-        <EmbeddedResource Remove="publish\**" />
-        <EmbeddedResource Remove="tests\**" />
+        <EmbeddedResource Remove="publish\**"/>
+        <EmbeddedResource Remove="tests\**"/>
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="img\**" />
-        <Content Remove="img\**" />
-         <None Remove="publish\**" />
-        <None Remove="tests\**" />
+        <None Remove="img\**"/>
+        <Content Remove="img\**"/>
+        <None Remove="publish\**"/>
+        <None Remove="tests\**"/>
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Remove="publish\**" />
-        <Compile Remove="tests\bin" />
-        <Compile Remove="tests\obj" />
-        <Compile Remove="tests\**" />
+        <Compile Remove="publish\**"/>
+        <Compile Remove="tests\bin"/>
+        <Compile Remove="tests\obj"/>
+        <Compile Remove="tests\**"/>
     </ItemGroup>
 
     <ItemGroup>
-        <Page Remove="publish\**" />
-        <Page Remove="tests\**" />
+        <Page Remove="publish\**"/>
+        <Page Remove="tests\**"/>
     </ItemGroup>
 
 </Project>

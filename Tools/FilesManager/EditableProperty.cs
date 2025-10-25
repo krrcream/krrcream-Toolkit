@@ -26,7 +26,7 @@ namespace krrTools.Tools.FilesManager
 
         public void Undo()
         {
-            if (!EqualityComparer<T>.Default.Equals(_previousValue, default(T)))
+            if (!EqualityComparer<T>.Default.Equals(_previousValue, default))
             {
                 _value = _previousValue;
                 OnPropertyChanged(nameof(Value));

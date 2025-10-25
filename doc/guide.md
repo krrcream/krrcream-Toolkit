@@ -17,8 +17,8 @@ This menu is located in the bottom-right corner of the interface and provides th
 
 - **English (中文)**:  
   切换界面语言为中文。当前显示为英文时，点击此选项可切换至中文界面。  
-  Switch the interface language to Chinese. When currently displayed in English, clicking this option will switch to Chinese.
-
+  Switch the interface language to Chinese. When currently displayed in English, clicking this option will switch to
+  Chinese.
 
 # 狂风插入 操作指南 (NtoN Guide)
 
@@ -72,6 +72,7 @@ Enable or disable filtering for maps with specific original key counts. If none 
   Save current settings as a preset.
 
 ------
+
 # DP工具 操作指南 (DP Tool Guide)
 
 ## 参数设置 (Parameter Settings)
@@ -81,20 +82,20 @@ Enable or disable filtering for maps with specific original key counts. If none 
   Controls whether keys×2 conversion is enabled. When disabled, the original key count is doubled by default.
 
 - **左手 (Left Hand)**:
-  - **镜像 (Mirror)**:  
-    启用左手指法的镜像对称处理。  
-    Enable mirror symmetry for left-hand patterns.
-  - **密度 (Density)**:  
-    调整左手物件分布的密度。开启后，下方滑条将生效。  
-    Adjust the density of notes on the left hand. Enabling this option activates the slider below.
+    - **镜像 (Mirror)**:  
+      启用左手指法的镜像对称处理。  
+      Enable mirror symmetry for left-hand patterns.
+    - **密度 (Density)**:  
+      调整左手物件分布的密度。开启后，下方滑条将生效。  
+      Adjust the density of notes on the left hand. Enabling this option activates the slider below.
 
 - **右手 (Right Hand)**:
-  - **镜像 (Mirror)**:  
-    启用右手指法的镜像对称处理。开启后，下方滑条将生效。  
-    Enable mirror symmetry for right-hand patterns.
-  - **密度 (Density)**:  
-    调整右手物件分布的密度。  
-    Adjust the density of notes on the right hand. Enabling this option activates the slider below.
+    - **镜像 (Mirror)**:  
+      启用右手指法的镜像对称处理。开启后，下方滑条将生效。  
+      Enable mirror symmetry for right-hand patterns.
+    - **密度 (Density)**:  
+      调整右手物件分布的密度。  
+      Adjust the density of notes on the right hand. Enabling this option activates the slider below.
 
 - **上限权重 (Max Weight)**:  
   设置每行最大物件数量的权重，用于控制密度上限。  
@@ -105,6 +106,7 @@ Enable or disable filtering for maps with specific original key counts. If none 
   Sets the minimum note count weight per line; lines with fewer notes are unaffected.
 
 ------
+
 # KRR 转面器 操作指南 (KRR LN Transformer Guide)
 
 ## 参数设置 (Parameter Settings)
@@ -112,8 +114,10 @@ Enable or disable filtering for maps with specific original key counts. If none 
 - **长度阈值 (Length Threshold)**:  
   设置长面的判定阈值，超过该长度的物件将被视为长面。单位为节拍。  
   物件到该列下一个物件的可用时间，超过该长度的物件将被视为"长"面，否则为"短"面。  
-  Sets the threshold for identifying long notes; notes longer than this value are considered "long" notes, otherwise "short". Measured in beats.  
-  The available time from a note to the next one in the same column; if longer than this threshold, it's classified as a "long" note.
+  Sets the threshold for identifying long notes; notes longer than this value are considered "long" notes, otherwise "
+  short". Measured in beats.  
+  The available time from a note to the next one in the same column; if longer than this threshold, it's classified as
+  a "long" note.
 
 ### 短面 (Short LN)
 
@@ -206,12 +210,15 @@ Enable or disable filtering for maps with specific original key counts. If none 
   Generates high-difficulty long note patterns.
 
 ---
+
 # OSU Listener 操作指南
 
 ## 功能概述 (Overview)
 
 `OSU Listener` 是 krrcream's Toolkit 中用于监听 osu! 客户端并实现快捷转换谱面的核心模块。通过该界面，用户可以设置歌曲目录、绑定快捷键，并实时预览或直接转换当前选中的谱面。
-`OSU Listener` is the core module in krrcream's Toolkit for monitoring the osu! client and enabling quick beatmap transformation. Through this interface, users can set the song directory, bind hotkeys, and preview or directly transform the currently selected beatmap in real time.
+`OSU Listener` is the core module in krrcream's Toolkit for monitoring the osu! client and enabling quick beatmap
+transformation. Through this interface, users can set the song directory, bind hotkeys, and preview or directly
+transform the currently selected beatmap in real time.
 
 ## 参数设置 (Settings)
 
@@ -221,38 +228,41 @@ Enable or disable filtering for maps with specific original key counts. If none 
 
 - **N2NC Hotkey (Ctrl+Shift+N)**:  
   设置 NtoN Converter 的快捷键。按下后将对 osu! 中选中的谱面执行 NtoN 转换。
-  - **红色框**：表示快捷键与系统或其他程序冲突，无法使用。 Indicates a hotkey conflict with the system or other programs; cannot be used.
-  - **蓝色框**：表示快捷键可用，已成功绑定。 Indicates the hotkey is available and successfully bound.  
-  
-  Sets the hotkey for NtoN Converter. Pressing it will apply the NtoN transformation to the currently selected map in osu!.
-  - **Red box**: Indicates a hotkey conflict with the system or other programs; cannot be used.
-  - **Blue box**: Indicates the hotkey is available and successfully bound.
+    - **红色框**：表示快捷键与系统或其他程序冲突，无法使用。 Indicates a hotkey conflict with the system or other programs;
+      cannot be used.
+    - **蓝色框**：表示快捷键可用，已成功绑定。 Indicates the hotkey is available and successfully bound.
+
+  Sets the hotkey for NtoN Converter. Pressing it will apply the NtoN transformation to the currently selected map in
+  osu!.
+    - **Red box**: Indicates a hotkey conflict with the system or other programs; cannot be used.
+    - **Blue box**: Indicates the hotkey is available and successfully bound.
 - **DP Hotkey (Ctrl+Shift+D)**:  
   设置 DP Tool 的快捷键。按下后将对选中谱面应用 DP 工具处理。
-  - **红色框**：快捷键冲突。
-  - **蓝色框**：快捷键可用。  
-  
+    - **红色框**：快捷键冲突。
+    - **蓝色框**：快捷键可用。
+
   Sets the hotkey for DP Tool. Pressing it will apply the DP transformation to the currently selected map in osu!.
-  - **Red box**: Hotkey conflict.
-  - **Blue box**: Hotkey available.
+    - **Red box**: Hotkey conflict.
+    - **Blue box**: Hotkey available.
 - **KRRLN Hotkey (Ctrl+Shift+K)**:  
   设置 KRR LN Transformer 的快捷键。按下后将对选中谱面进行长面条转换。
-  - **红色框**：快捷键冲突。
-  - **蓝色框**：快捷键可用。  
-  
-  Sets the hotkey for KRR LN Transformer. Pressing it will apply the KRRLN transformation to the currently selected map in osu!.
-  - **Red box**: Hotkey conflict.
-  - **Blue box**: Hotkey available.
+    - **红色框**：快捷键冲突。
+    - **蓝色框**：快捷键可用。
+
+  Sets the hotkey for KRR LN Transformer. Pressing it will apply the KRRLN transformation to the currently selected map
+  in osu!.
+    - **Red box**: Hotkey conflict.
+    - **Blue box**: Hotkey available.
 
 ## 实时功能 (Real-time Features)
 
 - **Real-time preview (实时预览)**:  
   按下此按钮后，软件会自动从 osu! 客户端提取当前选中的谱面信息，并在对应转谱器标签页中显示转换效果。  
   可用于快速查看转换结果，无需手动导入。  
-  Click to enable real-time extraction of the currently selected beatmap from osu!. The transformed result will be displayed in the corresponding converter tab without manual import.
+  Click to enable real-time extraction of the currently selected beatmap from osu!. The transformed result will be
+  displayed in the corresponding converter tab without manual import.
 
 ## 使用说明 (Instructions)
-
 
 1. 首先点击 `Browse Songs` 设置正确的 osu! 歌曲目录。  
    First, click `Browse Songs` to set the correct osu! song directory.

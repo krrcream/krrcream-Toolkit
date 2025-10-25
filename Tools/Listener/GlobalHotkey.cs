@@ -41,8 +41,8 @@ namespace krrTools.Tools.Listener
 
             Logger.WriteLine(LogLevel.Information, $"[GlobalHotkey] Attempting to register hotkey '{hotkey}' with id {_id}, modifiers {_fsModifiers}, vk {_vk}, hwnd {_hwnd}");
 
-            var success = RegisterHotKey(_hwnd, _id, _fsModifiers, _vk);
-            var errorCode = Marshal.GetLastWin32Error();
+            bool success = RegisterHotKey(_hwnd, _id, _fsModifiers, _vk);
+            int errorCode = Marshal.GetLastWin32Error();
 
             if (!success)
             {
@@ -51,15 +51,16 @@ namespace krrTools.Tools.Listener
                 {
                     Logger.WriteLine(LogLevel.Warning, $"[GlobalHotkey] Hotkey '{hotkey}' already registered, attempting to unregister first");
                     UnregisterHotKey(_hwnd, _id);
-                    
+
                     // Try registering again
                     success = RegisterHotKey(_hwnd, _id, _fsModifiers, _vk);
                     errorCode = Marshal.GetLastWin32Error();
                 }
-                
+
                 if (!success)
                 {
-                    Logger.WriteLine(LogLevel.Error, $"[GlobalHotkey] RegisterHotKey FAILED for '{hotkey}': success={success}, errorCode={errorCode}, hwnd={_hwnd}, id={_id}, modifiers={_fsModifiers}, vk={_vk}");
+                    Logger.WriteLine(LogLevel.Error,
+                                     $"[GlobalHotkey] RegisterHotKey FAILED for '{hotkey}': success={success}, errorCode={errorCode}, hwnd={_hwnd}, id={_id}, modifiers={_fsModifiers}, vk={_vk}");
                     throw new InvalidOperationException($"Failed to register hotkey. Error code: {errorCode}");
                 }
             }
@@ -76,33 +77,37 @@ namespace krrTools.Tools.Listener
             _vk = 0;
             if (string.IsNullOrWhiteSpace(hotkey)) return;
 
-            var parts = hotkey.Split(['+'], StringSplitOptions.RemoveEmptyEntries);
-            foreach (var p in parts)
+            string[] parts = hotkey.Split(['+'], StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string p in parts)
             {
-                var trimmed = p.Trim();
+                string trimmed = p.Trim();
+
                 switch (trimmed.ToUpperInvariant())
                 {
                     case "CTRL":
                     case "CONTROL":
                         _fsModifiers |= MOD_CONTROL;
                         break;
+
                     case "SHIFT":
                         _fsModifiers |= MOD_SHIFT;
                         break;
+
                     case "ALT":
                         _fsModifiers |= MOD_ALT;
                         break;
+
                     default:
                         // Try parse key safely
-                        if (Enum.TryParse<Key>(trimmed, true, out var key))
+                        if (Enum.TryParse<Key>(trimmed, true, out Key key))
                         {
                             _vk = KeyInterop.VirtualKeyFromKey(key);
                             Logger.WriteLine(LogLevel.Debug, $"[GlobalHotkey] Parsed key '{trimmed}' to vk {_vk}");
                         }
                         else
-                        {
                             Logger.WriteLine(LogLevel.Warning, "[GlobalHotkey] GlobalHotkey: unrecognized key part '{0}' in '{1}'", trimmed, hotkey);
-                        }
+
                         break;
                 }
             }
@@ -113,12 +118,23 @@ namespace krrTools.Tools.Listener
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
             const int WM_HOTKEY = 0x0312;
+
             if (msg == WM_HOTKEY && wParam.ToInt32() == _id)
             {
                 Logger.WriteLine(LogLevel.Information, $"[GlobalHotkey] HOTKEY TRIGGERED: id {_id}, modifiers {_fsModifiers}, vk {_vk}");
-                try { _action.Invoke(); } catch (Exception ex) { Logger.WriteLine(LogLevel.Error, "[GlobalHotkey] GlobalHotkey action failed: {0}", ex.Message); }
+
+                try
+                {
+                    _action.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    Logger.WriteLine(LogLevel.Error, "[GlobalHotkey] GlobalHotkey action failed: {0}", ex.Message);
+                }
+
                 handled = true;
             }
+
             return IntPtr.Zero;
         }
 
@@ -139,10 +155,7 @@ namespace krrTools.Tools.Listener
 
             try
             {
-                if (_hwnd != IntPtr.Zero)
-                {
-                    UnregisterHotKey(_hwnd, _id);
-                }
+                if (_hwnd != IntPtr.Zero) UnregisterHotKey(_hwnd, _id);
             }
             catch (Exception ex)
             {

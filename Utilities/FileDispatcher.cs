@@ -26,13 +26,9 @@ namespace krrTools.Utilities
         {
             // 初始化转换服务，传入活动模块接口
             if (App.Services.GetService(typeof(IModuleManager)) is IModuleManager moduleManager)
-            {
                 _transformationService = new BeatmapTransformationService(moduleManager);
-            }
             else
-            {
                 throw new InvalidOperationException("IModuleManager not found");
-            }
         }
 
         // 构造函数重载，用于测试
@@ -52,7 +48,7 @@ namespace krrTools.Utilities
 
         private void ConvertWithResults(string[] paths, ConverterEnum activeTabTag)
         {
-            var startTime = DateTime.Now;
+            DateTime startTime = DateTime.Now;
             Logger.WriteLine(LogLevel.Information, "[FileDispatcher] 开始转换 - 调用模块: {0}, 使用活动设置, 文件数量: {1}", activeTabTag, paths.Length);
 
             var created = new ConcurrentBag<string>();
@@ -61,43 +57,39 @@ namespace krrTools.Utilities
             int processedCount = 0;
 
             // 并行处理每个文件，记录数量，限制并行度为4（I/O密集型）
-            Parallel.ForEach(paths, 
-                new ParallelOptions { MaxDegreeOfParallelism = 4 }, 
-                p =>
-            {
-                _ioSemaphore.Wait();
-                try
-                {
-                    var outputPath = _transformationService.TransformAndSaveBeatmap(p, activeTabTag);
-                    if (outputPath != null)
-                    {
-                        created.Add(outputPath);
-                    }
-                    else
-                    {
-                        failed.Add(p);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.WriteLine(LogLevel.Error, "[FileDispatcher] 文件 {0} 转换失败: {1}", p, ex);
-                    failed.Add(p);
-                }
-                finally
-                {
-                    _ioSemaphore.Release();
-                    // 更新进度
-                    int current = Interlocked.Increment(ref processedCount);
-                    UpdateProgress?.Invoke(current, paths.Length, string.Empty);
-                }
-            });
+            Parallel.ForEach(paths,
+                             new ParallelOptions { MaxDegreeOfParallelism = 4 },
+                             p =>
+                             {
+                                 _ioSemaphore.Wait();
+
+                                 try
+                                 {
+                                     string? outputPath = _transformationService.TransformAndSaveBeatmap(p, activeTabTag);
+                                     if (outputPath != null)
+                                         created.Add(outputPath);
+                                     else
+                                         failed.Add(p);
+                                 }
+                                 catch (Exception ex)
+                                 {
+                                     Logger.WriteLine(LogLevel.Error, "[FileDispatcher] 文件 {0} 转换失败: {1}", p, ex);
+                                     failed.Add(p);
+                                 }
+                                 finally
+                                 {
+                                     _ioSemaphore.Release();
+                                     // 更新进度
+                                     int current = Interlocked.Increment(ref processedCount);
+                                     UpdateProgress?.Invoke(current, paths.Length, string.Empty);
+                                 }
+                             });
 
             if (created.Count > 0)
             {
                 try
                 {
                     Logger.WriteLine(LogLevel.Information, "[FileDispatcher] 转换器: {0}, 生成文件数量: {1}", activeTabTag, created.Count);
-
                 }
                 catch (Exception ex)
                 {
@@ -105,7 +97,7 @@ namespace krrTools.Utilities
                 }
             }
 
-            var duration = DateTime.Now - startTime;
+            TimeSpan duration = DateTime.Now - startTime;
             Logger.WriteLine(LogLevel.Information, "[FileDispatcher] 转换器: {0}, 成功: {1}, 失败: {2}, 用时: {3:F4}s", activeTabTag, created.Count, failed.Count, duration.TotalSeconds);
 
             ShowConversionResult(created.ToList(), failed.ToList());
@@ -122,9 +114,7 @@ namespace krrTools.Utilities
                 title = "转换成功";
 
                 if (created.Count == 1)
-                {
                     message = $"转换成功！\n\n生成的文件：{created[0]}";
-                }
                 else
                 {
                     var sb = new StringBuilder();
@@ -152,15 +142,13 @@ namespace krrTools.Utilities
             {
                 title = "转换失败";
                 message = failed.Count > 0
-                    ? Strings.ConversionFailedAllFiles.Localize()
-                    : Strings.ConversionNoOutput.Localize();
+                              ? Strings.ConversionFailedAllFiles.Localize()
+                              : Strings.ConversionNoOutput.Localize();
             }
 
             // 使用Snackbar显示消息
             if (ShowMessage != null)
-            {
                 ShowMessage(title, message);
-            }
             else
             {
                 // 降级到MessageBox
