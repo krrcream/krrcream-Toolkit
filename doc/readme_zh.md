@@ -54,17 +54,17 @@ DP工具，支持密度调节。
 ## 📸 截图
 
 ### 预设
-![img_P.png](img/7.jpg)
+![img_P.png](../img/7.jpg)
 ### krr AnyKeys Converter / LN Transformer / DP Tool
-![img.png](img/1.jpg)
-![img_1.png](img/2.jpg)
-![img_S.png](img/3.jpg)
+![img.png](../img/1.jpg)
+![img_1.png](../img/2.jpg)
+![img_S.png](../img/3.jpg)
 ### 快捷键
-![img_6.png](img/6.jpg)
+![img_6.png](../img/6.jpg)
 ### .osu 文件管理器
-![img_2.png](img/4.jpg)
+![img_2.png](../img/4.jpg)
 ### krr LV 自动评级
-![img_3.png](img/5.jpg)
+![img_3.png](../img/5.jpg)
 
 ---
 
