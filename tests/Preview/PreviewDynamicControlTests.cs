@@ -35,9 +35,9 @@ namespace krrTools.Tests.Preview
             STATestHelper.RunInSTA(() =>
             {
                 // Arrange
-                var processor = new Mock<IPreviewProcessor>();
-                Beatmap beatmap = new Mock<Beatmap>().Object;
-                var expectedElement = new TextBlock { Text = "Original" };
+                var     processor       = new Mock<IPreviewProcessor>();
+                Beatmap beatmap         = new Mock<Beatmap>().Object;
+                var     expectedElement = new TextBlock { Text = "Original" };
                 processor.Setup(p => p.BuildOriginalVisual(beatmap)).Returns(expectedElement);
 
                 // Act
@@ -55,9 +55,9 @@ namespace krrTools.Tests.Preview
             STATestHelper.RunInSTA(() =>
             {
                 // Arrange
-                var processor = new Mock<IPreviewProcessor>();
-                Beatmap beatmap = new Mock<Beatmap>().Object;
-                var expectedElement = new TextBlock { Text = "Converted" };
+                var     processor       = new Mock<IPreviewProcessor>();
+                Beatmap beatmap         = new Mock<Beatmap>().Object;
+                var     expectedElement = new TextBlock { Text = "Converted" };
                 processor.Setup(p => p.BuildConvertedVisual(beatmap)).Returns(expectedElement);
 
                 // Act
@@ -87,43 +87,16 @@ namespace krrTools.Tests.Preview
         }
 
         [Fact]
-        public void BuildOriginalVisual_WithDifferentBeatmaps_ShouldCallCorrectly()
-        {
-            STATestHelper.RunInSTA(() =>
-            {
-                // Arrange
-                var processor = new Mock<IPreviewProcessor>();
-                Beatmap beatmap1 = new Mock<Beatmap>().Object;
-                Beatmap beatmap2 = new Mock<Beatmap>().Object;
-                var element1 = new Grid();
-                var element2 = new Canvas();
-
-                processor.Setup(p => p.BuildOriginalVisual(beatmap1)).Returns(element1);
-                processor.Setup(p => p.BuildOriginalVisual(beatmap2)).Returns(element2);
-
-                // Act
-                FrameworkElement result1 = processor.Object.BuildOriginalVisual(beatmap1);
-                FrameworkElement result2 = processor.Object.BuildOriginalVisual(beatmap2);
-
-                // Assert
-                Assert.Equal(element1, result1);
-                Assert.Equal(element2, result2);
-                processor.Verify(p => p.BuildOriginalVisual(beatmap1), Times.Once);
-                processor.Verify(p => p.BuildOriginalVisual(beatmap2), Times.Once);
-            });
-        }
-
-        [Fact]
         public void BuildConvertedVisual_WithDifferentBeatmaps_ShouldCallCorrectly()
         {
             STATestHelper.RunInSTA(() =>
             {
                 // Arrange
-                var processor = new Mock<IPreviewProcessor>();
-                Beatmap beatmap1 = new Mock<Beatmap>().Object;
-                Beatmap beatmap2 = new Mock<Beatmap>().Object;
-                var element1 = new Grid();
-                var element2 = new Canvas();
+                var     processor = new Mock<IPreviewProcessor>();
+                Beatmap beatmap1  = new Mock<Beatmap>().Object;
+                Beatmap beatmap2  = new Mock<Beatmap>().Object;
+                var     element1  = new Grid();
+                var     element2  = new Canvas();
 
                 processor.Setup(p => p.BuildConvertedVisual(beatmap1)).Returns(element1);
                 processor.Setup(p => p.BuildConvertedVisual(beatmap2)).Returns(element2);

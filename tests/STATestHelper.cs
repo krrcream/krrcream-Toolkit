@@ -11,6 +11,9 @@ namespace krrTools.Tests
     /// </summary>
     public static class STATestHelper
     {
+        private static          Application? _application;
+        private static readonly object       _applicationLock = new object();
+
         /// <summary>
         /// 在STA线程中运行测试方法
         /// </summary>
@@ -21,7 +24,13 @@ namespace krrTools.Tests
             {
                 try
                 {
-                    if (Application.Current == null) new Application();
+                    // 对于单元测试，不需要WPF Application
+                    // lock (_applicationLock)
+                    // {
+                    //     if (_application == null)
+                    //         _application = new Application();
+                    // }
+
                     testAction();
                 }
                 catch (Exception ex)
@@ -47,7 +56,8 @@ namespace krrTools.Tests
             {
                 try
                 {
-                    if (Application.Current == null) new Application();
+                    if (Application.Current == null)
+                        new Application();
                     await testAction();
                 }
                 catch (Exception ex)
@@ -68,7 +78,7 @@ namespace krrTools.Tests
         /// </summary>
         public static T RunInSTA<T>(Func<T> testFunc)
         {
-            T? result = default;
+            T?         result    = default;
             Exception? exception = null;
 
             var thread = new Thread(() =>

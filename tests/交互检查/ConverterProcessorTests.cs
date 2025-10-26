@@ -14,11 +14,11 @@ namespace krrTools.Tests.交互检查
     public class ConverterProcessorTests
     {
         private readonly Mock<IModuleManager> _mockModuleManager;
-        private readonly Func<IToolOptions>? _mockOptionsProvider;
+        private readonly Func<IToolOptions>?  _mockOptionsProvider;
 
         public ConverterProcessorTests()
         {
-            _mockModuleManager = new Mock<IModuleManager>();
+            _mockModuleManager   = new Mock<IModuleManager>();
             _mockOptionsProvider = () => Mock.Of<IToolOptions>();
         }
 
@@ -57,7 +57,7 @@ namespace krrTools.Tests.交互检查
             {
                 // Arrange
                 var processor = new ConverterProcessor(_mockModuleManager.Object);
-                var beatmap = new Beatmap();
+                var beatmap   = new Beatmap();
 
                 // Act
                 FrameworkElement result = processor.BuildConvertedVisual(beatmap);

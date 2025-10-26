@@ -1,25 +1,47 @@
 #nullable enable
 using System;
-using krrTools.Tools.Listener;
-using krrTools.Bindable;
-using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using krrTools.Beatmaps;
+using krrTools.Bindable;
+using krrTools.Configuration;
+using krrTools.Tools.Listener;
+using krrTools.Utilities;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using Xunit;
 
 namespace krrTools.Tests.交互检查
 {
-    public class ListenerViewModelTests
+    public class ListenerViewModelTests : IDisposable
     {
         public ListenerViewModelTests()
         {
-            // Setup dependency injection for tests using reflection
-            var services = new ServiceCollection();
-            services.AddSingleton<IEventBus, EventBus>();
+            // Setup dependency injection for tests
+            var mockEventBus = new Mock<IEventBus>();
+            var services     = new ServiceCollection();
+            services.AddSingleton(mockEventBus.Object);
+            services.AddSingleton<StateBarManager>();
+            services.AddSingleton<OsuMonitorService>();
+            services.AddSingleton<BeatmapAnalysisService>();
             ServiceProvider serviceProvider = services.BuildServiceProvider();
+            Injector.SetTestServiceProvider(serviceProvider);
 
-            // Use reflection to set the private Services property
-            PropertyInfo? servicesProperty = typeof(App).GetProperty("Services", BindingFlags.Public | BindingFlags.Static);
-            servicesProperty?.SetValue(null, serviceProvider);
+            // Reset global settings to defaults for each test
+            ResetGlobalSettingsToDefaults();
+        }
+
+        public void Dispose()
+        {
+            // Clean up test service provider
+            Injector.SetTestServiceProvider(null);
+        }
+
+        private void ResetGlobalSettingsToDefaults()
+        {
+            GlobalSettings globalSettings = BaseOptionsManager.GetGlobalSettings();
+            globalSettings.N2NCHotkey.Value  = "Ctrl+Shift+N";
+            globalSettings.DPHotkey.Value    = "Ctrl+Shift+D";
+            globalSettings.KRRLNHotkey.Value = "Ctrl+Shift+K";
         }
 
         [Fact]
@@ -64,7 +86,7 @@ namespace krrTools.Tests.交互检查
         public void SetN2NCHotkey_ShouldUpdateConfig()
         {
             // Arrange
-            var viewModel = new ListenerViewModel();
+            var    viewModel = new ListenerViewModel();
             string newHotkey = "Ctrl+Alt+N";
 
             // Act
@@ -79,7 +101,7 @@ namespace krrTools.Tests.交互检查
         public void SetDPHotkey_ShouldUpdateConfig()
         {
             // Arrange
-            var viewModel = new ListenerViewModel();
+            var    viewModel = new ListenerViewModel();
             string newHotkey = "Ctrl+Alt+D";
 
             // Act
@@ -94,7 +116,7 @@ namespace krrTools.Tests.交互检查
         public void SetKRRLNHotkey_ShouldUpdateConfig()
         {
             // Arrange
-            var viewModel = new ListenerViewModel();
+            var    viewModel = new ListenerViewModel();
             string newHotkey = "Ctrl+Alt+K";
 
             // Act
