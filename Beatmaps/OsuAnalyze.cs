@@ -22,30 +22,30 @@ namespace krrTools.Beatmaps
         public string? FileName;
 
         // Basic metadata
-        public string? Diff { get; set; }
-        public string? Title { get; set; }
-        public string? Artist { get; set; }
-        public string? Creator { get; set; }
+        public string? Diff       { get; set; }
+        public string? Title      { get; set; }
+        public string? Artist     { get; set; }
+        public string? Creator    { get; set; }
         public string? BPMDisplay { get; set; }
 
         // Difficulty settings
         public double KeyCount { get; set; }
-        public double OD { get; set; }
-        public double HP { get; set; }
+        public double OD       { get; set; }
+        public double HP       { get; set; }
 
         // Analysis results
-        public double XXY_SR { get; set; }
-        public double KRR_LV { get; set; }
-        public double YLs_LV { get; set; }
+        public double XXY_SR    { get; set; }
+        public double KRR_LV    { get; set; }
+        public double YLs_LV    { get; set; }
         public double LNPercent { get; set; }
 
         // Performance metrics
-        public int NotesCount { get; set; }
-        public double MaxKPS { get; set; }
-        public double AvgKPS { get; set; }
+        public int    NotesCount { get; set; }
+        public double MaxKPS     { get; set; }
+        public double AvgKPS     { get; set; }
 
         // Beatmap identifiers
-        public double BeatmapID { get; set; }
+        public double BeatmapID    { get; set; }
         public double BeatmapSetID { get; set; }
 
         // Status
@@ -75,19 +75,19 @@ namespace krrTools.Beatmaps
                     FileName = Path.GetFileName(filePath),
 
                     // Basic metadata
-                    Diff = beatmap.MetadataSection.Version,
-                    Title = beatmap.MetadataSection.Title,
-                    Artist = beatmap.MetadataSection.Artist,
-                    Creator = beatmap.MetadataSection.Creator,
+                    Diff       = beatmap.MetadataSection.Version,
+                    Title      = beatmap.MetadataSection.Title,
+                    Artist     = beatmap.MetadataSection.Artist,
+                    Creator    = beatmap.MetadataSection.Creator,
                     BPMDisplay = beatmap.GetBPMDisplay(),
 
                     // Difficulty settings
                     KeyCount = beatmap.DifficultySection.CircleSize,
-                    OD = beatmap.DifficultySection.OverallDifficulty,
-                    HP = beatmap.DifficultySection.HPDrainRate,
+                    OD       = beatmap.DifficultySection.OverallDifficulty,
+                    HP       = beatmap.DifficultySection.HPDrainRate,
 
                     // Beatmap identifiers
-                    BeatmapID = beatmap.MetadataSection.BeatmapID,
+                    BeatmapID    = beatmap.MetadataSection.BeatmapID,
                     BeatmapSetID = beatmap.MetadataSection.BeatmapSetID
                 };
 
@@ -104,31 +104,31 @@ namespace krrTools.Beatmaps
                     return result;
                 }
 
-                // 转换为Mania beatmap
-                Beatmap maniaBeatmap = beatmap;
+                Task<(int notesCount, double maxKPS, double avgKPS)> kpsTask = Task.Run(() => CalculateKPSMetrics(beatmap));
+                Task<(double xxySR, double krrLV, double ylsLV)>     srTask  = Task.Run(() => PerformAnalysis(beatmap));
 
-                // 异步并行计算
-                Task<(double xxySR, double krrLV, double ylsLV)> srTask = Task.Run(() => PerformAnalysis(maniaBeatmap));
-                Task<(int notesCount, double maxKPS, double avgKPS)> kpsTask = Task.Run(() => CalculateKPSMetrics(maniaBeatmap));
-                // 异步等待并行任务完成
-                await Task.WhenAll(srTask, kpsTask);
+                // 先等待KPS，保证KPS一定有
+                (int notesCount, double maxKPS, double avgKPS) = await kpsTask;
 
-                (double xxySR, double krrLV, double ylsLV) = srTask.Result;
-                (int notesCount, double maxKPS, double avgKPS) = kpsTask.Result;
-
-                // 填充Mania特定分析结果
-                result.XXY_SR = xxySR;
-                result.KRR_LV = krrLV;
-                result.YLs_LV = ylsLV;
-                result.LNPercent = maniaBeatmap.GetLNPercent();
-
-                // Performance metrics
                 result.NotesCount = notesCount;
-                result.MaxKPS = maxKPS;
-                result.AvgKPS = avgKPS;
+                result.MaxKPS     = maxKPS;
+                result.AvgKPS     = avgKPS;
+                result.LNPercent  = beatmap.GetLNPercent();
 
-                // Status
-                result.Status = "√";
+                // SR分析用try包裹，失败不影响KPS
+                try
+                {
+                    (double xxySR, double krrLV, double ylsLV) = await srTask;
+                    result.XXY_SR                              = xxySR;
+                    result.KRR_LV                              = krrLV;
+                    result.YLs_LV                              = ylsLV;
+                    result.Status                              = "√";
+                }
+                catch (Exception e)
+                {
+                    Logger.WriteLine(LogLevel.Error, "[OsuAnalyzer] SR Analysis failed for {0}: {1}", filePath, e.Message);
+                    result.Status = "no-SR";
+                }
 
                 return result;
             }
@@ -139,7 +139,7 @@ namespace krrTools.Beatmaps
                 {
                     FilePath = filePath,
                     FileName = Path.GetFileName(filePath),
-                    Status = $"Fail"
+                    Status   = $"Fail"
                 };
             }
         }
@@ -150,13 +150,10 @@ namespace krrTools.Beatmaps
             var calculator = new SRCalculator();
 
             int keys = (int)beatmap.DifficultySection.CircleSize;
-            float od = beatmap.DifficultySection.OverallDifficulty;
-            List<Note> notes = calculator.getNotes(beatmap);
 
-            // Handle beatmaps with no hit objects
-            if (notes.Count == 0) return (0, 0, 0);
+            Task<(double sr, Dictionary<string, long> times)> s = calculator.CalculateSRAsync(beatmap);
 
-            double xxySR = calculator.Calculate(notes, keys, od, out _);
+            double xxySR = s.Result.sr;
             double krrLV = CalculateKrrLevel(keys, xxySR);
             double ylsLV = CalculateYlsLevel(xxySR);
 
@@ -178,10 +175,10 @@ namespace krrTools.Beatmaps
                 return (0, 0, 0);
 
             // 使用滑动窗口计算最大KPS
-            const int windowMs = 1000; // 1秒窗口
-            double maxKPS = 0;
-            double totalKPS = 0;
-            int windowCount = 0;
+            const int windowMs    = 1000; // 1秒窗口
+            double    maxKPS      = 0;
+            double    totalKPS    = 0;
+            int       windowCount = 0;
 
             for (int i = 0; i < notes.Count; i++)
             {
@@ -196,7 +193,7 @@ namespace krrTools.Beatmaps
                 }
 
                 double kps = count;
-                maxKPS = Math.Max(maxKPS, kps);
+                maxKPS   =  Math.Max(maxKPS, kps);
                 totalKPS += kps;
                 windowCount++;
             }

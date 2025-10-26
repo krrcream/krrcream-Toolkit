@@ -9,28 +9,53 @@ using OsuParsers.Beatmaps.Objects;
 
 namespace krrTools.Beatmaps
 {
-    public struct Note(int k, int h, int t)
+    /// <summary>
+    /// xxySR的私有结构体，表示单个音符的信息
+    /// </summary>
+    /// <param name="k">列号</param>
+    /// <param name="h">开始时间</param>
+    /// <param name="t">结束事件，非面条为-1</param>
+    public struct SRsNote(int k, int h, int t)
     {
         public readonly int K = k;
         public readonly int H = h;
         public readonly int T = t;
     }
 
+    public class NoteComparer : IComparer<SRsNote>
+    {
+        public int Compare(SRsNote a, SRsNote b)
+        {
+            int cmp = a.H.CompareTo(b.H);
+            return cmp != 0 ? cmp : a.K.CompareTo(b.K);
+        }
+    }
+
+    public class NoteComparerByT : IComparer<SRsNote>
+    {
+        public int Compare(SRsNote a, SRsNote b)
+        {
+            return a.T.CompareTo(b.T);
+        }
+    }
+
     public class SRCalculator
     {
-        private readonly double lambda_n = 5;
-        private readonly double lambda_1 = 0.11;
-        private readonly double lambda_3 = 24;
-        private readonly double lambda_2 = 7.0;
-        private readonly double lambda_4 = 0.1;
-        private readonly double w_0 = 0.4;
-        private readonly double w_1 = 2.7;
-        private readonly double p_1 = 1.5;
-        private readonly double w_2 = 0.27;
-        private readonly double p_0 = 1.0;
-        private double x = -1;
+        // 单例模式：无状态类，线程安全，暂时不要用，高并行优化不好可能阻塞
+        public static SRCalculator Instance { get; } = new SRCalculator();
 
-        private readonly int granularity = 1; // 保持为1，确保精度不变
+        private const double lambda_n = 5;
+        private const double lambda_1 = 0.11;
+        private const double lambda_3 = 24;
+        private const double lambda_2 = 7.0;
+        private const double lambda_4 = 0.1;
+        private const double w_0      = 0.4;
+        private const double w_1      = 2.7;
+        private const double p_1      = 1.5;
+        private const double w_2      = 0.27;
+        private const double p_0      = 1.0;
+
+        private const int granularity = 1; // 只能保持为1，确保精度不变，不可修改
 
         private readonly double[][] crossMatrix =
         [
@@ -46,97 +71,101 @@ namespace krrTools.Beatmaps
             [0.275, 0.45, 0.35, 0.25, 0.275, 0.275, 0.25, 0.35, 0.45, 0.275],
             [0.625, 0.55, 0.45, 0.35, 0.25, 0.05, 0.25, 0.35, 0.45, 0.55, 0.625],
             // Inferred matrices for K=11 to 18 based on user-specified patterns
-            [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], // K=11 (odd, unsupported)
-            [0.8, 0.8, 0.8, 0.6, 0.4, 0.2, 0.05, 0.2, 0.4, 0.6, 0.8, 0.8, 0.8], // K=12 (even, sides 3 columns higher)
-            [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], // K=13 (odd, unsupported)
-            [0.4, 0.4, 0.2, 0.2, 0.3, 0.3, 0.1, 0.1, 0.3, 0.3, 0.2, 0.2, 0.4, 0.4, 0.4], // K=14 (wave: low-low-high-high-low-low-high-high)
-            [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], // K=15 (odd, unsupported)
-            [0.4, 0.4, 0.2, 0.2, 0.4, 0.4, 0.2, 0.1, 0.1, 0.2, 0.4, 0.4, 0.2, 0.2, 0.4, 0.4, 0.4], // K=16 (wave: low-low-high-high-low-low-high-high-low-low-high-high)
-            [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], // K=17 (odd, unsupported)
+            [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],                                           // K=11 (odd, unsupported)
+            [0.8, 0.8, 0.8, 0.6, 0.4, 0.2, 0.05, 0.2, 0.4, 0.6, 0.8, 0.8, 0.8],                             // K=12 (even, sides 3 columns higher)
+            [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],                                   // K=13 (odd, unsupported)
+            [0.4, 0.4, 0.2, 0.2, 0.3, 0.3, 0.1, 0.1, 0.3, 0.3, 0.2, 0.2, 0.4, 0.4, 0.4],                    // K=14 (wave: low-low-high-high-low-low-high-high)
+            [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],                           // K=15 (odd, unsupported)
+            [0.4, 0.4, 0.2, 0.2, 0.4, 0.4, 0.2, 0.1, 0.1, 0.2, 0.4, 0.4, 0.2, 0.2, 0.4, 0.4, 0.4],          // K=16 (wave: low-low-high-high-low-low-high-high-low-low-high-high)
+            [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],                   // K=17 (odd, unsupported)
             [0.4, 0.4, 0.2, 0.4, 0.2, 0.4, 0.2, 0.3, 0.1, 0.1, 0.3, 0.2, 0.4, 0.2, 0.4, 0.2, 0.4, 0.4, 0.4] // K=18 (wave: low-low-high-low-high-low-high-low-low-high-low-high-low-high)
         ];
 
-        private int T;
-        private int K;
-        private Note[] noteSeq = [];
-        private Note[][] noteSeqByColumn = [];
-        private Note[] LNSeq = [];
-        private Note[] tailSeq = [];
-
-        // TODO: 超长计算核，待优化
-        public double Calculate(List<Note> noteSequence, int keyCount, double od, out Dictionary<string, long> times)
+        // 同步计算SR，兼容旧接口
+        public double CalculateSR(Beatmap beatmap, out Dictionary<string, long> times)
         {
-            times = new Dictionary<string, long>();
-            var totalStopwatch = Stopwatch.StartNew(); // 总时间计时开始
+            Task<(double sr, Dictionary<string, long> times)> task = CalculateSRAsync(beatmap);
+            (double sr, Dictionary<string, long> t) = task.Result; // 同步等待（用于兼容旧接口）
+            times                                   = t;
+            return sr;
+        }
 
-            K = keyCount;
+        // 极致性能优化：异步SR计算核心，已并行化所有section
+        // 返回 (sr, times) 元组，times记录各部分耗时
+        // 异步接口，推荐使用，可后台计算
+        public async Task<(double sr, Dictionary<string, long> times)> CalculateSRAsync(Beatmap beatmap)
+        {
+            double od    = beatmap.DifficultySection.OverallDifficulty;
+            int    cs    = (int)beatmap.DifficultySection.CircleSize;
+            var    times = new Dictionary<string, long>();
 
             // Check if key count is supported (max 18 keys, even numbers only for K>10)
-            if (K > 18 || K < 1 || (K > 10 && K % 2 == 1))
-            {
-                // Logger.WriteLine(LogLevel.Warning, $"[SRCalculator] Unsupported key count: {K} (supported: 1-10, 12,14,16,18)");
-                totalStopwatch.Stop();
-                return -1; // Return invalid SR
-            }
-
-            // 优化：避免多次LINQ排序，使用Array.Sort
-            noteSeq = noteSequence.ToArray();
-
-            // Handle empty note sequence
-            if (noteSeq.Length == 0)
-            {
-                totalStopwatch.Stop();
-                return 0;
-            }
-
-            Array.Sort(noteSeq, (a, b) =>
-            {
-                int cmp = a.H.CompareTo(b.H);
-                return cmp != 0 ? cmp : a.K.CompareTo(b.K);
-            });
-
-            x = 0.3 * Math.Pow((64.5 - Math.Ceiling(od * 3)) / 500, 0.5);
-
-            noteSeqByColumn = noteSeq.GroupBy(n => n.K).OrderBy(g => g.Key).Select(g => g.ToArray()).ToArray();
-
-            // 优化：预计算LN序列长度，避免Where().ToArray()
-            int lnCount = 0;
-
-            foreach (Note note in noteSeq)
-            {
-                if (note.T >= 0)
-                    lnCount++;
-            }
-
-            LNSeq = new Note[lnCount];
-            int lnIndex = 0;
-
-            foreach (Note note in noteSeq)
-            {
-                if (note.T >= 0)
-                    LNSeq[lnIndex++] = note;
-            }
-
-            // 优化：直接排序LNSeq而不是创建新数组
-            Array.Sort(LNSeq, (a, b) => a.T.CompareTo(b.T));
-            tailSeq = LNSeq;
-
-            var LNDict = new Dictionary<int, List<Note>>();
-
-            foreach (Note note in LNSeq)
-            {
-                if (!LNDict.ContainsKey(note.K))
-                    LNDict[note.K] = new List<Note>();
-                LNDict[note.K].Add(note);
-            }
-
-            // var LNSeqByColumn = LNDict.Values.OrderBy(list => list[0].K).ToList(); // 未使用，移除
-
-            // Calculate T
-            T = Math.Max(noteSeq.Max(n => n.H), noteSeq.Max(n => n.T)) + 1;
+            // note数太低的没必要算
+            if (cs > 18 || cs < 1 || (cs > 10 && cs % 2 == 1) || beatmap.HitObjects.Count < 10) return (-1, times); // Return invalid SR
 
             try
             {
+                var totalStopwatch = Stopwatch.StartNew(); // 总时间计时开始
+                var noteSequence   = new List<SRsNote>();
+
+                foreach (HitObject? hitObject in beatmap.HitObjects)
+                {
+                    int col  = (int)Math.Floor(hitObject.Position.X * cs / 512.0);
+                    int time = hitObject.StartTime;
+                    int tail = hitObject.EndTime > hitObject.StartTime ? hitObject.EndTime : -1;
+                    noteSequence.Add(new SRsNote(col, time, tail));
+                }
+
+                // 优化：避免多次LINQ排序，使用Array.Sort，并使用Span优化
+                SRsNote[] noteSeq = noteSequence.ToArray();
+
+                // Handle empty note sequence
+                if (noteSeq.Length == 0)
+                {
+                    totalStopwatch.Stop();
+                    return (0, times);
+                }
+
+                Array.Sort(noteSeq, new NoteComparer());
+
+                double x = 0.3 * Math.Sqrt((64.5 - Math.Ceiling(od * 3)) / 500);
+
+                SRsNote[][] noteSeqByColumn = noteSeq.GroupBy(n => n.K).OrderBy(g => g.Key).Select(g => g.ToArray()).ToArray();
+
+                // 优化：预计算LN序列长度，避免Where().ToArray()
+                int lnCount = 0;
+
+                foreach (SRsNote note in noteSeq)
+                {
+                    if (note.T >= 0)
+                        lnCount++;
+                }
+
+                var LNSeq   = new SRsNote[lnCount];
+                int lnIndex = 0;
+
+                foreach (SRsNote note in noteSeq)
+                {
+                    if (note.T >= 0)
+                        LNSeq[lnIndex++] = note;
+                }
+
+                // 优化：直接排序LNSeq而不是创建新数组
+                Array.Sort(LNSeq, new NoteComparerByT());
+                SRsNote[] tailSeq = LNSeq;
+
+                var LNDict = new Dictionary<int, List<SRsNote>>();
+
+                foreach (SRsNote note in LNSeq)
+                {
+                    if (!LNDict.ContainsKey(note.K))
+                        LNDict[note.K] = new List<SRsNote>();
+                    LNDict[note.K].Add(note);
+                }
+
+                // Calculate T
+                int T = Math.Max(noteSeq.Max(n => n.H), noteSeq.Max(n => n.T)) + 1;
+
                 var stopwatch = new Stopwatch();
 
                 // Start all sections in parallel
@@ -146,30 +175,54 @@ namespace krrTools.Beatmaps
                 // 优化：使用并行任务加速Section 23/24/25的计算
                 Task<(double[] jBar, double[][] deltaKsResult)> task23 = Task.Run(() =>
                 {
-                    var sectionStopwatch = Stopwatch.StartNew();
-                    (double[] jBar, double[][] deltaKsResult) = CalculateSection23();
-                    sectionStopwatch.Stop();
-                    return (jBar, deltaKsResult);
+                    try
+                    {
+                        var sectionStopwatch = Stopwatch.StartNew();
+                        (double[] jBar, double[][] deltaKsResult) = CalculateSection23(cs, noteSeqByColumn, T, x);
+                        sectionStopwatch.Stop();
+                        return (jBar, deltaKsResult);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.WriteLine(LogLevel.Error, $"[SRCalculator] Section23 Exception: {ex.Message}");
+                        throw;
+                    }
                 });
 
                 Task<double[]> task24 = Task.Run(() =>
                 {
-                    var sectionStopwatch = Stopwatch.StartNew();
-                    double[] XBar = CalculateSection24();
-                    sectionStopwatch.Stop();
-                    return XBar;
+                    try
+                    {
+                        var      sectionStopwatch = Stopwatch.StartNew();
+                        double[] XBar             = CalculateSection24(cs, T, noteSeqByColumn, x);
+                        sectionStopwatch.Stop();
+                        return XBar;
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.WriteLine(LogLevel.Error, $"[SRCalculator] Section24 Exception: {ex.Message}");
+                        throw;
+                    }
                 });
 
                 Task<double[]> task25 = Task.Run(() =>
                 {
-                    var sectionStopwatch = Stopwatch.StartNew();
-                    double[] PBar = CalculateSection25();
-                    sectionStopwatch.Stop();
-                    return PBar;
+                    try
+                    {
+                        var      sectionStopwatch = Stopwatch.StartNew();
+                        double[] PBar             = CalculateSection25(T, LNSeq, noteSeq, x);
+                        sectionStopwatch.Stop();
+                        return PBar;
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.WriteLine(LogLevel.Error, $"[SRCalculator] Section25 Exception: {ex.Message}");
+                        throw;
+                    }
                 });
 
                 // Wait for all tasks to complete
-                Task.WaitAll(task23, task24, task25);
+                await Task.WhenAll(task23, task24, task25).ConfigureAwait(false);
 
                 // Retrieve results
                 (double[] JBar, double[][] deltaKs) = task23.Result;
@@ -181,15 +234,37 @@ namespace krrTools.Beatmaps
                 times["Section232425"] = stopwatch.ElapsedMilliseconds;
 
                 stopwatch.Restart();
-                Task<(double[] ABar, int[] KS)> task26 = Task.Run(() => CalculateSection26(deltaKs));
-                Task<(double[] RBar, double[] Is)> task27 = Task.Run(CalculateSection27);
+                Task<(double[] ABar, int[] KS)> task26 = Task.Run(() =>
+                {
+                    try
+                    {
+                        return CalculateSection26(deltaKs, cs, T, noteSeq);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.WriteLine(LogLevel.Error, $"[SRCalculator] Section26 Exception: {ex.Message}");
+                        throw;
+                    }
+                });
+                Task<(double[] RBar, double[] Is)> task27 = Task.Run(() =>
+                {
+                    try
+                    {
+                        return CalculateSection27(LNSeq, tailSeq, T, noteSeqByColumn, x);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.WriteLine(LogLevel.Error, $"[SRCalculator] Section27 Exception: {ex.Message}");
+                        throw;
+                    }
+                });
 
                 // Wait for both tasks to complete
-                Task.WaitAll(task26, task27);
+                await Task.WhenAll(task26, task27).ConfigureAwait(false);
 
                 // Retrieve results
                 (double[] ABar, int[] KS) = task26.Result;
-                (double[] RBar, _) = task27.Result;
+                (double[] RBar, _)        = task27.Result;
 
                 stopwatch.Stop();
                 // Logger.WriteLine(LogLevel.Debug, $"[SRCalculator]Section 26/27 Time: {stopwatch.ElapsedMilliseconds}ms");
@@ -197,7 +272,7 @@ namespace krrTools.Beatmaps
 
                 // Final calculation
                 stopwatch.Restart();
-                double result = CalculateSection3(JBar, XBar, PBar, ABar, RBar, KS);
+                double result = CalculateSection3(JBar, XBar, PBar, ABar, RBar, KS, T, noteSeq, LNSeq, cs);
                 stopwatch.Stop();
                 // Logger.WriteLine(LogLevel.Debug, $"[SRCalculator]Section 3 Time: {stopwatch.ElapsedMilliseconds}ms");
                 times["Section3"] = stopwatch.ElapsedMilliseconds;
@@ -206,58 +281,64 @@ namespace krrTools.Beatmaps
                 // Logger.WriteLine(LogLevel.Debug, $"[SRCalculator]Total Calculate Time: {totalStopwatch.ElapsedMilliseconds}ms");
                 times["Total"] = totalStopwatch.ElapsedMilliseconds;
 
-                return result;
+                return (result, times);
             }
             catch (Exception ex)
             {
                 Logger.WriteLine(LogLevel.Error, $"[SRCalculator] Exception: {ex.Message}");
                 Logger.WriteLine(LogLevel.Error, $"[SRCalculator] StackTrace: {ex.StackTrace}");
                 times["Error"] = -1;
-                return -1;
+                return (-1, times);
             }
         }
 
-        private double[] Smooth(double[] lst) // 优化方法：使用前缀和加速滑动窗口计算
+        private double[] Smooth(double[] lst, int T)
         {
-            double[] prefixSum = new double[T + 1];
+            ReadOnlySpan<double> lstSpan    = lst;
+            double[]             prefixSum  = new double[T + 1];
+            Span<double>         prefixSpan = prefixSum;
+            prefixSpan[0] = 0;
             for (int i = 1; i <= T; i++)
-                prefixSum[i] = prefixSum[i - 1] + lst[i - 1];
+                prefixSpan[i] = prefixSpan[i - 1] + lstSpan[i - 1];
 
-            double[] lstBar = new double[T];
+            double[]     lstBar     = new double[T];
+            Span<double> lstBarSpan = lstBar;
 
             for (int s = 0; s < T; s += granularity)
             {
-                int left = Math.Max(0, s - 500);
-                int right = Math.Min(T, s + 500);
-                double sum = prefixSum[right] - prefixSum[left];
-                lstBar[s] = 0.001 * sum * granularity; // 匹配原滑动窗口逻辑
+                int    left  = Math.Max(0, s - 500);
+                int    right = Math.Min(T, s + 500);
+                double sum   = prefixSpan[right] - prefixSpan[left];
+                lstBarSpan[s] = 0.001 * sum; // 因为步长是1ms，不允许修改
             }
 
             return lstBar;
         }
 
-        private double[] Smooth2(double[] lst)
+        private double[] Smooth2(double[] lst, int T)
         {
-            double[] lstBar = new double[T];
-            double windowSum = 0.0;
-            int windowLen = Math.Min(500, T);
+            ReadOnlySpan<double> lstSpan    = lst;
+            double[]             lstBar     = new double[T];
+            Span<double>         lstBarSpan = lstBar;
+            double               windowSum  = 0.0;
+            int                  windowLen  = Math.Min(500, T);
 
             for (int i = 0; i < windowLen; i += granularity)
-                windowSum += lst[i];
+                windowSum += lstSpan[i];
 
             for (int s = 0; s < T; s += granularity)
             {
-                lstBar[s] = windowSum / windowLen * granularity;
+                lstBarSpan[s] = windowSum / windowLen * granularity;
 
                 if (s + 500 < T)
                 {
-                    windowSum += lst[s + 500];
+                    windowSum += lstSpan[s + 500];
                     windowLen += granularity;
                 }
 
                 if (s - 500 >= 0)
                 {
-                    windowSum -= lst[s - 500];
+                    windowSum -= lstSpan[s - 500];
                     windowLen -= granularity;
                 }
             }
@@ -265,49 +346,95 @@ namespace krrTools.Beatmaps
             return lstBar;
         }
 
-        private double JackNerfer(double delta)
+        private (double[] JBar, double[][] deltaKs) CalculateSection23(int K, SRsNote[][] noteSeqByColumn, int T, double x)
         {
-            return 1 - 7 * Math.Pow(10, -5) * Math.Pow(0.15 + Math.Abs(delta - 0.08), -4);
-        }
-
-        private (double[] JBar, double[][] deltaKs) CalculateSection23()
-        {
-            double[][] JKs = new double[K][];
+            double[][] JKs     = new double[K][];
             double[][] deltaKs = new double[K][];
 
-            // 并行化：每个k独立计算，优化性能
-            Parallel.For(0, K, k =>
+            if (K > 7)
             {
-                JKs[k] = new double[T];
-                deltaKs[k] = new double[T];
-                Array.Fill(deltaKs[k], 1e9);
-
-                // 只有当该列有音符时才处理
-                if (k < noteSeqByColumn.Length && noteSeqByColumn[k].Length > 1)
+                // 局部变量，避免lambda捕获大对象
+                SRsNote[][] localNoteSeqByColumn = noteSeqByColumn;
+                int         localT               = T;
+                double      localX               = x;
+                Parallel.For(0, K, k =>
                 {
-                    for (int i = 0; i < noteSeqByColumn[k].Length - 1; i++)
+                    JKs[k]     = new double[localT];
+                    deltaKs[k] = new double[localT];
+                    Array.Fill(deltaKs[k], 1e9);
+
+                    // 预计算复杂表达式，减少重复计算
+                    double xPow025  = Math.Sqrt(Math.Sqrt(localX));
+                    double lambda1X = lambda_1 * xPow025; // 只有当该列有音符时才处理
+
+                    if (k < localNoteSeqByColumn.Length && localNoteSeqByColumn[k].Length > 1)
                     {
-                        double delta = 0.001 * (noteSeqByColumn[k][i + 1].H - noteSeqByColumn[k][i].H);
-                        double val = Math.Pow(delta * (delta + lambda_1 * Math.Pow(x, 0.25)), -1) * JackNerfer(delta);
+                        for (int i = 0; i < localNoteSeqByColumn[k].Length - 1; i++)
+                        {
+                            double delta    = 0.001 * (localNoteSeqByColumn[k][i + 1].H - localNoteSeqByColumn[k][i].H);
+                            double absDelta = Math.Abs(delta - 0.08);
+                            double temp     = 0.15 + absDelta;
+                            double temp4    = temp * temp * temp * temp;
+                            double jack     = 1 - (7e-5 * (1 / temp4));
+                            double val      = 1 / (delta * (delta + lambda1X)) * jack;
 
-                        // Define start and end for filling the range in deltaKs and JKs
-                        int start = noteSeqByColumn[k][i].H;
-                        int end = noteSeqByColumn[k][i + 1].H;
-                        int length = end - start;
+                            // Define start and end for filling the range in deltaKs and JKs
+                            int start  = localNoteSeqByColumn[k][i].H;
+                            int end    = localNoteSeqByColumn[k][i + 1].H;
+                            int length = end - start;
 
-                        // Use Span to fill subarrays
-                        var deltaSpan = new Span<double>(deltaKs[k], start, length);
-                        deltaSpan.Fill(delta);
+                            // Use Span to fill subarrays
+                            var deltaSpan = new Span<double>(deltaKs[k], start, length);
+                            deltaSpan.Fill(delta);
 
-                        var JKsSpan = new Span<double>(JKs[k], start, length);
-                        JKsSpan.Fill(val);
+                            var JKsSpan = new Span<double>(JKs[k], start, length);
+                            JKsSpan.Fill(val);
+                        }
+                    }
+                });
+            }
+            else
+            {
+                for (int k = 0; k < K; k++)
+                {
+                    JKs[k]     = new double[T];
+                    deltaKs[k] = new double[T];
+                    Array.Fill(deltaKs[k], 1e9);
+
+                    // 预计算复杂表达式，减少重复计算
+                    double xPow025  = Math.Sqrt(Math.Sqrt(x));
+                    double lambda1X = lambda_1 * xPow025; // 只有当该列有音符时才处理
+
+                    if (k < noteSeqByColumn.Length && noteSeqByColumn[k].Length > 1)
+                    {
+                        for (int i = 0; i < noteSeqByColumn[k].Length - 1; i++)
+                        {
+                            double delta    = 0.001 * (noteSeqByColumn[k][i + 1].H - noteSeqByColumn[k][i].H);
+                            double absDelta = Math.Abs(delta - 0.08);
+                            double temp     = 0.15 + absDelta;
+                            double temp4    = temp * temp * temp * temp;
+                            double jack     = 1 - (7e-5 * (1 / temp4));
+                            double val      = 1 / (delta * (delta + lambda1X)) * jack;
+
+                            // Define start and end for filling the range in deltaKs and JKs
+                            int start  = noteSeqByColumn[k][i].H;
+                            int end    = noteSeqByColumn[k][i + 1].H;
+                            int length = end - start;
+
+                            // Use Span to fill subarrays
+                            var deltaSpan = new Span<double>(deltaKs[k], start, length);
+                            deltaSpan.Fill(delta);
+
+                            var JKsSpan = new Span<double>(JKs[k], start, length);
+                            JKsSpan.Fill(val);
+                        }
                     }
                 }
-            });
+            }
 
-            // Smooth the JKs array，优化：并行化Smooth调用
+            // Smooth the JKs array，让系统自动调度
             double[][] JBarKs = new double[K][];
-            Parallel.For(0, K, k => JBarKs[k] = Smooth(JKs[k]));
+            Parallel.For(0, K, k => JBarKs[k] = Smooth(JKs[k], T));
 
             // Calculate JBar
             double[] JBar = new double[T];
@@ -315,34 +442,33 @@ namespace krrTools.Beatmaps
             for (int s = 0; s < T; s += granularity)
             {
                 double weightedSum = 0;
-                double weightSum = 0;
+                double weightSum   = 0;
 
                 // Replace list allocation with direct accumulation
                 for (int i = 0; i < K; i++)
                 {
-                    double val = JBarKs[i][s];
+                    double val    = JBarKs[i][s];
                     double weight = 1.0 / deltaKs[i][s];
 
-                    weightSum += weight;
+                    weightSum   += weight;
                     weightedSum += Math.Pow(Math.Max(val, 0), lambda_n) * weight;
                 }
 
                 weightSum = Math.Max(1e-9, weightSum);
-                JBar[s] = Math.Pow(weightedSum / weightSum, 1.0 / lambda_n);
+                JBar[s]   = Math.Pow(weightedSum / weightSum, 1.0 / lambda_n);
             }
 
             return (JBar, deltaKs);
         }
 
-        private double[] CalculateSection24()
+        private double[] CalculateSection24(int K, int T, SRsNote[][] noteSeqByColumn, double x)
         {
             double[][] XKs = new double[K + 1][];
 
-            // 并行化：每个k独立计算，优化性能
             Parallel.For(0, K + 1, k =>
             {
                 XKs[k] = new double[T];
-                Note[] notesInPair;
+                SRsNote[] notesInPair;
 
                 if (k == 0)
                     notesInPair = noteSeqByColumn.Length > 0 ? noteSeqByColumn[0] : [];
@@ -350,19 +476,25 @@ namespace krrTools.Beatmaps
                     notesInPair = noteSeqByColumn.Length > 0 ? noteSeqByColumn[^1] : [];
                 else
                 {
-                    int leftCol = k - 1;
-                    int rightCol = k;
-                    Note[] leftNotes = leftCol < noteSeqByColumn.Length ? noteSeqByColumn[leftCol] : [];
-                    Note[] rightNotes = rightCol < noteSeqByColumn.Length ? noteSeqByColumn[rightCol] : [];
+                    int       leftCol    = k - 1;
+                    int       rightCol   = k;
+                    SRsNote[] leftNotes  = leftCol < noteSeqByColumn.Length ? noteSeqByColumn[leftCol] : [];
+                    SRsNote[] rightNotes = rightCol < noteSeqByColumn.Length ? noteSeqByColumn[rightCol] : [];
                     notesInPair = leftNotes.Concat(rightNotes).OrderBy(n => n.H).ToArray();
                 }
+
+                Span<double> XKsSpan = XKs[k];
 
                 for (int i = 1; i < notesInPair.Length; i++)
                 {
                     double delta = 0.001 * (notesInPair[i].H - notesInPair[i - 1].H);
-                    double val = 0.16 * Math.Pow(Math.Max(x, delta), -2);
+                    double maxXd = Math.Max(x, delta);
+                    double val   = 0.16 / (maxXd * maxXd);
 
-                    for (int s = notesInPair[i - 1].H; s < notesInPair[i].H; s++) XKs[k][s] = val;
+                    int start  = notesInPair[i - 1].H;
+                    int end    = notesInPair[i].H;
+                    int length = end - start;
+                    XKsSpan.Slice(start, length).Fill(val);
                 }
             });
 
@@ -374,36 +506,35 @@ namespace krrTools.Beatmaps
                 for (int k = 0; k <= K; k++) X[s] += XKs[k][s] * crossMatrix[K][k];
             }
 
-            return Smooth(X);
+            return Smooth(X, T);
         }
 
-        private double[] CalculateSection25()
+        private double[] CalculateSection25(int T, SRsNote[] LNSeq, SRsNote[] noteSeq, double x)
         {
-            double[] P = new double[T];
+            double[] P        = new double[T];
             double[] LNBodies = new double[T];
 
-            // 优化：使用分块并行化，避免lock瓶颈
-            int numThreads = Environment.ProcessorCount;
-            double[][] partialLNBodies = new double[numThreads][];
-            for (int i = 0; i < numThreads; i++)
-                partialLNBodies[i] = new double[T];
+            // 简化：使用系统默认的线程数，避免过度限制
+            int      numThreads      = Environment.ProcessorCount;
+            double[] partialLNBodies = new double[numThreads * T];
 
             Parallel.For(0, LNSeq.Length, i =>
             {
-                int threadId = i % numThreads;
-                Note note = LNSeq[i];
-                int t1 = Math.Min(note.H + 80, note.T);
-                for (int t = note.H; t < t1; t++)
-                    partialLNBodies[threadId][t] += 0.5;
-                for (int t = t1; t < note.T; t++)
-                    partialLNBodies[threadId][t] += 1;
+                int     threadId = i % numThreads;
+                int     offset   = threadId * T;
+                SRsNote sRsNote  = LNSeq[i];
+                int     t1       = Math.Min(sRsNote.H + 80, sRsNote.T);
+                for (int t = sRsNote.H; t < t1; t++)
+                    partialLNBodies[offset + t] += 0.5;
+                for (int t = t1; t < sRsNote.T; t++)
+                    partialLNBodies[offset + t] += 1;
             });
 
             // 合并结果
             for (int t = 0; t < T; t++)
             {
                 for (int i = 0; i < numThreads; i++)
-                    LNBodies[t] += partialLNBodies[i][t];
+                    LNBodies[t] += partialLNBodies[(i * T) + t];
             }
 
             // 优化：计算 LNBodies 前缀和，用于快速求和
@@ -414,27 +545,36 @@ namespace krrTools.Beatmaps
             double B(double delta)
             {
                 double val = 7.5 / delta;
+
                 if (val is > 160 and < 360)
-                    return 1 + 1.4 * Math.Pow(10, -7) * (val - 160) * Math.Pow(val - 360, 2);
+                {
+                    double diff  = val - 160;
+                    double diff2 = val - 360;
+                    return 1 + (1.4e-7 * diff * (diff2 * diff2));
+                }
+
                 return 1;
             }
+
+            // 预计算常量，减少重复计算
+            const double lambda2Scaled = lambda_2 * 0.001;
 
             for (int i = 0; i < noteSeq.Length - 1; i++)
             {
                 double delta = 0.001 * (noteSeq[i + 1].H - noteSeq[i].H);
 
-                if (delta < Math.Pow(10, -9))
-                    P[noteSeq[i].H] += 1000 * Math.Pow(0.02 * (4 / x - lambda_3), 1.0 / 4);
+                if (delta < 1e-9)
+                    P[noteSeq[i].H] += 1000 * Math.Sqrt(Math.Sqrt(0.02 * ((4 / x) - lambda_3)));
                 else
                 {
-                    int h_l = noteSeq[i].H;
-                    int h_r = noteSeq[i + 1].H;
-                    double v = 1 + lambda_2 * 0.001 * (prefixSumLNBodies[h_r] - prefixSumLNBodies[h_l]);
+                    int    h_l = noteSeq[i].H;
+                    int    h_r = noteSeq[i + 1].H;
+                    double v   = 1 + (lambda2Scaled * (prefixSumLNBodies[h_r] - prefixSumLNBodies[h_l]));
 
                     if (delta < 2 * x / 3)
                     {
-                        double baseVal = Math.Pow(0.08 * Math.Pow(x, -1) *
-                                                  (1 - lambda_3 * Math.Pow(x, -1) * Math.Pow(delta - x / 2, 2)), 1.0 / 4) *
+                        double baseVal = Math.Sqrt(Math.Sqrt(0.08 / x *
+                                                             (1 - (lambda_3 / x * (delta - (x / 2)) * (delta - (x / 2)))))) *
                                          B(delta) * v / delta;
 
                         for (int s = h_l; s < h_r; s++)
@@ -442,8 +582,8 @@ namespace krrTools.Beatmaps
                     }
                     else
                     {
-                        double baseVal = Math.Pow(0.08 * Math.Pow(x, -1) *
-                                                  (1 - lambda_3 * Math.Pow(x, -1) * Math.Pow(x / 6, 2)), 1.0 / 4) *
+                        double baseVal = Math.Sqrt(Math.Sqrt(0.08 / x *
+                                                             (1 - (lambda_3 / x * (x / 6) * (x / 6))))) *
                                          B(delta) * v / delta;
 
                         for (int s = h_l; s < h_r; s++)
@@ -452,36 +592,36 @@ namespace krrTools.Beatmaps
                 }
             }
 
-            return Smooth(P);
+            return Smooth(P, T);
         }
 
-        private (double[] ABar, int[] KS) CalculateSection26(double[][] deltaKs)
+        private (double[] ABar, int[] KS) CalculateSection26(double[][] deltaKs, int K, int T, SRsNote[] noteSeq)
         {
-            bool[][] KUKs = new bool[K][];
+            bool[][] KUKs                       = new bool[K][];
             for (int k = 0; k < K; k++) KUKs[k] = new bool[T];
 
             // 并行化：每个note独立填充KUKs，优化性能
             Parallel.ForEach(noteSeq, note =>
             {
                 int startTime = Math.Max(0, note.H - 500);
-                int endTime = note.T < 0 ? Math.Min(note.H + 500, T - 1) : Math.Min(note.T + 500, T - 1);
+                int endTime   = note.T < 0 ? Math.Min(note.H + 500, T - 1) : Math.Min(note.T + 500, T - 1);
 
                 for (int s = startTime; s < endTime; s++) KUKs[note.K][s] = true;
             });
 
-            int[] KS = new int[T];
-            double[] A = new double[T];
+            int[]    KS = new int[T];
+            double[] A  = new double[T];
             Array.Fill(A, 1);
 
-            double[][] dks = new double[K - 1][];
+            double[][] dks                         = new double[K - 1][];
             for (int k = 0; k < K - 1; k++) dks[k] = new double[T];
 
             // 并行化：每个s独立计算，优化性能
             Parallel.For(0, T / granularity, sIndex =>
             {
-                int s = sIndex * granularity;
-                int[] cols = new int[K]; // 使用数组而不是List
-                int colCount = 0;
+                int   s        = sIndex * granularity;
+                int[] cols     = new int[K]; // 使用数组而不是List
+                int   colCount = 0;
 
                 for (int k = 0; k < K; k++)
                 {
@@ -501,17 +641,17 @@ namespace krrTools.Beatmaps
 
                     double maxDelta = Math.Max(deltaKs[col1][s], deltaKs[col2][s]);
                     if (dks[col1][s] < 0.02)
-                        A[s] *= Math.Min(0.75 + 0.5 * maxDelta, 1);
-                    else if (dks[col1][s] < 0.07) A[s] *= Math.Min(0.65 + 5 * dks[col1][s] + 0.5 * maxDelta, 1);
+                        A[s]                           *= Math.Min(0.75 + (0.5 * maxDelta), 1);
+                    else if (dks[col1][s] < 0.07) A[s] *= Math.Min(0.65 + (5 * dks[col1][s]) + (0.5 * maxDelta), 1);
                 }
             });
 
-            return (Smooth2(A), KS);
+            return (Smooth2(A, T), KS);
         }
 
-        private Note FindNextNoteInColumn(Note note, Note[] columnNotes)
+        private SRsNote FindNextNoteInColumn(SRsNote sRsNote, SRsNote[] columnNotes)
         {
-            int index = Array.BinarySearch(columnNotes, note, Comparer<Note>.Create((a, b) => a.H.CompareTo(b.H)));
+            int index = Array.BinarySearch(columnNotes, sRsNote, Comparer<SRsNote>.Create((a, b) => a.H.CompareTo(b.H)));
 
             // If the exact element is not found, BinarySearch returns a bitwise complement of the index.
             // Convert it to the nearest index of an element >= note.H
@@ -519,18 +659,18 @@ namespace krrTools.Beatmaps
 
             return index + 1 < columnNotes.Length
                        ? columnNotes[index + 1]
-                       : new Note(0, (int)Math.Pow(10, 9), (int)Math.Pow(10, 9));
+                       : new SRsNote(0, (int)1e9, (int)1e9);
         }
 
-        private (double[] RBar, double[] Is) CalculateSection27()
+        private (double[] RBar, double[] Is) CalculateSection27(SRsNote[] LNSeq, SRsNote[] tailSeq, int T, SRsNote[][] noteSeqByColumn, double x)
         {
             double[] I = new double[LNSeq.Length];
             Parallel.For(0, tailSeq.Length, i =>
             {
                 (int k, int h_i, int t_i) = (tailSeq[i].K, tailSeq[i].H, tailSeq[i].T);
-                Note[] columnNotes = k < noteSeqByColumn.Length ? noteSeqByColumn[k] : [];
-                Note nextNote = FindNextNoteInColumn(tailSeq[i], columnNotes);
-                (_, int h_j, _) = (nextNote.K, nextNote.H, nextNote.T);
+                SRsNote[] columnNotes = k < noteSeqByColumn.Length ? noteSeqByColumn[k] : [];
+                SRsNote   nextSRsNote = FindNextNoteInColumn(tailSeq[i], columnNotes);
+                (_, int h_j, _) = (nextSRsNote.K, nextSRsNote.H, nextSRsNote.T);
 
                 double I_h = 0.001 * Math.Abs(t_i - h_i - 80) / x;
                 double I_t = 0.001 * Math.Abs(h_j - t_i - 80) / x;
@@ -538,22 +678,22 @@ namespace krrTools.Beatmaps
             });
 
             double[] Is = new double[T];
-            double[] R = new double[T];
+            double[] R  = new double[T];
 
             Parallel.For(0, tailSeq.Length - 1, i =>
             {
                 double delta_r = 0.001 * (tailSeq[i + 1].T - tailSeq[i].T);
-                double isVal = 1 + I[i];
-                double rVal = 0.08 * Math.Pow(delta_r, -1.0 / 2) * Math.Pow(x, -1) * (1 + lambda_4 * (I[i] + I[i + 1]));
+                double isVal   = 1 + I[i];
+                double rVal    = 0.08 * Math.Pow(delta_r, -1.0 / 2) * Math.Pow(x, -1) * (1 + (lambda_4 * (I[i] + I[i + 1])));
 
                 for (int s = tailSeq[i].T; s < tailSeq[i + 1].T; s++)
                 {
                     Is[s] = isVal;
-                    R[s] = rVal;
+                    R[s]  = rVal;
                 }
             });
 
-            return (Smooth(R), Is);
+            return (Smooth(R, T), Is);
         }
 
         private void ForwardFill(double[] array)
@@ -569,11 +709,19 @@ namespace krrTools.Beatmaps
             }
         }
 
-        private double CalculateSection3(double[] JBar, double[] XBar, double[] PBar,
-                                         double[] ABar, double[] RBar, int[] KS)
+        private double CalculateSection3(double[]  JBar,
+                                         double[]  XBar,
+                                         double[]  PBar,
+                                         double[]  ABar,
+                                         double[]  RBar,
+                                         int[]     KS,
+                                         int       T,
+                                         SRsNote[] noteSeq,
+                                         SRsNote[] LNSeq,
+                                         int       K)
         {
-            double[] C = new double[T];
-            int start = 0, end = 0;
+            double[] C     = new double[T];
+            int      start = 0, end = 0;
 
             for (int t = 0; t < T; t++)
             {
@@ -599,42 +747,42 @@ namespace krrTools.Beatmaps
 
                 double term1 = Math.Pow(w_0 * Math.Pow(Math.Pow(ABar[t], 3.0 / KS[t]) * JBar[t], 1.5), 1);
                 double term2 = Math.Pow((1 - w_0) * Math.Pow(Math.Pow(ABar[t], 2.0 / 3) *
-                                                             (0.8 * PBar[t] + RBar[t]), 1.5), 1);
+                                                             ((0.8 * PBar[t]) + RBar[t]), 1.5), 1);
                 S[t] = Math.Pow(term1 + term2, 2.0 / 3);
 
                 double T_t = Math.Pow(ABar[t], 3.0 / KS[t]) * XBar[t] / (XBar[t] + S[t] + 1);
-                D[t] = w_1 * Math.Pow(S[t], 1.0 / 2) * Math.Pow(T_t, p_1) + S[t] * w_2;
+                D[t] = (w_1 * Math.Pow(S[t], 1.0 / 2) * Math.Pow(T_t, p_1)) + (S[t] * w_2);
             });
 
             ForwardFill(D);
             ForwardFill(C);
 
-            double weightedSum = 0.0;
-            double weightSum = C.Sum();
+            double weightedSum                      = 0.0;
+            double weightSum                        = C.Sum();
             for (int t = 0; t < T; t++) weightedSum += Math.Pow(D[t], lambda_n) * C[t];
 
             double SR = Math.Pow(weightedSum / weightSum, 1.0 / lambda_n);
 
-            SR = Math.Pow(SR, p_0) / Math.Pow(8, p_0) * 8;
-            SR *= (noteSeq.Length + 0.5 * LNSeq.Length) / (noteSeq.Length + 0.5 * LNSeq.Length + 60);
+            SR =  Math.Pow(SR, p_0) / Math.Pow(8, p_0) * 8;
+            SR *= (noteSeq.Length + (0.5 * LNSeq.Length)) / (noteSeq.Length + (0.5 * LNSeq.Length) + 60);
 
             if (SR <= 2)
                 SR = Math.Sqrt(SR * 2);
-            SR *= 0.96 + 0.01 * K;
+            SR *= 0.96 + (0.01 * K);
             return SR;
         }
 
-        public List<Note> getNotes(Beatmap beatmap)
+        public List<SRsNote> getNotes(Beatmap beatmap)
         {
-            var notes = new List<Note>();
-            double cs = beatmap.DifficultySection.CircleSize;
+            var    notes = new List<SRsNote>();
+            double cs    = beatmap.DifficultySection.CircleSize;
 
             foreach (HitObject? hitObject in beatmap.HitObjects)
             {
-                int col = (int)Math.Floor(hitObject.Position.X * cs / 512.0);
+                int col  = (int)Math.Floor(hitObject.Position.X * cs / 512.0);
                 int time = hitObject.StartTime;
                 int tail = hitObject.EndTime > hitObject.StartTime ? hitObject.EndTime : -1;
-                notes.Add(new Note(col, time, tail));
+                notes.Add(new SRsNote(col, time, tail));
             }
 
             return notes;
