@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace krrTools.Configuration
 {
+    // TODO: 未来改成自动注入get set
     public static class BaseOptionsManager
     {
         // 统一的配置文件名
@@ -106,7 +107,7 @@ namespace krrTools.Configuration
                 }
                 catch (Exception ex)
                 {
-                    Logger.WriteLine(LogLevel.Debug,
+                    Logger.WriteLine(LogLevel.Error,
                                      $"[BaseOptionsManager]Failed to load config file '{path}': {ex.Message}. Creating default config and overwriting file.");
                     _cachedConfig = new AppConfig();
                     SaveConfig(); // 覆盖损坏的文件

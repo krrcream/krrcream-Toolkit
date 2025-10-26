@@ -6,7 +6,7 @@ namespace krrTools
     public static class Logger
     {
         private static ILogger? logger;
-        private static bool consoleOutputEnabled = true;
+        private static bool     consoleOutputEnabled = true;
 
         public static void Initialize(ILogger? logger)
         {
@@ -21,9 +21,7 @@ namespace krrTools
             consoleOutputEnabled = enabled;
         }
 
-        /// <summary>
-        /// Logger.WriteLine(LogLevel.Information, "xxxx{0}, {1}", a, b);
-        /// </summary>
+        /// <code>Logger.WriteLine(LogLevel.Information, "xxxx{0}, {1}", a, b);</code>
         /// <param name="level">日志等级</param>
         /// <param name="message">信息</param>
         /// <param name="args">lamda变量字段</param>
@@ -33,27 +31,31 @@ namespace krrTools
 
             if (!consoleOutputEnabled)
                 return;
+#if !DEBUG
+            if (level == LogLevel.Debug)
+                return; // Debug 级别日志在非调试模式下不输出到控制台
+#endif
 
             ConsoleColor color = level switch
                                  {
-                                     LogLevel.Debug => ConsoleColor.Gray,
+                                     LogLevel.Debug       => ConsoleColor.Magenta,
                                      LogLevel.Information => ConsoleColor.Green,
-                                     LogLevel.Warning => ConsoleColor.Yellow,
-                                     LogLevel.Error => ConsoleColor.Red,
-                                     LogLevel.Critical => ConsoleColor.Magenta,
-                                     _ => ConsoleColor.Gray
+                                     LogLevel.Warning     => ConsoleColor.Yellow,
+                                     LogLevel.Error       => ConsoleColor.Red,
+                                     LogLevel.Critical    => ConsoleColor.Gray,
+                                     _                    => ConsoleColor.Gray
                                  };
 
             string formatted = args.Length > 0 ? string.Format(message, args) : message;
 
             string levelString = level switch
                                  {
-                                     LogLevel.Debug => "Debug",
+                                     LogLevel.Debug       => "Debug",
                                      LogLevel.Information => "Info",
-                                     LogLevel.Warning => "Warning",
-                                     LogLevel.Error => "Error",
-                                     LogLevel.Critical => "Critical",
-                                     _ => "unkn"
+                                     LogLevel.Warning     => "Warning",
+                                     LogLevel.Error       => "Error",
+                                     LogLevel.Critical    => "Critical",
+                                     _                    => "unknow"
                                  };
 
             Console.ForegroundColor = color;

@@ -16,12 +16,14 @@ namespace krrTools.Utilities
     /// </summary>
     public class OsuMonitorService
     {
-        private int _lastProcessId = -1;
         private IOsuMemoryReader? _reader;
-        private int _lastProcessCount = -1;
-        private bool _lastIsOsuRunning;
-        private bool _lastIsPlaying;
-        private string _lastBeatmapFile = string.Empty;
+
+        private string _lastBeatmapFile  = string.Empty;
+        private int    _lastProcessId    = -1;
+        private int    _lastProcessCount = -1;
+        private bool   _lastIsOsuRunning;
+        private bool   _lastIsPlaying;
+        private bool   _hasLoggedNotChanged;
 
         [Inject]
         private StateBarManager StateBarManager { get; set; } = null!;
@@ -46,12 +48,13 @@ namespace krrTools.Utilities
             }
 
             Process[] osuProcesses = Process.GetProcessesByName("osu!");
-            bool isOsuRunning = osuProcesses.Length > 0;
+            bool      isOsuRunning = osuProcesses.Length > 0;
 
             // 只有当状态变化时才输出日志
             if (_lastProcessCount != osuProcesses.Length || _lastIsOsuRunning != isOsuRunning)
             {
-                Logger.WriteLine(LogLevel.Information, "[OsuMonitorService] osu!进程数: {0}, 运行: {1}", osuProcesses.Length, isOsuRunning);
+                Logger.WriteLine(LogLevel.Information, "[OsuMonitorService] osu! process: {0}, running: {1}", osuProcesses.Length,
+                                 isOsuRunning);
                 _lastProcessCount = osuProcesses.Length;
                 _lastIsOsuRunning = isOsuRunning;
             }
@@ -64,7 +67,7 @@ namespace krrTools.Utilities
             if (currentIsPlaying != _lastIsPlaying)
             {
                 StateBarManager.IsPlaying.Value = currentIsPlaying;
-                _lastIsPlaying = currentIsPlaying;
+                _lastIsPlaying                  = currentIsPlaying;
             }
 
             if (!isOsuRunning)
@@ -106,7 +109,8 @@ namespace krrTools.Utilities
                             songsPath != BaseOptionsManager.GetGlobalSettings().SongsPath.Value)
                         {
                             BaseOptionsManager.GetGlobalSettings().SongsPath.Value = songsPath;
-                            Logger.WriteLine(LogLevel.Information, "[OsuMonitorService] 客户端: osu!, 进程ID: {0}, 加载Songs路径: {1}",
+                            Logger.WriteLine(LogLevel.Information,
+                                             "[OsuMonitorService] Client: osu!, Process ID: {0}, Loaded Songs Path: {1}",
                                              selectedProcess.Id, songsPath);
                         }
 
@@ -135,23 +139,30 @@ namespace krrTools.Utilities
             {
                 // if (_reader.ReadSongSelectGameMode() != 3) return string.Empty; // 这是监听F1选歌模式，不是选谱，所以使用的话体验差一点
 
-                string? beatmapFile = _reader.GetOsuFileName();
+                string? beatmapFile   = _reader.GetOsuFileName();
                 string? mapFolderName = _reader.GetMapFolderName();
 
-                string path = Path.Combine(BaseOptionsManager.GetGlobalSettings().SongsPath.Value, mapFolderName, beatmapFile);
+                string path = Path.Combine(BaseOptionsManager.GetGlobalSettings().SongsPath.Value, mapFolderName,
+                                           beatmapFile);
 
                 // 只有当beatmap文件变化时才输出日志
                 if (_lastBeatmapFile != path)
                 {
-                    Logger.WriteLine(LogLevel.Information, "[OsuMonitorService] 内存读取成功,用时{0}ms: beatmapFile={1}", stopwatch.ElapsedMilliseconds, path);
+                    Logger.WriteLine(LogLevel.Information, "[OsuMonitorService] ReadMemoryData , {0}ms: beatmapFile={1}",
+                                     stopwatch.ElapsedMilliseconds, path);
                     _lastBeatmapFile = path;
                 }
 
+                _hasLoggedNotChanged = false;
                 return path.Trim();
             }
             catch (Exception ex)
             {
-                Logger.WriteLine(LogLevel.Error, "[OsuMonitorService] 未能读取内存数据: {0}", ex.Message);
+                if (!_hasLoggedNotChanged)
+                    Logger.WriteLine(LogLevel.Critical, "[OsuMonitorService] Beatmap has not changed : {0}", ex.Message);
+
+                _hasLoggedNotChanged = true;
+
                 return string.Empty;
             }
         }
@@ -166,10 +177,11 @@ namespace krrTools.Utilities
             try
             {
                 // 假设playing模式是0，选歌是其他
-                int playingMods = _reader.GetPlayingMods();
-                double acc = _reader.ReadAcc();
-                // 移除频繁的日志输出，只在状态变化时输出
-                return playingMods == 0 || acc > 0;
+                int    playingMods = _reader.GetPlayingMods();
+                double acc         = _reader.ReadAcc();
+
+                Logger.WriteLine(LogLevel.Debug, "[OsuMonitorService] IsPlaying check: Mods={0}, Acc={1}", playingMods, acc);
+                return playingMods != -1 || acc > 0;
             }
             catch
             {

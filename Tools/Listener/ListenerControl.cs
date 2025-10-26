@@ -28,10 +28,8 @@ namespace krrTools.Tools.Listener
             // 自动注入标记了 [Inject] 的属性
             this.InjectServices();
 
-            Logger.WriteLine(LogLevel.Debug, "[ListenerControl] Constructor called");
-
             InitializeComponent();
-            ViewModel = new ListenerViewModel();
+            ViewModel   = new ListenerViewModel();
             DataContext = ViewModel;
 
             // 初始化拖拽区 ViewModel
@@ -41,29 +39,23 @@ namespace krrTools.Tools.Listener
             BrowseCommand = new RelayCommand(() => ViewModel.SetSongsPathWindow());
 
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
+
             Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
 
             ViewModel.WindowTitle = Strings.OSUListener.Localize();
 
             // 添加快捷键编辑事件
-            N2NCHotkeyTextBox.KeyDown += OnHotkeyKeyDown;
-            N2NCHotkeyTextBox.GotFocus += OnHotkeyTextBoxGotFocus;
+            N2NCHotkeyTextBox.KeyDown   += OnHotkeyKeyDown;
+            N2NCHotkeyTextBox.GotFocus  += OnHotkeyTextBoxGotFocus;
             N2NCHotkeyTextBox.LostFocus += OnHotkeyTextBoxLostFocus;
 
-            DPHotkeyTextBox.KeyDown += OnHotkeyKeyDown;
-            DPHotkeyTextBox.GotFocus += OnHotkeyTextBoxGotFocus;
+            DPHotkeyTextBox.KeyDown   += OnHotkeyKeyDown;
+            DPHotkeyTextBox.GotFocus  += OnHotkeyTextBoxGotFocus;
             DPHotkeyTextBox.LostFocus += OnHotkeyTextBoxLostFocus;
 
-            KRRLNHotkeyTextBox.KeyDown += OnHotkeyKeyDown;
-            KRRLNHotkeyTextBox.GotFocus += OnHotkeyTextBoxGotFocus;
+            KRRLNHotkeyTextBox.KeyDown   += OnHotkeyKeyDown;
+            KRRLNHotkeyTextBox.GotFocus  += OnHotkeyTextBoxGotFocus;
             KRRLNHotkeyTextBox.LostFocus += OnHotkeyTextBoxLostFocus;
-
-            Loaded += (_, _) => { Logger.WriteLine(LogLevel.Debug, "[ListenerControl] Loaded event fired"); };
-            Unloaded += Window_Closing;
-        }
-
-        private void Window_Closing(object? sender, RoutedEventArgs e)
-        {
         }
 
         private void OnLanguageChanged()
@@ -71,7 +63,7 @@ namespace krrTools.Tools.Listener
             Dispatcher.BeginInvoke(new Action(() => { ViewModel.WindowTitle = Strings.OSUListener; }));
         }
 
-        #region 快捷键处理
+#region 快捷键处理
 
         private string KeyToString(Key key)
         {
@@ -113,7 +105,7 @@ namespace krrTools.Tools.Listener
 
             // 获取按键组合
             ModifierKeys modifiers = Keyboard.Modifiers;
-            Key key = e.Key;
+            Key          key       = e.Key;
 
             // 忽略单独的修饰键和输入法处理键
             if (key == Key.LeftCtrl || key == Key.RightCtrl ||
@@ -151,7 +143,7 @@ namespace krrTools.Tools.Listener
                 textBox.Text = hotkey;
             }
 
-            Logger.WriteLine(LogLevel.Debug, $"[ListenerControl] Set hotkey to: {hotkey}");
+            Logger.WriteLine(LogLevel.Information, $"[ListenerControl] Set hotkey to: {hotkey}");
         }
 
         private void OnHotkeyTextBoxGotFocus(object sender, RoutedEventArgs e)
@@ -161,7 +153,8 @@ namespace krrTools.Tools.Listener
                 // 当TextBox获得焦点时，禁用输入法以避免ImeProcessed问题
                 InputMethod.SetIsInputMethodEnabled(textBox, false);
 
-                Logger.WriteLine(LogLevel.Debug, $"[ListenerControl] Hotkey TextBox got focus: {textBox.Name}, IME disabled");
+                Logger.WriteLine(LogLevel.Debug,
+                                 $"[ListenerControl] Hotkey TextBox got focus: {textBox.Name}, IME disabled");
             }
         }
 
@@ -172,11 +165,12 @@ namespace krrTools.Tools.Listener
                 // 当TextBox失去焦点时，重新启用输入法
                 InputMethod.SetIsInputMethodEnabled(textBox, true);
 
-                Logger.WriteLine(LogLevel.Debug, $"[ListenerControl] Hotkey TextBox lost focus: {textBox.Name}, IME re-enabled");
+                Logger.WriteLine(LogLevel.Debug,
+                                 $"[ListenerControl] Hotkey TextBox lost focus: {textBox.Name}, IME re-enabled");
             }
         }
 
-        #endregion
+#endregion
 
         private void TestN2NCButton_Click(object sender, RoutedEventArgs e)
         {

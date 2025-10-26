@@ -1,6 +1,10 @@
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
-using System.Text;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using krrTools.Configuration;
 using krrTools.Core;
@@ -14,7 +18,9 @@ namespace krrTools.Utilities
     public class FileDispatcher
     {
         private readonly BeatmapTransformationService _transformationService;
-        private readonly SemaphoreSlim _ioSemaphore = new SemaphoreSlim(4); // 限制并发I/O操作数量
+        private readonly SemaphoreSlim                _ioSemaphore = new SemaphoreSlim(4); // 限制并发I/O操作数量
+
+        private const int max_show = 5;
 
         // 进度更新委托
         public Action<int, int, string>? UpdateProgress { get; set; }
@@ -49,16 +55,15 @@ namespace krrTools.Utilities
         private void ConvertWithResults(string[] paths, ConverterEnum activeTabTag)
         {
             DateTime startTime = DateTime.Now;
-            Logger.WriteLine(LogLevel.Information, "[FileDispatcher] 开始转换 - 调用模块: {0}, 使用活动设置, 文件数量: {1}", activeTabTag, paths.Length);
+            Logger.WriteLine(LogLevel.Debug, "[FileDispatcher] 开始转换 - 调用模块: {0}, 使用活动设置, 文件数量: {1}", activeTabTag, paths.Length);
 
             var created = new ConcurrentBag<string>();
-            var failed = new ConcurrentBag<string>();
+            var failed  = new ConcurrentBag<string>();
 
             int processedCount = 0;
 
             // 并行处理每个文件，记录数量，限制并行度为4（I/O密集型）
-            Parallel.ForEach(paths,
-                             new ParallelOptions { MaxDegreeOfParallelism = 4 },
+            Parallel.ForEach(paths, new ParallelOptions { MaxDegreeOfParallelism = 4 },
                              p =>
                              {
                                  _ioSemaphore.Wait();
@@ -73,7 +78,7 @@ namespace krrTools.Utilities
                                  }
                                  catch (Exception ex)
                                  {
-                                     Logger.WriteLine(LogLevel.Error, "[FileDispatcher] 文件 {0} 转换失败: {1}", p, ex);
+                                     Logger.WriteLine(LogLevel.Error, "[FileDispatcher] File: {0} convert fail: {1}", p, ex);
                                      failed.Add(p);
                                  }
                                  finally
@@ -89,7 +94,7 @@ namespace krrTools.Utilities
             {
                 try
                 {
-                    Logger.WriteLine(LogLevel.Information, "[FileDispatcher] 转换器: {0}, 生成文件数量: {1}", activeTabTag, created.Count);
+                    Logger.WriteLine(LogLevel.Information, "[FileDispatcher] Tool: {0}, created: {1}", activeTabTag, created.Count);
                 }
                 catch (Exception ex)
                 {
@@ -98,7 +103,7 @@ namespace krrTools.Utilities
             }
 
             TimeSpan duration = DateTime.Now - startTime;
-            Logger.WriteLine(LogLevel.Information, "[FileDispatcher] 转换器: {0}, 成功: {1}, 失败: {2}, 用时: {3:F4}s", activeTabTag, created.Count, failed.Count, duration.TotalSeconds);
+            Logger.WriteLine(LogLevel.Information, "[FileDispatcher] Tool: {0}, success: {1}, fail: {2}, 用时: {3:F4}s", activeTabTag, created.Count, failed.Count, duration.TotalSeconds);
 
             ShowConversionResult(created.ToList(), failed.ToList());
         }
@@ -111,28 +116,28 @@ namespace krrTools.Utilities
             if (created.Count > 0)
             {
                 // 转换成功
-                title = "转换成功";
+                title = "The conversion was successful";
 
                 if (created.Count == 1)
-                    message = $"转换成功！\n\n生成的文件：{created[0]}";
+                    message = $"\n\nCreated File: {created[0]}";
                 else
                 {
-                    var sb = new StringBuilder();
-                    sb.AppendLine($"成功转换 {created.Count} 个文件：");
-                    int maxShow = 5;
-                    for (int i = 0; i < Math.Min(created.Count, maxShow); i++)
+                    var sb = new System.Text.StringBuilder();
+                    sb.AppendLine($"Successfully converted {created.Count} files:");
+
+                    for (int i = 0; i < Math.Min(created.Count, max_show); i++)
                         sb.AppendLine($"• {Path.GetFileName(created[i])}");
-                    if (created.Count > maxShow)
-                        sb.AppendLine($"... 等 {created.Count - maxShow} 个文件");
+                    if (created.Count > max_show)
+                        sb.AppendLine($"... and {created.Count - max_show} more files");
 
                     if (failed.Count > 0)
                     {
                         sb.AppendLine();
-                        sb.AppendLine($"失败 {failed.Count} 个文件：");
-                        for (int i = 0; i < Math.Min(failed.Count, maxShow); i++)
+                        sb.AppendLine($"Failed {failed.Count} files:");
+                        for (int i = 0; i < Math.Min(failed.Count, max_show); i++)
                             sb.AppendLine($"• {Path.GetFileName(failed[i])}");
-                        if (failed.Count > maxShow)
-                            sb.AppendLine($"... 等 {failed.Count - maxShow} 个文件");
+                        if (failed.Count > max_show)
+                            sb.AppendLine($"... and {failed.Count - max_show} more files");
                     }
 
                     message = sb.ToString();

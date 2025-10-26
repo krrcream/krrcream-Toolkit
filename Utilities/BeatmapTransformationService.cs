@@ -65,8 +65,8 @@ namespace krrTools.Utilities
                 Beatmap transformedBeatmap = TransformBeatmap(beatmap, converter);
 
                 // 获取工具检查是否有变化
-                IToolModule? tool = _moduleManager.GetToolByName(converter.ToString());
-                bool hasChanges = true; // 默认假设有变化
+                IToolModule? tool       = _moduleManager.GetToolByName(converter.ToString());
+                bool         hasChanges = true; // 默认假设有变化
 
                 if (tool != null)
                 {
@@ -77,14 +77,14 @@ namespace krrTools.Utilities
                 if (!hasChanges)
                 {
                     // 没有实际转换，跳过保存
-                    Logger.WriteLine(LogLevel.Information, $"谱面无需转换，已跳过保存: {inputPath}");
+                    Logger.WriteLine(LogLevel.Information, $"No change, skip the conversion: {inputPath}");
                     return null;
                 }
 
                 // 保存转换后谱面，如果文件存在则删除旧的再保存
-                string outputPath = transformedBeatmap.GetOutputOsuFileName();
-                string? outputDir = Path.GetDirectoryName(inputPath);
-                string fullOutputPath = Path.Combine(outputDir!, outputPath).Limit255PathLength();
+                string  outputPath     = transformedBeatmap.GetOutputOsuFileName();
+                string? outputDir      = Path.GetDirectoryName(inputPath);
+                string  fullOutputPath = Path.Combine(outputDir!, outputPath).Limit255PathLength();
 
                 // 检查输出路径是否已存在，记录冲突
                 if (File.Exists(fullOutputPath))

@@ -30,7 +30,7 @@ namespace krrTools
             {
                 // 设置控制台编码为UTF-8以支持中文输出
                 Console.OutputEncoding = new UTF8Encoding(false);
-                Console.InputEncoding = Encoding.UTF8;
+                Console.InputEncoding  = Encoding.UTF8;
 
                 var services = new ServiceCollection();
 
@@ -83,7 +83,7 @@ namespace krrTools
             }
             catch (Exception ex)
             {
-                Logger.WriteLine(LogLevel.Error, "应用启动失败: {0}", ex.Message);
+                Logger.WriteLine(LogLevel.Error, "App Start Fail: {0}", ex.Message);
                 Logger.WriteLine(LogLevel.Error, "StackTrace: {0}", ex.StackTrace ?? "N/A");
                 MessageBox.Show($"应用启动失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -99,7 +99,7 @@ namespace krrTools
             catch (Exception ex)
             {
                 // 如果Logger可用，记录错误
-                Logger.WriteLine(LogLevel.Error, "保存设置时发生错误: {0}", ex.Message);
+                Logger.WriteLine(LogLevel.Error, "OnExit: save config fail: {0}", ex.Message);
             }
 
             base.OnExit(e);

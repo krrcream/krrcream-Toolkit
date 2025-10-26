@@ -2,6 +2,7 @@ using System;
 using krrTools.Beatmaps;
 using krrTools.Configuration;
 using krrTools.Bindable;
+using Microsoft.Extensions.Logging;
 using OsuParsers.Beatmaps;
 
 namespace krrTools.Core
@@ -104,12 +105,12 @@ namespace krrTools.Core
                 if (services.GetService(typeof(ReactiveOptions<TOptions>)) is ReactiveOptions<TOptions> reactOptions)
                     return reactOptions.Options;
 
-                Console.WriteLine($"[{ModuleType}Module] 无法获取ReactiveOptions，使用默认设置");
+                Logger.WriteLine(LogLevel.Error, $"[{ModuleType}Module] ReactiveOptions is null, Use the default settings");
                 return _currentOptions;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[{ModuleType}Module] 获取最新设置失败: {ex.Message}，使用默认设置");
+                Logger.WriteLine(LogLevel.Error, $"[{ModuleType}Module] Getting the latest settings failed: {ex.Message}，Use the default settings");
                 return _currentOptions;
             }
         }
