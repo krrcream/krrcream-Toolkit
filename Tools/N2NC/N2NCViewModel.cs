@@ -68,6 +68,7 @@ namespace krrTools.Tools.N2NC
         private void OnOptionsPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (_isUpdatingOptions) return;
+
             _isUpdatingOptions = true;
 
             try

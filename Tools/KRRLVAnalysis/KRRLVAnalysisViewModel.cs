@@ -521,6 +521,7 @@ namespace krrTools.Tools.KRRLVAnalysis
             }
             catch (Exception ex)
             {
+                Logger.WriteLine(LogLevel.Error, "[KRRLVAnalysisViewModel] Analysis failed for {0}: {1}", filePath, ex.Message);
             }
         }
 

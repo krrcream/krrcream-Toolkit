@@ -125,6 +125,7 @@ namespace krrTools.Tools.KRRLNTransformer
                 (opt) =>
                 {
                     if (opt == null) return;
+
                     _viewModel.Options.CopyFrom(opt);
                 }
             );

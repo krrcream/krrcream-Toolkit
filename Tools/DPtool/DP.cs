@@ -64,7 +64,7 @@ namespace krrTools.Tools.DPtool
                 (matrix, timeAxisTemp) = beatmap.getExpandHoldBodyMTXandTimeAxis();
 
             Matrix processedMatrix = ProcessMatrix(matrix, timeAxisTemp, beatmap, options);
-            var Conv = new N2NC.N2NC();
+            // var Conv = new N2NC.N2NC(); // 可能导致多重刷新
             ApplyChangesToHitObjects(beatmap, processedMatrix, options, originalCircleSize);
             MetadetaChange(beatmap, options);
         }
@@ -78,7 +78,7 @@ namespace krrTools.Tools.DPtool
             int targetKeys = CS;
             bool LmirroFlag = options.LMirror.Value;
             bool RmirroFlag = options.RMirror.Value;
-            double convertTime = (60000 / beatmap.MainBPM * 2) + 10;
+            double convertTime = 60000 / beatmap.MainBPM * 2 + 10;
             // 1 mirror
             Matrix LMTX = matrix.Clone();
             Matrix RMTX = matrix.Clone();

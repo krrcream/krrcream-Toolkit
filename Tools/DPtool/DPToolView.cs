@@ -111,24 +111,26 @@ namespace krrTools.Tools.DPtool
             grid.Children.Add(separator);
             grid.Children.Add(rightPanel);
 
-            FrameworkElement presetInner = PresetPanelFactory.CreatePresetPanel(nameof(ConverterEnum.DP), () => _viewModel.Options,
-                                                                                (opt) =>
-                                                                                {
-                                                                                    if (opt == null) return;
-                                                                                    DPToolOptions target = _viewModel.Options;
+            FrameworkElement presetInner = PresetPanelFactory
+               .CreatePresetPanel(nameof(ConverterEnum.DP), () => _viewModel.Options,
+                                  (opt) =>
+                                  {
+                                      if (opt == null) return;
 
-                                                                                    target.LMirror.Value = opt.LMirror.Value;
-                                                                                    target.LDensity.Value = opt.LDensity.Value;
-                                                                                    target.LMaxKeys.Value = opt.LMaxKeys.Value;
-                                                                                    target.LMinKeys.Value = opt.LMinKeys.Value;
-                                                                                    target.LRemove.Value = opt.LRemove.Value;
+                                      DPToolOptions target = _viewModel.Options;
 
-                                                                                    target.RMirror.Value = opt.RMirror.Value;
-                                                                                    target.RDensity.Value = opt.RDensity.Value;
-                                                                                    target.RMaxKeys.Value = opt.RMaxKeys.Value;
-                                                                                    target.RMinKeys.Value = opt.RMinKeys.Value;
-                                                                                    target.RRemove.Value = opt.RRemove.Value;
-                                                                                });
+                                      target.LMirror.Value = opt.LMirror.Value;
+                                      target.LDensity.Value = opt.LDensity.Value;
+                                      target.LMaxKeys.Value = opt.LMaxKeys.Value;
+                                      target.LMinKeys.Value = opt.LMinKeys.Value;
+                                      target.LRemove.Value = opt.LRemove.Value;
+
+                                      target.RMirror.Value = opt.RMirror.Value;
+                                      target.RDensity.Value = opt.RDensity.Value;
+                                      target.RMaxKeys.Value = opt.RMaxKeys.Value;
+                                      target.RMinKeys.Value = opt.RMinKeys.Value;
+                                      target.RRemove.Value = opt.RRemove.Value;
+                                  });
 
             FrameworkElement presetsPanel = SharedUIComponents.CreateLabeledRow(Strings.PresetsLabel, presetInner, new Thickness(0, 0, 0, 10));
 

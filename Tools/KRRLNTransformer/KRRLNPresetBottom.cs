@@ -237,6 +237,7 @@ namespace krrTools.Tools.KRRLNTransformer
         {
             if (PresetTemplates.TryGetValue(kind, out (string Name, KRRLNTransformerOptions Options) entry))
                 return entry.Options;
+
             return CreatePreset(opts =>
             {
                 /* 默认设置 */

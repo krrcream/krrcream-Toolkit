@@ -28,7 +28,7 @@ namespace krrTools.Configuration
         public string? DynamicMinPath { get; init; }
         private CheckBox? checkBox { get; set; }
 
-        private DynamicLocalizedString? _labelTemplate;
+        private readonly DynamicLocalizedString? _labelTemplate;
         private double? _rememberedValue; // 记忆上一个有效值
 
         public Bindable<string> LabelText { get; set; } = new Bindable<string>(string.Empty);

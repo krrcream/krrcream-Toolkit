@@ -132,6 +132,7 @@ namespace krrTools.Beatmaps
                 }
                 catch (Exception e)
                 {
+                    Logger.WriteLine(LogLevel.Error, "[OsuAnalyzer] SR Analysis Fail: {0}", e.Message);
                     result.Status = "no-SR";
                 }
 
@@ -139,6 +140,7 @@ namespace krrTools.Beatmaps
             }
             catch (Exception ex)
             {
+                Logger.WriteLine(LogLevel.Error, "[OsuAnalyzer] Analyze Fail: {0}", ex.Message);
                 return new OsuAnalysisResult
                 {
                     FilePath = filePath,

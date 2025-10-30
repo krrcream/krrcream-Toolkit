@@ -95,7 +95,7 @@ namespace krrTools.Tools.KRRLNTransformer
             shortLNFlag = LimitTruePerRow(shortLNFlag, (int)options.ShortLimit.Value, RG);
 
             double LongLevel = options.LongLevel.Value; // 滑块是0到100，代码中用Level/100表示百分率
-            double ShortLevel = shortLNdrict.GetValue((int)options.ShortLevel.Value); // 滑块是整数，要对应到字典里 
+            double ShortLevel = shortLNdrict.GetValue((int)options.ShortLevel.Value); // 滑块是整数，要对应到字典里
             //正式生成longLN矩阵
             GenerateLongLNMatrix(matrix1, longLnWaitModify, longLNFlag,
                                  availableTimeMtx, beatLengthMtx, borderKey,
@@ -330,7 +330,7 @@ namespace krrTools.Tools.KRRLNTransformer
                 {
                     // 直接通过 Span 设置值，避免索引器开销
                     if (obj.EndTime > obj.StartTime)
-                        orgIsLNSpan[rowIndex.Value * cols + colIndex.Value] = true;
+                        orgIsLNSpan[(rowIndex.Value * cols) + colIndex.Value] = true;
                 }
             }
 
@@ -468,7 +468,7 @@ namespace krrTools.Tools.KRRLNTransformer
 
                 for (int i = 0; i < rows; i++)
                 {
-                    int index = i * cols + colOffset;
+                    int index = (i * cols) + colOffset;
 
                     if (matrixSpan[index] >= 0)
                     {
@@ -476,7 +476,7 @@ namespace krrTools.Tools.KRRLNTransformer
                         {
                             int nextRow = i;
                             int availableTime = timeAxis1[nextRow] - timeAxis1[currentRow];
-                            timeMtxSpan[currentRow * cols + colOffset] = availableTime;
+                            timeMtxSpan[(currentRow * cols) + colOffset] = availableTime;
                         }
 
                         currentRow = i;
@@ -486,7 +486,7 @@ namespace krrTools.Tools.KRRLNTransformer
                 if (currentRow >= 0)
                 {
                     int availableTime = lastTime - timeAxis1[currentRow];
-                    timeMtxSpan[currentRow * cols + colOffset] = availableTime;
+                    timeMtxSpan[(currentRow * cols) + colOffset] = availableTime;
                 }
             }
 
@@ -526,7 +526,7 @@ namespace krrTools.Tools.KRRLNTransformer
             if (truePositions.Count == 0)
                 return new BoolMatrix(MTX.Rows, MTX.Cols);
 
-            double ratio = 1.0 - P / 100.0;
+            double ratio = 1.0 - (P / 100.0);
             // 计算需要设置为false的数量
             int countToSetFalse = (int)Math.Round(truePositions.Count * ratio);
 
@@ -565,7 +565,7 @@ namespace krrTools.Tools.KRRLNTransformer
             mtxSpan.CopyTo(resultSpan);
 
             // 设置需要为false的位置
-            foreach ((int row, int col) in positionsToSetFalse) resultSpan[row * cols + col] = false;
+            foreach ((int row, int col) in positionsToSetFalse) resultSpan[(row * cols) + col] = false;
 
             return result;
         }
@@ -585,7 +585,7 @@ namespace krrTools.Tools.KRRLNTransformer
 
                 for (int j = 0; j < cols; j++)
                 {
-                    if (mtxSpan[i * cols + j])
+                    if (mtxSpan[(i * cols) + j])
                         truePositions.Add(j);
                 }
 
@@ -593,12 +593,12 @@ namespace krrTools.Tools.KRRLNTransformer
                 {
                     List<int> shuffledPositions = truePositions.OrderBy(x => random.Next()).ToList();
                     for (int k = 0; k < limit; k++)
-                        resultSpan[i * cols + shuffledPositions[k]] = true;
+                        resultSpan[(i * cols) + shuffledPositions[k]] = true;
                 }
                 else
                 {
                     for (int j = 0; j < cols; j++)
-                        resultSpan[i * cols + j] = mtxSpan[i * cols + j];
+                        resultSpan[(i * cols) + j] = mtxSpan[(i * cols) + j];
                 }
             }
 
@@ -614,8 +614,8 @@ namespace krrTools.Tools.KRRLNTransformer
             double p = P / 100.0;
 
             // 计算新的下界限和上界限
-            double d = M - (M - D) * p; // (D,M)距离M的p位置
-            double u = M + (U - M) * p; // (M,U)距离M的p位置
+            double d = M - ((M - D) * p); // (D,M)距离M的p位置
+            double u = M + ((U - M) * p); // (M,U)距离M的p位置
 
             // 确保新范围在原范围内
             d = Math.Max(d, D);
@@ -636,9 +636,9 @@ namespace krrTools.Tools.KRRLNTransformer
 
             double result;
             if (betaRandom <= 0.5)
-                result = d + mRelative * betaRandom / 0.5 * range;
+                result = d + (mRelative * betaRandom / 0.5 * range);
             else
-                result = d + (mRelative + (1 - mRelative) * (betaRandom - 0.5) / 0.5) * range;
+                result = d + ((mRelative + ((1 - mRelative) * (betaRandom - 0.5) / 0.5)) * range);
 
             return (int)result;
         }

@@ -24,7 +24,7 @@ namespace krrTools.Utilities
 
         private readonly List<MenuItem> _backdropSubItems = new List<MenuItem>();
         private readonly List<MenuItem> _themeSubItems = new List<MenuItem>();
-        private readonly StateBarManager _stateBarManager = null!;
+        private readonly StateBarManager _stateBarManager;
 
         private MenuItem _themeMenuItem = null!;
         private MenuItem _backdropMenuItem = null!;

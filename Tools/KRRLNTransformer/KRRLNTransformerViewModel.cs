@@ -8,12 +8,10 @@ namespace krrTools.Tools.KRRLNTransformer
 {
     public class KRRLNTransformerViewModel : ToolViewModelBase<KRRLNTransformerOptions>, IPreviewOptionsProvider
     {
-        private readonly IEventBus _eventBus;
-
         public KRRLNTransformerViewModel(KRRLNTransformerOptions options)
             : base(ConverterEnum.KRRLN, true, options)
         {
-            _eventBus = App.Services.GetRequiredService<IEventBus>();
+            App.Services.GetRequiredService<IEventBus>();
 
             // 监听 LengthThreshold 属性变化
             options.LengthThreshold.PropertyChanged += OnLengthThresholdChanged;
