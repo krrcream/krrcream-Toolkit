@@ -19,7 +19,7 @@ namespace krrTools.Tests.交互检查
         {
             // Setup dependency injection for tests
             var mockEventBus = new Mock<IEventBus>();
-            var services     = new ServiceCollection();
+            var services = new ServiceCollection();
             services.AddSingleton(mockEventBus.Object);
             services.AddSingleton<StateBarManager>();
             services.AddSingleton<OsuMonitorService>();
@@ -39,7 +39,7 @@ namespace krrTools.Tests.交互检查
         {
             // Setup dependency injection for this test
             var mockEventBus = new Mock<IEventBus>();
-            var services     = new ServiceCollection();
+            var services = new ServiceCollection();
             services.AddSingleton(mockEventBus.Object);
             services.AddSingleton<StateBarManager>();
             services.AddSingleton<OsuMonitorService>();

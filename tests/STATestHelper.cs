@@ -11,8 +11,8 @@ namespace krrTools.Tests
     /// </summary>
     public static class STATestHelper
     {
-        private static          Application? _application;
-        private static readonly object       _applicationLock = new object();
+        private static Application? _application;
+        private static readonly object _applicationLock = new object();
 
         /// <summary>
         /// 在STA线程中运行测试方法
@@ -78,7 +78,7 @@ namespace krrTools.Tests
         /// </summary>
         public static T RunInSTA<T>(Func<T> testFunc)
         {
-            T?         result    = default;
+            T? result = default;
             Exception? exception = null;
 
             var thread = new Thread(() =>

@@ -12,12 +12,12 @@ namespace krrTools.Tests.交互检查
     public class FileDropZoneSimpleTests
     {
         private readonly Mock<IModuleManager> _mockModuleManager;
-        private readonly Mock<IEventBus>      _mockEventBus;
+        private readonly Mock<IEventBus> _mockEventBus;
 
         public FileDropZoneSimpleTests()
         {
             _mockModuleManager = new Mock<IModuleManager>();
-            _mockEventBus      = new Mock<IEventBus>();
+            _mockEventBus = new Mock<IEventBus>();
         }
 
         // 在STA线程中创建实例，避免Mock问题
@@ -29,7 +29,7 @@ namespace krrTools.Tests.交互检查
 
             return new FileDropZoneViewModel(fileDispatcher)
             {
-                EventBus        = _mockEventBus.Object,
+                EventBus = _mockEventBus.Object,
                 GetActiveTabTag = getActiveTabTag
             };
         }
@@ -38,7 +38,7 @@ namespace krrTools.Tests.交互检查
         private FileDropZone CreateFileDropZone()
         {
             var fileDispatcher = new FileDispatcher(_mockModuleManager.Object);
-            var dropZone       = new FileDropZone(fileDispatcher, true); // 使用跳过注入的构造函数
+            var dropZone = new FileDropZone(fileDispatcher, true); // 使用跳过注入的构造函数
             // 手动设置ViewModel的EventBus，避免依赖注入
             dropZone.ViewModel.EventBus = _mockEventBus.Object;
             return dropZone;
@@ -104,7 +104,7 @@ namespace krrTools.Tests.交互检查
             {
                 // Arrange
                 FileDropZoneViewModel viewModel = CreateViewModel();
-                FileDropZone          dropZone  = CreateFileDropZone();
+                FileDropZone dropZone = CreateFileDropZone();
                 dropZone.SetViewModel(viewModel);
                 string initialText = viewModel.DisplayText;
 

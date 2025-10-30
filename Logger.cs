@@ -6,7 +6,7 @@ namespace krrTools
     public static class Logger
     {
         private static ILogger? logger;
-        private static bool     consoleOutputEnabled = true;
+        private static bool consoleOutputEnabled = true;
 
         public static void Initialize(ILogger? logger)
         {

@@ -42,31 +42,31 @@ namespace krrTools.Tests.转换功能检查
         {
             var cloned = new Beatmap();
 
-            cloned.GeneralSection  = input.GeneralSection;
+            cloned.GeneralSection = input.GeneralSection;
             cloned.MetadataSection = Activator.CreateInstance(input.MetadataSection.GetType()) as dynamic;
 
             if (cloned.MetadataSection != null)
             {
-                cloned.MetadataSection.Title         = input.MetadataSection.Title;
-                cloned.MetadataSection.TitleUnicode  = input.MetadataSection.TitleUnicode;
-                cloned.MetadataSection.Artist        = input.MetadataSection.Artist;
+                cloned.MetadataSection.Title = input.MetadataSection.Title;
+                cloned.MetadataSection.TitleUnicode = input.MetadataSection.TitleUnicode;
+                cloned.MetadataSection.Artist = input.MetadataSection.Artist;
                 cloned.MetadataSection.ArtistUnicode = input.MetadataSection.ArtistUnicode;
-                cloned.MetadataSection.Creator       = input.MetadataSection.Creator;
-                cloned.MetadataSection.Version       = input.MetadataSection.Version;
-                cloned.MetadataSection.Source        = input.MetadataSection.Source;
-                cloned.MetadataSection.Tags          = input.MetadataSection.Tags;
+                cloned.MetadataSection.Creator = input.MetadataSection.Creator;
+                cloned.MetadataSection.Version = input.MetadataSection.Version;
+                cloned.MetadataSection.Source = input.MetadataSection.Source;
+                cloned.MetadataSection.Tags = input.MetadataSection.Tags;
             }
 
             cloned.DifficultySection = Activator.CreateInstance(input.DifficultySection.GetType()) as dynamic;
 
             if (cloned.DifficultySection != null)
             {
-                cloned.DifficultySection.HPDrainRate       = input.DifficultySection.HPDrainRate;
-                cloned.DifficultySection.CircleSize        = input.DifficultySection.CircleSize;
+                cloned.DifficultySection.HPDrainRate = input.DifficultySection.HPDrainRate;
+                cloned.DifficultySection.CircleSize = input.DifficultySection.CircleSize;
                 cloned.DifficultySection.OverallDifficulty = input.DifficultySection.OverallDifficulty;
-                cloned.DifficultySection.ApproachRate      = input.DifficultySection.ApproachRate;
-                cloned.DifficultySection.SliderMultiplier  = input.DifficultySection.SliderMultiplier;
-                cloned.DifficultySection.SliderTickRate    = input.DifficultySection.SliderTickRate;
+                cloned.DifficultySection.ApproachRate = input.DifficultySection.ApproachRate;
+                cloned.DifficultySection.SliderMultiplier = input.DifficultySection.SliderMultiplier;
+                cloned.DifficultySection.SliderTickRate = input.DifficultySection.SliderTickRate;
             }
 
             cloned.TimingPoints = new List<TimingPoint>(input.TimingPoints);
@@ -79,9 +79,9 @@ namespace krrTools.Tests.转换功能检查
                     var clonedHitObj = new HitObject
                     {
                         StartTime = hitObj.StartTime,
-                        Position  = hitObj.Position, // Position是struct，应该没问题
-                        EndTime   = hitObj.EndTime,
-                        HitSound  = hitObj.HitSound,
+                        Position = hitObj.Position, // Position是struct，应该没问题
+                        EndTime = hitObj.EndTime,
+                        HitSound = hitObj.HitSound,
                         Extras = hitObj.Extras != null
                                      ? new Extras(
                                          hitObj.Extras.SampleSet,
@@ -91,7 +91,7 @@ namespace krrTools.Tests.转换功能检查
                                          hitObj.Extras.SampleFileName
                                      )
                                      : new Extras(),
-                        IsNewCombo  = hitObj.IsNewCombo,
+                        IsNewCombo = hitObj.IsNewCombo,
                         ComboOffset = hitObj.ComboOffset
                     };
                     return clonedHitObj;
@@ -108,8 +108,8 @@ namespace krrTools.Tests.转换功能检查
         /// </summary>
         private string GetBeatmapSignature(Beatmap beatmap)
         {
-            int    keyCount = (int)beatmap.DifficultySection.CircleSize;
-            string version  = beatmap.MetadataSection.Version ?? "";
+            int keyCount = (int)beatmap.DifficultySection.CircleSize;
+            string version = beatmap.MetadataSection.Version ?? "";
 
             // 包含note位置信息来验证随机种子的一致性
             string notePositions = string.Join(",", beatmap.HitObjects
@@ -126,14 +126,14 @@ namespace krrTools.Tests.转换功能检查
             int seed = 12345;
             var options = new N2NCOptions
             {
-                TargetKeys     = { Value = 7 },
-                MaxKeys        = { Value = 7 },
-                MinKeys        = { Value = 1 },
+                TargetKeys = { Value = 7 },
+                MaxKeys = { Value = 7 },
+                MinKeys = { Value = 1 },
                 TransformSpeed = { Value = 2.0 },
-                Seed           = seed
+                Seed = seed
             };
             var transformer = new N2NC();
-            var signatures  = new List<string>();
+            var signatures = new List<string>();
 
             // Act - 执行多次相同的转换
             for (int run = 0; run < 3; run++)
@@ -155,20 +155,20 @@ namespace krrTools.Tests.转换功能检查
         public void N2NC_DifferentSeeds_ShouldProduceDifferentResults()
         {
             // Arrange
-            int seed1    = 11111;
-            int seed2    = 22222; // 明显不同的种子
+            int seed1 = 11111;
+            int seed2 = 22222; // 明显不同的种子
             var options1 = new N2NCOptions();
             options1.TargetKeys.Value = 6;
             // options1.MaxKeys.Value = 6; // 移除这个设置，让密度减少正常工作
-            options1.MinKeys.Value        = 1;
+            options1.MinKeys.Value = 1;
             options1.TransformSpeed.Value = 1.0;
-            options1.Seed                 = seed1;
+            options1.Seed = seed1;
             var options2 = new N2NCOptions();
             options2.TargetKeys.Value = 6;
             // options2.MaxKeys.Value = 6; // 移除这个设置，让密度减少正常工作
-            options2.MinKeys.Value        = 1;
+            options2.MinKeys.Value = 1;
             options2.TransformSpeed.Value = 1.0;
-            options2.Seed                 = seed2;
+            options2.Seed = seed2;
             var transformer = new N2NC();
 
             // Act
@@ -184,10 +184,10 @@ namespace krrTools.Tests.转换功能检查
 
             // 检查是否有显著差异 - 按10秒时间段汇总比较音符位置变化
             _testOutputHelper.WriteLine("Time-segment based position difference analysis (10s intervals):");
-            int    significantDifferences = 0;
-            double totalPositionDiff      = 0;
-            int    totalCompared          = 0;
-            var    timeSegmentDiffs       = new Dictionary<int, (int count, double totalDiff, int significantCount)>();
+            int significantDifferences = 0;
+            double totalPositionDiff = 0;
+            int totalCompared = 0;
+            var timeSegmentDiffs = new Dictionary<int, (int count, double totalDiff, int significantCount)>();
 
             // 按时间排序两个谱面的音符
             List<HitObject> sortedNotes1 = beatmap1.HitObjects.OrderBy(h => h.StartTime).ToList();
@@ -206,17 +206,17 @@ namespace krrTools.Tests.转换功能检查
                     notes2ByTime.TryGetValue(time, out List<HitObject>? notesAtTime2))
                 {
                     // 在同一时间点，可能有多个音符，需要一一对应比较
-                    int    minCount           = Math.Min(notesAtTime1.Count, notesAtTime2.Count);
-                    double segmentDiff        = 0;
-                    int    segmentCount       = 0;
-                    int    segmentSignificant = 0;
+                    int minCount = Math.Min(notesAtTime1.Count, notesAtTime2.Count);
+                    double segmentDiff = 0;
+                    int segmentCount = 0;
+                    int segmentSignificant = 0;
 
                     for (int j = 0; j < minCount; j++)
                     {
-                        HitObject h1   = notesAtTime1[j];
-                        HitObject h2   = notesAtTime2[j];
-                        float     diff = Math.Abs(h1.Position.X - h2.Position.X);
-                        segmentDiff       += diff;
+                        HitObject h1 = notesAtTime1[j];
+                        HitObject h2 = notesAtTime2[j];
+                        float diff = Math.Abs(h1.Position.X - h2.Position.X);
+                        segmentDiff += diff;
                         totalPositionDiff += diff;
                         segmentCount++;
                         totalCompared++;
@@ -231,7 +231,7 @@ namespace krrTools.Tests.转换功能检查
                     // 按10秒时间段汇总差异
                     if (segmentCount > 0)
                     {
-                        int segmentIndex                                                                = time / 10000; // 10秒为一个段
+                        int segmentIndex = time / 10000; // 10秒为一个段
                         if (!timeSegmentDiffs.ContainsKey(segmentIndex)) timeSegmentDiffs[segmentIndex] = (0, 0, 0);
                         (int currentCount, double currentDiff, int currentSignificant) = timeSegmentDiffs[segmentIndex];
                         timeSegmentDiffs[segmentIndex] = (currentCount + segmentCount, currentDiff + segmentDiff,
@@ -246,13 +246,13 @@ namespace krrTools.Tests.转换功能检查
             foreach (KeyValuePair<int, (int count, double totalDiff, int significantCount)> kvp in timeSegmentDiffs.OrderBy(kvp => kvp.Key).Take(10))
             {
                 (int count, double totalDiff, int significantCount) = kvp.Value;
-                double avgDiff         = totalDiff / count;
+                double avgDiff = totalDiff / count;
                 double segmentDiffRate = (double)significantCount / count;
                 _testOutputHelper.WriteLine(
                     $"  {kvp.Key * 10:00}-{kvp.Key * 10 + 10:00}s: {count} notes, avg diff {avgDiff:F3}px, diff rate {segmentDiffRate:P1}");
             }
 
-            double averageDiff          = totalPositionDiff / totalCompared;
+            double averageDiff = totalPositionDiff / totalCompared;
             double differencePercentage = (double)significantDifferences / totalCompared;
 
             _testOutputHelper.WriteLine("Complete comparison summary:");
@@ -287,9 +287,9 @@ namespace krrTools.Tests.转换功能检查
         {
             // Arrange
             var options = new N2NCOptions();
-            options.TargetKeys.Value     = 8;
+            options.TargetKeys.Value = 8;
             options.TransformSpeed.Value = 3.0;
-            options.Seed                 = 99999;
+            options.Seed = 99999;
             var transformer = new N2NC();
 
             // Act - 对同一个谱面使用相同设置两次
@@ -312,19 +312,19 @@ namespace krrTools.Tests.转换功能检查
         public void N2NC_SameSeed_ShouldProduceIdenticalResults()
         {
             // Arrange
-            int seed     = 99999;
+            int seed = 99999;
             var options1 = new N2NCOptions();
-            options1.TargetKeys.Value     = 6;
-            options1.MaxKeys.Value        = 6;
-            options1.MinKeys.Value        = 1;
+            options1.TargetKeys.Value = 6;
+            options1.MaxKeys.Value = 6;
+            options1.MinKeys.Value = 1;
             options1.TransformSpeed.Value = 1.0;
-            options1.Seed                 = seed;
+            options1.Seed = seed;
             var options2 = new N2NCOptions();
-            options2.TargetKeys.Value     = 6;
-            options2.MaxKeys.Value        = 6;
-            options2.MinKeys.Value        = 1;
+            options2.TargetKeys.Value = 6;
+            options2.MaxKeys.Value = 6;
+            options2.MinKeys.Value = 1;
             options2.TransformSpeed.Value = 1.0;
-            options2.Seed                 = seed;
+            options2.Seed = seed;
             var transformer = new N2NC();
 
             // Act
@@ -355,9 +355,9 @@ namespace krrTools.Tests.转换功能检查
         {
             // Arrange
             var options = new N2NCOptions();
-            options.TargetKeys.Value     = 7;
+            options.TargetKeys.Value = 7;
             options.TransformSpeed.Value = transformSpeed;
-            options.Seed                 = seed;
+            options.Seed = seed;
             var transformer = new N2NC();
 
             // Act
@@ -378,11 +378,11 @@ namespace krrTools.Tests.转换功能检查
         {
             // Arrange - 目标键数与原键数相同
             var options = new N2NCOptions();
-            options.TargetKeys.Value     = 10;
+            options.TargetKeys.Value = 10;
             options.TransformSpeed.Value = 2.0;
-            options.Seed                 = 12345;
-            var     transformer = new N2NC();
-            Beatmap beatmap     = LoadTestBeatmap();
+            options.Seed = 12345;
+            var transformer = new N2NC();
+            Beatmap beatmap = LoadTestBeatmap();
             // var originalVersion = beatmap.MetadataSection.Version;
 
             // Act
@@ -399,11 +399,11 @@ namespace krrTools.Tests.转换功能检查
         {
             // Arrange
             var options = new N2NCOptions();
-            options.TargetKeys.Value     = 6;
-            options.MaxKeys.Value        = 6; // 设置为等于TargetKeys以禁用密度减少，确保确定性
-            options.MinKeys.Value        = 1;
+            options.TargetKeys.Value = 6;
+            options.MaxKeys.Value = 6; // 设置为等于TargetKeys以禁用密度减少，确保确定性
+            options.MinKeys.Value = 1;
             options.TransformSpeed.Value = 2.0;
-            options.Seed                 = 55555;
+            options.Seed = 55555;
             var transformer = new N2NC();
 
             // 第一次转换
@@ -412,10 +412,10 @@ namespace krrTools.Tests.转换功能检查
             string result1 = GetBeatmapSignature(beatmap1);
 
             // 修改设置然后改回来
-            options.TargetKeys.Value = 8;     // 临时修改
-            options.TargetKeys.Value = 6;     // 改回原值
-            options.Seed             = 77777; // 修改种子
-            options.Seed             = 55555; // 改回原种子
+            options.TargetKeys.Value = 8; // 临时修改
+            options.TargetKeys.Value = 6; // 改回原值
+            options.Seed = 77777; // 修改种子
+            options.Seed = 55555; // 改回原种子
 
             // Act - 第二次转换，设置已恢复
             Beatmap beatmap2 = LoadTestBeatmap();

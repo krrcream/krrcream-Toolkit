@@ -18,7 +18,7 @@ namespace krrTools.Tests.交互检查
         {
             // Setup dependency injection for tests
             var mockEventBus = new Mock<IEventBus>();
-            var services     = new ServiceCollection();
+            var services = new ServiceCollection();
             services.AddSingleton(mockEventBus.Object);
             services.AddSingleton<StateBarManager>();
             services.AddSingleton<OsuMonitorService>();
@@ -39,8 +39,8 @@ namespace krrTools.Tests.交互检查
         private void ResetGlobalSettingsToDefaults()
         {
             GlobalSettings globalSettings = BaseOptionsManager.GetGlobalSettings();
-            globalSettings.N2NCHotkey.Value  = "Ctrl+Shift+N";
-            globalSettings.DPHotkey.Value    = "Ctrl+Shift+D";
+            globalSettings.N2NCHotkey.Value = "Ctrl+Shift+N";
+            globalSettings.DPHotkey.Value = "Ctrl+Shift+D";
             globalSettings.KRRLNHotkey.Value = "Ctrl+Shift+K";
         }
 
@@ -86,7 +86,7 @@ namespace krrTools.Tests.交互检查
         public void SetN2NCHotkey_ShouldUpdateConfig()
         {
             // Arrange
-            var    viewModel = new ListenerViewModel();
+            var viewModel = new ListenerViewModel();
             string newHotkey = "Ctrl+Alt+N";
 
             // Act
@@ -101,7 +101,7 @@ namespace krrTools.Tests.交互检查
         public void SetDPHotkey_ShouldUpdateConfig()
         {
             // Arrange
-            var    viewModel = new ListenerViewModel();
+            var viewModel = new ListenerViewModel();
             string newHotkey = "Ctrl+Alt+D";
 
             // Act
@@ -116,7 +116,7 @@ namespace krrTools.Tests.交互检查
         public void SetKRRLNHotkey_ShouldUpdateConfig()
         {
             // Arrange
-            var    viewModel = new ListenerViewModel();
+            var viewModel = new ListenerViewModel();
             string newHotkey = "Ctrl+Alt+K";
 
             // Act

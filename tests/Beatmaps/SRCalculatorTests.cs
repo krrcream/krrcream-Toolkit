@@ -27,9 +27,9 @@ namespace krrTools.Tests.Beatmaps
         [MemoryDiagnoser]
         public class SRCalculatorBenchmarks
         {
-            private List<SRsNote>      _testNotes;
-            private Beatmap         _testBeatmap;
-            private SRCalculator    _newCalculator;
+            private List<SRsNote> _testNotes;
+            private Beatmap _testBeatmap;
+            private SRCalculator _newCalculator;
             private OldSRCalculator _oldCalculator;
 
             [GlobalSetup]
@@ -37,27 +37,27 @@ namespace krrTools.Tests.Beatmaps
             {
                 // 创建测试数据：一个中等复杂度的谱面
                 _testNotes = new List<SRsNote>();
-                var random     = new Random(42); // 固定种子确保一致性
+                var random = new Random(42); // 固定种子确保一致性
                 int totalNotes = 1000;
-                int maxTime    = 180000; // 3分钟
+                int maxTime = 180000; // 3分钟
 
                 for (int i = 0; i < totalNotes; i++)
                 {
-                    int time   = (int)(i * (maxTime / (double)totalNotes));
-                    int column = random.Next(0, 4);                                           // 4K谱面
-                    int tail   = random.Next(0, 10) < 2 ? time + random.Next(500, 2000) : -1; // 20% LN
+                    int time = (int)(i * (maxTime / (double)totalNotes));
+                    int column = random.Next(0, 4); // 4K谱面
+                    int tail = random.Next(0, 10) < 2 ? time + random.Next(500, 2000) : -1; // 20% LN
                     _testNotes.Add(new SRsNote(column, time, tail));
                 }
 
-                _testBeatmap                                     = new Beatmap();
-                _testBeatmap.DifficultySection.CircleSize        = 4;
+                _testBeatmap = new Beatmap();
+                _testBeatmap.DifficultySection.CircleSize = 4;
                 _testBeatmap.DifficultySection.OverallDifficulty = 8.0f;
                 _testBeatmap.HitObjects = _testNotes.Select(note =>
                 {
                     var hitObject = new HitObject();
-                    hitObject.Position  = new Vector2((float)((note.K + 0.5) * 512.0 / 4), 0);
+                    hitObject.Position = new Vector2((float)((note.K + 0.5) * 512.0 / 4), 0);
                     hitObject.StartTime = note.H;
-                    hitObject.EndTime   = note.T >= 0 ? note.T : hitObject.StartTime;
+                    hitObject.EndTime = note.T >= 0 ? note.T : hitObject.StartTime;
                     return hitObject;
                 }).ToList();
 
@@ -93,30 +93,30 @@ namespace krrTools.Tests.Beatmaps
                 @"E:\BASE CODE\GitHub\krrTools\tests\TestOsuFile\Jumpstream - Happy Hardcore Synthesizer (SK_la) [10k-1].osu"
             };
 
-            Beatmap[] beatmaps  = testFiles.Select(f => BeatmapDecoder.Decode(f)).ToArray();
-            int[]     keyCounts = beatmaps.Select(bm => (int)bm.DifficultySection.CircleSize).ToArray();
+            Beatmap[] beatmaps = testFiles.Select(f => BeatmapDecoder.Decode(f)).ToArray();
+            int[] keyCounts = beatmaps.Select(bm => (int)bm.DifficultySection.CircleSize).ToArray();
 
             _output.WriteLine($"=== SR计算详细性能分析 (4k-10k) === 列队{beatmaps.Length}，运行3次以获取平均时间...");
             _output.WriteLine("");
 
             // 计算每个版本的 SR 和时间
-            var newSRs      = new List<double>();
-            var oldSRs      = new List<double>();
+            var newSRs = new List<double>();
+            var oldSRs = new List<double>();
             var originalSRs = new List<double>();
 
-            var newTimesList      = new List<Dictionary<string, long>>();
-            var oldTimesList      = new List<Dictionary<string, long>>();
+            var newTimesList = new List<Dictionary<string, long>>();
+            var oldTimesList = new List<Dictionary<string, long>>();
             var originalTimesList = new List<Dictionary<string, long>>();
 
             foreach (Beatmap bm in beatmaps)
             {
-                List<SRsNote> notes    = SRCalculator.Instance.getNotes(bm);
-                int        keyCount = (int)bm.DifficultySection.CircleSize;
-                double     od       = bm.DifficultySection.OverallDifficulty;
+                List<SRsNote> notes = SRCalculator.Instance.getNotes(bm);
+                int keyCount = (int)bm.DifficultySection.CircleSize;
+                double od = bm.DifficultySection.OverallDifficulty;
 
                 // 新版本
-                double newSrSum    = 0;
-                var    newTimesSum = new Dictionary<string, long>();
+                double newSrSum = 0;
+                var newTimesSum = new Dictionary<string, long>();
 
                 for (int i = 0; i < 3; i++)
                 {
@@ -134,8 +134,8 @@ namespace krrTools.Tests.Beatmaps
                 newTimesList.Add(newTimesSum.ToDictionary(kv => kv.Key, kv => kv.Value / 3));
 
                 // 旧版本
-                double oldSrSum    = 0;
-                var    oldTimesSum = new Dictionary<string, long>();
+                double oldSrSum = 0;
+                var oldTimesSum = new Dictionary<string, long>();
 
                 for (int i = 0; i < 3; i++)
                 {
@@ -153,8 +153,8 @@ namespace krrTools.Tests.Beatmaps
                 oldTimesList.Add(oldTimesSum.ToDictionary(kv => kv.Key, kv => kv.Value / 3));
 
                 // 原始版本
-                double originalSrSum    = 0;
-                var    originalTimesSum = new Dictionary<string, long>();
+                double originalSrSum = 0;
+                var originalTimesSum = new Dictionary<string, long>();
 
                 for (int i = 0; i < 3; i++)
                 {
@@ -173,14 +173,14 @@ namespace krrTools.Tests.Beatmaps
             }
 
             // 计算平均时间 (使用10k谱面作为基准)
-            int                      benchmarkIndex   = 6; // 10k谱面索引
-            Dictionary<string, long> avgNewTimes      = newTimesList[benchmarkIndex];
-            Dictionary<string, long> avgOldTimes      = oldTimesList[benchmarkIndex];
+            int benchmarkIndex = 6; // 10k谱面索引
+            Dictionary<string, long> avgNewTimes = newTimesList[benchmarkIndex];
+            Dictionary<string, long> avgOldTimes = oldTimesList[benchmarkIndex];
             Dictionary<string, long> avgOriginalTimes = originalTimesList[benchmarkIndex];
 
             // 使用10k谱面的 SR 作为代表
-            double avgNewSR      = newSRs[benchmarkIndex];
-            double avgOldSR      = oldSRs[benchmarkIndex];
+            double avgNewSR = newSRs[benchmarkIndex];
+            double avgOldSR = oldSRs[benchmarkIndex];
             double avgOriginalSR = originalSRs[benchmarkIndex];
 
             // 计算一致性 (标准差)
@@ -190,14 +190,14 @@ namespace krrTools.Tests.Beatmaps
                 return Math.Sqrt(values.Sum(v => Math.Pow(v - avg, 2)) / values.Count);
             }
 
-            double newConsistency      = CalculateStdDev(newSRs);
-            double oldConsistency      = CalculateStdDev(oldSRs);
+            double newConsistency = CalculateStdDev(newSRs);
+            double oldConsistency = CalculateStdDev(oldSRs);
             double originalConsistency = CalculateStdDev(originalSRs);
 
             // 生成 ASCII 表格
-            string[] sections        = new[] { "Section232425", "Section2627", "Section3", "Total" };
+            string[] sections = new[] { "Section232425", "Section2627", "Section3", "Total" };
             string[] displaySections = new[] { "Section23/24/25", "Section26/27", "Section3", "Total" };
-            int[]    colWidths       = new[] { 8, 15, 11, 7, 5, 6, 10 }; // 版本, Section23/24/25, Section26/27, Section3, Total, SR, 一致性
+            int[] colWidths = new[] { 8, 15, 11, 7, 5, 6, 10 }; // 版本, Section23/24/25, Section26/27, Section3, Total, SR, 一致性
 
             // 表头
             string header =
@@ -211,7 +211,7 @@ namespace krrTools.Tests.Beatmaps
             // 旧版本行
             string[] oldTimes = sections.Select(s => avgOldTimes.GetValueOrDefault(s, 0).ToString("F1").PadLeft(colWidths[Array.IndexOf(sections, s) + 1]))
                                         .ToArray();
-            string oldSRStr          = avgOldSR.ToString($"F{SR_DECIMAL_PLACES}").PadLeft(colWidths[5]);
+            string oldSRStr = avgOldSR.ToString($"F{SR_DECIMAL_PLACES}").PadLeft(colWidths[5]);
             string oldConsistencyStr = oldConsistency.ToString("F4").PadLeft(colWidths[6]);
             _output.WriteLine(
                 $"| {"旧版本".PadRight(colWidths[0])} | {oldTimes[0]} | {oldTimes[1]} | {oldTimes[2]} | {oldTimes[3]} | {oldSRStr} | {oldConsistencyStr} |");
@@ -219,7 +219,7 @@ namespace krrTools.Tests.Beatmaps
             // 原始版本行
             string[] originalTimes = sections.Select(s => avgOriginalTimes.GetValueOrDefault(s, 0).ToString("F1").PadLeft(colWidths[Array.IndexOf(sections, s) + 1]))
                                              .ToArray();
-            string originalSRStr          = avgOriginalSR.ToString($"F{SR_DECIMAL_PLACES}").PadLeft(colWidths[5]);
+            string originalSRStr = avgOriginalSR.ToString($"F{SR_DECIMAL_PLACES}").PadLeft(colWidths[5]);
             string originalConsistencyStr = originalConsistency.ToString("F4").PadLeft(colWidths[6]);
             _output.WriteLine(
                 $"| {"原始版本".PadRight(colWidths[0])} | {originalTimes[0]} | {originalTimes[1]} | {originalTimes[2]} | {originalTimes[3]} | {originalSRStr} | {originalConsistencyStr} |");
@@ -227,7 +227,7 @@ namespace krrTools.Tests.Beatmaps
             // 新版本行
             string[] newTimes = sections.Select(s => avgNewTimes.GetValueOrDefault(s, 0).ToString("F1").PadLeft(colWidths[Array.IndexOf(sections, s) + 1]))
                                         .ToArray();
-            string newSRStr          = avgNewSR.ToString($"F{SR_DECIMAL_PLACES}").PadLeft(colWidths[5]);
+            string newSRStr = avgNewSR.ToString($"F{SR_DECIMAL_PLACES}").PadLeft(colWidths[5]);
             string newConsistencyStr = newConsistency.ToString("F4").PadLeft(colWidths[6]);
             _output.WriteLine(
                 $"| {"新版本".PadRight(colWidths[0])} | {newTimes[0]} | {newTimes[1]} | {newTimes[2]} | {newTimes[3]} | {newSRStr} | {newConsistencyStr} |");
@@ -236,10 +236,10 @@ namespace krrTools.Tests.Beatmaps
 
             // 新表：4-10k 详细数据
             _output.WriteLine("=== 4-10k 详细数据 ===");
-            string[] kLabels         = keyCounts.Select(k => $"{k}k").ToArray();
-            int[]    detailColWidths = new[] { 10 }.Concat(Enumerable.Repeat(8, kLabels.Length)).ToArray(); // 项目, 4k, 5k, ...
-            string   detailHeader    = $"| {"项目".PadRight(detailColWidths[0])} | {string.Join(" | ", kLabels.Select((k, i) => k.PadRight(detailColWidths[i + 1])))} |";
-            string   detailSeparator = $"+{string.Join("+", detailColWidths.Select(w => new string('-', w + 2)))}+";
+            string[] kLabels = keyCounts.Select(k => $"{k}k").ToArray();
+            int[] detailColWidths = new[] { 10 }.Concat(Enumerable.Repeat(8, kLabels.Length)).ToArray(); // 项目, 4k, 5k, ...
+            string detailHeader = $"| {"项目".PadRight(detailColWidths[0])} | {string.Join(" | ", kLabels.Select((k, i) => k.PadRight(detailColWidths[i + 1])))} |";
+            string detailSeparator = $"+{string.Join("+", detailColWidths.Select(w => new string('-', w + 2)))}+";
 
             _output.WriteLine(detailSeparator);
             _output.WriteLine(detailHeader);
@@ -277,8 +277,8 @@ namespace krrTools.Tests.Beatmaps
 
             // 验证SR结果一致性
             const double SR_TOLERANCE = 0.0001;
-            double       oldSrDiff    = Math.Abs(avgOldSR - avgOriginalSR);
-            double       newSrDiff    = Math.Abs(avgNewSR - avgOriginalSR);
+            double oldSrDiff = Math.Abs(avgOldSR - avgOriginalSR);
+            double newSrDiff = Math.Abs(avgNewSR - avgOriginalSR);
 
             Assert.True(oldSrDiff < SR_TOLERANCE,
                         $"旧版本SR结果不一致。差异: {oldSrDiff:F6}, 允许误差: {SR_TOLERANCE:F6}");

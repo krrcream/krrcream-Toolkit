@@ -14,12 +14,12 @@ namespace krrTools.Tests.交互检查
     public class FileDropZoneViewModelSimpleTests
     {
         private readonly Mock<IModuleManager> _mockModuleManager;
-        private readonly Mock<IEventBus>      _mockEventBus;
+        private readonly Mock<IEventBus> _mockEventBus;
 
         public FileDropZoneViewModelSimpleTests()
         {
             _mockModuleManager = new Mock<IModuleManager>();
-            _mockEventBus      = new Mock<IEventBus>();
+            _mockEventBus = new Mock<IEventBus>();
         }
 
         [Fact]
@@ -32,7 +32,7 @@ namespace krrTools.Tests.交互检查
 
             var viewModel = new FileDropZoneViewModel(fileDispatcher)
             {
-                EventBus        = _mockEventBus.Object,
+                EventBus = _mockEventBus.Object,
                 GetActiveTabTag = getActiveTabTag
             };
 
@@ -51,18 +51,18 @@ namespace krrTools.Tests.交互检查
 
             var viewModel = new FileDropZoneViewModel(fileDispatcher)
             {
-                EventBus        = _mockEventBus.Object,
+                EventBus = _mockEventBus.Object,
                 GetActiveTabTag = getActiveTabTag
             };
 
-            string[]  testFiles              = new[] { "test1.osu", "test2.osu" };
-            bool      filesDroppedEventFired = false;
-            string[]? droppedFiles           = null;
+            string[] testFiles = new[] { "test1.osu", "test2.osu" };
+            bool filesDroppedEventFired = false;
+            string[]? droppedFiles = null;
 
             viewModel.FilesDropped += (_, files) =>
             {
                 filesDroppedEventFired = true;
-                droppedFiles           = files;
+                droppedFiles = files;
             };
 
             // Act
@@ -84,7 +84,7 @@ namespace krrTools.Tests.交互检查
 
             var viewModel = new FileDropZoneViewModel(fileDispatcher)
             {
-                EventBus        = _mockEventBus.Object,
+                EventBus = _mockEventBus.Object,
                 GetActiveTabTag = getActiveTabTag
             };
 

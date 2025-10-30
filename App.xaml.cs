@@ -30,7 +30,7 @@ namespace krrTools
             {
                 // 设置控制台编码为UTF-8以支持中文输出
                 Console.OutputEncoding = new UTF8Encoding(false);
-                Console.InputEncoding  = Encoding.UTF8;
+                Console.InputEncoding = Encoding.UTF8;
 
                 var services = new ServiceCollection();
 

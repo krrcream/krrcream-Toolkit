@@ -32,8 +32,8 @@ namespace krrTools.Tests.Preview
 
     public class MockPreviewProcessor : IPreviewProcessor
     {
-        public  ConverterEnum? ModuleTool { get; set; }
-        private int            _callCount;
+        public ConverterEnum? ModuleTool { get; set; }
+        private int _callCount;
 
         public FrameworkElement BuildOriginalVisual(OsuParsers.Beatmaps.Beatmap input)
         {

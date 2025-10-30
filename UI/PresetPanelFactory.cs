@@ -22,7 +22,7 @@ namespace krrTools.UI
             var list = new StackPanel { Orientation = Orientation.Vertical };
 
             // Load current presets
-            void Refresh()
+            void refresh()
             {
                 list.Children.Clear();
 
@@ -44,7 +44,7 @@ namespace krrTools.UI
                     del.Click += (_, _) =>
                     {
                         BaseOptionsManager.DeletePreset(toolName, name);
-                        Refresh();
+                        refresh();
                     };
                     Grid.SetColumn(del, 1);
                     row.Children.Add(del);
@@ -52,26 +52,34 @@ namespace krrTools.UI
                 }
             }
 
-            Refresh();
+            refresh();
 
-            var controlRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
+            var controlRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0),
+                HorizontalAlignment = HorizontalAlignment.Left
+            };
 
             // Input panel for new preset creation (initially hidden)
-            var inputPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0), Visibility = Visibility.Collapsed };
+            var inputPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0),
+                Visibility = Visibility.Collapsed
+            };
             TextBox inputTextBox = SharedUIComponents.CreateStandardTextBox();
             inputTextBox.Width = 120; // Fixed width to match preset button width
             inputTextBox.KeyDown += (_, e) =>
             {
-                if (e.Key == System.Windows.Input.Key.Enter) SaveNewPreset();
+                if (e.Key == System.Windows.Input.Key.Enter) saveNewPreset();
             };
 
             Button confirmBtn = SharedUIComponents.CreateStandardButton("✓");
             confirmBtn.Width = 30;
-            confirmBtn.Click += (_, _) => SaveNewPreset();
+            confirmBtn.Click += (_, _) => saveNewPreset();
 
             Button cancelBtn = SharedUIComponents.CreateStandardButton("✕");
             cancelBtn.Width = 30;
-            cancelBtn.Click += (_, _) => ToggleInputMode(false);
+            cancelBtn.Click += (_, _) => toggleInputMode(false);
 
             inputPanel.Children.Add(inputTextBox);
             inputPanel.Children.Add(confirmBtn);
@@ -80,17 +88,17 @@ namespace krrTools.UI
             // Save as preset button - localized and uses shared button behavior
             Button saveBtn = SharedUIComponents.CreateStandardButton("Save as Preset|保存为预设");
             saveBtn.Width = 140; // 设置固定宽度以保持按钮大小一致
-            saveBtn.Click += (_, _) => ToggleInputMode(true);
+            saveBtn.Click += (_, _) => toggleInputMode(true);
 
             Button refreshBtn = SharedUIComponents.CreateStandardButton("Refresh|刷新");
             refreshBtn.Margin = new Thickness(8, 0, 0, 0);
             refreshBtn.Width = 90; // 设置固定宽度以保持按钮大小一致
-            refreshBtn.Click += (_, _) => Refresh();
+            refreshBtn.Click += (_, _) => refresh();
 
             controlRow.Children.Add(saveBtn);
             controlRow.Children.Add(refreshBtn);
 
-            void ToggleInputMode(bool showInput)
+            void toggleInputMode(bool showInput)
             {
                 if (showInput)
                 {
@@ -106,7 +114,7 @@ namespace krrTools.UI
                 }
             }
 
-            void SaveNewPreset()
+            void saveNewPreset()
             {
                 string name = inputTextBox.Text.Trim();
 
@@ -117,11 +125,11 @@ namespace krrTools.UI
                     if (current != null)
                     {
                         BaseOptionsManager.SavePreset(toolName, name, current);
-                        Refresh();
+                        refresh();
                     }
                 }
 
-                ToggleInputMode(false);
+                toggleInputMode(false);
             }
 
             outer.Children.Add(list);

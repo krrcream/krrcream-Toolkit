@@ -24,7 +24,7 @@ namespace krrTools.Tests.转换功能检查
         {
             // 设置测试用的依赖注入服务提供者
             var mockEventBus = new Mock<IEventBus>();
-            var services     = new ServiceCollection();
+            var services = new ServiceCollection();
             services.AddSingleton(mockEventBus.Object);
             _serviceProvider = services.BuildServiceProvider();
             Injector.SetTestServiceProvider(_serviceProvider);
@@ -41,15 +41,15 @@ namespace krrTools.Tests.转换功能检查
         public void N2NCOptions_PropertyChanged_ShouldFireEvents()
         {
             // Arrange
-            var options               = new N2NCOptions();
+            var options = new N2NCOptions();
             var propertyChangedEvents = new List<PropertyChangedEventArgs>();
 
             options.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
 
             // Act
-            options.TargetKeys.Value     = 8;
+            options.TargetKeys.Value = 8;
             options.TransformSpeed.Value = 3.0;
-            options.Seed                 = 66666;
+            options.Seed = 66666;
 
             // Assert
             Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(options.TargetKeys));
@@ -93,7 +93,7 @@ namespace krrTools.Tests.转换功能检查
         public void KRRLNTransformerOptions_NestedSettings_ShouldFireEvents()
         {
             // Arrange
-            var options               = new KRRLNTransformerOptions();
+            var options = new KRRLNTransformerOptions();
             var propertyChangedEvents = new List<PropertyChangedEventArgs>();
 
             // 监听主选项的事件
@@ -101,8 +101,8 @@ namespace krrTools.Tests.转换功能检查
 
             // Act
             options.ShortPercentage.Value = 75.0;
-            options.LongLevel.Value       = 8.0;
-            options.ShortRandom.Value     = 25.0;
+            options.LongLevel.Value = 8.0;
+            options.ShortRandom.Value = 25.0;
 
             // Assert
             Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(options.ShortPercentage));
@@ -119,15 +119,15 @@ namespace krrTools.Tests.转换功能检查
         public void DPToolOptions_BooleanSettings_ShouldFireEvents()
         {
             // Arrange
-            var options               = new DPToolOptions();
+            var options = new DPToolOptions();
             var propertyChangedEvents = new List<PropertyChangedEventArgs>();
 
             options.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
 
             // Act
             options.ModifyKeys.Value = 8;
-            options.LMirror.Value    = true;
-            options.LDensity.Value   = true; // 从默认false改为true才会触发事件
+            options.LMirror.Value = true;
+            options.LDensity.Value = true; // 从默认false改为true才会触发事件
 
             // Assert
             Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(options.ModifyKeys));
@@ -146,11 +146,11 @@ namespace krrTools.Tests.转换功能检查
             // Arrange
             var options = new N2NCOptions
             {
-                TargetKeys     = { Value = 7 },
+                TargetKeys = { Value = 7 },
                 TransformSpeed = { Value = 2.0 },
-                Seed           = 12345
+                Seed = 12345
             };
-            var viewModel             = new N2NCViewModel(options);
+            var viewModel = new N2NCViewModel(options);
             var propertyChangedEvents = new List<PropertyChangedEventArgs>();
 
             viewModel.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
@@ -160,7 +160,7 @@ namespace krrTools.Tests.转换功能检查
 
             // Assert
             Assert.Contains(propertyChangedEvents, e => e.PropertyName == nameof(viewModel.TargetKeys));
-            Assert.Equal(10, viewModel.TargetKeys);     // 设置应该已更新
+            Assert.Equal(10, viewModel.TargetKeys); // 设置应该已更新
             Assert.Equal(10, options.TargetKeys.Value); // 底层选项应该被更新为新值
         }
 
@@ -170,7 +170,7 @@ namespace krrTools.Tests.转换功能检查
             // Arrange
             var options = new N2NCOptions();
             options.TransformSpeed.Value = 2.0;
-            var viewModel             = new N2NCViewModel(options);
+            var viewModel = new N2NCViewModel(options);
             var propertyChangedEvents = new List<PropertyChangedEventArgs>();
 
             viewModel.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);
@@ -216,10 +216,10 @@ namespace krrTools.Tests.转换功能检查
             // Arrange
             var options1 = new N2NCOptions();
             options1.TargetKeys.Value = 7;
-            options1.Seed             = 12345;
+            options1.Seed = 12345;
             var options2 = new N2NCOptions();
             options2.TargetKeys.Value = 7;
-            options2.Seed             = 12345;
+            options2.Seed = 12345;
 
             var events1 = new List<PropertyChangedEventArgs>();
             var events2 = new List<PropertyChangedEventArgs>();
@@ -232,10 +232,10 @@ namespace krrTools.Tests.转换功能检查
 
             // Assert
             Assert.Equal(10, options1.TargetKeys.Value); // options1已更新
-            Assert.Equal(7, options2.TargetKeys.Value);  // options2保持不变
+            Assert.Equal(7, options2.TargetKeys.Value); // options2保持不变
 
             Assert.Single(events1); // options1触发了一个事件
-            Assert.Empty(events2);  // options2没有事件
+            Assert.Empty(events2); // options2没有事件
         }
 
         [Theory]
@@ -247,9 +247,9 @@ namespace krrTools.Tests.转换功能检查
             // Arrange & Act
             var options = new N2NCOptions
             {
-                TargetKeys     = { Value = targetKeys },
+                TargetKeys = { Value = targetKeys },
                 TransformSpeed = { Value = 2.0 },
-                Seed           = seed
+                Seed = seed
             };
 
             // Assert
@@ -265,7 +265,7 @@ namespace krrTools.Tests.转换功能检查
             {
                 // 在STA线程中设置服务提供者
                 var mockEventBus = new Mock<IEventBus>();
-                var services     = new ServiceCollection();
+                var services = new ServiceCollection();
                 services.AddSingleton(mockEventBus.Object);
                 ServiceProvider serviceProvider = services.BuildServiceProvider();
                 Injector.SetTestServiceProvider(serviceProvider);
@@ -273,8 +273,8 @@ namespace krrTools.Tests.转换功能检查
                 try
                 {
                     // Arrange
-                    var previewViewModel      = new PreviewViewModel();
-                    var mockProcessor         = new Mock<IPreviewProcessor>();
+                    var previewViewModel = new PreviewViewModel();
+                    var mockProcessor = new Mock<IPreviewProcessor>();
                     var propertyChangedEvents = new List<PropertyChangedEventArgs>();
 
                     previewViewModel.PropertyChanged += (_, e) => propertyChangedEvents.Add(e);

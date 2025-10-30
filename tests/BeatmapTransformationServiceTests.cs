@@ -15,15 +15,15 @@ namespace krrTools.Tests
 {
     public class BeatmapTransformationServiceTests
     {
-        private readonly ITestOutputHelper            _testOutputHelper;
-        private readonly Mock<IModuleManager>         _mockModuleManager;
+        private readonly ITestOutputHelper _testOutputHelper;
+        private readonly Mock<IModuleManager> _mockModuleManager;
         private readonly BeatmapTransformationService _service;
 
         public BeatmapTransformationServiceTests(ITestOutputHelper testOutputHelper)
         {
-            _testOutputHelper  = testOutputHelper;
+            _testOutputHelper = testOutputHelper;
             _mockModuleManager = new Mock<IModuleManager>();
-            _service           = new BeatmapTransformationService(_mockModuleManager.Object);
+            _service = new BeatmapTransformationService(_mockModuleManager.Object);
         }
 
         [Fact]
@@ -107,9 +107,9 @@ SliderTickRate:1
                 Beatmap transformedBeatmap = _service.TransformBeatmap(beatmap, ConverterEnum.N2NC);
 
                 // Calculate output path
-                string  outputPath     = transformedBeatmap.GetOutputOsuFileName();
-                string? outputDir      = Path.GetDirectoryName(inputFile);
-                string  fullOutputPath = Path.Combine(outputDir!, outputPath);
+                string outputPath = transformedBeatmap.GetOutputOsuFileName();
+                string? outputDir = Path.GetDirectoryName(inputFile);
+                string fullOutputPath = Path.Combine(outputDir!, outputPath);
 
                 // Apply truncation if necessary
                 if (fullOutputPath.Length > 255)
@@ -212,9 +212,9 @@ SliderTickRate:1
                 Beatmap transformedBeatmap = _service.TransformBeatmap(beatmap, ConverterEnum.N2NC);
 
                 // Calculate output path
-                string  outputPath     = transformedBeatmap.GetOutputOsuFileName();
-                string? outputDir      = Path.GetDirectoryName(inputFile);
-                string  fullOutputPath = Path.Combine(outputDir!, outputPath);
+                string outputPath = transformedBeatmap.GetOutputOsuFileName();
+                string? outputDir = Path.GetDirectoryName(inputFile);
+                string fullOutputPath = Path.Combine(outputDir!, outputPath);
 
                 // Apply truncation if necessary
                 if (fullOutputPath.Length > 255)
@@ -316,9 +316,9 @@ SliderTickRate:1
                 Beatmap transformedBeatmap = _service.TransformBeatmap(beatmap, ConverterEnum.N2NC);
 
                 // Calculate output path
-                string  outputPath     = transformedBeatmap.GetOutputOsuFileName();
-                string? outputDir      = Path.GetDirectoryName(inputFile);
-                string  fullOutputPath = Path.Combine(outputDir!, outputPath);
+                string outputPath = transformedBeatmap.GetOutputOsuFileName();
+                string? outputDir = Path.GetDirectoryName(inputFile);
+                string fullOutputPath = Path.Combine(outputDir!, outputPath);
 
                 // Apply truncation if necessary
                 if (fullOutputPath.Length > 255)
@@ -351,9 +351,9 @@ SliderTickRate:1
                 @"C:\Very\Long\Path\That\Exceeds\The\Maximum\Allowed\Length\For\Windows\File\System\Which\Is\Typically\Around\255\Characters\But\This\One\Is\Definitely\Longer\Than\That\Limit\And\Should\Be\Truncated\Appropriately\To\Fit\Within\The\Constraints\Of\The\File\System\Without\Causing\Any\Issues\During\Saving\Process\Very Long Artist Name That Will Make The Filename Extremely Long When Combined.......osu";
 
             // Simulate the logic from ExecuteConvertWithModule
-            string  outputPath     = "Very Long Artist Name That Will Make The Filename Extremely Long When Combined With Title And Other Metadata (Test) [Test].osu";
-            string? outputDir      = Path.GetDirectoryName(inputPath);
-            string  fullOutputPath = Path.Combine(outputDir!, outputPath);
+            string outputPath = "Very Long Artist Name That Will Make The Filename Extremely Long When Combined With Title And Other Metadata (Test) [Test].osu";
+            string? outputDir = Path.GetDirectoryName(inputPath);
+            string fullOutputPath = Path.Combine(outputDir!, outputPath);
 
             // Apply truncation
             if (fullOutputPath.Length > 255)
@@ -392,8 +392,8 @@ SliderTickRate:1
             // Act & Assert
             for (int i = 0; i < inputPaths.Length; i++)
             {
-                string? outputDir      = Path.GetDirectoryName(inputPaths[i]);
-                string  fullOutputPath = Path.Combine(outputDir!, outputPaths[i]);
+                string? outputDir = Path.GetDirectoryName(inputPaths[i]);
+                string fullOutputPath = Path.Combine(outputDir!, outputPaths[i]);
 
                 // Apply truncation if necessary
                 if (fullOutputPath.Length > 255)
@@ -420,23 +420,23 @@ SliderTickRate:1
             {
                 new
                 {
-                    Artist    = "Very Long Artist Name That Will Make The Filename Extremely Long When Combined With Title And Other Metadata And Contains Special Characters Like <>:|?*",
-                    Title     = "Very Long Title That Will Make The Filename Extremely Long When Combined With Artist And Other Metadata And Contains Special Characters Like <>:|?*",
-                    Version   = "Very Long Difficulty Name That Will Make The Filename Extremely Long When Combined With Artist And Title And Contains Special Characters Like <>:|?*",
+                    Artist = "Very Long Artist Name That Will Make The Filename Extremely Long When Combined With Title And Other Metadata And Contains Special Characters Like <>:|?*",
+                    Title = "Very Long Title That Will Make The Filename Extremely Long When Combined With Artist And Other Metadata And Contains Special Characters Like <>:|?*",
+                    Version = "Very Long Difficulty Name That Will Make The Filename Extremely Long When Combined With Artist And Title And Contains Special Characters Like <>:|?*",
                     InputPath = @"C:\Test\Path\file1.osu"
                 },
                 new
                 {
-                    Artist    = "艺术家名称非常长会导致文件名过长并且包含特殊字符如<>:|?*",
-                    Title     = "标题名称非常长会导致文件名过长并且包含特殊字符如<>:|?*",
-                    Version   = "难度名称非常长会导致文件名过长并且包含特殊字符如<>:|?*",
+                    Artist = "艺术家名称非常长会导致文件名过长并且包含特殊字符如<>:|?*",
+                    Title = "标题名称非常长会导致文件名过长并且包含特殊字符如<>:|?*",
+                    Version = "难度名称非常长会导致文件名过长并且包含特殊字符如<>:|?*",
                     InputPath = @"C:\Test\Path\file2.osu"
                 },
                 new
                 {
-                    Artist    = "ArtistWithManyRepeatedWordsThatMakeItVeryLongAndExceedLimitsArtistWithManyRepeatedWordsThatMakeItVeryLongAndExceedLimits",
-                    Title     = "TitleWithManyRepeatedWordsThatMakeItVeryLongAndExceedLimitsTitleWithManyRepeatedWordsThatMakeItVeryLongAndExceedLimits",
-                    Version   = "DifficultyWithManyRepeatedWordsThatMakeItVeryLongAndExceedLimitsDifficultyWithManyRepeatedWordsThatMakeItVeryLongAndExceedLimits",
+                    Artist = "ArtistWithManyRepeatedWordsThatMakeItVeryLongAndExceedLimitsArtistWithManyRepeatedWordsThatMakeItVeryLongAndExceedLimits",
+                    Title = "TitleWithManyRepeatedWordsThatMakeItVeryLongAndExceedLimitsTitleWithManyRepeatedWordsThatMakeItVeryLongAndExceedLimits",
+                    Version = "DifficultyWithManyRepeatedWordsThatMakeItVeryLongAndExceedLimitsDifficultyWithManyRepeatedWordsThatMakeItVeryLongAndExceedLimits",
                     InputPath = @"C:\Very\Long\Directory\Path\That\Is\Not\Too\Deep\But\Combined\With\Filename\Will\Exceed\Limits\file3.osu"
                 }
             };
@@ -445,24 +445,24 @@ SliderTickRate:1
             {
                 // Create a mock beatmap with metadata
                 var beatmap = new Beatmap();
-                beatmap.MetadataSection.Artist              = testCase.Artist;
-                beatmap.MetadataSection.Title               = testCase.Title;
-                beatmap.MetadataSection.Creator             = "TestCreator";
-                beatmap.MetadataSection.Version             = testCase.Version;
-                beatmap.DifficultySection.CircleSize        = 4;
-                beatmap.DifficultySection.HPDrainRate       = 4;
+                beatmap.MetadataSection.Artist = testCase.Artist;
+                beatmap.MetadataSection.Title = testCase.Title;
+                beatmap.MetadataSection.Creator = "TestCreator";
+                beatmap.MetadataSection.Version = testCase.Version;
+                beatmap.DifficultySection.CircleSize = 4;
+                beatmap.DifficultySection.HPDrainRate = 4;
                 beatmap.DifficultySection.OverallDifficulty = 4;
-                beatmap.DifficultySection.ApproachRate      = 4;
-                beatmap.DifficultySection.SliderMultiplier  = 1.4f;
-                beatmap.DifficultySection.SliderTickRate    = 1;
+                beatmap.DifficultySection.ApproachRate = 4;
+                beatmap.DifficultySection.SliderMultiplier = 1.4f;
+                beatmap.DifficultySection.SliderTickRate = 1;
 
                 // Simulate TransformBeatmap (no actual transformation for this test)
                 Beatmap transformedBeatmap = beatmap; // In real scenario, this would be transformed
 
                 // Calculate output path as in TransformAndSaveBeatmap
-                string  outputPath     = transformedBeatmap.GetOutputOsuFileName();
-                string? outputDir      = Path.GetDirectoryName(testCase.InputPath);
-                string  fullOutputPath = Path.Combine(outputDir!, outputPath);
+                string outputPath = transformedBeatmap.GetOutputOsuFileName();
+                string? outputDir = Path.GetDirectoryName(testCase.InputPath);
+                string fullOutputPath = Path.Combine(outputDir!, outputPath);
 
                 // Apply truncation if necessary
                 if (fullOutputPath.Length > 255)

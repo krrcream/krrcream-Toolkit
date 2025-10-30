@@ -28,7 +28,7 @@ namespace krrTools.Tests.PerformanceTests
 
             // Setup dependency injection for tests
             var mockEventBus = new Mock<IEventBus>();
-            var services     = new ServiceCollection();
+            var services = new ServiceCollection();
             services.AddSingleton(mockEventBus.Object);
             services.AddSingleton<StateBarManager>();
             ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -89,8 +89,8 @@ namespace krrTools.Tests.PerformanceTests
         public async Task SRCalculator_ShouldNotLeakMemoryUnderHighConcurrency()
         {
             // 从TestOsuFile文件夹读取实际的osu文件
-            string   testOsuFileDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "TestOsuFile");
-            string[] osuFiles       = Directory.GetFiles(testOsuFileDir, "*.osu", SearchOption.TopDirectoryOnly);
+            string testOsuFileDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "TestOsuFile");
+            string[] osuFiles = Directory.GetFiles(testOsuFileDir, "*.osu", SearchOption.TopDirectoryOnly);
 
             if (osuFiles.Length == 0)
             {
@@ -99,8 +99,8 @@ namespace krrTools.Tests.PerformanceTests
             }
 
             // 读取第一个真实文件
-            string  sampleFilePath = osuFiles.First();
-            Beatmap sampleBeatmap  = BeatmapDecoder.Decode(sampleFilePath);
+            string sampleFilePath = osuFiles.First();
+            Beatmap sampleBeatmap = BeatmapDecoder.Decode(sampleFilePath);
 
             if (sampleBeatmap == null)
             {
@@ -116,7 +116,7 @@ namespace krrTools.Tests.PerformanceTests
 
             // 模拟高并发计算：100次SR计算，每次解码新Beatmap
             const int iterations = 100;
-            var       tasks      = new Task<(double sr, Dictionary<string, long> times)>[iterations];
+            var tasks = new Task<(double sr, Dictionary<string, long> times)>[iterations];
 
             for (int i = 0; i < iterations; i++)
             {
@@ -145,8 +145,8 @@ namespace krrTools.Tests.PerformanceTests
         public void BeatmapDecoder_ShouldNotLeakMemoryOnRepeatedDecodes()
         {
             // 从TestOsuFile文件夹读取实际的osu文件
-            string   testOsuFileDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "TestOsuFile");
-            string[] osuFiles       = Directory.GetFiles(testOsuFileDir, "*.osu", SearchOption.TopDirectoryOnly);
+            string testOsuFileDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "TestOsuFile");
+            string[] osuFiles = Directory.GetFiles(testOsuFileDir, "*.osu", SearchOption.TopDirectoryOnly);
 
             if (osuFiles.Length == 0)
             {
@@ -190,8 +190,8 @@ namespace krrTools.Tests.PerformanceTests
         public async Task SRCalculator_ShouldNotLeakMemoryWithSameBeatmap()
         {
             // 从TestOsuFile文件夹读取实际的osu文件
-            string   testOsuFileDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "TestOsuFile");
-            string[] osuFiles       = Directory.GetFiles(testOsuFileDir, "*.osu", SearchOption.TopDirectoryOnly);
+            string testOsuFileDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "TestOsuFile");
+            string[] osuFiles = Directory.GetFiles(testOsuFileDir, "*.osu", SearchOption.TopDirectoryOnly);
 
             if (osuFiles.Length == 0)
             {
@@ -200,8 +200,8 @@ namespace krrTools.Tests.PerformanceTests
             }
 
             // 读取第一个真实文件
-            string  sampleFilePath = osuFiles.First();
-            Beatmap sampleBeatmap  = BeatmapDecoder.Decode(sampleFilePath);
+            string sampleFilePath = osuFiles.First();
+            Beatmap sampleBeatmap = BeatmapDecoder.Decode(sampleFilePath);
 
             if (sampleBeatmap == null)
             {
@@ -216,8 +216,8 @@ namespace krrTools.Tests.PerformanceTests
             _testOutputHelper.WriteLine($"Initial memory: {BytesToMB(initialMemory):F2} MB");
 
             // 模拟高并发计算：100次SR计算，使用同一个Beatmap对象
-            const int iterations                          = 100;
-            var       tasks                               = new Task<(double sr, Dictionary<string, long> times)>[iterations];
+            const int iterations = 100;
+            var tasks = new Task<(double sr, Dictionary<string, long> times)>[iterations];
             for (int i = 0; i < iterations; i++) tasks[i] = SRCalculator.Instance.CalculateSRAsync(sampleBeatmap); // 使用同一个对象
 
             await Task.WhenAll(tasks);

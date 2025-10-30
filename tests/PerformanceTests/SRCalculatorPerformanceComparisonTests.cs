@@ -39,17 +39,17 @@ namespace krrTools.Tests.PerformanceTests
         /// </summary>
         public class SRPerformanceResult
         {
-            public string   CalculatorName    { get; set; } = "";
-            public TimeSpan TotalTime         { get; set; }
-            public double   AverageTime       { get; set; }
-            public double   Throughput        { get; set; } // 计算/秒
-            public bool     ResultsConsistent { get; set; }
-            public int      CalculationCount  { get; set; }
-            public double   SpeedupRatio      { get; set; }       // 相对于基准的倍数
-            public string   PerformanceRating { get; set; } = ""; // 性能评级
-            public long     PeakMemoryMB      { get; set; }       // 峰值内存增量(MB)
-            public double   AverageMemoryMB   { get; set; }       // 平均内存增量(MB)
-            public double   AverageSR         { get; set; }       // 平均SR值
+            public string CalculatorName { get; set; } = "";
+            public TimeSpan TotalTime { get; set; }
+            public double AverageTime { get; set; }
+            public double Throughput { get; set; } // 计算/秒
+            public bool ResultsConsistent { get; set; }
+            public int CalculationCount { get; set; }
+            public double SpeedupRatio { get; set; } // 相对于基准的倍数
+            public string PerformanceRating { get; set; } = ""; // 性能评级
+            public long PeakMemoryMB { get; set; } // 峰值内存增量(MB)
+            public double AverageMemoryMB { get; set; } // 平均内存增量(MB)
+            public double AverageSR { get; set; } // 平均SR值
         }
 
         /// <summary>
@@ -71,8 +71,8 @@ namespace krrTools.Tests.PerformanceTests
             foreach (SRPerformanceResult result in results.OrderBy(r => r.TotalTime))
             {
                 string consistency = result.ResultsConsistent ? "✓" : "✗";
-                string speedup     = result.SpeedupRatio >= 1 ? $"{result.SpeedupRatio:F2}x" : $"{1 / result.SpeedupRatio:F2}x慢";
-                string rating      = GetPerformanceRating(result.SpeedupRatio);
+                string speedup = result.SpeedupRatio >= 1 ? $"{result.SpeedupRatio:F2}x" : $"{1 / result.SpeedupRatio:F2}x慢";
+                string rating = GetPerformanceRating(result.SpeedupRatio);
 
                 _testOutputHelper.WriteLine("│ {0,-11} │ {1,11:F2} │ {2,11:F2} │ {3,11:F2} │ {4,11} │ {5,11} │ {6,11} │ {7,11:F1} │ {8,11:F1} │ {9,11:F2} │",
                                             result.CalculatorName,
@@ -92,9 +92,9 @@ namespace krrTools.Tests.PerformanceTests
                 "└─────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┘");
 
             // 总结信息
-            SRPerformanceResult bestResult  = results.OrderBy(r => r.TotalTime).First();
+            SRPerformanceResult bestResult = results.OrderBy(r => r.TotalTime).First();
             SRPerformanceResult worstResult = results.OrderByDescending(r => r.TotalTime).First();
-            double              improvement = worstResult.TotalTime.TotalMilliseconds / bestResult.TotalTime.TotalMilliseconds;
+            double improvement = worstResult.TotalTime.TotalMilliseconds / bestResult.TotalTime.TotalMilliseconds;
 
             _testOutputHelper.WriteLine($"\n📊 总结:");
             _testOutputHelper.WriteLine(
@@ -105,7 +105,7 @@ namespace krrTools.Tests.PerformanceTests
             _testOutputHelper.WriteLine($"• 结果一致性: {(results.All(r => r.ResultsConsistent) ? "全部通过 ✓" : "存在不一致 ✗")}");
 
             // 额外统计
-            double avgThroughput        = results.Average(r => r.Throughput);
+            double avgThroughput = results.Average(r => r.Throughput);
             double estimatedTimeFor1000 = 1000.0 / avgThroughput;
 
             _testOutputHelper.WriteLine($"\n📈 扩展预测:");
@@ -129,8 +129,8 @@ namespace krrTools.Tests.PerformanceTests
         public async Task CompareSRCalculatorPerformance()
         {
             // 从TestOsuFile文件夹读取实际的osu文件
-            string   testOsuFileDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "TestOsuFile");
-            string[] osuFiles       = Directory.GetFiles(testOsuFileDir, "*.osu", SearchOption.TopDirectoryOnly);
+            string testOsuFileDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "TestOsuFile");
+            string[] osuFiles = Directory.GetFiles(testOsuFileDir, "*.osu", SearchOption.TopDirectoryOnly);
 
             if (osuFiles.Length == 0)
             {
@@ -139,8 +139,8 @@ namespace krrTools.Tests.PerformanceTests
             }
 
             // 读取第一个真实文件到内存中作为测试样本
-            string  sampleFilePath = osuFiles.First();
-            Beatmap sampleBeatmap  = BeatmapDecoder.Decode(sampleFilePath);
+            string sampleFilePath = osuFiles.First();
+            Beatmap sampleBeatmap = BeatmapDecoder.Decode(sampleFilePath);
             _testOutputHelper.WriteLine($"Loaded sample beatmap from: {Path.GetFileName(sampleFilePath)}");
 
             if (sampleBeatmap == null)
@@ -155,7 +155,7 @@ namespace krrTools.Tests.PerformanceTests
             for (int i = 0; i < 3; i++)
             {
                 double csharpSr = SRCalculator.Instance.CalculateSR(sampleBeatmap, out _);
-                double rustSr   = CalculateSRRust(sampleBeatmap);
+                double rustSr = CalculateSRRust(sampleBeatmap);
             }
 
             _testOutputHelper.WriteLine("Warmup completed.");
@@ -172,7 +172,7 @@ namespace krrTools.Tests.PerformanceTests
             results.Add(rustResults);
 
             // 计算性能倍数（相对于最慢的）
-            double slowestTime                                                  = results.Max(r => r.TotalTime.TotalMilliseconds);
+            double slowestTime = results.Max(r => r.TotalTime.TotalMilliseconds);
             foreach (SRPerformanceResult result in results) result.SpeedupRatio = slowestTime / result.TotalTime.TotalMilliseconds;
 
             // 输出性能对比表格
@@ -180,8 +180,8 @@ namespace krrTools.Tests.PerformanceTests
 
             // 断言SR值精度要求：C#和Rust版本的SR值差异应小于0.0001
             SRPerformanceResult csharpResult = results.First(r => r.CalculatorName == "C#");
-            SRPerformanceResult rustResult   = results.First(r => r.CalculatorName == "Rust");
-            double              srDifference = Math.Abs(csharpResult.AverageSR - rustResult.AverageSR);
+            SRPerformanceResult rustResult = results.First(r => r.CalculatorName == "Rust");
+            double srDifference = Math.Abs(csharpResult.AverageSR - rustResult.AverageSR);
 
             _testOutputHelper.WriteLine($"\n🔍 SR值精度检查:");
             _testOutputHelper.WriteLine($"C# SR: {csharpResult.AverageSR:F6}");
@@ -195,8 +195,8 @@ namespace krrTools.Tests.PerformanceTests
                 _testOutputHelper.WriteLine("\n⚠️  SR值差异过大，进行详细分析...");
 
                 // 计算单次SR值进行比较
-                double singleCsharpSr   = SRCalculator.Instance.CalculateSR(sampleBeatmap, out _);
-                double singleRustSr     = CalculateSRRust(sampleBeatmap);
+                double singleCsharpSr = SRCalculator.Instance.CalculateSR(sampleBeatmap, out _);
+                double singleRustSr = CalculateSRRust(sampleBeatmap);
                 double singleDifference = Math.Abs(singleCsharpSr - singleRustSr);
 
                 _testOutputHelper.WriteLine($"单次计算 - C#: {singleCsharpSr:F6}, Rust: {singleRustSr:F6}, 差异: {singleDifference:F6}");
@@ -207,13 +207,13 @@ namespace krrTools.Tests.PerformanceTests
                     difficulty_section = new
                     {
                         overall_difficulty = sampleBeatmap.DifficultySection.OverallDifficulty,
-                        circle_size        = sampleBeatmap.DifficultySection.CircleSize
+                        circle_size = sampleBeatmap.DifficultySection.CircleSize
                     },
                     hit_objects = sampleBeatmap.HitObjects.Select(ho => new
                     {
-                        position   = new { x = ho.Position.X },
+                        position = new { x = ho.Position.X },
                         start_time = ho.StartTime,
-                        end_time   = ho.EndTime
+                        end_time = ho.EndTime
                     }).ToArray()
                 };
 
@@ -226,8 +226,8 @@ namespace krrTools.Tests.PerformanceTests
 
         private async Task<SRPerformanceResult> TestSRCalculator(string calculatorName, Beatmap beatmap, int testCount)
         {
-            var  srValues      = new List<double>();
-            var  memoryUsages  = new List<long>();
+            var srValues = new List<double>();
+            var memoryUsages = new List<long>();
             long initialMemory = GC.GetTotalMemory(true);
 
             var stopwatch = Stopwatch.StartNew();
@@ -262,13 +262,13 @@ namespace krrTools.Tests.PerformanceTests
                 memoryUsages.Add(memoryDelta);
             }
 
-            long finalMemory      = GC.GetTotalMemory(false);
+            long finalMemory = GC.GetTotalMemory(false);
             long totalMemoryDelta = finalMemory - initialMemory;
 
             // 计算统计信息
-            double averageSR  = srValues.Average();
-            double minSR      = srValues.Min();
-            double maxSR      = srValues.Max();
+            double averageSR = srValues.Average();
+            double minSR = srValues.Min();
+            double maxSR = srValues.Max();
             double srVariance = srValues.Sum(sr => Math.Pow(sr - averageSR, 2)) / srValues.Count;
 
             // 检查结果一致性（允许小误差）
@@ -276,15 +276,15 @@ namespace krrTools.Tests.PerformanceTests
 
             var result = new SRPerformanceResult
             {
-                CalculatorName    = calculatorName,
-                TotalTime         = stopwatch.Elapsed,
-                AverageTime       = stopwatch.Elapsed.TotalMilliseconds / testCount,
-                Throughput        = testCount / (stopwatch.Elapsed.TotalMilliseconds / 1000.0),
+                CalculatorName = calculatorName,
+                TotalTime = stopwatch.Elapsed,
+                AverageTime = stopwatch.Elapsed.TotalMilliseconds / testCount,
+                Throughput = testCount / (stopwatch.Elapsed.TotalMilliseconds / 1000.0),
                 ResultsConsistent = resultsConsistent,
-                CalculationCount  = testCount,
-                PeakMemoryMB      = memoryUsages.Max() / 1024 / 1024,
-                AverageMemoryMB   = memoryUsages.Average() / 1024 / 1024,
-                AverageSR         = averageSR
+                CalculationCount = testCount,
+                PeakMemoryMB = memoryUsages.Max() / 1024 / 1024,
+                AverageMemoryMB = memoryUsages.Average() / 1024 / 1024,
+                AverageSR = averageSR
             };
 
             _testOutputHelper.WriteLine($"{calculatorName} SR Statistics:");
@@ -299,8 +299,8 @@ namespace krrTools.Tests.PerformanceTests
         public struct CHitObject
         {
             public double position_x;
-            public int    start_time;
-            public int    end_time;
+            public int start_time;
+            public int end_time;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -308,7 +308,7 @@ namespace krrTools.Tests.PerformanceTests
         {
             public double overall_difficulty;
             public double circle_size;
-            public ulong  hit_objects_count; // Use ulong for usize
+            public ulong hit_objects_count; // Use ulong for usize
             public IntPtr hit_objects_ptr;
         }
 
@@ -322,12 +322,12 @@ namespace krrTools.Tests.PerformanceTests
             {
                 position_x = ho.Position.X,
                 start_time = ho.StartTime,
-                end_time   = ho.EndTime
+                end_time = ho.EndTime
             }).ToArray();
 
             // Pin the array in memory
             GCHandle hitObjectsHandle = GCHandle.Alloc(hitObjects, GCHandleType.Pinned);
-            GCHandle dataHandle       = default;
+            GCHandle dataHandle = default;
 
             try
             {
@@ -335,9 +335,9 @@ namespace krrTools.Tests.PerformanceTests
                 var beatmapData = new CBeatmapData
                 {
                     overall_difficulty = beatmap.DifficultySection.OverallDifficulty,
-                    circle_size        = beatmap.DifficultySection.CircleSize,
-                    hit_objects_count  = (ulong)hitObjects.Length,
-                    hit_objects_ptr    = hitObjectsHandle.AddrOfPinnedObject()
+                    circle_size = beatmap.DifficultySection.CircleSize,
+                    hit_objects_count = (ulong)hitObjects.Length,
+                    hit_objects_ptr = hitObjectsHandle.AddrOfPinnedObject()
                 };
 
                 dataHandle = GCHandle.Alloc(beatmapData, GCHandleType.Pinned);

@@ -32,11 +32,11 @@ namespace krrTools.Tests
                 difficulty_section = new
                 {
                     overall_difficulty = 8.0,
-                    circle_size        = 4.0
+                    circle_size = 4.0
                 },
                 hit_objects = new[]
                 {
-                    new { position = new { x = 0.0 }, start_time   = 1000, end_time = 1000 },
+                    new { position = new { x = 0.0 }, start_time = 1000, end_time = 1000 },
                     new { position = new { x = 128.0 }, start_time = 1200, end_time = 1200 }
                 }
             };
@@ -59,17 +59,17 @@ namespace krrTools.Tests
                 difficulty_section = new
                 {
                     overall_difficulty = beatmap.DifficultySection.OverallDifficulty,
-                    circle_size        = beatmap.DifficultySection.CircleSize
+                    circle_size = beatmap.DifficultySection.CircleSize
                 },
                 hit_objects = beatmap.HitObjects.Select(ho => new
                 {
-                    position   = new { x = ho.Position.X },
+                    position = new { x = ho.Position.X },
                     start_time = ho.StartTime,
-                    end_time   = ho.EndTime
+                    end_time = ho.EndTime
                 }).ToArray()
             };
 
-            string json      = JsonSerializer.Serialize(beatmapData);
+            string json = JsonSerializer.Serialize(beatmapData);
             byte[] jsonBytes = Encoding.UTF8.GetBytes(json);
 
             // Call Rust function
@@ -79,7 +79,7 @@ namespace krrTools.Tests
 
             // Parse result (assuming it returns a JSON string with the SR value)
             string resultJson = Marshal.PtrToStringAnsi(resultPtr)!;
-            var    result     = JsonSerializer.Deserialize<Dictionary<string, double>>(resultJson);
+            var result = JsonSerializer.Deserialize<Dictionary<string, double>>(resultJson);
             if (result == null) throw new Exception("Failed to deserialize Rust result");
 
             // Free the allocated memory

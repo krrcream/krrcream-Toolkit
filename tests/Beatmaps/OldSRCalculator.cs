@@ -26,36 +26,36 @@ namespace krrTools.Tests.Beatmaps
             new[] { 0.625, 0.55, 0.45, 0.35, 0.25, 0.05, 0.25, 0.35, 0.45, 0.55, 0.625 }
         };
 
-        private readonly int      granularity = 1;
-        private readonly double   lambda_1    = 0.11;
-        private readonly double   lambda_2    = 7.0;
-        private readonly double   lambda_3    = 24;
-        private readonly double   lambda_4    = 0.1;
-        private readonly double   lambda_n    = 5;
-        private readonly double   p_0         = 1.0;
-        private readonly double   p_1         = 1.5;
-        private readonly double   w_0         = 0.4;
-        private readonly double   w_1         = 2.7;
-        private readonly double   w_2         = 0.27;
-        private          int      K;
-        private          SRsNote[]   LNSeq           = Array.Empty<SRsNote>();
-        private          SRsNote[]   noteSeq         = Array.Empty<SRsNote>();
-        private          SRsNote[][] noteSeqByColumn = Array.Empty<SRsNote[]>();
+        private readonly int granularity = 1;
+        private readonly double lambda_1 = 0.11;
+        private readonly double lambda_2 = 7.0;
+        private readonly double lambda_3 = 24;
+        private readonly double lambda_4 = 0.1;
+        private readonly double lambda_n = 5;
+        private readonly double p_0 = 1.0;
+        private readonly double p_1 = 1.5;
+        private readonly double w_0 = 0.4;
+        private readonly double w_1 = 2.7;
+        private readonly double w_2 = 0.27;
+        private int K;
+        private SRsNote[] LNSeq = Array.Empty<SRsNote>();
+        private SRsNote[] noteSeq = Array.Empty<SRsNote>();
+        private SRsNote[][] noteSeqByColumn = Array.Empty<SRsNote[]>();
 
-        private int    T;
+        private int T;
         private SRsNote[] tailSeq = Array.Empty<SRsNote>();
-        private double x       = -1;
+        private double x = -1;
 
         public double Calculate(List<SRsNote> noteSequence, int keyCount, double od, out Dictionary<string, long> times)
         {
             // Initialize data structures
-            K               = keyCount;
-            noteSeq         = noteSequence.OrderBy(n => n.H).ThenBy(n => n.K).ToArray();
-            x               = 0.3 * Math.Pow((64.5 - Math.Ceiling(od * 3)) / 500, 0.5);
+            K = keyCount;
+            noteSeq = noteSequence.OrderBy(n => n.H).ThenBy(n => n.K).ToArray();
+            x = 0.3 * Math.Pow((64.5 - Math.Ceiling(od * 3)) / 500, 0.5);
             noteSeqByColumn = noteSeq.GroupBy(n => n.K).OrderBy(g => g.Key).Select(g => g.ToArray()).ToArray();
 
             // Create LN sequences
-            LNSeq   = noteSeq.Where(n => n.T >= 0).ToArray();
+            LNSeq = noteSeq.Where(n => n.T >= 0).ToArray();
             tailSeq = LNSeq.OrderBy(n => n.T).ToArray();
 
             var LNDict = new Dictionary<int, List<SRsNote>>();
@@ -91,16 +91,16 @@ namespace krrTools.Tests.Beatmaps
 
                 Task<double[]> task24 = Task.Run(() =>
                 {
-                    var      sectionStopwatch = Stopwatch.StartNew();
-                    double[] Xbar             = CalculateSection24();
+                    var sectionStopwatch = Stopwatch.StartNew();
+                    double[] Xbar = CalculateSection24();
                     sectionStopwatch.Stop();
                     return Xbar;
                 });
 
                 Task<double[]> task25 = Task.Run(() =>
                 {
-                    var      sectionStopwatch = Stopwatch.StartNew();
-                    double[] Pbar             = CalculateSection25();
+                    var sectionStopwatch = Stopwatch.StartNew();
+                    double[] Pbar = CalculateSection25();
                     sectionStopwatch.Stop();
                     return Pbar;
                 });
@@ -117,14 +117,14 @@ namespace krrTools.Tests.Beatmaps
                 times["Section232425"] = stopwatch.ElapsedMilliseconds;
 
                 stopwatch.Restart();
-                Task<(double[] Abar, int[] KS)>    task26 = Task.Run(() => CalculateSection26(deltaKs));
+                Task<(double[] Abar, int[] KS)> task26 = Task.Run(() => CalculateSection26(deltaKs));
                 Task<(double[] Rbar, double[] Is)> task27 = Task.Run(() => CalculateSection27());
 
                 // Wait for both tasks to complete
                 Task.WaitAll(task26, task27);
 
                 // Retrieve results
-                (double[] Abar, int[] KS)    = task26.Result;
+                (double[] Abar, int[] KS) = task26.Result;
                 (double[] Rbar, double[] Is) = task27.Result;
 
                 stopwatch.Stop();
@@ -145,9 +145,9 @@ namespace krrTools.Tests.Beatmaps
                 times = new Dictionary<string, long>
                 {
                     ["Section232425"] = 0,
-                    ["Section2627"]   = 0,
-                    ["Section3"]      = 0,
-                    ["Total"]         = 0
+                    ["Section2627"] = 0,
+                    ["Section3"] = 0,
+                    ["Total"] = 0
                 };
                 return -1;
             }
@@ -155,8 +155,8 @@ namespace krrTools.Tests.Beatmaps
 
         private double[] Smooth(double[] lst)
         {
-            double[] lstbar    = new double[T];
-            double   windowSum = 0.0;
+            double[] lstbar = new double[T];
+            double windowSum = 0.0;
 
             for (int i = 0; i < Math.Min(500, T); i += granularity)
                 windowSum += lst[i];
@@ -175,9 +175,9 @@ namespace krrTools.Tests.Beatmaps
 
         private double[] Smooth2(double[] lst)
         {
-            double[] lstbar    = new double[T];
-            double   windowSum = 0.0;
-            int      windowLen = Math.Min(500, T);
+            double[] lstbar = new double[T];
+            double windowSum = 0.0;
+            int windowLen = Math.Min(500, T);
 
             for (int i = 0; i < windowLen; i += granularity)
                 windowSum += lst[i];
@@ -209,24 +209,24 @@ namespace krrTools.Tests.Beatmaps
 
         private (double[] Jbar, double[][] deltaKs) CalculateSection23()
         {
-            double[][] JKs     = new double[K][];
+            double[][] JKs = new double[K][];
             double[][] deltaKs = new double[K][];
 
             // Fill JKs and deltaKs with values
             for (int k = 0; k < K; k++)
             {
-                JKs[k]     = new double[T];
+                JKs[k] = new double[T];
                 deltaKs[k] = new double[T];
                 Array.Fill(deltaKs[k], 1e9);
 
                 for (int i = 0; i < noteSeqByColumn[k].Length - 1; i++)
                 {
                     double delta = 0.001 * (noteSeqByColumn[k][i + 1].H - noteSeqByColumn[k][i].H);
-                    double val   = Math.Pow(delta * (delta + (lambda_1 * Math.Pow(x, 0.25))), -1) * JackNerfer(delta);
+                    double val = Math.Pow(delta * (delta + (lambda_1 * Math.Pow(x, 0.25))), -1) * JackNerfer(delta);
 
                     // Define start and end for filling the range in deltaKs and JKs
-                    int start  = noteSeqByColumn[k][i].H;
-                    int end    = noteSeqByColumn[k][i + 1].H;
+                    int start = noteSeqByColumn[k][i].H;
+                    int end = noteSeqByColumn[k][i + 1].H;
                     int length = end - start;
 
                     // Use Span to fill subarrays
@@ -249,20 +249,20 @@ namespace krrTools.Tests.Beatmaps
             for (int s = 0; s < T; s += granularity)
             {
                 double weightedSum = 0;
-                double weightSum   = 0;
+                double weightSum = 0;
 
                 // Replace list allocation with direct accumulation
                 for (int i = 0; i < K; i++)
                 {
-                    double val    = JbarKs[i][s];
+                    double val = JbarKs[i][s];
                     double weight = 1.0 / deltaKs[i][s];
 
-                    weightSum   += weight;
+                    weightSum += weight;
                     weightedSum += Math.Pow(Math.Max(val, 0), lambda_n) * weight;
                 }
 
                 weightSum = Math.Max(1e-9, weightSum);
-                Jbar[s]   = Math.Pow(weightedSum / weightSum, 1.0 / lambda_n);
+                Jbar[s] = Math.Pow(weightedSum / weightSum, 1.0 / lambda_n);
             }
 
             return (Jbar, deltaKs);
@@ -276,14 +276,14 @@ namespace krrTools.Tests.Beatmaps
             {
                 XKs[k] = new double[T];
                 SRsNote[] notesInPair = k == 0 ? noteSeqByColumn[0] :
-                                     k == K ? noteSeqByColumn[K - 1] :
-                                              noteSeqByColumn[k - 1].Concat(noteSeqByColumn[k])
-                                                                    .OrderBy(n => n.H).ToArray();
+                                        k == K ? noteSeqByColumn[K - 1] :
+                                                 noteSeqByColumn[k - 1].Concat(noteSeqByColumn[k])
+                                                                       .OrderBy(n => n.H).ToArray();
 
                 for (int i = 1; i < notesInPair.Length; i++)
                 {
                     double delta = 0.001 * (notesInPair[i].H - notesInPair[i - 1].H);
-                    double val   = 0.16 * Math.Pow(Math.Max(x, delta), -2);
+                    double val = 0.16 * Math.Pow(Math.Max(x, delta), -2);
 
                     for (int s = notesInPair[i - 1].H; s < notesInPair[i].H; s++) XKs[k][s] = val;
                 }
@@ -302,7 +302,7 @@ namespace krrTools.Tests.Beatmaps
 
         private double[] CalculateSection25()
         {
-            double[] P        = new double[T];
+            double[] P = new double[T];
             double[] LNBodies = new double[T];
 
             foreach (SRsNote note in LNSeq)
@@ -330,9 +330,9 @@ namespace krrTools.Tests.Beatmaps
                     P[noteSeq[i].H] += 1000 * Math.Pow(0.02 * ((4 / x) - lambda_3), 1.0 / 4);
                 else
                 {
-                    int    h_l = noteSeq[i].H;
-                    int    h_r = noteSeq[i + 1].H;
-                    double v   = 1 + (lambda_2 * 0.001 * LNBodies.Skip(h_l).Take(h_r - h_l).Sum());
+                    int h_l = noteSeq[i].H;
+                    int h_r = noteSeq[i + 1].H;
+                    double v = 1 + (lambda_2 * 0.001 * LNBodies.Skip(h_l).Take(h_r - h_l).Sum());
 
                     if (delta < 2 * x / 3)
                     {
@@ -360,22 +360,22 @@ namespace krrTools.Tests.Beatmaps
 
         private (double[] Abar, int[] KS) CalculateSection26(double[][] deltaKs)
         {
-            bool[][] KUKs                       = new bool[K][];
+            bool[][] KUKs = new bool[K][];
             for (int k = 0; k < K; k++) KUKs[k] = new bool[T];
 
             foreach (SRsNote note in noteSeq)
             {
                 int startTime = Math.Max(0, note.H - 500);
-                int endTime   = note.T < 0 ? Math.Min(note.H + 500, T - 1) : Math.Min(note.T + 500, T - 1);
+                int endTime = note.T < 0 ? Math.Min(note.H + 500, T - 1) : Math.Min(note.T + 500, T - 1);
 
                 for (int s = startTime; s < endTime; s++) KUKs[note.K][s] = true;
             }
 
-            int[]    KS = new int[T];
-            double[] A  = new double[T];
+            int[] KS = new int[T];
+            double[] A = new double[T];
             Array.Fill(A, 1);
 
-            double[][] dks                         = new double[K - 1][];
+            double[][] dks = new double[K - 1][];
             for (int k = 0; k < K - 1; k++) dks[k] = new double[T];
 
             for (int s = 0; s < T; s += granularity)
@@ -400,7 +400,7 @@ namespace krrTools.Tests.Beatmaps
 
                     double maxDelta = Math.Max(deltaKs[col1][s], deltaKs[col2][s]);
                     if (dks[col1][s] < 0.02)
-                        A[s]                           *= Math.Min(0.75 + (0.5 * maxDelta), 1);
+                        A[s] *= Math.Min(0.75 + (0.5 * maxDelta), 1);
                     else if (dks[col1][s] < 0.07) A[s] *= Math.Min(0.65 + (5 * dks[col1][s]) + (0.5 * maxDelta), 1);
                 }
             }
@@ -437,7 +437,7 @@ namespace krrTools.Tests.Beatmaps
             }
 
             double[] Is = new double[T];
-            double[] R  = new double[T];
+            double[] R = new double[T];
 
             for (int i = 0; i < tailSeq.Length - 1; i++)
             {
@@ -446,7 +446,7 @@ namespace krrTools.Tests.Beatmaps
                 for (int s = tailSeq[i].T; s < tailSeq[i + 1].T; s++)
                 {
                     Is[s] = 1 + I[i];
-                    R[s]  = 0.08 * Math.Pow(delta_r, -1.0 / 2) * Math.Pow(x, -1) * (1 + (lambda_4 * (I[i] + I[i + 1])));
+                    R[s] = 0.08 * Math.Pow(delta_r, -1.0 / 2) * Math.Pow(x, -1) * (1 + (lambda_4 * (I[i] + I[i + 1])));
                 }
             }
 
@@ -471,10 +471,10 @@ namespace krrTools.Tests.Beatmaps
                                          double[] Pbar,
                                          double[] Abar,
                                          double[] Rbar,
-                                         int[]    KS)
+                                         int[] KS)
         {
-            double[] C     = new double[T];
-            int      start = 0, end = 0;
+            double[] C = new double[T];
+            int start = 0, end = 0;
 
             for (int t = 0; t < T; t++)
             {
@@ -509,13 +509,13 @@ namespace krrTools.Tests.Beatmaps
             ForwardFill(D);
             ForwardFill(C);
 
-            double weightedSum                      = 0.0;
-            double weightSum                        = C.Sum();
+            double weightedSum = 0.0;
+            double weightSum = C.Sum();
             for (int t = 0; t < T; t++) weightedSum += Math.Pow(D[t], lambda_n) * C[t];
 
             double SR = Math.Pow(weightedSum / weightSum, 1.0 / lambda_n);
 
-            SR =  Math.Pow(SR, p_0) / Math.Pow(8, p_0) * 8;
+            SR = Math.Pow(SR, p_0) / Math.Pow(8, p_0) * 8;
             SR *= (noteSeq.Length + (0.5 * LNSeq.Length)) / (noteSeq.Length + (0.5 * LNSeq.Length) + 60);
 
             if (SR <= 2)
@@ -526,13 +526,13 @@ namespace krrTools.Tests.Beatmaps
 
         public List<SRsNote> getNotes(Beatmap beatmap)
         {
-            var    notes   = new List<SRsNote>();
+            var notes = new List<SRsNote>();
             string section = "";
-            double cs      = beatmap.DifficultySection.CircleSize;
+            double cs = beatmap.DifficultySection.CircleSize;
 
             foreach (HitObject hitobject in beatmap.HitObjects)
             {
-                int col  = (int)Math.Floor(hitobject.Position.X * cs / 512.0);
+                int col = (int)Math.Floor(hitobject.Position.X * cs / 512.0);
                 int time = hitobject.StartTime;
                 int tail = hitobject.EndTime > hitobject.StartTime ? hitobject.EndTime : -1;
                 notes.Add(new SRsNote(col, time, tail));

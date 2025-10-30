@@ -27,16 +27,16 @@ namespace krrTools.Tests.PerformanceTests
             // 测试批次数量是否合理
             var testCases = new[]
             {
-                (totalFiles: 50, expectedBatchSize: 1),   // 直接并发
-                (totalFiles: 80, expectedBatchSize: 1),   // 直接并发
-                (totalFiles: 100, expectedBatchSize: 5),  // 小批次
+                (totalFiles: 50, expectedBatchSize: 1), // 直接并发
+                (totalFiles: 80, expectedBatchSize: 1), // 直接并发
+                (totalFiles: 100, expectedBatchSize: 5), // 小批次
                 (totalFiles: 500, expectedBatchSize: 10), // 中批次
                 (totalFiles: 2000, expectedBatchSize: 50) // 大批次
             };
 
             foreach ((int totalFiles, int expectedBatchSize) in testCases)
             {
-                int batchCount        = (int)Math.Ceiling((double)totalFiles / expectedBatchSize);
+                int batchCount = (int)Math.Ceiling((double)totalFiles / expectedBatchSize);
                 int concurrentBatches = Environment.ProcessorCount;
 
                 _testOutputHelper.WriteLine(
@@ -55,9 +55,9 @@ namespace krrTools.Tests.PerformanceTests
         }
 
         [Theory]
-        [InlineData(50)]   // 直接并发场景
-        [InlineData(80)]   // 边界场景
-        [InlineData(100)]  // 小批次场景
+        [InlineData(50)] // 直接并发场景
+        [InlineData(80)] // 边界场景
+        [InlineData(100)] // 小批次场景
         [InlineData(1000)] // 大批次场景
         public void TaskCreationOptimization_ShouldHandleDifferentScales(int totalFiles)
         {
@@ -74,8 +74,8 @@ namespace krrTools.Tests.PerformanceTests
                                 _       => 50
                             };
 
-            int    optimizedTaskCount = (int)Math.Ceiling((double)totalFiles / batchSize);
-            double taskReduction      = (double)(originalTaskCount - optimizedTaskCount) / originalTaskCount * 100;
+            int optimizedTaskCount = (int)Math.Ceiling((double)totalFiles / batchSize);
+            double taskReduction = (double)(originalTaskCount - optimizedTaskCount) / originalTaskCount * 100;
 
             _testOutputHelper.WriteLine($"文件数: {totalFiles:N0}");
             _testOutputHelper.WriteLine($"批次大小: {batchSize}");

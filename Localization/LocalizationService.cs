@@ -40,7 +40,7 @@ namespace krrTools.Localization
     /// </example>
     public static class LocalizationService
     {
-        #region 枚举本地化
+#region 枚举本地化
 
         /// <summary>
         /// 获取枚举的本地化显示名称。
@@ -61,7 +61,7 @@ namespace krrTools.Localization
         {
             Type type = typeof(T);
 
-            if (!_enumCache.TryGetValue(type, out ConcurrentDictionary<string, string[]>? dict))
+            if (!enum_cache.TryGetValue(type, out ConcurrentDictionary<string, string[]>? dict))
             {
                 dict = new ConcurrentDictionary<string, string[]>();
 
@@ -72,7 +72,7 @@ namespace krrTools.Localization
                         dict[field.Name] = attr.Description.Split('|', 2);
                 }
 
-                _enumCache[type] = dict;
+                enum_cache[type] = dict;
             }
 
             if (dict.TryGetValue(enumValue.ToString(), out string[]? parts) && IsChinese && parts.Length > 1)
@@ -81,9 +81,9 @@ namespace krrTools.Localization
             return parts != null ? parts[0] : enumValue.ToString();
         }
 
-        #endregion
+#endregion
 
-        #region 工具方法
+#region 工具方法
 
         /// <summary>
         /// 为UI元素设置本地化ToolTip（自动更新）。
@@ -103,22 +103,27 @@ namespace krrTools.Localization
             DynamicLocalizedString localizedString = tooltipText.GetLocalizedString();
             element.ToolTip = localizedString.Value;
 
-            void UpdateTip()
+            void updateTip()
             {
                 element.Dispatcher.Invoke(() => element.ToolTip = localizedString.Value);
             }
 
-            LanguageChanged += UpdateTip;
-            element.Unloaded += (_, _) => LanguageChanged -= UpdateTip;
+            LanguageChanged += updateTip;
+            element.Unloaded += (_, _) => LanguageChanged -= updateTip;
         }
 
-        #endregion
+#endregion
 
-        #region 核心语言管理
+#region 核心语言管理
 
-        private static readonly ConcurrentDictionary<string, string[]> _localizationCache = new ConcurrentDictionary<string, string[]>();
-        private static readonly ConcurrentDictionary<string, DynamicLocalizedString> _localizedStringCache = new ConcurrentDictionary<string, DynamicLocalizedString>();
-        private static readonly ConcurrentDictionary<Type, ConcurrentDictionary<string, string[]>> _enumCache = new ConcurrentDictionary<Type, ConcurrentDictionary<string, string[]>>();
+        private static readonly ConcurrentDictionary<string, string[]>
+            localization_cache = new ConcurrentDictionary<string, string[]>();
+
+        private static readonly ConcurrentDictionary<string, DynamicLocalizedString>
+            localized_string_cache = new ConcurrentDictionary<string, DynamicLocalizedString>();
+
+        private static readonly ConcurrentDictionary<Type, ConcurrentDictionary<string, string[]>>
+            enum_cache = new ConcurrentDictionary<Type, ConcurrentDictionary<string, string[]>>();
 
         static LocalizationService()
         {
@@ -139,7 +144,6 @@ namespace krrTools.Localization
         public static void ToggleLanguage()
         {
             IsChinese = !IsChinese;
-            Logger.WriteLine(LogLevel.Debug, $"[LocalizationService] ToggleLanguage: IsChinese changed to {IsChinese}");
             BaseOptionsManager.SetForceChinese(IsChinese);
             Logger.WriteLine(LogLevel.Debug, $"[LocalizationService] ToggleLanguage: ForceChinese set to {IsChinese}");
             LanguageChanged?.Invoke();
@@ -151,9 +155,9 @@ namespace krrTools.Localization
         /// <returns>true=中文模式, false=英文模式。</returns>
         public static bool IsChinese { get; private set; }
 
-        #endregion
+#endregion
 
-        #region 本地化字符串处理
+#region 本地化字符串处理
 
         /// <summary>
         /// 静态本地化方法（不自动更新）。
@@ -176,10 +180,10 @@ namespace krrTools.Localization
         {
             if (string.IsNullOrEmpty(text)) return text;
 
-            if (!_localizationCache.TryGetValue(text, out string[]? parts))
+            if (!localization_cache.TryGetValue(text, out string[]? parts))
             {
                 parts = text.Split(['|'], 2);
-                _localizationCache[text] = parts;
+                localization_cache[text] = parts;
             }
 
             return IsChinese && parts.Length > 1 ? parts[1] : parts[0];
@@ -206,10 +210,10 @@ namespace krrTools.Localization
         {
             if (string.IsNullOrEmpty(text)) return new DynamicLocalizedString(text);
 
-            return _localizedStringCache.GetOrAdd(text, key => new DynamicLocalizedString(key));
+            return localized_string_cache.GetOrAdd(text, key => new DynamicLocalizedString(key));
         }
 
-        #endregion
+#endregion
     }
 
     /// <summary>

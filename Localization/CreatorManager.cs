@@ -7,7 +7,7 @@ namespace krrTools.Localization
     public abstract class CreatorManager
     {
         // 定义标签的固定顺序
-        private static readonly List<string> TagOrder =
+        private static readonly List<string> tag_order =
         [
             Strings.NToNCTag,
             Strings.KRRLNTag,
@@ -56,7 +56,7 @@ namespace krrTools.Localization
                             string part = parts[i];
 
                             // 检查是否是有效的标签
-                            if (TagOrder.Contains(part))
+                            if (tag_order.Contains(part))
                                 potentialTags.Add(part);
                             else
                             {
@@ -91,7 +91,7 @@ namespace krrTools.Localization
             // 按照预定义顺序排序标签
             List<string> orderedTags = existingTags.OrderBy(tag =>
             {
-                int index = TagOrder.IndexOf(tag);
+                int index = tag_order.IndexOf(tag);
                 return index == -1 ? int.MaxValue : index; // 未知标签放在最后
             }).ToList();
 
