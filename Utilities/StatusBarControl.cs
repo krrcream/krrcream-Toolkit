@@ -18,28 +18,21 @@ namespace krrTools.Utilities
 {
     public class StatusBarControl : UserControl
     {
-        private static readonly Brush PanelBackgroundBrush = new SolidColorBrush(Color.FromArgb(64, 255, 255, 255));
-        private static readonly Brush PanelBorderBrush = new SolidColorBrush(Color.FromArgb(32, 0, 0, 0));
-        private static readonly CornerRadius PanelCornerRadius = new CornerRadius(4);
+        private static readonly Brush panel_background_brush = new SolidColorBrush(Color.FromArgb(64, 255, 255, 255));
+        private static readonly Brush panel_border_brush = new SolidColorBrush(Color.FromArgb(32, 0, 0, 0));
+        private static readonly CornerRadius panel_corner_radius = new CornerRadius(4);
 
-        public ToggleButton TopmostToggle { get; private set; } = null!;
-        public ToggleButton RealTimeToggle { get; private set; } = null!;
-
+        private readonly List<MenuItem> _backdropSubItems = new List<MenuItem>();
+        private readonly List<MenuItem> _themeSubItems = new List<MenuItem>();
         private readonly StateBarManager _stateBarManager = null!;
 
-        // 菜单项引用，用于语言切换时更新
         private MenuItem _themeMenuItem = null!;
         private MenuItem _backdropMenuItem = null!;
         private MenuItem _accentMenuItem = null!;
         private MenuItem _langMenuItem = null!;
-        private readonly List<MenuItem> _themeSubItems = new List<MenuItem>();
-        private readonly List<MenuItem> _backdropSubItems = new List<MenuItem>();
 
-        public StatusBarControl()
-        {
-            InitializeComponent();
-            LocalizationService.LanguageChanged += OnLanguageChanged;
-        }
+        public ToggleButton TopmostToggle { get; private set; } = null!;
+        public ToggleButton RealTimeToggle { get; private set; } = null!;
 
         public StatusBarControl(StateBarManager stateBarManager)
         {
@@ -72,14 +65,14 @@ namespace krrTools.Utilities
             // 状态栏Border
             var footer = new Border
             {
-                Background = PanelBackgroundBrush,
-                BorderBrush = PanelBorderBrush,
+                Background = panel_background_brush,
+                BorderBrush = panel_border_brush,
                 BorderThickness = new Thickness(1),
                 Height = double.NaN, // 动态高度
                 MinHeight = 32,
                 Padding = new Thickness(0, 4, 0, 4),
                 Margin = new Thickness(0, 0, 0, 0),
-                CornerRadius = PanelCornerRadius
+                CornerRadius = panel_corner_radius
             };
             System.Windows.Controls.Grid.SetRow(footer, 1);
 
@@ -177,8 +170,12 @@ namespace krrTools.Utilities
                 BorderThickness = new Thickness(0)
             };
 
-            progressBar.SetBinding(RangeBase.ValueProperty, new Binding(nameof(StateBarManager.ProgressValue) + ".Value") { Source = _stateBarManager });
-            progressBar.SetBinding(VisibilityProperty, new Binding(nameof(StateBarManager.ProgressVisible) + ".Value") { Source = _stateBarManager, Converter = new BooleanToVisibilityConverter() });
+            progressBar.SetBinding(RangeBase.ValueProperty,
+                                   new Binding(nameof(StateBarManager.ProgressValue) + ".Value")
+                                       { Source = _stateBarManager });
+            progressBar.SetBinding(VisibilityProperty,
+                                   new Binding(nameof(StateBarManager.ProgressVisible) + ".Value")
+                                       { Source = _stateBarManager, Converter = new BooleanToVisibilityConverter() });
 
             return progressBar;
         }
@@ -233,10 +230,10 @@ namespace krrTools.Utilities
             {
                 string themeHeader = theme switch
                                      {
-                                         ApplicationTheme.Light => Strings.Localize(Strings.ThemeLight),
-                                         ApplicationTheme.Dark => Strings.Localize(Strings.ThemeDark),
+                                         ApplicationTheme.Light        => Strings.Localize(Strings.ThemeLight),
+                                         ApplicationTheme.Dark         => Strings.Localize(Strings.ThemeDark),
                                          ApplicationTheme.HighContrast => Strings.Localize(Strings.ThemeHighContrast),
-                                         _ => theme.ToString()
+                                         _                             => theme.ToString()
                                      };
                 var themeItem = new MenuItem
                 {
@@ -273,11 +270,11 @@ namespace krrTools.Utilities
             {
                 string backdropHeader = backdrop switch
                                         {
-                                            WindowBackdropType.None => Strings.Localize(Strings.BackdropNone),
-                                            WindowBackdropType.Mica => Strings.Localize(Strings.BackdropMica),
+                                            WindowBackdropType.None    => Strings.Localize(Strings.BackdropNone),
+                                            WindowBackdropType.Mica    => Strings.Localize(Strings.BackdropMica),
                                             WindowBackdropType.Acrylic => Strings.Localize(Strings.BackdropAcrylic),
-                                            WindowBackdropType.Tabbed => Strings.Localize(Strings.BackdropTabbed),
-                                            _ => backdrop.ToString()
+                                            WindowBackdropType.Tabbed  => Strings.Localize(Strings.BackdropTabbed),
+                                            _                          => backdrop.ToString()
                                         };
                 var backdropItem = new MenuItem
                 {
@@ -343,12 +340,16 @@ namespace krrTools.Utilities
 
         private static ApplicationTheme GetSavedApplicationTheme()
         {
-            return Enum.TryParse<ApplicationTheme>(BaseOptionsManager.GetApplicationTheme(), out ApplicationTheme theme) ? theme : ApplicationTheme.Light;
+            return Enum.TryParse(BaseOptionsManager.GetApplicationTheme(), out ApplicationTheme theme)
+                       ? theme
+                       : ApplicationTheme.Light;
         }
 
         private static WindowBackdropType GetSavedWindowBackdropType()
         {
-            return Enum.TryParse<WindowBackdropType>(BaseOptionsManager.GetWindowBackdropType(), out WindowBackdropType backdrop) ? backdrop : WindowBackdropType.Acrylic;
+            return Enum.TryParse(BaseOptionsManager.GetWindowBackdropType(), out WindowBackdropType backdrop)
+                       ? backdrop
+                       : WindowBackdropType.Acrylic;
         }
 
         private static bool? GetSavedUpdateAccent()
@@ -370,10 +371,10 @@ namespace krrTools.Utilities
                 {
                     item.Header = theme switch
                                   {
-                                      ApplicationTheme.Light => Strings.Localize(Strings.ThemeLight),
-                                      ApplicationTheme.Dark => Strings.Localize(Strings.ThemeDark),
+                                      ApplicationTheme.Light        => Strings.Localize(Strings.ThemeLight),
+                                      ApplicationTheme.Dark         => Strings.Localize(Strings.ThemeDark),
                                       ApplicationTheme.HighContrast => Strings.Localize(Strings.ThemeHighContrast),
-                                      _ => theme.ToString()
+                                      _                             => theme.ToString()
                                   };
                 }
             }
@@ -385,11 +386,11 @@ namespace krrTools.Utilities
                 {
                     item.Header = backdrop switch
                                   {
-                                      WindowBackdropType.None => Strings.Localize(Strings.BackdropNone),
-                                      WindowBackdropType.Mica => Strings.Localize(Strings.BackdropMica),
+                                      WindowBackdropType.None    => Strings.Localize(Strings.BackdropNone),
+                                      WindowBackdropType.Mica    => Strings.Localize(Strings.BackdropMica),
                                       WindowBackdropType.Acrylic => Strings.Localize(Strings.BackdropAcrylic),
-                                      WindowBackdropType.Tabbed => Strings.Localize(Strings.BackdropTabbed),
-                                      _ => backdrop.ToString()
+                                      WindowBackdropType.Tabbed  => Strings.Localize(Strings.BackdropTabbed),
+                                      _                          => backdrop.ToString()
                                   };
                 }
             }

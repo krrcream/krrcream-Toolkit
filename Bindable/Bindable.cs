@@ -12,22 +12,21 @@ namespace krrTools.Bindable
     /// <typeparam name="T">The type of the value.</typeparam>
     public class Bindable<T> : INotifyPropertyChanged
     {
-        private T _value;
         private bool _disabled;
         private Func<T, T>? _mapping;
-        private List<Action<T>> _onValueChangedCallbacks = new List<Action<T>>();
-        private List<Func<T, Task>> _onValueChangedAsyncCallbacks = new List<Func<T, Task>>();
+        private readonly List<Action<T>> _onValueChangedCallbacks = new List<Action<T>>();
+        private readonly List<Func<T, Task>> _onValueChangedAsyncCallbacks = new List<Func<T, Task>>();
         private bool _isNotifying; // 防递归标志
         private INotifyCollectionChanged? _collectionChanged;
         private T _previousValue; // 用于撤销功能
 
         public Bindable(T defaultValue = default!)
         {
-            _value = defaultValue;
+            RawValue = defaultValue;
             _previousValue = defaultValue; // 初始化上一个值
 
             // 如果默认值是集合，监听其改变
-            if (_value is INotifyCollectionChanged collection)
+            if (RawValue is INotifyCollectionChanged collection)
             {
                 _collectionChanged = collection;
                 _collectionChanged.CollectionChanged += OnCollectionChanged;
@@ -36,14 +35,11 @@ namespace krrTools.Bindable
 
         public T Value
         {
-            get => _mapping != null ? _mapping(_value) : _value;
+            get => _mapping != null ? _mapping(RawValue) : RawValue;
             set => Set(value);
         }
 
-        public T RawValue
-        {
-            get => _value;
-        }
+        public T RawValue { get; private set; }
 
         public bool Disabled
         {
@@ -51,6 +47,7 @@ namespace krrTools.Bindable
             set
             {
                 if (_disabled == value) return;
+
                 _disabled = value;
                 OnPropertyChanged();
             }
@@ -61,10 +58,10 @@ namespace krrTools.Bindable
         protected virtual void Set(T value, [CallerMemberName] string? propertyName = null)
         {
             if (_disabled || _isNotifying) return; // 防递归
-            if (EqualityComparer<T>.Default.Equals(_value, value)) return;
+            if (EqualityComparer<T>.Default.Equals(RawValue, value)) return;
 
             // 保存上一个值用于撤销
-            _previousValue = _value;
+            _previousValue = RawValue;
 
             // 移除旧值的监听
             if (_collectionChanged != null)
@@ -73,20 +70,20 @@ namespace krrTools.Bindable
                 _collectionChanged = null;
             }
 
-            _value = value;
+            RawValue = value;
 
             // 如果新值是集合，监听其改变
-            if (_value is INotifyCollectionChanged newCollection)
+            if (RawValue is INotifyCollectionChanged newCollection)
             {
                 _collectionChanged = newCollection;
                 _collectionChanged.CollectionChanged += OnCollectionChanged;
             }
 
             // 异步通知，避免阻塞
-            _ = NotifyValueChangedAsync(_value);
+            _ = notifyValueChangedAsync(RawValue);
 
             // 调试测试绑定变化
-            /*Logger.WriteLine(LogLevel.Debug,$"[Bindable] Property '{propertyName}' changed to '{value}'");*/
+            // Logger.WriteLine(LogLevel.Debug, $"[Bindable] Property '{propertyName}' changed to '{value}'");
             OnPropertyChanged(propertyName ?? nameof(Value));
         }
 
@@ -96,7 +93,7 @@ namespace krrTools.Bindable
             OnPropertyChanged(nameof(Value));
         }
 
-        private async Task NotifyValueChangedAsync(T value)
+        private async Task notifyValueChangedAsync(T value)
         {
             _isNotifying = true;
 

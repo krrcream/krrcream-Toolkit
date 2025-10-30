@@ -3,8 +3,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using OsuParsers.Beatmaps;
 using krrTools.Beatmaps;
+using krrTools.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.Bindable
 {
@@ -65,7 +66,7 @@ namespace krrTools.Bindable
 
     public class EventBus : IEventBus
     {
-        private event Action<object>? _eventPublished;
+        private event Action<object>? EventPublished;
         private readonly ConcurrentDictionary<Type, ConcurrentQueue<(object Event, int Priority)>> _priorityQueues = new ConcurrentDictionary<Type, ConcurrentQueue<(object Event, int Priority)>>();
         private readonly SemaphoreSlim _processingSemaphore = new SemaphoreSlim(1, 1);
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
@@ -84,10 +85,10 @@ namespace krrTools.Bindable
             queue.Enqueue((eventData, priority));
 
             // 异步处理队列，避免阻塞发布者
-            _ = ProcessQueueAsync(eventType, _cts.Token);
+            _ = processQueueAsync(eventType, _cts.Token);
         }
 
-        private async Task ProcessQueueAsync(Type eventType, CancellationToken cancellationToken)
+        private async Task processQueueAsync(Type eventType, CancellationToken cancellationToken)
         {
             await _processingSemaphore.WaitAsync(cancellationToken);
 
@@ -111,12 +112,12 @@ namespace krrTools.Bindable
 
                     try
                     {
-                        _eventPublished?.Invoke(evt);
+                        EventPublished?.Invoke(evt);
                     }
                     catch (Exception ex)
                     {
                         // 记录错误但不中断处理
-                        Console.WriteLine($"[EventBus] Error processing event {evt.GetType().Name}: {ex.Message}");
+                        Logger.WriteLine(LogLevel.Error, $"[EventBus] Error processing event {evt.GetType().Name}: {ex.Message}");
                     }
 
                     // 小延迟避免过度占用CPU
@@ -141,12 +142,12 @@ namespace krrTools.Bindable
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[EventBus] Error in event handler for {typeof(T).Name}: {ex.Message}");
+                        Logger.WriteLine(LogLevel.Error, $"[EventBus] Error in event handler for {typeof(T).Name}: {ex.Message}");
                     }
                 }
             };
-            _eventPublished += wrapper;
-            return new Unsubscriber(() => _eventPublished -= wrapper);
+            EventPublished += wrapper;
+            return new Unsubscriber(() => EventPublished -= wrapper);
         }
 
         private class Unsubscriber(Action unsubscribe) : IDisposable
@@ -253,11 +254,11 @@ namespace krrTools.Bindable
     /// <summary>
     /// Event raised when file source changes in FileDropZone
     /// </summary>
-    public class FileSourceChangedEvent : ValueChangedEvent<Configuration.FileSource>
+    public class FileSourceChangedEvent : ValueChangedEvent<FileSource>
     {
         public string[]? Files { get; }
 
-        public FileSourceChangedEvent(Configuration.FileSource oldSource, Configuration.FileSource newSource, string[]? files)
+        public FileSourceChangedEvent(FileSource oldSource, FileSource newSource, string[]? files)
         {
             OldValue = oldSource;
             NewValue = newSource;

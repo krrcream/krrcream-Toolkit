@@ -13,22 +13,20 @@ namespace krrTools.Utilities
     public class StateBarManager : INotifyPropertyChanged
     {
         [Inject]
-        private IEventBus EventBus { get; set; } = null!;
-
-        private bool _isTopmost;
+        private IEventBus eventBus { get; set; } = null!;
 
         // 进度条自动隐藏定时器
         private readonly DispatcherTimer? _progressHideTimer;
 
         // 核心状态 - 直接使用全局设置
-        public Bindable<bool> IsOsuRunning { get; } = new Bindable<bool>();
-        public Bindable<string> CurrentBeatmapPath { get; } = new Bindable<string>(string.Empty);
         public Bindable<ListenerState> ListenerStateBindable { get; } = new Bindable<ListenerState>();
+        public Bindable<bool> IsOsuRunning { get; } = new Bindable<bool>();
         public Bindable<bool> IsPlaying { get; } = new Bindable<bool>();
         public Bindable<bool> IsFrozen { get; } = new Bindable<bool>();
         public Bindable<bool> IsHidden { get; } = new Bindable<bool>();
-        public Bindable<double> ProgressValue { get; } = new Bindable<double>();
+        public Bindable<bool> IsTopmost { get; } = new Bindable<bool>();
         public Bindable<bool> ProgressVisible { get; } = new Bindable<bool>();
+        public Bindable<double> ProgressValue { get; } = new Bindable<double>();
 
         public StateBarManager()
         {
@@ -48,7 +46,7 @@ namespace krrTools.Utilities
 
             // 设置状态绑定和响应逻辑
             SetupStateBindings();
-            EventBus.Subscribe<MonitoringEnabledChangedEvent>(OnMonitoringEnabledChanged);
+            eventBus.Subscribe<MonitoringEnabledChangedEvent>(OnMonitoringEnabledChanged);
         }
 
         /// <summary>
@@ -56,14 +54,10 @@ namespace krrTools.Utilities
         /// </summary>
         public void SetTopmost(bool value)
         {
-            _isTopmost = value;
-            // 检查隐藏逻辑
-            if (IsPlaying.Value && value)
-                IsHidden.Value = true;
-            else if (!value) IsHidden.Value = false;
+            IsTopmost.Value = value;
         }
 
-        #region 公共属性
+#region 公共属性
 
         /// <summary>
         /// 实时预览是否启用 - 直接从全局设置读取
@@ -74,16 +68,16 @@ namespace krrTools.Utilities
             set => BaseOptionsManager.SetMonitoring(value);
         }
 
-        #endregion
+#endregion
 
-        #region 状态绑定设置
+#region 状态绑定设置
 
         private void SetupStateBindings()
         {
             // osu!运行状态变化时，更新监听器状态
             IsOsuRunning.OnValueChanged(running =>
             {
-                EventBus.Publish(new OsuRunningEvent
+                eventBus.Publish(new OsuRunningEvent
                 {
                     OldValue = !running,
                     NewValue = running
@@ -127,16 +121,28 @@ namespace krrTools.Utilities
             IsPlaying.OnValueChanged(playing =>
             {
                 // 隐藏逻辑：只有置顶开启时才隐藏
-                if (playing && _isTopmost)
+                if (playing && IsTopmost.Value)
                     IsHidden.Value = true;
-                else if (!playing) IsHidden.Value = false;
+                else if (!playing)
+                    IsHidden.Value = false;
 
                 // 冻结逻辑：只有监听开启时才冻结
                 if (playing && IsMonitoringEnable)
                     IsFrozen.Value = true;
-                else if (!playing) IsFrozen.Value = false;
+                else if (!playing)
+                    IsFrozen.Value = false;
 
                 OnPropertyChanged(nameof(IsPlaying));
+            });
+
+            // IsTopmost变化时，处理隐藏逻辑
+            IsTopmost.OnValueChanged(topmost =>
+            {
+                // 检查隐藏逻辑
+                if (IsPlaying.Value && topmost)
+                    IsHidden.Value = true;
+                else if (!topmost)
+                    IsHidden.Value = false;
             });
 
             // IsFrozen变化时，触发属性变更通知
@@ -171,9 +177,9 @@ namespace krrTools.Utilities
             });
         }
 
-        #endregion
+#endregion
 
-        #region 事件订阅
+#region 事件订阅
 
         private void OnMonitoringEnabledChanged(MonitoringEnabledChangedEvent evt)
         {
@@ -191,19 +197,20 @@ namespace krrTools.Utilities
                 {
                     ListenerStateBindable.Value = 0;
                     // 监听关闭时，重置预览到内置样本
-                    EventBus.Publish(new ConvPrevRefreshOnlyEvent { NewValue = false });
+                    eventBus.Publish(new ConvPrevRefreshOnlyEvent { NewValue = false });
                 }
 
                 // 检查冻结逻辑
                 if (IsPlaying.Value && evt.NewValue)
                     IsFrozen.Value = true;
-                else if (!evt.NewValue) IsFrozen.Value = false;
+                else if (!evt.NewValue)
+                    IsFrozen.Value = false;
             });
         }
 
-        #endregion
+#endregion
 
-        #region INotifyPropertyChanged
+#region INotifyPropertyChanged
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -212,10 +219,10 @@ namespace krrTools.Utilities
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        #endregion
+#endregion
     }
 
-    #region 状态枚举和事件类
+#region 状态枚举和事件类
 
     public enum ListenerState
     {
@@ -225,5 +232,5 @@ namespace krrTools.Utilities
         Stopped
     }
 
-    #endregion
+#endregion
 }

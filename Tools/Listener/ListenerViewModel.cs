@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+﻿using System.Collections.ObjectModel;
+using System.Globalization;
 using CommunityToolkit.Mvvm.Input;
 using krrTools.Beatmaps;
 using krrTools.Bindable;
@@ -25,23 +21,23 @@ namespace krrTools.Tools.Listener
 
         private Task? _monitoringTask; // 异步监听任务
 
-        private bool _isMonitoringActive;   // 标记监听任务是否正在运行
-        private bool _hasLoggedNonMania;    // 是否已记录非Mania谱面日志
-        private int  _currentDelayMs = 500; // 当前监听延迟时间，动态调整
+        private bool _isMonitoringActive; // 标记监听任务是否正在运行
+        private bool _hasLoggedNonMania; // 是否已记录非Mania谱面日志
+        private int _currentDelayMs = 500; // 当前监听延迟时间，动态调整
 
         // 公共属性注入事件总线
         [Inject]
-        private IEventBus EventBus { get; set; } = null!;
+        private IEventBus eventBus { get; set; } = null!;
 
         [Inject]
-        private StateBarManager StateBarManager { get; set; } = null!;
+        private StateBarManager stateBarManager { get; set; } = null!;
 
         // 服务实例 - 通过依赖注入获取
         [Inject]
-        private OsuMonitorService _monitorService { get; set; } = null!;
+        private OsuMonitorService monitorService { get; set; } = null!;
 
         [Inject]
-        private BeatmapAnalysisService _analysisService { get; set; } = null!; //分析服务自订阅监听变更
+        private BeatmapAnalysisService analysisService { get; set; } = null!; //分析服务自订阅监听变更
 
         // 全局设置引用
         public GlobalSettings GlobalSettings { get; }
@@ -94,23 +90,27 @@ namespace krrTools.Tools.Listener
         public string WindowTitle = Strings.OSUListener.Localize();
 
         // 当前文件信息属性 - 使用 Bindable 系统
-        public Bindable<string> Title      { get; set; } = new Bindable<string>(string.Empty);
-        public Bindable<string> Artist     { get; set; } = new Bindable<string>(string.Empty);
-        public Bindable<string> Creator    { get; set; } = new Bindable<string>(string.Empty);
-        public Bindable<string> Version    { get; set; } = new Bindable<string>(string.Empty);
-        public Bindable<double> BPM        { get; set; } = new Bindable<double>();
-        public Bindable<double> OD         { get; set; } = new Bindable<double>();
-        public Bindable<double> HP         { get; set; } = new Bindable<double>();
-        public Bindable<double> Keys       { get; set; } = new Bindable<double>();
+        public Bindable<string> FilePath { get; set; } = new Bindable<string>(string.Empty);
+        public Bindable<string> FileName { get; set; } = new Bindable<string>(string.Empty);
+        public Bindable<int> BeatmapID { get; set; } = new Bindable<int>(-1);
+        public Bindable<int> BeatmapSetID { get; set; } = new Bindable<int>(-1);
+        public Bindable<string> Title { get; set; } = new Bindable<string>(string.Empty);
+        public Bindable<string> Artist { get; set; } = new Bindable<string>(string.Empty);
+        public Bindable<string> Creator { get; set; } = new Bindable<string>(string.Empty);
+        public Bindable<string> Version { get; set; } = new Bindable<string>(string.Empty);
+        public Bindable<double> BPM { get; set; } = new Bindable<double>();
+        public Bindable<double> OD { get; set; } = new Bindable<double>();
+        public Bindable<double> HP { get; set; } = new Bindable<double>();
+        public Bindable<double> Keys { get; set; } = new Bindable<double>();
         public Bindable<double> NotesCount { get; set; } = new Bindable<double>();
-        public Bindable<double> LNPercent  { get; set; } = new Bindable<double>();
+        public Bindable<double> LNPercent { get; set; } = new Bindable<double>();
 
         public Bindable<string> Status { get; set; } = new Bindable<string>("Monitoring...");
 
         // LV 分析相关属性
-        public Bindable<double> XxySR  { get; set; } = new Bindable<double>();
-        public Bindable<double> KrrLV  { get; set; } = new Bindable<double>(-1.0);
-        public Bindable<double> YlsLV  { get; set; } = new Bindable<double>(-1.0);
+        public Bindable<double> XxySR { get; set; } = new Bindable<double>();
+        public Bindable<double> KrrLV { get; set; } = new Bindable<double>(-1.0);
+        public Bindable<double> YlsLV { get; set; } = new Bindable<double>(-1.0);
         public Bindable<double> MaxKPS { get; set; } = new Bindable<double>();
         public Bindable<double> AvgKPS { get; set; } = new Bindable<double>();
 
@@ -124,8 +124,8 @@ namespace krrTools.Tools.Listener
             private set => GlobalSettings.LastPreviewPath.Value = value;
         }
 
-        public Bindable<bool> N2NCHotkeyConflict  { get; } = new Bindable<bool>();
-        public Bindable<bool> DPHotkeyConflict    { get; } = new Bindable<bool>();
+        public Bindable<bool> N2NCHotkeyConflict { get; } = new Bindable<bool>();
+        public Bindable<bool> DPHotkeyConflict { get; } = new Bindable<bool>();
         public Bindable<bool> KRRLNHotkeyConflict { get; } = new Bindable<bool>();
 
         public ListenerViewModel()
@@ -136,10 +136,10 @@ namespace krrTools.Tools.Listener
             BrowseCommand = new RelayCommand(SetSongsPathWindow);
 
             // 订阅分析结果变化事件
-            EventBus.Subscribe<AnalysisResultChangedEvent>(OnAnalysisResultChanged);
+            eventBus.Subscribe<AnalysisResultChangedEvent>(OnAnalysisResultChanged);
 
             // 订阅监听器状态变化
-            StateBarManager.ListenerStateBindable.OnValueChanged(OnListenerStateChanged);
+            stateBarManager.ListenerStateBindable.OnValueChanged(OnListenerStateChanged);
 
             // 设置 Bindable 属性变化通知
             SetupAutoBindableNotifications();
@@ -165,8 +165,8 @@ namespace krrTools.Tools.Listener
         {
             // if (_isMonitoringActive) return Task.CompletedTask;
 
-            _isMonitoringActive     = true;
-            _currentDelayMs         = 500; // 重置延迟
+            _isMonitoringActive = true;
+            _currentDelayMs = 500; // 重置延迟
             _monitoringCancellation = new CancellationTokenSource();
             _monitoringTask = Task.Run(async () =>
             {
@@ -176,7 +176,7 @@ namespace krrTools.Tools.Listener
                 {
                     bool detected = CheckOsuBeatmap();
                     _currentDelayMs = detected
-                                          ? 500                                   // 检测到进程，恢复正常频率
+                                          ? 500 // 检测到进程，恢复正常频率
                                           : Math.Min(_currentDelayMs * 2, 10000); // 检测失败，逐渐延长延迟，最多10秒
 
                     await Task.Delay(_currentDelayMs, _monitoringCancellation.Token); // 动态间隔，可取消
@@ -193,10 +193,10 @@ namespace krrTools.Tools.Listener
             try
             {
                 // var stopwatch = Stopwatch.StartNew();
-                _monitorService.DetectOsuProcess();
+                monitorService.DetectOsuProcess();
 
-                string monitorFilePath = _monitorService.ReadMemoryData();
-                bool   isMania         = BeatmapFileHelper.IsManiaBeatmap(monitorFilePath);
+                string monitorFilePath = monitorService.ReadMemoryData();
+                bool isMania = BeatmapFileHelper.IsManiaBeatmap(monitorFilePath);
 
                 if (!isMania)
                 {
@@ -218,9 +218,9 @@ namespace krrTools.Tools.Listener
                     BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = monitorFilePath);
 
                     // 足够条件确认为新谱面，文件正确，路径安全，发布事件
-                    EventBus.Publish(new BeatmapChangedEvent
+                    eventBus.Publish(new BeatmapChangedEvent
                     {
-                        FilePath   = monitorFilePath,
+                        FilePath = monitorFilePath,
                         ChangeType = BeatmapChangeType.FromMonitoring
                     });
 
@@ -243,16 +243,12 @@ namespace krrTools.Tools.Listener
         {
             if (_hasSongsPath) return; // 如果已经弹出过窗口，直接返回
 
-            var dialog = new FolderBrowserDialog
-            {
-                SelectedPath = BaseOptionsManager.GetGlobalSettings().SongsPath.Value,
-                Description  = "Please select the osu! Songs directory"
-            };
+            string selectedPath = FilesHelper.ShowFolderBrowserDialog("Please select the osu! Songs directory");
 
-            if (dialog.ShowDialog() == DialogResult.OK)
+            if (!string.IsNullOrEmpty(selectedPath))
             {
-                BaseOptionsManager.GetGlobalSettings().SongsPath.Value = dialog.SelectedPath;
-                _hasSongsPath                                          = true;
+                BaseOptionsManager.GetGlobalSettings().SongsPath.Value = selectedPath;
+                _hasSongsPath = true;
             }
         }
 
@@ -276,8 +272,8 @@ namespace krrTools.Tools.Listener
 
             _monitoringCancellation?.Dispose();
             _monitoringCancellation = null;
-            _monitoringTask         = null;
-            _isMonitoringActive     = false;
+            _monitoringTask = null;
+            _isMonitoringActive = false;
         }
 
         /// <summary>
@@ -289,28 +285,31 @@ namespace krrTools.Tools.Listener
 
             Application.Current?.Dispatcher?.Invoke(() =>
             {
-                Title.Value = result.Title ?? string.Empty;
-                Artist.Value = result.Artist ?? string.Empty;
-                Creator.Value = result.Creator ?? string.Empty;
-                Version.Value = result.Diff ?? string.Empty;
+                FilePath.Value = result.FilePath;
+                FileName.Value = result.FileName;
+                Status.Value = result.Status;
+                Title.Value = result.Title;
+                Artist.Value = result.Artist;
+                Creator.Value = result.Creator;
+                Version.Value = result.Diff;
                 Keys.Value = (int)result.KeyCount;
                 OD.Value = result.OD;
                 HP.Value = result.HP;
                 NotesCount.Value = result.NotesCount;
-                LNPercent.Value = result.LNPercent;
+                LNPercent.Value = result.LN_Percent;
                 XxySR.Value = result.XXY_SR;
                 KrrLV.Value = result.KRR_LV;
                 YlsLV.Value = result.YLs_LV;
                 MaxKPS.Value = result.MaxKPS;
                 AvgKPS.Value = result.AvgKPS;
-                Status.Value = "Analyzed";
 
                 // 解析BPM显示字符串
                 if (!string.IsNullOrEmpty(result.BPMDisplay))
                 {
                     // BPM格式通常是 "180(170-190)"
                     string[] bpmParts = result.BPMDisplay.Split('(');
-                    if (double.TryParse(bpmParts[0], out double bpm)) BPM.Value = bpm;
+                    if (double.TryParse(bpmParts[0], out double bpm))
+                        BPM.Value = bpm;
                 }
 
                 // 更新文件信息项
@@ -328,8 +327,8 @@ namespace krrTools.Tools.Listener
             FileInfoItems.Add(new KeyValuePair<string, string>("BPM", BPM.Value.ToString("F2")));
             FileInfoItems.Add(new KeyValuePair<string, string>("OD", OD.Value.ToString("F2")));
             FileInfoItems.Add(new KeyValuePair<string, string>("HP", HP.Value.ToString("F2")));
-            FileInfoItems.Add(new KeyValuePair<string, string>("Keys", Keys.Value.ToString()));
-            FileInfoItems.Add(new KeyValuePair<string, string>("Notes Count", NotesCount.Value.ToString()));
+            FileInfoItems.Add(new KeyValuePair<string, string>("Keys", Keys.Value.ToString(CultureInfo.InvariantCulture)));
+            FileInfoItems.Add(new KeyValuePair<string, string>("Notes Count", NotesCount.Value.ToString(CultureInfo.InvariantCulture)));
             FileInfoItems.Add(new KeyValuePair<string, string>("LN Percent", LNPercent.Value.ToString("F2") + "%"));
             FileInfoItems.Add(new KeyValuePair<string, string>("XXY SR", XxySR.Value.ToString("F2")));
             FileInfoItems.Add(new KeyValuePair<string, string>("KRR LV", KrrLV.Value.ToString("F2")));

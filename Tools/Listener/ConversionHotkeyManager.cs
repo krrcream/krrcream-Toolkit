@@ -1,7 +1,7 @@
-using System;
-using System.Collections.Generic;
+using System.Windows.Input;
 using krrTools.Configuration;
 using Microsoft.Extensions.Logging;
+using NHotkey.Wpf;
 
 namespace krrTools.Tools.Listener
 {
@@ -10,15 +10,13 @@ namespace krrTools.Tools.Listener
     /// </summary>
     public class ConversionHotkeyManager : IDisposable
     {
-        private readonly Dictionary<ConverterEnum, GlobalHotkey?> _hotkeys = new Dictionary<ConverterEnum, GlobalHotkey?>();
-        private readonly Action<ConverterEnum>                    _convertAction;
-        private readonly System.Windows.Window                    _window;
-        private          bool                                     _hotkeysRegistered;
+        private readonly Action<ConverterEnum> _convertAction;
 
-        public ConversionHotkeyManager(Action<ConverterEnum> convertAction, System.Windows.Window window)
+        private bool _hotkeysRegistered;
+
+        public ConversionHotkeyManager(Action<ConverterEnum> convertAction)
         {
             _convertAction = convertAction ?? throw new ArgumentNullException(nameof(convertAction));
-            _window        = window ?? throw new ArgumentNullException(nameof(window));
         }
 
         /// <summary>
@@ -47,10 +45,17 @@ namespace krrTools.Tools.Listener
 
             try
             {
-                var globalHotkey = new GlobalHotkey(hotkey, () => _convertAction(converter), _window);
-                _hotkeys[converter] = globalHotkey;
-                Logger.WriteLine(LogLevel.Debug,
-                                 $"[ConversionHotkeyManager] Successfully registered hotkey for {converter}");
+                if (ParseHotkey(hotkey, out Key key, out ModifierKeys modifiers))
+                {
+                    HotkeyManager.Current.AddOrReplace(converter.ToString(), key, modifiers, (sender, e) => _convertAction(converter));
+                    Logger.WriteLine(LogLevel.Debug,
+                                     $"[ConversionHotkeyManager] Successfully registered hotkey for {converter}");
+                }
+                else
+                {
+                    Logger.WriteLine(LogLevel.Warning,
+                                     $"[ConversionHotkeyManager] Failed to parse hotkey '{hotkey}' for {converter}");
+                }
             }
             catch (Exception ex)
             {
@@ -64,40 +69,58 @@ namespace krrTools.Tools.Listener
         /// </summary>
         public void UnregisterAllHotkeys()
         {
-            foreach (GlobalHotkey? hotkey in _hotkeys.Values) hotkey?.Unregister();
-            _hotkeys.Clear();
+            HotkeyManager.Current.Remove(nameof(ConverterEnum.N2NC));
+            HotkeyManager.Current.Remove(nameof(ConverterEnum.DP));
+            HotkeyManager.Current.Remove(nameof(ConverterEnum.KRRLN));
             _hotkeysRegistered = false;
         }
 
-        /// <summary>
-        /// 检查快捷键是否冲突
-        /// </summary>
-        public Dictionary<ConverterEnum, bool> CheckHotkeyConflicts(GlobalSettings settings)
+        private bool ParseHotkey(string hotkey, out Key key, out ModifierKeys modifiers)
         {
-            var conflicts = new Dictionary<ConverterEnum, bool>();
+            key = Key.None;
+            modifiers = ModifierKeys.None;
+            if (string.IsNullOrWhiteSpace(hotkey)) return false;
 
-            conflicts[ConverterEnum.N2NC]  = CheckHotkeyConflict(settings.N2NCHotkey.Value);
-            conflicts[ConverterEnum.DP]    = CheckHotkeyConflict(settings.DPHotkey.Value);
-            conflicts[ConverterEnum.KRRLN] = CheckHotkeyConflict(settings.KRRLNHotkey.Value);
+            string[] parts = hotkey.Split(['+'], StringSplitOptions.RemoveEmptyEntries);
 
-            return conflicts;
-        }
-
-        private bool CheckHotkeyConflict(string? hotkey)
-        {
-            if (string.IsNullOrEmpty(hotkey)) return false;
-
-            try
+            foreach (string p in parts)
             {
-                // 临时注册来检查冲突
-                var tempHotkey = new GlobalHotkey(hotkey, () => { }, _window);
-                tempHotkey.Unregister(); // 立即注销
-                return false;            // 没有冲突
+                string trimmed = p.Trim();
+
+                switch (trimmed.ToUpperInvariant())
+                {
+                    case "CTRL":
+                    case "CONTROL":
+                        modifiers |= ModifierKeys.Control;
+                        break;
+
+                    case "SHIFT":
+                        modifiers |= ModifierKeys.Shift;
+                        break;
+
+                    case "ALT":
+                        modifiers |= ModifierKeys.Alt;
+                        break;
+
+                    default:
+                        // 尝试解析键值
+                        if (Enum.TryParse(trimmed, true, out key))
+                        {
+                            // 成功
+                        }
+                        else
+                        {
+                            Logger.WriteLine(LogLevel.Warning,
+                                             "[ConversionHotkeyManager] Unrecognized key part '{0}' in '{1}'",
+                                             trimmed, hotkey);
+                            return false;
+                        }
+
+                        break;
+                }
             }
-            catch
-            {
-                return true; // 注册失败，说明冲突
-            }
+
+            return key != Key.None;
         }
 
         public void Dispose()

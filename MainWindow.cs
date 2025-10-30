@@ -49,19 +49,22 @@ namespace krrTools
     public class MainWindow : FluentWindow
     {
         private readonly Dictionary<object, ContentControl> _settingsHosts = new Dictionary<object, ContentControl>();
+        private readonly Dictionary<ConverterEnum, Func<IToolOptions>> _optionsProviders = new Dictionary<ConverterEnum, Func<IToolOptions>>();
+        private readonly Dictionary<ConverterEnum, Func<object?>> _viewModelGetters = new Dictionary<ConverterEnum, Func<object?>>();
+
         private readonly Grid root;
         private readonly TabView MainTabControl;
         private readonly Grid _mainGrid;
+        private readonly StateBarManager _StateBarManager;
 
         private PreviewViewDual _previewDual = null!;
         private ContentControl _currentSettingsContainer = null!;
-        private readonly StateBarManager _StateBarManager;
-
-        // 全局快捷键管理器
-        private ConversionHotkeyManager? _conversionHotkeyManager;
-
-        // Snackbar服务
         private SnackbarPresenter _snackbarPresenter = null!;
+        private ConversionHotkeyManager? _conversionHotkeyManager;
+        private N2NCView _convWindowInstance = null!;
+        private DPToolView _dpToolWindowInstance = null!;
+        private KRRLNTransformerView _krrLnTransformerInstance = null!;
+        private ListenerControl _listenerControlInstance = null!;
 
         // 跟踪选项卡拖动/分离
         private Point _dragStartPoint;
@@ -71,18 +74,11 @@ namespace krrTools
         // 工具调度器
         private IModuleManager ModuleManager { get; }
 
-        private N2NCView _convWindowInstance = null!;
-        private DPToolView _dpToolWindowInstance = null!;
-        private KRRLNTransformerView _krrLnTransformerInstance = null!;
-        private ListenerControl _listenerControlInstance = null!;
-
-        private readonly Dictionary<ConverterEnum, Func<IToolOptions>> _optionsProviders = new Dictionary<ConverterEnum, Func<IToolOptions>>();
-        private readonly Dictionary<ConverterEnum, Func<object?>> _viewModelGetters = new Dictionary<ConverterEnum, Func<object?>>();
-
         private ContentControl? N2NCSettingsHost
         {
             get => _settingsHosts.GetValueOrDefault(ConverterEnum.N2NC);
         }
+
         private ContentControl? DPSettingsHost
         {
             get => _settingsHosts.GetValueOrDefault(ConverterEnum.DP);
@@ -162,7 +158,7 @@ namespace krrTools
 
         private void InitializeGlobalHotkeys()
         {
-            _conversionHotkeyManager = new ConversionHotkeyManager(ExecuteConvertWithModule, this);
+            _conversionHotkeyManager = new ConversionHotkeyManager(ExecuteConvertWithModule);
 
             // 订阅监听状态变化
             var eventBus = App.Services.GetService(typeof(IEventBus)) as IEventBus;
@@ -185,7 +181,7 @@ namespace krrTools
 
                 if (beatmap == null)
                 {
-                    Logger.WriteLine(LogLevel.Error, $"{beatmapPath} is not a supported beatmap. And Skipped.");
+                    Logger.WriteLine(LogLevel.Warning, $"{beatmapPath} is not a supported beatmap. And Skipped.");
                     return;
                 }
 
@@ -209,7 +205,7 @@ namespace krrTools
                 if (!hasChanges)
                 {
                     // 没有实际转换，跳过保存和打包
-                    Logger.WriteLine(LogLevel.Information, $"谱面无需转换，已跳过: {beatmapPath}");
+                    Logger.WriteLine(LogLevel.Information, $"No change, skip the conversion: {beatmapPath}");
                     return;
                 }
 
@@ -233,7 +229,7 @@ namespace krrTools
                 using (ZipArchive archive = ZipFile.Open(zipFilePath, ZipArchiveMode.Create)) archive.CreateEntryFromFile(fullOutputPath, Path.GetFileName(fullOutputPath));
                 File.Delete(fullOutputPath);
 
-                Console.WriteLine($"已创建 {zipFilePath}");
+                Logger.WriteLine(LogLevel.Information, $"已创建 {zipFilePath}");
 
                 string songsPath = BaseOptionsManager.GetGlobalSettings().SongsPath.Value;
                 string? osuDir = Path.GetDirectoryName(songsPath);
@@ -301,18 +297,18 @@ namespace krrTools
 
             BuildTabs(Enum.GetValues<ConverterEnum>(), converter => converter switch
                                                                     {
-                                                                        ConverterEnum.N2NC => Strings.TabN2NC,
+                                                                        ConverterEnum.N2NC  => Strings.TabN2NC,
                                                                         ConverterEnum.KRRLN => Strings.TabKRRsLN,
-                                                                        ConverterEnum.DP => Strings.TabDPTool,
-                                                                        _ => converter.ToString()
+                                                                        ConverterEnum.DP    => Strings.TabDPTool,
+                                                                        _                   => converter.ToString()
                                                                     }, true);
 
             BuildTabs(Enum.GetValues<ModuleEnum>(), module => module switch
                                                               {
                                                                   ModuleEnum.LVCalculator => Strings.TabKrrLV,
                                                                   ModuleEnum.FilesManager => Strings.TabFilesManager,
-                                                                  ModuleEnum.Listener => Strings.OSUListener,
-                                                                  _ => module.ToString()
+                                                                  ModuleEnum.Listener     => Strings.OSUListener,
+                                                                  _                       => module.ToString()
                                                               }, false);
 
             Grid previewGrid = BuildPreview();
@@ -544,7 +540,7 @@ namespace krrTools
             return null;
         }
 
-        #region 嵌入各工具设置窗口
+#region 嵌入各工具设置窗口
 
         private class ToolEmbeddingConfig
         {
@@ -618,7 +614,7 @@ namespace krrTools
             }
         }
 
-        #endregion
+#endregion
 
         // 选项卡拖动/分离处理 - 克隆内容用于分离窗口，保持原选项卡不变
         private void TabControl_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -656,7 +652,7 @@ namespace krrTools
             _draggedTab = null;
         }
 
-        #region 构建独立选项卡，切换时更新设置和预览
+#region 构建独立选项卡，切换时更新设置和预览
 
         private void DetachTab(TabViewItem tab)
         {
@@ -757,7 +753,7 @@ namespace krrTools
             win.Show();
         }
 
-        #endregion
+#endregion
 
         private ConverterEnum GetActiveTabTag()
         {
@@ -864,6 +860,9 @@ namespace krrTools
         // 处理窗口关闭时的资源清理
         private void MainWindow_Closed(object? sender, EventArgs e)
         {
+            // 确保设置保存
+            BaseOptionsManager.GetGlobalSettings().Flush();
+
             // 清理预览ViewModel的资源
             if (_previewDual.ViewModel is IDisposable disposableViewModel) disposableViewModel.Dispose();
 
