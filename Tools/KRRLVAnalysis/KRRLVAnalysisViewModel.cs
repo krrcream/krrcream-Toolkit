@@ -75,7 +75,7 @@ namespace krrTools.Tools.KRRLVAnalysis
 
         public Bindable<string> PathInput { get; set; } = new Bindable<string>(string.Empty);
 
-        private Bindable<ObservableCollection<KRRLVAnalysisItem>> OsuFiles { get; set; } = new Bindable<ObservableCollection<KRRLVAnalysisItem>>(new ObservableCollection<KRRLVAnalysisItem>());
+        public Bindable<ObservableCollection<KRRLVAnalysisItem>> OsuFiles { get; set; } = new Bindable<ObservableCollection<KRRLVAnalysisItem>>(new ObservableCollection<KRRLVAnalysisItem>());
 
         public Bindable<ICollectionView> FilteredOsuFiles { get; set; }
 
@@ -185,11 +185,7 @@ namespace krrTools.Tools.KRRLVAnalysis
         private void UpdateAnalysisResult(KRRLVAnalysisItem item, OsuAnalysisResult result)
         {
             // 异步更新UI，避免阻塞
-            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
-            {
-                item.Result = result;
-                item.Status = result.Status ?? "√";
-            }), DispatcherPriority.Background);
+            Application.Current.Dispatcher.BeginInvoke(new Action(() => { item.Result = result; }), DispatcherPriority.Background);
         }
 
         [RelayCommand]
@@ -411,29 +407,6 @@ namespace krrTools.Tools.KRRLVAnalysis
                                 Task task = CreateProcessingTask(() => Task.Run(() => ProcessOsuFile(file)));
                                 tasks.Add(task);
                             }
-                            // 添加对.osz文件的支持
-                            else if (File.Exists(file) &&
-                                     Path.GetExtension(file).Equals(".osz", StringComparison.OrdinalIgnoreCase))
-                            {
-                                try
-                                {
-                                    using ZipArchive archive = ZipFile.OpenRead(file);
-                                    IEnumerable<ZipArchiveEntry> osuEntries = archive.Entries.Where(e =>
-                                                                                                        e.Name.EndsWith(".osu", StringComparison.OrdinalIgnoreCase));
-
-                                    foreach (ZipArchiveEntry entry in osuEntries)
-                                    {
-                                        await _semaphore.WaitAsync();
-                                        Task task = CreateProcessingTask(() =>
-                                                                             Task.Run(() => ProcessOszEntry(entry, file)));
-                                        tasks.Add(task);
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    Console.WriteLine($"[ERROR] 处理.osz文件失败: {ex.Message}");
-                                }
-                            }
                         }
 
                         await Task.WhenAll(tasks);
@@ -524,113 +497,22 @@ namespace krrTools.Tools.KRRLVAnalysis
             }
         }
 
-        private void ProcessOszEntry(ZipArchiveEntry entry, string oszFilePath)
-        {
-            try
-            {
-                // 创建一个唯一的标识符，包含.osz文件路径和条目名称
-                string uniqueId = $"{oszFilePath}|{entry.FullName}";
-
-                // 检查是否已存在于列表中
-                if (OsuFiles.Value.Any(f =>
-                                           f.FilePath != null && f.FilePath.Equals(uniqueId, StringComparison.OrdinalIgnoreCase)))
-                    return;
-
-                KRRLVAnalysisItem item = _itemPool.Rent();
-                // item.FileName = entry.Name;
-                item.FilePath = uniqueId; // 使用唯一标识符
-                item.Status = "waiting";
-
-                // 添加到待处理列表
-                lock (_pendingItemsLock) _pendingItems.Add(item);
-
-                // 执行分析方法
-                Task.Run(() => AnalyzeOszEntry(item, entry));
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] 处理.osz条目时发生异常: {ex.Message}");
-            }
-        }
-
-        private async Task AnalyzeOszEntry(KRRLVAnalysisItem item, ZipArchiveEntry entry)
-        {
-            try
-            {
-                // 从.osz条目中读取内容
-                await using Stream stream = entry.Open();
-                await using var memoryStream = new MemoryStream();
-                await stream.CopyToAsync(memoryStream);
-                memoryStream.Position = 0;
-
-                // 创建临时文件路径
-                string tempFilePath = Path.GetTempFileName();
-
-                try
-                {
-                    // 将内存流写入临时文件
-                    await using (var fileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write,
-                                                                 FileShare.None, 4096, true))
-                        await memoryStream.CopyToAsync(fileStream);
-
-                    // 使用 BeatmapAnalyzer 分析临时文件
-                    OsuAnalysisResult result = await OsuAnalyzer.AnalyzeAsync(tempFilePath);
-
-                    // 更新基础信息
-#pragma warning disable CS4014
-                    Application.Current.Dispatcher.BeginInvoke(() => { UpdateAnalysisResult(item, result); }, DispatcherPriority.Background);
-#pragma warning restore CS4014
-                }
-                finally
-                {
-                    // 确保删除临时文件
-                    if (File.Exists(tempFilePath)) File.Delete(tempFilePath);
-                }
-            }
-            catch (ArgumentException ex) when (ex.Message == "no-mania")
-            {
-#pragma warning disable CS4014
-                Application.Current.Dispatcher.BeginInvoke(() =>
-                {
-                    KRRLVAnalysisItem? itemToRemove = OsuFiles.Value.FirstOrDefault(f => f.FilePath == item.FilePath);
-                    if (itemToRemove != null)
-                        OsuFiles.Value.Remove(itemToRemove);
-                }, DispatcherPriority.Background);
-#pragma warning restore CS4014
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] 分析.osz条目时发生异常: {ex.Message}");
-#pragma warning disable CS4014
-                Application.Current.Dispatcher.BeginInvoke(() => { item.Status = $"错误: {ex.Message}"; }, DispatcherPriority.Background);
-#pragma warning restore CS4014
-            }
-        }
-
         private void ProcessOsuFile(string filePath)
         {
-            // 检查文件是否已存在于列表中
-            if (OsuFiles.Value.Any(f =>
-                                       f.FilePath != null && f.FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase)))
-                return;
-
             KRRLVAnalysisItem item = _itemPool.Rent();
-            // item.FileName = Path.GetFileName(filePath);
-            item.FilePath = filePath;
-            item.Status = "waiting";
 
             // 添加到待处理列表
             lock (_pendingItemsLock) _pendingItems.Add(item);
 
             // 执行分析方法
-            Task.Run(() => Analyze(item));
+            Task.Run(() => Analyze(item, filePath));
         }
 
-        private async Task Analyze(KRRLVAnalysisItem item)
+        private async Task Analyze(KRRLVAnalysisItem item, string filePath)
         {
             try
             {
-                OsuAnalysisResult result = await OsuAnalyzer.AnalyzeAsync(item.FilePath!);
+                OsuAnalysisResult result = await OsuAnalyzer.AnalyzeAsync(filePath);
 
                 // 更新基础信息
 #pragma warning disable CS4014
@@ -639,9 +521,6 @@ namespace krrTools.Tools.KRRLVAnalysis
             }
             catch (Exception ex)
             {
-#pragma warning disable CS4014
-                Application.Current.Dispatcher.BeginInvoke(() => { item.Status = $"错误: {ex.Message}"; }, DispatcherPriority.Background);
-#pragma warning restore CS4014
             }
         }
 

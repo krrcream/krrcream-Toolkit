@@ -184,7 +184,7 @@ Enable or disable filtering for maps with specific original key counts. If none 
 - **删面 (Delete LN)**:
   把所有面条变成米。
   Change All Long Note to Note.
-  
+
 - **反键 间隔1/4 (Inverse Space=1/4)**:  
   将反键间隔调整为 1/4 节拍。  
   Adjusts inverse key spacing to 1/4 beat.

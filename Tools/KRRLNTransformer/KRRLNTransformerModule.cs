@@ -4,7 +4,7 @@ using OsuParsers.Beatmaps;
 
 namespace krrTools.Tools.KRRLNTransformer
 {
-    public class KRRLNTransformerModule : ToolModuleBase<KRRLNTransformerOptions, KRRLNTransformerViewModel, KRRLNTransformerView>
+    public class KRRLNTransformerModule : ToolModuleBase<KRRLNTransformerOptions>
     {
         public override ToolModuleType ModuleType
         {

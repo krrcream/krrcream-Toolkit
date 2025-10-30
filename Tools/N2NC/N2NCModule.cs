@@ -8,7 +8,7 @@ namespace krrTools.Tools.N2NC
     /// <summary>
     /// N2NC转换模块
     /// </summary>
-    public class N2NCModule : ToolModuleBase<N2NCOptions, N2NCViewModel, N2NCView>
+    public class N2NCModule : ToolModuleBase<N2NCOptions>
     {
         public override ToolModuleType ModuleType
         {
@@ -57,8 +57,9 @@ namespace krrTools.Tools.N2NC
             }
 
             if ((int)options.MaxKeys.Value == (int)beatmap.DifficultySection.CircleSize
-                && (int)options.TargetKeys.Value == (int)beatmap.DifficultySection.CircleSize)
+             && (int)options.TargetKeys.Value == (int)beatmap.DifficultySection.CircleSize)
                 return false;
+
             return true;
         }
     }

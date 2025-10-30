@@ -50,7 +50,7 @@ namespace krrTools.Tools.DPtool
             // keysPanel.Children.Add(keysExpl);
 
             // Left
-            var leftLabel = new TextBlock { FontSize = UIConstants.HeaderFontSize, FontWeight = FontWeights.Bold };
+            var leftLabel = new TextBlock { FontSize = UIConstants.HEADER_FONT_SIZE, FontWeight = FontWeights.Bold };
             leftLabel.SetBinding(TextBlock.TextProperty,
                                  new Binding("Value") { Source = Strings.DPLeftLabel.GetLocalizedString() });
             lMirrorCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
@@ -72,7 +72,7 @@ namespace krrTools.Tools.DPtool
             leftPanel.Children.Add(lMinKeysSlider);
 
             // Right
-            var rightLabel = new TextBlock { FontSize = UIConstants.HeaderFontSize, FontWeight = FontWeights.Bold };
+            var rightLabel = new TextBlock { FontSize = UIConstants.HEADER_FONT_SIZE, FontWeight = FontWeights.Bold };
             rightLabel.SetBinding(TextBlock.TextProperty,
                                   new Binding("Value") { Source = Strings.DPRightLabel.GetLocalizedString() });
             rMirrorCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
@@ -130,8 +130,7 @@ namespace krrTools.Tools.DPtool
                                                                                     target.RRemove.Value = opt.RRemove.Value;
                                                                                 });
 
-            FrameworkElement presetsPanel =
-                SharedUIComponents.CreateLabeledRow(Strings.PresetsLabel, presetInner, new Thickness(0, 0, 0, 10));
+            FrameworkElement presetsPanel = SharedUIComponents.CreateLabeledRow(Strings.PresetsLabel, presetInner, new Thickness(0, 0, 0, 10));
 
             // Root stack
             var stackPanel = new StackPanel

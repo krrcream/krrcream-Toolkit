@@ -7,7 +7,7 @@ namespace krrTools.Tools.DPtool
     /// <summary>
     /// DP转换模块
     /// </summary>
-    public class DPToolModule : ToolModuleBase<DPToolOptions, DPToolViewModel, DPToolView>
+    public class DPToolModule : ToolModuleBase<DPToolOptions>
     {
         public override ToolModuleType ModuleType
         {

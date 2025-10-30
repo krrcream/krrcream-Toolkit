@@ -17,42 +17,41 @@ namespace krrTools.UI
     /// </summary>
     public static class SharedUIComponents
     {
+        // 统一UI样式相关常量
+        private const double com_font_size = UIConstants.COMMON_FONT_SIZE;
+        private static SolidColorBrush panelBackgroundBrush = new SolidColorBrush(Color.FromArgb(102, 255, 255, 255));
+        private static readonly Brush ui_text_brush = UIConstants.UI_TEXT_BRUSH;
+        private static readonly Thickness panel_padding = UIConstants.PANEL_PADDING;
+
+        public static readonly Brush PANEL_BORDER_BRUSH = UIConstants.PANEL_BORDER_BRUSH;
+        public static readonly CornerRadius PANEL_CORNER_RADIUS = UIConstants.PANEL_CORNER_RADIUS;
+        public const double HEADER_FONT_SIZE = UIConstants.HEADER_FONT_SIZE;
+
         public static event Action? LanguageChanged
         {
             add => LocalizationService.LanguageChanged += value;
             remove => LocalizationService.LanguageChanged -= value;
         }
 
-        // 统一UI样式相关常量
-        private static readonly Brush UiTextBrush = UIConstants.UiTextBrush;
-        public const double HeaderFontSize = UIConstants.HeaderFontSize;
-        private const double ComFontSize = UIConstants.CommonFontSize;
-
-        private static SolidColorBrush _panelBackgroundBrush = new SolidColorBrush(Color.FromArgb(102, 255, 255, 255));
-
         public static Brush PanelBackgroundBrush
         {
-            get => _panelBackgroundBrush;
+            get => panelBackgroundBrush;
             set
             {
-                if (value is SolidColorBrush scb) _panelBackgroundBrush = new SolidColorBrush(scb.Color);
-                else _panelBackgroundBrush = new SolidColorBrush(_panelBackgroundBrush.Color);
+                if (value is SolidColorBrush scb) panelBackgroundBrush = new SolidColorBrush(scb.Color);
+                else panelBackgroundBrush = new SolidColorBrush(panelBackgroundBrush.Color);
             }
         }
-
-        public static readonly Brush PanelBorderBrush = UIConstants.PanelBorderBrush;
-        public static readonly CornerRadius PanelCornerRadius = UIConstants.PanelCornerRadius;
-        private static readonly Thickness PanelPadding = UIConstants.PanelPadding;
 
         public static Border CreateStandardPanel(UIElement inner, Thickness? margin = null, Thickness? padding = null)
         {
             var border = new Border
             {
                 Background = PanelBackgroundBrush,
-                BorderBrush = PanelBorderBrush,
+                BorderBrush = PANEL_BORDER_BRUSH,
                 BorderThickness = new Thickness(1),
-                CornerRadius = PanelCornerRadius,
-                Padding = PanelPadding,
+                CornerRadius = PANEL_CORNER_RADIUS,
+                Padding = panel_padding,
                 Child = inner
             };
 
@@ -65,9 +64,9 @@ namespace krrTools.UI
         {
             var tb = new TextBlock
             {
-                FontSize = HeaderFontSize,
+                FontSize = HEADER_FONT_SIZE,
                 FontWeight = FontWeights.Bold,
-                Foreground = UiTextBrush
+                Foreground = ui_text_brush
             };
 
             if (!string.IsNullOrEmpty(text) && text.Contains('|'))
@@ -95,17 +94,17 @@ namespace krrTools.UI
         {
             return new TextBox
             {
-                FontSize = ComFontSize,
+                FontSize = com_font_size,
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Background = Brushes.Transparent,
-                BorderBrush = PanelBorderBrush,
+                BorderBrush = PANEL_BORDER_BRUSH,
                 Padding = new Thickness(6)
             };
         }
 
         public static Button CreateStandardButton(string content, string? tooltip = null)
         {
-            var tb = new TextBlock { FontSize = ComFontSize, TextTrimming = TextTrimming.CharacterEllipsis };
+            var tb = new TextBlock { FontSize = com_font_size, TextTrimming = TextTrimming.CharacterEllipsis };
 
             if (!string.IsNullOrEmpty(content) && content.Contains('|'))
             {
@@ -122,11 +121,11 @@ namespace krrTools.UI
                 Padding = new Thickness(5),
                 // small default margin to match app style
                 Margin = new Thickness(5, 0, 0, 0),
-                FontSize = ComFontSize,
+                FontSize = com_font_size,
                 Background = PanelBackgroundBrush,
-                BorderBrush = PanelBorderBrush,
+                BorderBrush = PANEL_BORDER_BRUSH,
                 BorderThickness = new Thickness(1),
-                Foreground = UiTextBrush
+                Foreground = ui_text_brush
             };
 
             LocalizationService.SetLocalizedToolTip(btn, tooltip);
@@ -137,8 +136,8 @@ namespace krrTools.UI
         public static CheckBox CreateStandardCheckBox(string content, string? tooltip = null)
         {
             var cb = new CheckBox
-                { FontSize = ComFontSize, Margin = new Thickness(2, 0, 10, 0), Background = Brushes.Transparent };
-            var tb = new TextBlock { FontSize = ComFontSize, TextWrapping = TextWrapping.Wrap };
+                { FontSize = com_font_size, Margin = new Thickness(2, 0, 10, 0), Background = Brushes.Transparent };
+            var tb = new TextBlock { FontSize = com_font_size, TextWrapping = TextWrapping.Wrap };
 
             if (!string.IsNullOrEmpty(content) && content.Contains('|'))
             {

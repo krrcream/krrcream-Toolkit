@@ -55,7 +55,9 @@ namespace krrTools.Tools.KRRLNTransformer
             MetadetaChange(beatmap, options);
         }
 
-        private Matrix BuildAndProcessMatrix(NoteMatrix matrix, List<int> timeAxis, Beatmap beatmap,
+        private Matrix BuildAndProcessMatrix(NoteMatrix matrix,
+                                             List<int> timeAxis,
+                                             Beatmap beatmap,
                                              KRRLNTransformerOptions options)
         {
             // 创建带种子的随机数生成器
@@ -109,7 +111,9 @@ namespace krrTools.Tools.KRRLNTransformer
             return result;
         }
 
-        private void ApplyChangesToHitObjects(Beatmap beatmap, Matrix mergeMTX, List<int> timeAxis,
+        private void ApplyChangesToHitObjects(Beatmap beatmap,
+                                              Matrix mergeMTX,
+                                              List<int> timeAxis,
                                               KRRLNTransformerOptions options)
         {
             (Matrix matrix2, List<int> timeAxis2) = beatmap.getMTXandTimeAxis();
@@ -236,8 +240,7 @@ namespace krrTools.Tools.KRRLNTransformer
                     if (resultSpan[i] > 0)
                     {
                         denominator = beatLengthMtxSpan[i] * aligValue;
-                        resultSpan[i] =
-                            (int)((int)((resultSpan[i] + EPSILON) / denominator) * denominator); //请AI不要优化这一行,这个就是最精度最快的写法，这是能够放几个分母的意思
+                        resultSpan[i] = (int)((int)((resultSpan[i] + EPSILON) / denominator) * denominator); //请AI不要优化这一行,这个就是最精度最快的写法，这是能够放几个分母的意思
                     }
                 }
             }
@@ -275,13 +278,12 @@ namespace krrTools.Tools.KRRLNTransformer
         }
 
         //生成长短面标记
-        private (BoolMatrix shortLNFlag, BoolMatrix longLNFlag) GenerateLNFlags(
-            Matrix matrix1,
-            List<ManiaNote> maniaObjects,
-            Matrix availableTimeMtx,
-            DoubleMatrix beatLengthMtx,
-            BeatNumberGenerator BG,
-            int borderKey)
+        private (BoolMatrix shortLNFlag, BoolMatrix longLNFlag) GenerateLNFlags(Matrix matrix1,
+                                                                                List<ManiaNote> maniaObjects,
+                                                                                Matrix availableTimeMtx,
+                                                                                DoubleMatrix beatLengthMtx,
+                                                                                BeatNumberGenerator BG,
+                                                                                int borderKey)
         {
             var shortLNFlag = new BoolMatrix(matrix1.Rows, matrix1.Cols);
             var longLNFlag = new BoolMatrix(matrix1.Rows, matrix1.Cols);
@@ -353,9 +355,17 @@ namespace krrTools.Tools.KRRLNTransformer
         }
 
         // 正式生成longLN矩阵 - 优化版本
-        private void GenerateLongLNMatrix(Matrix matrix1, Matrix longLnWaitModify, BoolMatrix longLNFlag,
-                                          Matrix availableTimeMtx, DoubleMatrix beatLengthMtx,
-                                          int borderKey, double LLNLevel, double SLNLevel, int longRandom, BeatNumberGenerator BG, Random random)
+        private void GenerateLongLNMatrix(Matrix matrix1,
+                                          Matrix longLnWaitModify,
+                                          BoolMatrix longLNFlag,
+                                          Matrix availableTimeMtx,
+                                          DoubleMatrix beatLengthMtx,
+                                          int borderKey,
+                                          double LLNLevel,
+                                          double SLNLevel,
+                                          int longRandom,
+                                          BeatNumberGenerator BG,
+                                          Random random)
         {
             Span<int> matrixSpan = matrix1.AsSpan();
             Span<bool> longFlagSpan = longLNFlag.AsSpan();
@@ -400,9 +410,16 @@ namespace krrTools.Tools.KRRLNTransformer
         }
 
         // 正式生成shortLN矩阵 - 优化版本
-        private void GenerateShortLNMatrix(Matrix matrix1, Matrix shortLnWaitModify, BoolMatrix shortLNFlag,
-                                           Matrix availableTimeMtx, DoubleMatrix beatLengthMtx,
-                                           int borderKey, double SLNLevel, int shortRandom, BeatNumberGenerator BG, Random random)
+        private void GenerateShortLNMatrix(Matrix matrix1,
+                                           Matrix shortLnWaitModify,
+                                           BoolMatrix shortLNFlag,
+                                           Matrix availableTimeMtx,
+                                           DoubleMatrix beatLengthMtx,
+                                           int borderKey,
+                                           double SLNLevel,
+                                           int shortRandom,
+                                           BeatNumberGenerator BG,
+                                           Random random)
         {
             Span<int> matrixSpan = matrix1.AsSpan();
             Span<bool> shortFlagSpan = shortLNFlag.AsSpan();
@@ -694,7 +711,7 @@ namespace krrTools.Tools.KRRLNTransformer
             else if (!beatmap.MetadataSection.Creator.StartsWith("KRR LN. &"))
                 beatmap.MetadataSection.Creator = "KRR LN. & " + beatmap.MetadataSection.Creator;
             string[] currentTags = beatmap.MetadataSection.Tags ?? [];
-            string tagToAdd = BaseOptionsManager.KRRLNDefaultTag;
+            string tagToAdd = "krrcream's converter LN";
 
             if (!currentTags.Contains(tagToAdd))
             {

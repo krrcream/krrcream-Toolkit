@@ -21,6 +21,7 @@ namespace krrTools.Configuration
         private static string GetLocalizedString(string? key)
         {
             if (string.IsNullOrEmpty(key)) return "";
+
             Type stringsType = typeof(Strings);
             FieldInfo? field = stringsType.GetField(key, BindingFlags.Public | BindingFlags.Static);
             if (field != null && field.FieldType == typeof(string)) return field.GetValue(null) as string ?? key;
@@ -89,6 +90,7 @@ namespace krrTools.Configuration
 
                 case UIType.Slider:
                     if (IsNumericType(effectiveType)) return (FrameworkElement)CreateEnhancedTemplatedSlider(options, propertySelector, propertyInfo);
+
                     break;
 
                 case UIType.NumberBox:
@@ -151,14 +153,18 @@ namespace krrTools.Configuration
         /// <summary>
         /// 创建模板化的滑块控件（使用表达式，可选勾选框，可选字典映射）
         /// </summary>
-        public static UIElement CreateTemplatedSlider<T>(T options, Expression<Func<T, object>> propertySelector,
-                                                         Expression<Func<T, object>>? checkPropertySelector = null, Dictionary<double, string>? valueDisplayMap = null) where T : class
+        public static UIElement CreateTemplatedSlider<T>(T options,
+                                                         Expression<Func<T, object>> propertySelector,
+                                                         Expression<Func<T, object>>? checkPropertySelector = null,
+                                                         Dictionary<double, string>? valueDisplayMap = null) where T : class
         {
             PropertyInfo? propertyInfo = GetPropertyInfoFromExpression(propertySelector);
             if (propertyInfo == null) return new TextBlock { Text = "Invalid property selector" };
 
-            PropertyInfo? checkPropertyInfo =
-                checkPropertySelector != null ? GetPropertyInfoFromExpression(checkPropertySelector) : null;
+            PropertyInfo? checkPropertyInfo = checkPropertySelector != null
+                                                  ? GetPropertyInfoFromExpression(checkPropertySelector)
+                                                  : null;
+
             bool checkEnabled = checkPropertyInfo != null;
 
             // 如果没有显式指定checkPropertySelector，但属性是可空的Bindable<T>，则自动启用勾选框
@@ -173,7 +179,9 @@ namespace krrTools.Configuration
             if (attr == null) return new TextBlock { Text = $"No OptionAttribute for {propertyInfo.Name}" };
 
             string labelKey = GetLocalizedString(attr.LabelKey);
-            string? tooltip = string.IsNullOrEmpty(attr.TooltipKey) ? null : GetLocalizedString(attr.TooltipKey);
+            string? tooltip = string.IsNullOrEmpty(attr.TooltipKey)
+                                  ? null
+                                  : GetLocalizedString(attr.TooltipKey);
 
             // 如果没有提供 valueDisplayMap，但属性有 DisplayMapField，则尝试获取
             if (valueDisplayMap == null && !string.IsNullOrEmpty(attr.DisplayMapField))
@@ -276,12 +284,11 @@ namespace krrTools.Configuration
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
             TextBlock label = SharedUIComponents.CreateHeaderLabel(Strings.SeedButtonLabel);
-            Button generateButton =
-                SharedUIComponents.CreateStandardButton(Strings.SeedGenerateLabel, Strings.SeedGenerateTooltip);
+            Button generateButton = SharedUIComponents.CreateStandardButton(Strings.SeedGenerateLabel, Strings.SeedGenerateTooltip);
 
-            Wpf.Ui.Controls.TextBox SeedTextBox = SharedUIComponents.CreateStandardTextBox();
-            SeedTextBox.Margin = new Thickness(5, 0, 5, 0);
-            SeedTextBox.IsReadOnly = false;
+            Wpf.Ui.Controls.TextBox seedTextBox = SharedUIComponents.CreateStandardTextBox();
+            seedTextBox.Margin = new Thickness(5, 0, 5, 0);
+            seedTextBox.IsReadOnly = false;
 
             // 绑定 Seed 属性
             string seedPath = GetPropertyPathFromExpression(seedProperty);
@@ -293,20 +300,20 @@ namespace krrTools.Configuration
                 Mode = BindingMode.TwoWay,
                 UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
             };
-            SeedTextBox.SetBinding(TextBox.TextProperty, binding);
+            seedTextBox.SetBinding(TextBox.TextProperty, binding);
 
             generateButton.Click += (_, _) =>
             {
                 var random = new Random();
-                SeedTextBox.Text = random.Next(0, int.MaxValue).ToString();
+                seedTextBox.Text = random.Next(0, int.MaxValue).ToString();
             };
 
             System.Windows.Controls.Grid.SetColumn(label, 0);
-            System.Windows.Controls.Grid.SetColumn(SeedTextBox, 1);
+            System.Windows.Controls.Grid.SetColumn(seedTextBox, 1);
             System.Windows.Controls.Grid.SetColumn(generateButton, 2);
 
             grid.Children.Add(label);
-            grid.Children.Add(SeedTextBox);
+            grid.Children.Add(seedTextBox);
             grid.Children.Add(generateButton);
 
             return grid;
@@ -315,19 +322,17 @@ namespace krrTools.Configuration
         /// <summary>
         /// 创建支持动态最大值的模板化滑块控件
         /// </summary>
-        public static UIElement CreateTemplatedSliderWithDynamicMax<T>(
-            T options,
-            Expression<Func<T, object>> propertySelector,
-            object dynamicMaxSource,
-            string dynamicMaxPath,
-            Expression<Func<T, object>>? checkPropertySelector = null,
-            Dictionary<double, string>? valueDisplayMap = null) where T : class
+        public static UIElement CreateTemplatedSliderWithDynamicMax<T>(T options,
+                                                                       Expression<Func<T, object>> propertySelector,
+                                                                       object dynamicMaxSource,
+                                                                       string dynamicMaxPath,
+                                                                       Expression<Func<T, object>>? checkPropertySelector = null,
+                                                                       Dictionary<double, string>? valueDisplayMap = null) where T : class
         {
             PropertyInfo? propertyInfo = GetPropertyInfoFromExpression(propertySelector);
             if (propertyInfo == null) return new TextBlock { Text = "Invalid property selector" };
 
-            PropertyInfo? checkPropertyInfo =
-                checkPropertySelector != null ? GetPropertyInfoFromExpression(checkPropertySelector) : null;
+            PropertyInfo? checkPropertyInfo = checkPropertySelector != null ? GetPropertyInfoFromExpression(checkPropertySelector) : null;
             bool checkEnabled = checkPropertyInfo != null;
 
             var attr = propertyInfo.GetCustomAttribute<OptionAttribute>();
@@ -404,7 +409,7 @@ namespace krrTools.Configuration
                 }
                 catch (Exception ex)
                 {
-                    Logger.WriteLine(LogLevel.Warning, "[SettingsBinder] Failed to create checkbox selector for {0}: {1}",
+                    Logger.WriteLine(LogLevel.Error, "[SettingsBinder] Failed to create checkbox selector for {0}: {1}",
                                      attr.CheckBoxProperty, ex.Message);
                 }
             }

@@ -27,13 +27,11 @@ namespace krrTools.Core
     /// <para></para>
     /// 泛型参数TOptions、TViewModel和TControl保护类型安全，确保模块与其配置和UI组件一致。
     /// </summary>
-    public abstract class ToolModuleBase<TOptions, TViewModel, TControl> : IToolModule
+    public abstract class ToolModuleBase<TOptions> : IToolModule
         where TOptions : ToolOptionsBase, new()
-        where TViewModel : ToolViewModelBase<TOptions>
-        where TControl : ToolViewBase<TOptions>
     {
         private TOptions _currentOptions = new TOptions();
-        private ReactiveOptions<TOptions>? _reactiveOptions;
+        private readonly ReactiveOptions<TOptions>? _reactiveOptions;
 
         protected ToolModuleBase(ReactiveOptions<TOptions>? reactiveOptions = null)
         {

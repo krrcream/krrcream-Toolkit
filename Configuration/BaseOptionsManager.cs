@@ -13,23 +13,23 @@ namespace krrTools.Configuration
     public static class BaseOptionsManager
     {
         // 统一的配置文件名
-        private const string ConfigFileName = "config.json";
+        private const string config_file_name = "config.json";
 
         // 统一的配置文件路径 (exe 所在文件夹)
-        private static string ConfigFilePath
+        private static string configFilePath
         {
-            get => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ConfigFileName);
+            get => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, config_file_name);
         }
 
         // 缓存的配置实例
-        private static AppConfig? _cachedConfig;
-        private static readonly Lock _configLock = new Lock();
+        private static AppConfig? cachedConfig;
+        private static readonly Lock config_lock = new Lock();
 
         // 全局EventBus引用，用于发布配置变化事件
-        private static IEventBus? _eventBus;
+        private static IEventBus? eventBus;
 
         // 跟踪上一次的监控启用状态，用于事件发布
-        private static bool _lastMonitoringEnable;
+        private static bool lastMonitoringEnable;
 
         /// <summary>
         /// 设置变化事件
@@ -46,7 +46,7 @@ namespace krrTools.Configuration
         /// </summary>
         public static void SetEventBus(IEventBus eventBus)
         {
-            _eventBus = eventBus;
+            BaseOptionsManager.eventBus = eventBus;
 
             // 设置全局设置的回调
             SetupGlobalSettingsCallbacks();
@@ -57,22 +57,22 @@ namespace krrTools.Configuration
         /// </summary>
         private static void SetupGlobalSettingsCallbacks()
         {
-            if (_eventBus == null) return;
+            if (eventBus == null) return;
 
             GlobalSettings globalSettings = GetGlobalSettings();
 
             // 初始化上一次的值
-            _lastMonitoringEnable = globalSettings.MonitoringEnable.Value;
+            lastMonitoringEnable = globalSettings.MonitoringEnable.Value;
 
             // 设置监控启用状态变化回调
             globalSettings.MonitoringEnable.OnValueChanged(enabled =>
             {
-                _eventBus.Publish(new MonitoringEnabledChangedEvent
+                eventBus.Publish(new MonitoringEnabledChangedEvent
                 {
-                    OldValue = _lastMonitoringEnable,
+                    OldValue = lastMonitoringEnable,
                     NewValue = enabled
                 });
-                _lastMonitoringEnable = enabled;
+                lastMonitoringEnable = enabled;
             });
         }
 
@@ -81,16 +81,16 @@ namespace krrTools.Configuration
         /// </summary>
         private static AppConfig LoadConfig()
         {
-            lock (_configLock)
+            lock (config_lock)
             {
-                if (_cachedConfig != null) return _cachedConfig;
+                if (cachedConfig != null) return cachedConfig;
 
-                string path = ConfigFilePath;
+                string path = configFilePath;
 
                 if (!File.Exists(path))
                 {
-                    _cachedConfig = new AppConfig();
-                    return _cachedConfig;
+                    cachedConfig = new AppConfig();
+                    return cachedConfig;
                 }
 
                 try
@@ -100,18 +100,18 @@ namespace krrTools.Configuration
                     opts.Converters.Add(new BindableJsonConverter<bool>());
                     opts.Converters.Add(new BindableJsonConverter<string>());
                     opts.Converters.Add(new BindableJsonConverter<Dictionary<string, List<int>>>());
-                    _cachedConfig = JsonSerializer.Deserialize<AppConfig>(json, opts) ?? new AppConfig();
-                    _cachedConfig.GlobalSettings.SetupAutoSave();
+                    cachedConfig = JsonSerializer.Deserialize<AppConfig>(json, opts) ?? new AppConfig();
+                    cachedConfig.GlobalSettings.SetupAutoSave();
 
-                    return _cachedConfig;
+                    return cachedConfig;
                 }
                 catch (Exception ex)
                 {
                     Logger.WriteLine(LogLevel.Error,
                                      $"[BaseOptionsManager]Failed to load config file '{path}': {ex.Message}. Creating default config and overwriting file.");
-                    _cachedConfig = new AppConfig();
+                    cachedConfig = new AppConfig();
                     SaveConfig(); // 覆盖损坏的文件
-                    return _cachedConfig;
+                    return cachedConfig;
                 }
             }
         }
@@ -121,11 +121,11 @@ namespace krrTools.Configuration
         /// </summary>
         private static void SaveConfig()
         {
-            lock (_configLock)
+            lock (config_lock)
             {
-                if (_cachedConfig == null) return;
+                if (cachedConfig == null) return;
 
-                string path = ConfigFilePath;
+                string path = configFilePath;
 
                 try
                 {
@@ -133,7 +133,7 @@ namespace krrTools.Configuration
                         { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
                     opts.Converters.Add(new BindableJsonConverter<string>());
                     opts.Converters.Add(new BindableJsonConverter<Dictionary<string, List<int>>>());
-                    string json = JsonSerializer.Serialize(_cachedConfig, opts);
+                    string json = JsonSerializer.Serialize(cachedConfig, opts);
                     File.WriteAllText(path, json);
                 }
                 catch (Exception ex)
@@ -399,11 +399,5 @@ namespace krrTools.Configuration
         {
             GetGlobalSettings().ForceChinese.Value = forceChinese;
         }
-
-        // DP specific constants
-        public const string DPDefaultTag = "krrcream's converter DP";
-
-        // LN specific constants
-        public const string KRRLNDefaultTag = "krrcream's converter LN";
     }
 }

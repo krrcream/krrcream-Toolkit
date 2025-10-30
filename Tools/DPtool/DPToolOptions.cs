@@ -12,7 +12,7 @@ namespace krrTools.Tools.DPtool
         [Option(LabelKey = nameof(DPKeysSliderLabel), Min = 1, Max = 10, UIType = UIType.Slider, IsRefresher = true)]
         public Bindable<double?> ModifyKeys { get; } = new Bindable<double?>();
 
-        #region 左手区
+#region 左手区
 
         [Option(LabelKey = nameof(DPMirrorLabel), TooltipKey = nameof(DPMirrorTooltipLeft), UIType = UIType.Toggle, IsRefresher = true)]
         public Bindable<bool> LMirror { get; } = new Bindable<bool>();
@@ -31,9 +31,9 @@ namespace krrTools.Tools.DPtool
                 DataType = typeof(double), IsRefresher = true)]
         public Bindable<double> LMinKeys { get; } = new Bindable<double>(1);
 
-        #endregion
+#endregion
 
-        #region 右手区
+#region 右手区
 
         [Option(LabelKey = nameof(DPMirrorLabel), TooltipKey = nameof(DPMirrorTooltipRight), UIType = UIType.Toggle, IsRefresher = true)]
         public Bindable<bool> RMirror { get; } = new Bindable<bool>();
@@ -52,7 +52,7 @@ namespace krrTools.Tools.DPtool
                 DataType = typeof(double), IsRefresher = true)]
         public Bindable<double> RMinKeys { get; } = new Bindable<double>(1);
 
-        #endregion
+#endregion
 
         public DPToolOptions()
         {

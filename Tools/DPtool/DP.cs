@@ -57,10 +57,12 @@ namespace krrTools.Tools.DPtool
             float originalCircleSize = beatmap.DifficultySection.CircleSize;
             Matrix matrix;
             List<int> timeAxisTemp;
+
             if (options.ModifyKeys.Value.HasValue && (int)options.ModifyKeys.Value - (int)beatmap.DifficultySection.CircleSize >= 0)
                 (matrix, timeAxisTemp) = beatmap.getMTXandTimeAxis();
             else
                 (matrix, timeAxisTemp) = beatmap.getExpandHoldBodyMTXandTimeAxis();
+
             Matrix processedMatrix = ProcessMatrix(matrix, timeAxisTemp, beatmap, options);
             var Conv = new N2NC.N2NC();
             ApplyChangesToHitObjects(beatmap, processedMatrix, options, originalCircleSize);
@@ -76,7 +78,7 @@ namespace krrTools.Tools.DPtool
             int targetKeys = CS;
             bool LmirroFlag = options.LMirror.Value;
             bool RmirroFlag = options.RMirror.Value;
-            double convertTime = 60000 / beatmap.MainBPM * 2 + 10;
+            double convertTime = (60000 / beatmap.MainBPM * 2) + 10;
             // 1 mirror
             Matrix LMTX = matrix.Clone();
             Matrix RMTX = matrix.Clone();

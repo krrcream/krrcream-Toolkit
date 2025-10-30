@@ -42,7 +42,7 @@ namespace krrTools.Tools.KRRLNTransformer
             // 短面条设置区域标题
             var shortHeader = new TextBlock
             {
-                FontSize = UIConstants.HeaderFontSize,
+                FontSize = UIConstants.HEADER_FONT_SIZE,
                 FontWeight = FontWeights.Bold,
                 Margin = new Thickness(0, 0, 0, 5)
             };
@@ -75,7 +75,7 @@ namespace krrTools.Tools.KRRLNTransformer
             // 长面条设置区域标题
             var longHeader = new TextBlock
             {
-                FontSize = UIConstants.HeaderFontSize,
+                FontSize = UIConstants.HEADER_FONT_SIZE,
                 FontWeight = FontWeights.Bold,
                 Margin = new Thickness(0, 0, 0, 5)
             };
