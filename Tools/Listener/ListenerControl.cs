@@ -29,7 +29,7 @@ namespace krrTools.Tools.Listener
             this.InjectServices();
 
             InitializeComponent();
-            ViewModel   = new ListenerViewModel();
+            ViewModel = new ListenerViewModel();
             DataContext = ViewModel;
 
             // 初始化拖拽区 ViewModel
@@ -45,16 +45,16 @@ namespace krrTools.Tools.Listener
             ViewModel.WindowTitle = Strings.OSUListener.Localize();
 
             // 添加快捷键编辑事件
-            N2NCHotkeyTextBox.KeyDown   += OnHotkeyKeyDown;
-            N2NCHotkeyTextBox.GotFocus  += OnHotkeyTextBoxGotFocus;
+            N2NCHotkeyTextBox.KeyDown += OnHotkeyKeyDown;
+            N2NCHotkeyTextBox.GotFocus += OnHotkeyTextBoxGotFocus;
             N2NCHotkeyTextBox.LostFocus += OnHotkeyTextBoxLostFocus;
 
-            DPHotkeyTextBox.KeyDown   += OnHotkeyKeyDown;
-            DPHotkeyTextBox.GotFocus  += OnHotkeyTextBoxGotFocus;
+            DPHotkeyTextBox.KeyDown += OnHotkeyKeyDown;
+            DPHotkeyTextBox.GotFocus += OnHotkeyTextBoxGotFocus;
             DPHotkeyTextBox.LostFocus += OnHotkeyTextBoxLostFocus;
 
-            KRRLNHotkeyTextBox.KeyDown   += OnHotkeyKeyDown;
-            KRRLNHotkeyTextBox.GotFocus  += OnHotkeyTextBoxGotFocus;
+            KRRLNHotkeyTextBox.KeyDown += OnHotkeyKeyDown;
+            KRRLNHotkeyTextBox.GotFocus += OnHotkeyTextBoxGotFocus;
             KRRLNHotkeyTextBox.LostFocus += OnHotkeyTextBoxLostFocus;
         }
 
@@ -105,7 +105,7 @@ namespace krrTools.Tools.Listener
 
             // 获取按键组合
             ModifierKeys modifiers = Keyboard.Modifiers;
-            Key          key       = e.Key;
+            Key key = e.Key;
 
             // 忽略单独的修饰键和输入法处理键
             if (key == Key.LeftCtrl || key == Key.RightCtrl ||

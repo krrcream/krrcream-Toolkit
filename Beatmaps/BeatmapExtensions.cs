@@ -109,6 +109,7 @@ namespace krrTools.Beatmaps
         {
             double noteCount = beatmap.HitObjects.Count;
             if (noteCount == 0) return 0;
+
             double LNCountCount = beatmap.HitObjects.Count(hitObject => hitObject.EndTime > hitObject.StartTime);
             return LNCountCount / noteCount * 100;
         }

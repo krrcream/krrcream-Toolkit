@@ -18,26 +18,32 @@ namespace krrTools.Tools.Preview
 {
     public class PreviewViewDual : Grid
     {
-        // UI 相关常量
-        private static readonly Thickness DefaultBorderThickness = new Thickness(1);
-        private static readonly CornerRadius DefaultCornerRadius = PanelCornerRadius;
-        private static readonly Thickness BorderMargin = new Thickness(0, 4, 0, 4);
-        private static readonly Thickness BorderPadding = new Thickness(6);
+        private static readonly Thickness default_border_thickness = new Thickness(1);
+        private static readonly CornerRadius default_corner_radius = PANEL_CORNER_RADIUS;
+        private static readonly Thickness border_margin = new Thickness(0, 4, 0, 4);
+        private static readonly Thickness border_padding = new Thickness(6);
 
-        // 字段只声明
-        private TextBlock _previewTitle = null!;
-        private TextBlock _originalHint = null!;
-        private TextBlock _convertedHint = null!;
+        private ConverterEnum? _currentTool;
+        private DateTime _lastScrollSync = DateTime.MinValue;
+        private DateTime _lastSettingsChange = DateTime.MinValue;
+
         private ContentControl _originalContent = null!;
         private ContentControl _convertedContent = null!;
-        private TextBlock _startTimeDisplay = null!;
-        private ConverterEnum? _currentTool;
-
         private ScrollViewer? _originalScrollViewer;
         private ScrollViewer? _convertedScrollViewer;
+        private TextBlock _originalHint = null!;
+        private TextBlock _convertedHint = null!;
+        private TextBlock _previewTitle = null!;
+        private TextBlock _startTimeDisplay = null!;
+
+        private const int scroll_sync_throttle_ms = 16;
+        private const int settings_change_throttle_ms = 50;
         private bool _isSyncingScroll;
-        private DateTime _lastScrollSync = DateTime.MinValue;
-        private const int ScrollSyncThrottleMs = 16;
+
+        private Bindable<string> bgPath { get; } = new Bindable<string>(string.Empty);
+        private Bindable<bool> isProcessing { get; } = new Bindable<bool>();
+
+        public PreviewViewModel? ViewModel { get; set; }
 
         public PreviewViewDual(PreviewViewModel viewModel)
         {
@@ -52,14 +58,6 @@ namespace krrTools.Tools.Preview
             _currentTool = tool;
             ViewModel?.SetCurrentTool(tool);
         }
-
-        private DateTime _lastSettingsChange = DateTime.MinValue;
-        private const int SettingsChangeThrottleMs = 50;
-
-        private Bindable<string> BGPath { get; } = new Bindable<string>(string.Empty);
-        private Bindable<bool> IsProcessing { get; } = new Bindable<bool>();
-
-        public PreviewViewModel? ViewModel { get; set; }
 
         private void InitializeUI()
         {
@@ -91,13 +89,11 @@ namespace krrTools.Tools.Preview
             SetColumn(_previewTitle, 0);
             SetColumn(resetButton, 1);
 
-            Border originalBorder =
-                CreatePreviewBorder(Strings.OriginalHint.Localize(), out _originalHint, out _originalContent);
+            Border originalBorder = CreatePreviewBorder(Strings.OriginalHint.Localize(), out _originalHint, out _originalContent);
 
             Grid centerStack = CreateCenterStack();
 
-            Border convertedBorder =
-                CreatePreviewBorder(Strings.ConvertedHint.Localize(), out _convertedHint, out _convertedContent);
+            Border convertedBorder = CreatePreviewBorder(Strings.ConvertedHint.Localize(), out _convertedHint, out _convertedContent);
 
             RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -122,7 +118,7 @@ namespace krrTools.Tools.Preview
             hint = new TextBlock
             {
                 FontWeight = FontWeights.SemiBold,
-                Foreground = PreviewConstants.UiHintTextBrush,
+                Foreground = PreviewConstants.UI_HINT_TEXT_BRUSH,
                 Margin = new Thickness(2, 0, 2, 4),
                 Text = hintText
             };
@@ -146,11 +142,11 @@ namespace krrTools.Tools.Preview
             return new Border
             {
                 Background = Brushes.Transparent,
-                BorderBrush = PanelBorderBrush,
-                BorderThickness = DefaultBorderThickness,
-                CornerRadius = DefaultCornerRadius,
-                Margin = BorderMargin,
-                Padding = BorderPadding,
+                BorderBrush = PANEL_BORDER_BRUSH,
+                BorderThickness = default_border_thickness,
+                CornerRadius = default_corner_radius,
+                Margin = border_margin,
+                Padding = border_padding,
                 ClipToBounds = true,
                 Child = grid
             };
@@ -161,7 +157,7 @@ namespace krrTools.Tools.Preview
             _startTimeDisplay = new TextBlock
             {
                 FontSize = 14,
-                Foreground = PreviewConstants.UiSecondaryTextBrush,
+                Foreground = PreviewConstants.UI_SECONDARY_TEXT_BRUSH,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 Margin = new Thickness(0, 0, 10, 0),
                 Text = ""
@@ -169,7 +165,7 @@ namespace krrTools.Tools.Preview
             var arrowBlock = new TextBlock
             {
                 FontSize = 18,
-                Foreground = PreviewConstants.UiSecondaryTextBrush,
+                Foreground = PreviewConstants.UI_SECONDARY_TEXT_BRUSH,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Text = "↓ ↓"
             };
@@ -205,10 +201,10 @@ namespace krrTools.Tools.Preview
 
         private void OnSettingsChanged(ConverterEnum changedConverter)
         {
-            if (IsProcessing.Value || changedConverter != _currentTool)
+            if (isProcessing.Value || changedConverter != _currentTool)
                 return;
 
-            if ((DateTime.UtcNow - _lastSettingsChange).TotalMilliseconds < SettingsChangeThrottleMs) return;
+            if ((DateTime.UtcNow - _lastSettingsChange).TotalMilliseconds < settings_change_throttle_ms) return;
 
             _lastSettingsChange = DateTime.UtcNow;
 
@@ -235,9 +231,9 @@ namespace krrTools.Tools.Preview
         // 加载谱面背景图的方法，统一在项目中使用
         public void LoadBackgroundBrush(string path)
         {
-            if (BGPath.Value == path) return;
+            if (bgPath.Value == path) return;
 
-            BGPath.Value = path;
+            bgPath.Value = path;
             // 确保在UI线程执行
             if (Application.Current?.Dispatcher.CheckAccess() == true)
                 LoadBackgroundBrushInternal();
@@ -251,7 +247,7 @@ namespace krrTools.Tools.Preview
             {
                 var bgBitmap = new BitmapImage();
                 bgBitmap.BeginInit();
-                bgBitmap.UriSource = new Uri(BGPath.Value, UriKind.Absolute);
+                bgBitmap.UriSource = new Uri(bgPath.Value, UriKind.Absolute);
                 bgBitmap.CacheOption = BitmapCacheOption.OnLoad;
                 bgBitmap.EndInit();
                 Background = new ImageBrush
@@ -260,12 +256,12 @@ namespace krrTools.Tools.Preview
                     Stretch = Stretch.UniformToFill,
                     Opacity = 0.25
                 };
-                Console.WriteLine("[PreviewViewDual] Loaded BG from " + BGPath.Value);
+                Console.WriteLine("[PreviewViewDual] Loaded BG from " + bgPath.Value);
             }
             catch (Exception ex)
             {
                 Console.WriteLine("[PreviewViewDual] Failed to load background image from {0}: {1}",
-                                  BGPath.Value, ex.Message);
+                                  bgPath.Value, ex.Message);
             }
         }
 
@@ -293,7 +289,8 @@ namespace krrTools.Tools.Preview
                 case nameof(ViewModel.ConvertedVisual):
                     _convertedContent.Content = ViewModel.ConvertedVisual;
                     _convertedScrollViewer = FindScrollViewer(ViewModel.ConvertedVisual);
-                    if (_convertedScrollViewer != null) _convertedScrollViewer.ScrollChanged += OnConvertedScrollChanged;
+                    if (_convertedScrollViewer != null)
+                        _convertedScrollViewer.ScrollChanged += OnConvertedScrollChanged;
                     break;
             }
         }
@@ -316,9 +313,10 @@ namespace krrTools.Tools.Preview
         private void OnOriginalScrollChanged(object sender, ScrollChangedEventArgs e)
         {
             if (_isSyncingScroll) return;
+
             _isSyncingScroll = true;
 
-            if ((DateTime.UtcNow - _lastScrollSync).TotalMilliseconds >= ScrollSyncThrottleMs)
+            if ((DateTime.UtcNow - _lastScrollSync).TotalMilliseconds >= scroll_sync_throttle_ms)
             {
                 _lastScrollSync = DateTime.UtcNow;
 
@@ -335,9 +333,10 @@ namespace krrTools.Tools.Preview
         private void OnConvertedScrollChanged(object sender, ScrollChangedEventArgs e)
         {
             if (_isSyncingScroll) return;
+
             _isSyncingScroll = true;
 
-            if ((DateTime.UtcNow - _lastScrollSync).TotalMilliseconds >= ScrollSyncThrottleMs)
+            if ((DateTime.UtcNow - _lastScrollSync).TotalMilliseconds >= scroll_sync_throttle_ms)
             {
                 _lastScrollSync = DateTime.UtcNow;
 

@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using System.Windows;
 using krrTools.Bindable;
@@ -71,15 +72,16 @@ namespace krrTools.Tools.Preview
         /// </summary>
         private void OnSettingsChanged(SettingsChangedEvent settingsEvent)
         {
-            // // Debug日志：显示所有发生的设置变化，由于异步通知管线，这里不生效
-            // Logger.WriteLine(LogLevel.Debug, "[SettingsChanged] Tool: {0}, Property: {1}, Type: {2}, Value: {3}", 
-            //     _currentTool?.ToString() ?? "None", 
-            //     settingsEvent.PropertyName ?? "null", 
-            //     settingsEvent.SettingsType?.Name ?? "Unknown", 
-            //     settingsEvent.NewValue?.ToString() ?? "null");
+            // Debug日志：显示所有发生的设置变化，由于异步通知管线，这里不生效
+            Logger.WriteLine(LogLevel.Debug, "[SettingsChanged] Tool: {0}, Property: {1}, Type: {2}, Value: {3}",
+                             _currentTool?.ToString() ?? "None",
+                             settingsEvent.PropertyName ?? "null",
+                             settingsEvent.SettingsType?.Name ?? "Unknown",
+                             settingsEvent.NewValue?.ToString() ?? "null");
 
             // 只处理当前工具的设置变化
             if (_currentTool == null || settingsEvent.SettingsType == null) return;
+
             ConverterEnum current = _currentTool.Value;
             string toolName = current.ToString();
             if (!settingsEvent.SettingsType.Name.Contains(toolName)) return;
@@ -95,12 +97,12 @@ namespace krrTools.Tools.Preview
             {
                 string moduleName = _currentTool.Value switch
                                     {
-                                        ConverterEnum.N2NC => "N2N",
-                                        ConverterEnum.DP => "DP",
+                                        ConverterEnum.N2NC  => "N2N",
+                                        ConverterEnum.DP    => "DP",
                                         ConverterEnum.KRRLN => "KRRLN",
-                                        _ => "未知"
+                                        _                   => "未知"
                                     };
-                Logger.WriteLine(LogLevel.Information, "[{0}模块]-{1}-变更为{2}", moduleName, settingsEvent.PropertyName, settingsEvent.NewValue);
+                Logger.WriteLine(LogLevel.Debug, "[{0}模块]-{1}-变更为{2}", moduleName, settingsEvent.PropertyName, settingsEvent.NewValue);
             }
 
             // 直接调用RefreshConverted，在测试环境中Dispatcher可能不可用
@@ -205,7 +207,7 @@ namespace krrTools.Tools.Preview
             }
             catch (Exception ex)
             {
-                Logger.WriteLine(LogLevel.Error, "[PreviewViewModel] RefreshOriginal failed: {0}", ex.Message);
+                Logger.WriteLine(LogLevel.Error, "[PreviewViewModel] Refresh Original Preview failed: {0}", ex.Message);
             }
         }
 
@@ -236,7 +238,7 @@ namespace krrTools.Tools.Preview
                     ConvertedVisual = Processor.BuildConvertedVisual(beatmap);
 
                 TimeSpan duration = DateTime.Now - decodeStartTime;
-                Logger.WriteLine(LogLevel.Information, "[PreviewViewModel] 转换后预览刷新完成，耗时: {0:F1}ms", duration.TotalMilliseconds);
+                Logger.WriteLine(LogLevel.Debug, "[PreviewViewModel] 转换后预览刷新完成，耗时: {0:F1}ms", duration.TotalMilliseconds);
             }
             catch (Exception ex)
             {

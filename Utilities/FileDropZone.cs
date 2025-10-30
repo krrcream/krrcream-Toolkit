@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -13,38 +15,35 @@ namespace krrTools.Utilities
 {
     public sealed class FileDropZone : Border
     {
-        private Button? StartConversionButton;
-        private FileDropZoneViewModel _viewModel;
-        public FileDropZoneViewModel ViewModel
-        {
-            get => _viewModel;
-        }
-
-        // 本地化字符串对象
         private readonly DynamicLocalizedString _startButtonTextLocalized = new DynamicLocalizedString(Strings.StartButtonText);
+
+        private Button? startConversionButton;
+
+        // [Inject] TODO: 改为自动注入
+        public FileDropZoneViewModel ViewModel { get; set; }
 
         public FileDropZone()
         {
             var fileDispatcher = new FileDispatcher();
-            _viewModel = new FileDropZoneViewModel(fileDispatcher);
-            Injector.InjectServices(_viewModel); // 注入依赖项
-            DataContext = _viewModel;
+            ViewModel = new FileDropZoneViewModel(fileDispatcher);
+            Injector.InjectServices(ViewModel); // 注入依赖项
+            DataContext = ViewModel;
             InitializeUI();
         }
 
         public FileDropZone(FileDispatcher fileDispatcher)
         {
-            _viewModel = new FileDropZoneViewModel(fileDispatcher);
-            Injector.InjectServices(_viewModel); // 注入依赖项
-            DataContext = _viewModel;
+            ViewModel = new FileDropZoneViewModel(fileDispatcher);
+            Injector.InjectServices(ViewModel); // 注入依赖项
+            DataContext = ViewModel;
             InitializeUI();
         }
 
         // 专门用于测试的构造函数，不进行依赖注入
         public FileDropZone(FileDispatcher fileDispatcher, bool skipInjection)
         {
-            _viewModel = new FileDropZoneViewModel(fileDispatcher);
-            DataContext = _viewModel;
+            ViewModel = new FileDropZoneViewModel(fileDispatcher);
+            DataContext = ViewModel;
             InitializeUI();
         }
 
@@ -60,7 +59,7 @@ namespace krrTools.Utilities
             AllowDrop = true; // 启用文件拖放
 
             // 绑定 BorderBrush 到 ProgressBrush
-            var borderBrushBinding = new Binding("ProgressBrush") { Source = _viewModel };
+            var borderBrushBinding = new Binding("ProgressBrush") { Source = ViewModel };
             SetBinding(BorderBrushProperty, borderBrushBinding);
 
             var mainGrid = new Grid();
@@ -78,7 +77,7 @@ namespace krrTools.Utilities
             };
             dropHint.SetBinding(TextBlock.TextProperty, new Binding("DisplayText"));
 
-            StartConversionButton = new Button
+            startConversionButton = new Button
             {
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center,
@@ -87,21 +86,19 @@ namespace krrTools.Utilities
                 Margin = new Thickness(8, 0, 6, 0),
                 MinWidth = 92
             };
-            StartConversionButton.SetBinding(ContentControl.ContentProperty, new Binding("Value") { Source = _startButtonTextLocalized });
-            StartConversionButton.SetBinding(VisibilityProperty, new Binding("IsConversionEnabled") { Converter = new BooleanToVisibilityConverter() });
+            startConversionButton.SetBinding(ContentControl.ContentProperty, new Binding("Value") { Source = _startButtonTextLocalized });
+            startConversionButton.SetBinding(VisibilityProperty, new Binding("IsConversionEnabled") { Converter = new BooleanToVisibilityConverter() });
 
             Grid.SetColumn(dropHint, 0);
-            Grid.SetColumn(StartConversionButton, 1);
+            Grid.SetColumn(startConversionButton, 1);
             mainGrid.Children.Add(dropHint);
-            mainGrid.Children.Add(StartConversionButton);
+            mainGrid.Children.Add(startConversionButton);
 
             Child = mainGrid;
 
             Drop += OnDrop;
             DragOver += OnDragOver;
-            StartConversionButton.Click += StartConversionButton_Click;
-            SharedUIComponents.LanguageChanged += OnLanguageChanged;
-            Unloaded += FileDropZone_Unloaded;
+            startConversionButton.Click += StartConversionButton_Click;
         }
 
         /// <summary>
@@ -110,8 +107,8 @@ namespace krrTools.Utilities
         public FileDropZone(FileDropZoneViewModel viewModel)
             : base()
         {
-            _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
-            DataContext = _viewModel;
+            ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+            DataContext = ViewModel;
         }
 
         /// <summary>
@@ -119,25 +116,21 @@ namespace krrTools.Utilities
         /// </summary>
         public void SetViewModel(FileDropZoneViewModel viewModel)
         {
-            _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
-            DataContext = _viewModel;
-        }
-
-        private void OnLanguageChanged()
-        {
-            // ViewModel handles localization
+            ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+            DataContext = ViewModel;
         }
 
         private void OnDrop(object sender, DragEventArgs e)
         {
             if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+
             string[]? files = e.Data.GetData(DataFormats.FileDrop) as string[];
             if (files == null || files.Length == 0) return;
 
-            List<string> osuFiles = _viewModel.CollectOsuFiles(files);
+            List<string> osuFiles = ViewModel.CollectOsuFiles(files);
             if (osuFiles.Count == 0) return;
 
-            _viewModel.SetFiles(osuFiles.ToArray(), FileSource.Dropped);
+            ViewModel.SetFiles(osuFiles.ToArray(), FileSource.Dropped);
         }
 
         private void OnDragOver(object sender, DragEventArgs e)
@@ -151,12 +144,7 @@ namespace krrTools.Utilities
 
         private void StartConversionButton_Click(object sender, RoutedEventArgs e)
         {
-            _viewModel.ConvertFiles();
-        }
-
-        private void FileDropZone_Unloaded(object sender, RoutedEventArgs e)
-        {
-            SharedUIComponents.LanguageChanged -= OnLanguageChanged;
+            ViewModel.ConvertFiles();
         }
     }
 }

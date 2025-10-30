@@ -9,11 +9,11 @@ namespace krrTools.Tools.Preview
     {
         public static Beatmap BuiltInSampleStream()
         {
-            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(ManiaData));
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(mania_data));
             return BeatmapDecoder.Decode(stream);
         }
 
-        private const string ManiaData = @"
+        private const string mania_data = @"
 osu file format v14
 
 [General]

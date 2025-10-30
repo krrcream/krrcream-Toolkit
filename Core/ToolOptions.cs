@@ -26,6 +26,7 @@ namespace krrTools.Core
         public virtual void Validate()
         {
             if (IsValidating) return;
+
             IsValidating = true;
 
             try
@@ -35,7 +36,7 @@ namespace krrTools.Core
                 foreach (PropertyInfo prop in properties)
                 {
                     var attr = prop.GetCustomAttribute<OptionAttribute>();
-                    if (attr == null || attr.Min == null || attr.Max == null) continue;
+                    if (attr?.Min == null || attr.Max == null) continue;
 
                     object value = GetPropertyValue(prop);
                     ClampNumericValue(prop, value, attr);
@@ -54,6 +55,7 @@ namespace krrTools.Core
             {
                 object? bindable = prop.GetValue(this);
                 if (bindable == null) return null!;
+
                 PropertyInfo? valueProp = prop.PropertyType.GetProperty("Value");
                 return valueProp?.GetValue(bindable) ?? null!;
             }
@@ -68,6 +70,7 @@ namespace krrTools.Core
             {
                 object? bindable = prop.GetValue(this);
                 if (bindable == null) return;
+
                 PropertyInfo? valueProp = prop.PropertyType.GetProperty("Value");
                 valueProp?.SetValue(bindable, value);
             }

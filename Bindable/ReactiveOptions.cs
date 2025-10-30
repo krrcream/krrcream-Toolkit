@@ -1,10 +1,11 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using krrTools.Configuration;
 using krrTools.Core;
+using Microsoft.Extensions.Logging;
 
 namespace krrTools.Bindable
 {
@@ -32,7 +33,8 @@ namespace krrTools.Bindable
             InitializeOldValues();
 
             // Listen to options PropertyChanged for auto-save
-            if (Options is INotifyPropertyChanged notifyOptions) notifyOptions.PropertyChanged += OnOptionsPropertyChanged;
+            if (Options is INotifyPropertyChanged notifyOptions)
+                notifyOptions.PropertyChanged += OnOptionsPropertyChanged;
 
             // Listen to BaseOptionsManager settings changed to reload when options are saved externally
             BaseOptionsManager.SettingsChanged += OnExternalSettingsChanged;
@@ -65,6 +67,17 @@ namespace krrTools.Bindable
 
         private void OnOptionsPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
+            // Debug日志：记录所有转换工具设置的变化
+            object? oldValue = _oldValues.GetValueOrDefault(e.PropertyName ?? "");
+            object? newValue = Options.GetType().GetProperty(e.PropertyName ?? "")?.GetValue(Options);
+
+            // 由于异步通知管线，此处很难生效
+            // Logger.WriteLine(LogLevel.Debug, "[ReactiveOptions] Converter: {0}, Property: {1}, OldValue: {2}, NewValue: {3}",
+            //                  _converter,
+            //                  e.PropertyName ?? "null",
+            //                  oldValue ?? "null",
+            //                  newValue ?? "null");
+
             // Auto-save on property change
             BaseOptionsManager.SaveOptions(_converter, Options);
 
@@ -74,9 +87,6 @@ namespace krrTools.Bindable
             // Publish settings changed event if event bus is available (for compatibility with existing subscribers)
             if (_eventBus != null)
             {
-                object? oldValue = _oldValues.GetValueOrDefault(e.PropertyName ?? "");
-                object? newValue = Options.GetType().GetProperty(e.PropertyName ?? "")?.GetValue(Options);
-
                 // 只在NewValue不为null时发布事件（设置通常不为null）
                 if (newValue != null)
                 {

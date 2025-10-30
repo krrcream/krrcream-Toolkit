@@ -38,15 +38,12 @@ namespace krrTools.Utilities
         /// </summary>
         public FrameworkElement BuildOriginalVisual(Beatmap input)
         {
-            // 克隆beatmap以避免任何修改影响原始对象
-            Beatmap clonedBeatmap = CloneBeatmap(input);
-            Beatmap maniaBeatmap = clonedBeatmap;
-            if (maniaBeatmap.HitObjects.Count > 0)
-                StartMs = maniaBeatmap.HitObjects.Min(n => n.StartTime);
+            if (input.HitObjects.Count > 0)
+                StartMs = input.HitObjects.Min(n => n.StartTime);
             else
                 return new TextBlock { Text = "note == 0" };
 
-            return BuildManiaTimeRowsFromNotes(maniaBeatmap);
+            return BuildManiaTimeRowsFromNotes(input);
         }
 
         public FrameworkElement BuildConvertedVisual(Beatmap input)
@@ -103,7 +100,7 @@ namespace krrTools.Utilities
                 });
             }
 
-            if (notes.Count == 0) return new TextBlock { Text = "转换后谱面无Mania notes" };
+            if (notes.Count == 0) return new TextBlock { Text = "0 Mania notes" };
 
             // 使用新的分层控件 - 支持小节线和音符分离绘制
             var layeredControl = new LayeredPreviewControl
@@ -117,51 +114,6 @@ namespace krrTools.Utilities
             layeredControl.UpdatePreview(notes, columns, quarterMs, beatmapPath);
 
             return layeredControl;
-        }
-
-        /// <summary>
-        /// 克隆Beatmap以避免在预览时修改原始对象
-        /// </summary>
-        private Beatmap CloneBeatmap(Beatmap input)
-        {
-            // 手动克隆以避免修改原始beatmap
-            var cloned = new Beatmap();
-
-            // 复制所有属性
-            cloned.GeneralSection = input.GeneralSection;
-            // 克隆MetadataSection以避免修改Version
-            cloned.MetadataSection = Activator.CreateInstance(input.MetadataSection.GetType()) as dynamic;
-
-            if (cloned.MetadataSection != null)
-            {
-                cloned.MetadataSection.Title = input.MetadataSection.Title;
-                cloned.MetadataSection.TitleUnicode = input.MetadataSection.TitleUnicode;
-                cloned.MetadataSection.Artist = input.MetadataSection.Artist;
-                cloned.MetadataSection.ArtistUnicode = input.MetadataSection.ArtistUnicode;
-                cloned.MetadataSection.Creator = input.MetadataSection.Creator;
-                cloned.MetadataSection.Version = input.MetadataSection.Version;
-                cloned.MetadataSection.Source = input.MetadataSection.Source;
-                cloned.MetadataSection.Tags = input.MetadataSection.Tags;
-                // 其他属性如果不存在就算了
-            }
-
-            // 克隆DifficultySection以避免修改CircleSize
-            cloned.DifficultySection = Activator.CreateInstance(input.DifficultySection.GetType()) as dynamic;
-
-            if (cloned.DifficultySection != null)
-            {
-                cloned.DifficultySection.HPDrainRate = input.DifficultySection.HPDrainRate;
-                cloned.DifficultySection.CircleSize = input.DifficultySection.CircleSize;
-                cloned.DifficultySection.OverallDifficulty = input.DifficultySection.OverallDifficulty;
-                cloned.DifficultySection.ApproachRate = input.DifficultySection.ApproachRate;
-                cloned.DifficultySection.SliderMultiplier = input.DifficultySection.SliderMultiplier;
-                cloned.DifficultySection.SliderTickRate = input.DifficultySection.SliderTickRate;
-            }
-
-            cloned.TimingPoints = new List<TimingPoint>(input.TimingPoints);
-            cloned.HitObjects = new List<HitObject>(input.HitObjects);
-
-            return cloned;
         }
 
         /// <summary>

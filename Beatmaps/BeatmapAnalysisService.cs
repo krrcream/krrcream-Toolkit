@@ -2,8 +2,8 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using krrTools.Bindable;
-using krrTools.Configuration;
 using Microsoft.Extensions.Logging;
+using OsuParsers.Beatmaps;
 
 namespace krrTools.Beatmaps
 {
@@ -12,11 +12,9 @@ namespace krrTools.Beatmaps
     /// </summary>
     public class BeatmapAnalysisService
     {
-        private readonly BeatmapCacheManager _cacheManager = new BeatmapCacheManager();
-
         // 公共属性注入事件总线
         [Inject]
-        private IEventBus EventBus { get; set; } = null!;
+        private IEventBus eventBus { get; set; } = null!;
 
         public BeatmapAnalysisService()
         {
@@ -24,13 +22,13 @@ namespace krrTools.Beatmaps
             this.InjectServices();
 
             // 订阅路径变化事件，收到后进行完整分析
-            EventBus.Subscribe<BeatmapChangedEvent>(OnBeatmapPathChanged);
+            eventBus.Subscribe<BeatmapChangedEvent>(OnBeatmapPathChanged);
         }
 
         /// <summary>
         /// 处理谱面文件
         /// </summary>
-        private async Task ProcessBeatmapAsync(string filePath)
+        private async Task processBeatmapAsync(string filePath)
         {
             if (string.IsNullOrEmpty(filePath) ||
                 !File.Exists(filePath) ||
@@ -41,19 +39,15 @@ namespace krrTools.Beatmaps
             {
                 try
                 {
-                    // 响应式防重复处理检查
-                    if (!_cacheManager.CanProcessFile(filePath)) return;
-
                     // 完整分析
                     OsuAnalysisResult analysisResult = await OsuAnalyzer.AnalyzeAsync(filePath);
-                    if (analysisResult.Status != "√") return;
 
-                    Logger.WriteLine(LogLevel.Debug,
+                    Logger.WriteLine(LogLevel.Information,
                                      "[BeatmapAnalysisService] Beatmap analyzed: {0}, Keys: {1}, SR: {2:F2}",
-                                     analysisResult.Title ?? "Unknown", analysisResult.KeyCount, analysisResult.XXY_SR);
+                                     analysisResult.Title, analysisResult.KeyCount, analysisResult.XXY_SR);
 
                     // 发布专门的分析结果变化事件
-                    EventBus.Publish(new AnalysisResultChangedEvent
+                    eventBus.Publish(new AnalysisResultChangedEvent
                     {
                         AnalysisResult = analysisResult
                     });
@@ -74,7 +68,7 @@ namespace krrTools.Beatmaps
             // 只处理路径变化事件
             if (e.ChangeType != BeatmapChangeType.FromMonitoring) return;
             // 异步处理新谱面
-            _ = ProcessBeatmapAsync(e.FilePath);
+            _ = processBeatmapAsync(e.FilePath);
         }
     }
 }

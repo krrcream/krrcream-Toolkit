@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -22,10 +20,10 @@ namespace krrTools.Tools.FilesManager
 {
     public class FilesManagerView : UserControl
     {
+        private const string tool_name = "FilesManager";
+
         private readonly FilesManagerViewModel _viewModel;
         private DataGrid? _fileDataGrid;
-
-        private const string ToolName = "FilesManager";
 
         public FilesManagerView()
         {
@@ -37,15 +35,7 @@ namespace krrTools.Tools.FilesManager
             BuildUI();
 
             SharedUIComponents.LanguageChanged += OnLanguageChanged;
-            Loaded += (_, _) =>
-            {
-                if (DataContext is FilesManagerViewModel)
-                {
-                    // DataGridExtensions will handle filtering automatically
-                }
-                else
-                    Logger.WriteLine(LogLevel.Information, "[FilesManagerView] Loaded, DataContext is null");
-            };
+
             Unloaded += (_, _) => SharedUIComponents.LanguageChanged -= OnLanguageChanged;
         }
 
@@ -92,7 +82,8 @@ namespace krrTools.Tools.FilesManager
 
             // 启用 DataGridExtensions 高级功能
             _fileDataGrid.SetValue(DataGridFilter.IsAutoFilterEnabledProperty, true);
-            _fileDataGrid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("Value") { Source = _viewModel.FilteredOsuFiles });
+            _fileDataGrid.SetBinding(ItemsControl.ItemsSourceProperty,
+                                     new Binding("Value") { Source = _viewModel.FilteredOsuFiles });
 
             LoadColumnOrder();
             _fileDataGrid.ColumnReordered += OnColumnReordered;
@@ -100,7 +91,8 @@ namespace krrTools.Tools.FilesManager
             // 设置选中行样式 - 更明显的蓝色高亮
             var rowStyle = new Style(typeof(DataGridRow));
             var selectedTrigger = new Trigger { Property = DataGridRow.IsSelectedProperty, Value = true };
-            selectedTrigger.Setters.Add(new Setter(BackgroundProperty, new SolidColorBrush(Color.FromRgb(33, 150, 243)))); // 蓝色高亮
+            selectedTrigger.Setters.Add(
+                new Setter(BackgroundProperty, new SolidColorBrush(Color.FromRgb(33, 150, 243)))); // 蓝色高亮
             rowStyle.Triggers.Add(selectedTrigger);
             _fileDataGrid.RowStyle = rowStyle;
 
@@ -129,15 +121,27 @@ namespace krrTools.Tools.FilesManager
                 IsReadOnly = false // 可编辑
             });
             _fileDataGrid.Columns.Add(new DataGridTextColumn
-                                          { Header = "Keys", Binding = new Binding("Keys"), Width = DataGridLength.SizeToHeader, IsReadOnly = true }); // 只读
+            {
+                Header = "Keys", Binding = new Binding("Keys"), Width = DataGridLength.SizeToHeader, IsReadOnly = true
+            }); // 只读
             _fileDataGrid.Columns.Add(new DataGridTextColumn
-                                          { Header = "OD", Binding = new Binding("OD.Value"), Width = DataGridLength.SizeToHeader, IsReadOnly = false }); // 可编辑
+            {
+                Header = "OD", Binding = new Binding("OD.Value"), Width = DataGridLength.SizeToHeader,
+                IsReadOnly = false
+            }); // 可编辑
             _fileDataGrid.Columns.Add(new DataGridTextColumn
-                                          { Header = "HP", Binding = new Binding("HP.Value"), Width = DataGridLength.SizeToHeader, IsReadOnly = false }); // 可编辑
+            {
+                Header = "HP", Binding = new Binding("HP.Value"), Width = DataGridLength.SizeToHeader,
+                IsReadOnly = false
+            }); // 可编辑
             _fileDataGrid.Columns.Add(new DataGridTextColumn
-                                          { Header = "beatmapID", Binding = new Binding("BeatmapID"), Width = DataGridLength.Auto, IsReadOnly = true }); // 只读
+            {
+                Header = "beatmapID", Binding = new Binding("BeatmapID"), Width = DataGridLength.Auto, IsReadOnly = true
+            }); // 只读
             _fileDataGrid.Columns.Add(new DataGridTextColumn
-                                          { Header = "setID", Binding = new Binding("BeatmapSetID"), Width = DataGridLength.Auto, IsReadOnly = true }); // 只读
+            {
+                Header = "setID", Binding = new Binding("BeatmapSetID"), Width = DataGridLength.Auto, IsReadOnly = true
+            }); // 只读
             _fileDataGrid.Columns.Add(new DataGridTextColumn
             {
                 Header = "FilePath", Binding = new Binding("FilePath.Value"),
@@ -149,7 +153,8 @@ namespace krrTools.Tools.FilesManager
             _fileDataGrid.FrozenColumnCount = 3;
 
             // 启用列过滤
-            foreach (DataGridColumn? column in _fileDataGrid.Columns) column.SetValue(DataGridFilterColumn.IsFilterVisibleProperty, true);
+            foreach (DataGridColumn? column in _fileDataGrid.Columns)
+                column.SetValue(DataGridFilterColumn.IsFilterVisibleProperty, true);
 
             // Context menu
             var ctx = new ContextMenu();
@@ -193,7 +198,8 @@ namespace krrTools.Tools.FilesManager
                 VerticalAlignment = VerticalAlignment.Center,
                 FontWeight = FontWeights.Bold
             };
-            totalFilesValue.SetBinding(TextBlock.TextProperty, new Binding("Value") { Source = _viewModel.TotalFileCount });
+            totalFilesValue.SetBinding(TextBlock.TextProperty,
+                                       new Binding("Value") { Source = _viewModel.TotalFileCount });
 
             var filteredFilesText = new TextBlock
             {
@@ -208,7 +214,8 @@ namespace krrTools.Tools.FilesManager
                 Foreground = Brushes.Blue
             };
             filteredFilesValue.SetBinding(TextBlock.TextProperty,
-                                          new Binding("Value") { Source = _viewModel.FilteredFileCount, FallbackValue = "0" });
+                                          new Binding("Value")
+                                              { Source = _viewModel.FilteredFileCount, FallbackValue = "0" });
             statsPanel.Children.Add(totalFilesText);
             statsPanel.Children.Add(totalFilesValue);
             statsPanel.Children.Add(filteredFilesText);
@@ -280,7 +287,7 @@ namespace krrTools.Tools.FilesManager
 
                 string message = "Are you sure you want to delete " + selectedItems.Count +
                                  " .osu file(s)? This action cannot be undone.";
-                string caption = "Confirm Delete";
+                const string caption = "Confirm Delete";
 
                 MessageBoxResult result = MessageBox.Show(message, caption, MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
@@ -292,13 +299,15 @@ namespace krrTools.Tools.FilesManager
             }
             catch (Exception ex)
             {
-                MessageBox.Show(Strings.ErrorDeletingFiles.Localize() + ": " + ex.Message, Strings.DeleteError.Localize(),
+                MessageBox.Show(Strings.ErrorDeletingFiles.Localize() + ": " + ex.Message,
+                                Strings.DeleteError.Localize(),
                                 MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         //异步后台删除文件
-        private Task DeleteSelectedFilesAsync(List<FilesManagerInfo> filesToDelete, FilesManagerViewModel managerViewModel)
+        private Task DeleteSelectedFilesAsync(List<FilesManagerInfo> filesToDelete,
+                                              FilesManagerViewModel managerViewModel)
         {
             foreach (FilesManagerInfo file in filesToDelete)
             {
@@ -311,7 +320,8 @@ namespace krrTools.Tools.FilesManager
                 }
                 catch (Exception ex)
                 {
-                    Logger.WriteLine(LogLevel.Error, "[FilesManagerView] Failed to delete {0}: {1}", file.FilePath.Value,
+                    Logger.WriteLine(LogLevel.Error, "[FilesManagerView] Failed to delete {0}: {1}",
+                                     file.FilePath.Value,
                                      ex.Message);
                 }
             }
@@ -338,9 +348,11 @@ namespace krrTools.Tools.FilesManager
         private void LoadColumnOrder()
         {
             if (_fileDataGrid == null) return;
+
             GlobalSettings config = BaseOptionsManager.GetGlobalSettings();
 
-            if (config.DataGridColumnOrders.Value.TryGetValue(ToolName, out List<int>? orders) && orders.Count == _fileDataGrid.Columns.Count)
+            if (config.DataGridColumnOrders.Value.TryGetValue(tool_name, out List<int>? orders) &&
+                orders.Count == _fileDataGrid.Columns.Count)
             {
                 for (int i = 0; i < orders.Count; i++)
                     _fileDataGrid.Columns[i].DisplayIndex = orders[i];
@@ -355,10 +367,12 @@ namespace krrTools.Tools.FilesManager
         private void SaveColumnOrder()
         {
             if (_fileDataGrid == null) return;
+
             var orders = new List<int>();
-            foreach (DataGridColumn? col in _fileDataGrid.Columns.OrderBy(c => c.DisplayIndex)) orders.Add(_fileDataGrid.Columns.IndexOf(col));
+            foreach (DataGridColumn? col in _fileDataGrid.Columns.OrderBy(c => c.DisplayIndex))
+                orders.Add(_fileDataGrid.Columns.IndexOf(col));
             GlobalSettings config = BaseOptionsManager.GetGlobalSettings();
-            config.DataGridColumnOrders.Value[ToolName] = orders;
+            config.DataGridColumnOrders.Value[tool_name] = orders;
             BaseOptionsManager.SetGlobalSettingsSilent(config);
         }
 

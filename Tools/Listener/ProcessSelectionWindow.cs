@@ -10,7 +10,7 @@ namespace krrTools.Tools.Listener
     internal class ProcessSelectionWindow : Window
     {
         public Process? SelectedProcess { get; private set; }
-        private ListBox? ProcessListBox;
+        private ListBox? processListBox;
 
         public ProcessSelectionWindow(Process[] processes)
         {
@@ -35,13 +35,17 @@ namespace krrTools.Tools.Listener
                     }
                     catch (Exception ex)
                     {
-                        Logger.WriteLine(LogLevel.Error, "[ProcessSelectionWindow] ProcessSelectionWindow inner rebuild failed: {0}", ex.Message);
+                        Logger.WriteLine(LogLevel.Error,
+                                         "[ProcessSelectionWindow] ProcessSelectionWindow inner rebuild failed: {0}",
+                                         ex.Message);
                     }
                 }));
             }
             catch (Exception ex)
             {
-                Logger.WriteLine(LogLevel.Error, "[ProcessSelectionWindow] ProcessSelectionWindow OnLanguageChanged invoke failed: {0}", ex.Message);
+                Logger.WriteLine(LogLevel.Error,
+                                 "[ProcessSelectionWindow] ProcessSelectionWindow OnLanguageChanged invoke failed: {0}",
+                                 ex.Message);
             }
         }
 
@@ -63,7 +67,7 @@ namespace krrTools.Tools.Listener
             Grid.SetRow(tb, 0);
             grid.Children.Add(tb);
 
-            ProcessListBox = new ListBox { Margin = new Thickness(0, 0, 0, 10) };
+            processListBox = new ListBox { Margin = new Thickness(0, 0, 0, 10) };
 
             if (processes != null)
             {
@@ -72,24 +76,31 @@ namespace krrTools.Tools.Listener
                     try
                     {
                         string exePath = p.MainModule?.FileName ?? "Unknown";
-                        ProcessListBox.Items.Add(new ListBoxItem { Content = $"PID: {p.Id}, Path: {exePath}", Tag = p });
+                        processListBox.Items.Add(new ListBoxItem
+                                                     { Content = $"PID: {p.Id}, Path: {exePath}", Tag = p });
                     }
                     catch
                     {
-                        ProcessListBox.Items.Add(new ListBoxItem { Content = $"PID: {p.Id}, Path: Unknown", Tag = p });
+                        processListBox.Items.Add(new ListBoxItem { Content = $"PID: {p.Id}, Path: Unknown", Tag = p });
                     }
                 }
             }
 
-            Grid.SetRow(ProcessListBox, 1);
-            grid.Children.Add(ProcessListBox);
+            Grid.SetRow(processListBox, 1);
+            grid.Children.Add(processListBox);
 
-            var sp = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            var sp = new StackPanel
+                { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
             Grid.SetRow(sp, 2);
 
-            var okBtn = new Wpf.Ui.Controls.Button { Content = "确定", Appearance = Wpf.Ui.Controls.ControlAppearance.Primary, Width = 80, Margin = new Thickness(0, 0, 10, 0) };
+            var okBtn = new Wpf.Ui.Controls.Button
+            {
+                Content = "确定", Appearance = Wpf.Ui.Controls.ControlAppearance.Primary, Width = 80,
+                Margin = new Thickness(0, 0, 10, 0)
+            };
             okBtn.Click += OkButton_Click;
-            var cancelBtn = new Wpf.Ui.Controls.Button { Content = "取消", Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary, Width = 80 };
+            var cancelBtn = new Wpf.Ui.Controls.Button
+                { Content = "取消", Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary, Width = 80 };
             cancelBtn.Click += CancelButton_Click;
 
             sp.Children.Add(okBtn);
@@ -102,7 +113,7 @@ namespace krrTools.Tools.Listener
 
         private void OkButton_Click(object sender, RoutedEventArgs e)
         {
-            if (ProcessListBox?.SelectedItem is ListBoxItem { Tag: Process p })
+            if (processListBox?.SelectedItem is ListBoxItem { Tag: Process p })
             {
                 SelectedProcess = p;
                 DialogResult = true;

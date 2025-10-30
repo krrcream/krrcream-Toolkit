@@ -4,17 +4,17 @@ namespace krrTools.Beatmaps
 {
     public static class ColumnPositionMapper
     {
-        private static readonly Dictionary<int, int[]> KeyValueMap = new Dictionary<int, int[]>
+        private static readonly Dictionary<int, int[]> key_value_map = new Dictionary<int, int[]>
         {
-            [1]  = [256],
-            [2]  = [128, 384],
-            [3]  = [85, 256, 426],
-            [4]  = [64, 192, 320, 448],
-            [5]  = [51, 153, 256, 358, 460],
-            [6]  = [42, 128, 213, 298, 384, 469],
-            [7]  = [36, 109, 182, 256, 329, 402, 475],
-            [8]  = [32, 96, 160, 224, 288, 352, 416, 480],
-            [9]  = [28, 85, 142, 199, 256, 312, 369, 426, 483],
+            [1] = [256],
+            [2] = [128, 384],
+            [3] = [85, 256, 426],
+            [4] = [64, 192, 320, 448],
+            [5] = [51, 153, 256, 358, 460],
+            [6] = [42, 128, 213, 298, 384, 469],
+            [7] = [36, 109, 182, 256, 329, 402, 475],
+            [8] = [32, 96, 160, 224, 288, 352, 416, 480],
+            [9] = [28, 85, 142, 199, 256, 312, 369, 426, 483],
             [10] = [25, 76, 128, 179, 230, 281, 332, 384, 435, 486],
             [11] = [23, 69, 116, 162, 209, 256, 302, 349, 395, 442, 488],
             [12] = [21, 64, 106, 149, 192, 234, 277, 320, 362, 405, 448, 490],
@@ -35,12 +35,12 @@ namespace krrTools.Beatmaps
         // Expose a read-only view in case callers want the whole map
         public static IReadOnlyDictionary<int, int[]> Map
         {
-            get => KeyValueMap;
+            get => key_value_map;
         }
 
         public static int ColumnToPositionX(int keyCount, int column)
         {
-            if (KeyValueMap.TryGetValue(keyCount, out int[]? row) && column >= 0 && column < row.Length) return row[column];
+            if (key_value_map.TryGetValue(keyCount, out int[]? row) && column >= 0 && column < row.Length) return row[column];
             // 备选计算方式
             return GetPositionX(keyCount, column + 1);
         }
@@ -54,9 +54,9 @@ namespace krrTools.Beatmaps
 
         public static int PositionXToColumn(int keyCount, int x)
         {
-            if (KeyValueMap.TryGetValue(keyCount, out int[]? row))
+            if (key_value_map.TryGetValue(keyCount, out int[]? row))
             {
-                int minDiff       = int.MaxValue;
+                int minDiff = int.MaxValue;
                 int closestColumn = 0;
 
                 for (int i = 0; i < row.Length; i++)
@@ -65,7 +65,7 @@ namespace krrTools.Beatmaps
 
                     if (diff < minDiff)
                     {
-                        minDiff       = diff;
+                        minDiff = diff;
                         closestColumn = i;
                     }
                 }
@@ -75,7 +75,7 @@ namespace krrTools.Beatmaps
 
             // 备选计算方式，反算index
             double index = ((x - (256.0 / keyCount)) * (keyCount / 512.0)) + 1;
-            int    col   = (int)Math.Round(index) - 1;
+            int col = (int)Math.Round(index) - 1;
             return Math.Clamp(col, 0, keyCount - 1);
         }
     }

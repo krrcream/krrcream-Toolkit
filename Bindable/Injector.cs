@@ -19,14 +19,14 @@ namespace krrTools.Bindable
     /// </summary>
     public static class Injector
     {
-        private static IServiceProvider? _testServiceProvider;
+        private static IServiceProvider? testServiceProvider;
 
         /// <summary>
         /// 设置测试用的服务提供者（仅用于测试）
         /// </summary>
         public static void SetTestServiceProvider(IServiceProvider? provider)
         {
-            _testServiceProvider = provider;
+            testServiceProvider = provider;
         }
 
         /// <summary>
@@ -73,7 +73,7 @@ namespace krrTools.Bindable
 
                 try
                 {
-                    IServiceProvider serviceProvider = _testServiceProvider ?? App.Services;
+                    IServiceProvider serviceProvider = testServiceProvider ?? App.Services;
                     object service = serviceProvider.GetRequiredService(serviceType);
                     property.SetValue(target, service);
                 }

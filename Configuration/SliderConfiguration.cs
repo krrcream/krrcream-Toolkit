@@ -38,7 +38,7 @@ namespace krrTools.Configuration
         /// <summary>
         /// 滑条最小值
         /// </summary>
-        public double Min { get; set; } = 0.0;
+        public double Min { get; set; }
 
         /// <summary>
         /// 滑条最大值

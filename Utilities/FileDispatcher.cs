@@ -18,7 +18,7 @@ namespace krrTools.Utilities
     public class FileDispatcher
     {
         private readonly BeatmapTransformationService _transformationService;
-        private readonly SemaphoreSlim                _ioSemaphore = new SemaphoreSlim(4); // 限制并发I/O操作数量
+        private readonly SemaphoreSlim _ioSemaphore = new SemaphoreSlim(4); // 限制并发I/O操作数量
 
         private const int max_show = 5;
 
@@ -58,7 +58,7 @@ namespace krrTools.Utilities
             Logger.WriteLine(LogLevel.Debug, "[FileDispatcher] 开始转换 - 调用模块: {0}, 使用活动设置, 文件数量: {1}", activeTabTag, paths.Length);
 
             var created = new ConcurrentBag<string>();
-            var failed  = new ConcurrentBag<string>();
+            var failed = new ConcurrentBag<string>();
 
             int processedCount = 0;
 

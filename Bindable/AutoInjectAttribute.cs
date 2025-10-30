@@ -4,7 +4,7 @@ namespace krrTools.Bindable
 {
     /// <summary>
     /// Attribute to mark classes that should automatically inject services on creation.
-    /// Classes marked with this attribute will have their [Inject] properties automatically        
+    /// Classes marked with this attribute will have their [Inject] properties automatically
     /// injected when instantiated through normal constructors.
     ///
     /// This provides a more advanced form of automatic injection without manual calls.

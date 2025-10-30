@@ -9,19 +9,20 @@ using Microsoft.Extensions.Logging;
 namespace krrTools.Core
 {
     /// <summary>
-    /// 基类，提供选项加载和保存功能
+    ///     基类，提供选项加载和保存功能
     /// </summary>
     /// <typeparam name="TOptions">The options type for this tool</typeparam>
-    public abstract class ToolViewModelBase<TOptions> : ObservableObject, IDisposable where TOptions : class, IToolOptions, new()
+    public abstract class ToolViewModelBase<TOptions> : ObservableObject, IDisposable
+        where TOptions : class, IToolOptions, new()
     {
-        private TOptions _options;
-        private readonly ConverterEnum _toolEnum;
         private readonly bool _autoSave;
         private readonly DispatcherTimer? _saveTimer;
-
-        private bool _isInitializing = true;
+        private readonly ConverterEnum _toolEnum;
 
         protected readonly List<IDisposable> Disposables = new List<IDisposable>();
+
+        private bool _isInitializing = true;
+        private TOptions _options;
 
         protected ToolViewModelBase(ConverterEnum toolEnum, bool autoSave = true, TOptions? injectedOptions = null)
         {
@@ -51,8 +52,9 @@ namespace krrTools.Core
                         }
                         catch (Exception ex)
                         {
-                            Logger.WriteLine(LogLevel.Error, "[ToolOptions] Failed to save options for {0}: {1}", _toolEnum, ex.Message);
-                            Logger.WriteLine(LogLevel.Debug, "[ToolOptions] Failed to save options; changes may be lost.");
+                            Logger.WriteLine(LogLevel.Error, "[ToolOptions] Failed to save options for {0}: {1}",
+                                             _toolEnum,
+                                             ex.Message);
                         }
                     }
                 };
@@ -79,13 +81,8 @@ namespace krrTools.Core
             }, DispatcherPriority.Background);
         }
 
-        private void OnSettingsChanged(ConverterEnum changedConverter)
-        {
-            if (changedConverter == _toolEnum && !_isInitializing) DoLoadOptions();
-        }
-
         /// <summary>
-        /// The options for this tool
+        ///     The options for this tool
         /// </summary>
         public TOptions Options
         {
@@ -107,6 +104,20 @@ namespace krrTools.Core
                     }
                 }
             }
+        }
+
+        /// <summary>
+        ///     释放资源
+        /// </summary>
+        public void Dispose()
+        {
+            foreach (IDisposable d in Disposables) d.Dispose();
+            Disposables.Clear();
+        }
+
+        private void OnSettingsChanged(ConverterEnum changedConverter)
+        {
+            if (changedConverter == _toolEnum && !_isInitializing) DoLoadOptions();
         }
 
         private void DoLoadOptions()
@@ -131,7 +142,7 @@ namespace krrTools.Core
             }
             catch
             {
-                Logger.WriteLine(LogLevel.Debug, "[ToolOptions] Failed to load options; using defaults.");
+                Logger.WriteLine(LogLevel.Error, "[ToolOptions] Failed to load options; using defaults.");
             }
         }
 
@@ -155,14 +166,18 @@ namespace krrTools.Core
         }
 
         /// <summary>
-        /// 处理选项属性变化 - 子类可以重写此方法来同步响应式属性
+        ///     处理选项属性变化 - 子类可以重写此方法来同步响应式属性
         /// </summary>
-        protected virtual void OnOptionsPropertyChangedInternal(PropertyChangedEventArgs e) { }
+        protected virtual void OnOptionsPropertyChangedInternal(PropertyChangedEventArgs e)
+        {
+        }
 
         /// <summary>
-        /// 设置响应式约束 - 子类重写此方法来设置响应式属性和约束
+        ///     设置响应式约束 - 子类重写此方法来设置响应式属性和约束
         /// </summary>
-        protected virtual void SetupReactiveConstraints() { }
+        protected virtual void SetupReactiveConstraints()
+        {
+        }
 
         protected virtual void TriggerPreviewRefresh()
         {
@@ -174,17 +189,9 @@ namespace krrTools.Core
         private void StartDelayedSave()
         {
             if (_saveTimer == null) return;
+
             _saveTimer.Stop();
             _saveTimer.Start();
-        }
-
-        /// <summary>
-        /// 释放资源
-        /// </summary>
-        public void Dispose()
-        {
-            foreach (IDisposable d in Disposables) d.Dispose();
-            Disposables.Clear();
         }
     }
 }

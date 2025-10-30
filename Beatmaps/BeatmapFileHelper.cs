@@ -86,7 +86,7 @@ namespace krrTools.Beatmaps
                 return fullPath;
 
             int excessLength = fullPath.Length - 255;
-            string directory = Path.GetDirectoryName(fullPath);
+            string directory = Path.GetDirectoryName(fullPath)!;
             string fileName = Path.GetFileName(fullPath);
 
             // 减掉文件名开头的第0到excessLength+3个字符，然后在文件名开头加".."

@@ -3,6 +3,10 @@ using System.ComponentModel;
 
 namespace krrTools.Tools.FilesManager
 {
+    /// <summary>
+    ///     可编辑属性封装类，支持撤销功能
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class EditableProperty<T> : INotifyPropertyChanged
     {
         private T _value = default!;

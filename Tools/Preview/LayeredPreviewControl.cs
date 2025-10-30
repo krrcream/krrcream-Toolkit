@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -11,7 +12,7 @@ using Microsoft.Extensions.Logging;
 namespace krrTools.Tools.Preview
 {
     /// <summary>
-    /// 绘制视觉主机，用于托管DrawingVisual对象
+    ///     绘制视觉主机，用于托管DrawingVisual对象
     /// </summary>
     internal class DrawingVisualHost : FrameworkElement
     {
@@ -44,37 +45,37 @@ namespace krrTools.Tools.Preview
     }
 
     /// <summary>
-    /// 分离绘制的预览控件 - 小节线和音符分开绘制，解决闪烁问题
+    ///     分离绘制的预览控件 - 小节线和音符分开绘制，解决闪烁问题
     /// </summary>
     internal class LayeredPreviewControl : Grid
     {
+        // 常量
+        private const double lane_spacing = 4.0;
+
         // 绘制主机
-        private DrawingVisualHost _barlineHost = null!; // 小节线层（静态）
-        private DrawingVisualHost _noteHost = null!; // 音符层（动态）
+        private DrawingVisualHost barlineHost = null!; // 小节线层（静态）
 
         // UI组件
         private Canvas _canvas = null!;
-        private ScrollViewer _scrollViewer = null!;
-
-        // 数据状态
-        private List<ManiaHitObject> _notes = new List<ManiaHitObject>();
-        private int _columns;
-        private double _quarterMs;
-        private double _firstTime;
-        private string? _currentBeatmapPath; // 用于判断是否需要重绘小节线
-        private bool _needsRefresh; // 标记是否需要刷新
-        private bool _pendingRedrawBarlines; // 待处理的barlines重绘标志
+        private double _canvasHeight;
 
         // 布局状态
         private double _canvasWidth;
-        private double _canvasHeight;
-        private double _laneWidth;
-        private double _pixelsPerMs;
-        private double _totalTimeRange;
+        private int _columns;
+        private string? _currentBeatmapPath; // 用于判断是否需要重绘小节线
+        private double _firstTime;
         private bool _initialScrollSet;
+        private double _laneWidth;
+        private bool _needsRefresh; // 标记是否需要刷新
+        private DrawingVisualHost _noteHost = null!; // 音符层（动态）
 
-        // 常量
-        private const double LaneSpacing = 4.0;
+        // 数据状态
+        private List<ManiaHitObject> _notes = new List<ManiaHitObject>();
+        private bool _pendingRedrawBarlines; // 待处理的barlines重绘标志
+        private double _pixelsPerMs;
+        private double _quarterMs;
+        private ScrollViewer _scrollViewer = null!;
+        private double _totalTimeRange;
 
         public LayeredPreviewControl()
         {
@@ -84,7 +85,7 @@ namespace krrTools.Tools.Preview
         private void InitializeComponents()
         {
             // 创建绘制主机
-            _barlineHost = new DrawingVisualHost();
+            barlineHost = new DrawingVisualHost();
             _noteHost = new DrawingVisualHost();
 
             // 创建Canvas并添加层级
@@ -96,7 +97,7 @@ namespace krrTools.Tools.Preview
             };
 
             // 按Z-Order添加：小节线在底层，音符在顶层
-            _canvas.Children.Add(_barlineHost);
+            _canvas.Children.Add(barlineHost);
             _canvas.Children.Add(_noteHost);
 
             // 创建滚动视图
@@ -128,7 +129,7 @@ namespace krrTools.Tools.Preview
         }
 
         /// <summary>
-        /// 更新预览数据
+        ///     更新预览数据
         /// </summary>
         public void UpdatePreview(List<ManiaHitObject> notes, int columns, double quarterMs, string? beatmapPath = null)
         {
@@ -164,7 +165,7 @@ namespace krrTools.Tools.Preview
 
         private void RefreshDisplay(bool redrawBarlines = true)
         {
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var stopwatch = Stopwatch.StartNew();
 
             try
             {
@@ -186,7 +187,12 @@ namespace krrTools.Tools.Preview
             finally
             {
                 stopwatch.Stop();
-                if (stopwatch.ElapsedMilliseconds > 3) Logger.WriteLine(LogLevel.Information, "[LayeredPreview] Refresh took {0} ms", stopwatch.ElapsedMilliseconds);
+
+                if (stopwatch.ElapsedMilliseconds > 3) // 用于调试高耗时，及重复刷新事件
+                {
+                    Logger.WriteLine(LogLevel.Debug, "[LayeredPreview] Refresh took {0} ms",
+                                     stopwatch.ElapsedMilliseconds);
+                }
             }
         }
 
@@ -207,37 +213,38 @@ namespace krrTools.Tools.Preview
                     lastTime = Math.Max(lastTime, maxHoldEndTime);
             }
 
-            _totalTimeRange = Math.Max(PreviewConstants.MinWindowLengthMs, lastTime - firstTime);
+            _totalTimeRange = Math.Max(PreviewConstants.MIN_WINDOW_LENGTH_MS, lastTime - firstTime);
 
             // 计算像素密度
-            const int desiredLines = 8;
-            double timeRangeForLines = desiredLines * _quarterMs;
-            const double minPixelsPerMs = 0.08;
-            const double maxPixelsPerMs = 0.3;
-            _pixelsPerMs = Math.Clamp(ActualHeight / timeRangeForLines, minPixelsPerMs, maxPixelsPerMs);
+            const int desired_lines = 8;
+            double timeRangeForLines = desired_lines * _quarterMs;
+            const double min_pixels_per_ms = 0.08;
+            const double max_pixels_per_ms = 0.3;
+            _pixelsPerMs = Math.Clamp(ActualHeight / timeRangeForLines, min_pixels_per_ms, max_pixels_per_ms);
 
             // 计算Canvas尺寸
             double totalCanvasHeight = _totalTimeRange * _pixelsPerMs;
-            double availableHeight = Math.Max(PreviewConstants.CanvasMinHeight, ActualHeight);
+            double availableHeight = Math.Max(PreviewConstants.CANVAS_MIN_HEIGHT, ActualHeight);
             _canvasHeight = Math.Max(availableHeight, totalCanvasHeight);
 
             // 计算列宽
-            double totalSpacing = (_columns - 1) * LaneSpacing;
+            double totalSpacing = (_columns - 1) * lane_spacing;
             double contentWidth = Math.Max(10,
-                                           Math.Min(PreviewConstants.MaxContentWidth, availableWidth) - PreviewConstants.CanvasPadding);
+                                           Math.Min(PreviewConstants.MAX_CONTENT_WIDTH, availableWidth) -
+                                           PreviewConstants.CANVAS_PADDING);
 
             _laneWidth = Math.Clamp((contentWidth - totalSpacing) / Math.Max(1, _columns),
-                                    PreviewConstants.LaneMinWidth, PreviewConstants.LaneMaxWidth);
+                                    PreviewConstants.LANE_MIN_WIDTH, PreviewConstants.LANE_MAX_WIDTH);
 
-            _canvasWidth = PreviewConstants.CanvasPadding + _laneWidth * _columns;
+            _canvasWidth = PreviewConstants.CANVAS_PADDING + (_laneWidth * _columns);
         }
 
         /// <summary>
-        /// 绘制小节线层（静态，只在谱面或BPM变化时重绘）
+        ///     绘制小节线层（静态，只在谱面或BPM变化时重绘）
         /// </summary>
         private void DrawBarlines()
         {
-            _barlineHost.Clear();
+            barlineHost.Clear();
 
             if (_quarterMs <= 0) return;
 
@@ -245,7 +252,7 @@ namespace krrTools.Tools.Preview
             var visual = new DrawingVisual();
             using (DrawingContext dc = visual.RenderOpen()) dc.DrawDrawing(drawing);
 
-            _barlineHost.AddVisual(visual);
+            barlineHost.AddVisual(visual);
         }
 
         private DrawingGroup CreateBarlineDrawing()
@@ -263,7 +270,7 @@ namespace krrTools.Tools.Preview
                     double relTime = t - _firstTime;
                     double y = (_totalTimeRange - relTime) * _pixelsPerMs;
 
-                    dc.DrawRectangle(PreviewConstants.BarLineBrush, null,
+                    dc.DrawRectangle(PreviewConstants.BAR_LINE_BRUSH, null,
                                      new Rect(0, y, _canvasWidth, 1));
                 }
             }
@@ -273,7 +280,7 @@ namespace krrTools.Tools.Preview
         }
 
         /// <summary>
-        /// 绘制音符层（动态，每次设置变化都重绘）
+        ///     绘制音符层（动态，每次设置变化都重绘）
         /// </summary>
         private void DrawNotes()
         {
@@ -305,7 +312,7 @@ namespace krrTools.Tools.Preview
 
             using (DrawingContext dc = dg.Open())
             {
-                const double noteHeight = PreviewConstants.NoteFixedHeight;
+                const double note_height = PreviewConstants.NOTE_FIXED_HEIGHT;
 
                 foreach (ManiaHitObject note in notes)
                 {
@@ -318,17 +325,16 @@ namespace krrTools.Tools.Preview
                     double yStart = (_totalTimeRange - relStart) * _pixelsPerMs;
 
                     // 计算矩形参数
-                    double rectHeight = noteHeight;
                     double rectWidth = Math.Max(2.0, _laneWidth * 0.95);
-                    double rectLeft = PreviewConstants.CanvasPadding + lane * _laneWidth +
-                                      (_laneWidth - rectWidth) / 2;
+                    double rectLeft = PreviewConstants.CANVAS_PADDING + (lane * _laneWidth) +
+                                      ((_laneWidth - rectWidth) / 2);
 
                     // 绘制音符
                     if (!note.IsHold)
                     {
                         // 普通音符
-                        dc.DrawRectangle(PreviewConstants.TapNoteBrush, null,
-                                         new Rect(rectLeft, yStart - rectHeight, rectWidth, rectHeight));
+                        dc.DrawRectangle(PreviewConstants.TAP_NOTE_BRUSH, null,
+                                         new Rect(rectLeft, yStart - note_height, rectWidth, note_height));
                     }
                     else
                     {
@@ -339,15 +345,15 @@ namespace krrTools.Tools.Preview
                         {
                             double relEnd = note.EndTime - _firstTime;
                             double yEnd = (_totalTimeRange - relEnd) * _pixelsPerMs;
-                            double holdHeight = Math.Max(rectHeight, yStart - yEnd);
+                            double holdHeight = Math.Max(note_height, yStart - yEnd);
 
-                            dc.DrawRectangle(PreviewConstants.HoldHeadBrush, null,
+                            dc.DrawRectangle(PreviewConstants.HOLD_HEAD_BRUSH, null,
                                              new Rect(rectLeft, yEnd, rectWidth, holdHeight));
                         }
                         else
                         {
-                            dc.DrawRectangle(PreviewConstants.HoldHeadBrush, null,
-                                             new Rect(rectLeft, yStart - rectHeight, rectWidth, rectHeight));
+                            dc.DrawRectangle(PreviewConstants.HOLD_HEAD_BRUSH, null,
+                                             new Rect(rectLeft, yStart - note_height, rectWidth, note_height));
                         }
                     }
                 }
@@ -361,9 +367,8 @@ namespace krrTools.Tools.Preview
         {
             if (!_initialScrollSet)
             {
-                Dispatcher.BeginInvoke(() =>
-                                           _scrollViewer.ScrollToVerticalOffset(
-                                               Math.Max(0, _canvas.Height - _scrollViewer.ViewportHeight)));
+                Dispatcher.BeginInvoke(() => _scrollViewer.ScrollToVerticalOffset(
+                                           Math.Max(0, _canvas.Height - _scrollViewer.ViewportHeight)));
                 _initialScrollSet = true;
             }
         }

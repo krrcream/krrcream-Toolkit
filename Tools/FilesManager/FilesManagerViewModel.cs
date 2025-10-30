@@ -17,7 +17,7 @@ namespace krrTools.Tools.FilesManager
     public partial class FilesManagerViewModel : ReactiveViewModelBase
     {
         [Inject]
-        private StateBarManager StateBarManager { get; set; } = null!;
+        private StateBarManager stateBarManager { get; set; } = null!;
 
         public Bindable<ObservableCollection<FilesManagerInfo>> OsuFiles { get; set; } = new Bindable<ObservableCollection<FilesManagerInfo>>(new ObservableCollection<FilesManagerInfo>());
         public Bindable<ICollectionView> FilteredOsuFiles { get; set; }
@@ -43,8 +43,8 @@ namespace krrTools.Tools.FilesManager
 
             if (FilteredOsuFiles.Value != null)
             {
-                FilteredOsuFiles.Value.CollectionChanged += (_, _) =>
-                    FilteredFileCount.Value = FilteredOsuFiles.Value.Cast<object>().Count();
+                FilteredOsuFiles.Value.CollectionChanged += (_, _)
+                    => FilteredFileCount.Value = FilteredOsuFiles.Value.Cast<object>().Count();
             }
         }
 
@@ -76,19 +76,19 @@ namespace krrTools.Tools.FilesManager
         public async Task ProcessFilesAsync(string[] files)
         {
             var stopwatch = Stopwatch.StartNew();
-            StateBarManager.ProgressValue.Value = 0;
+            stateBarManager.ProgressValue.Value = 0;
+
+            const int batch_size = 50;
 
             try
             {
-                string[] validFiles = files.Where(f =>
-                                                      File.Exists(f) && Path.GetExtension(f).Equals(".osu", StringComparison.OrdinalIgnoreCase)).ToArray();
+                string[] validFiles = files.Where(f => File.Exists(f) && Path.GetExtension(f).Equals(".osu", StringComparison.OrdinalIgnoreCase)).ToArray();
 
                 if (validFiles.Length > 0) SelectedFolderPath.Value = Path.GetDirectoryName(validFiles[0]) ?? "";
 
                 OsuFiles.Value.Clear();
 
                 // 分批处理文件，避免UI冻结
-                const int batchSize = 50;
                 var batch = new ObservableCollection<FilesManagerInfo>();
 
                 for (int i = 0; i < validFiles.Length; i++)
@@ -107,10 +107,10 @@ namespace krrTools.Tools.FilesManager
                     }
 
                     // 更新进度
-                    StateBarManager.ProgressValue.Value = (double)(i + 1) / validFiles.Length * 100;
+                    stateBarManager.ProgressValue.Value = (double)(i + 1) / validFiles.Length * 100;
 
                     // 每处理一批就更新UI
-                    if (batch.Count >= batchSize || i == validFiles.Length - 1)
+                    if (batch.Count >= batch_size || i == validFiles.Length - 1)
                     {
                         // 在UI线程上更新数据
                         Application.Current.Dispatcher.Invoke((Action)(() =>
@@ -131,17 +131,17 @@ namespace krrTools.Tools.FilesManager
             }
             finally
             {
-                StateBarManager.ProgressValue.Value = 100; // 完成时设置为100
+                stateBarManager.ProgressValue.Value = 100; // 完成时设置为100
                 Application.Current?.Dispatcher?.Invoke(() =>
                 {
                     FilteredOsuFiles.Value = CollectionViewSource.GetDefaultView(OsuFiles.Value);
                     UpdateCounts();
-                    Logger.WriteLine(LogLevel.Information,
+                    Logger.WriteLine(LogLevel.Debug,
                                      "[FilesManagerViewModel] FilteredOsuFiles refreshed in ProcessFilesAsync, count: {0}",
                                      FilteredOsuFiles.Value.Cast<object>().Count());
                 });
                 stopwatch.Stop();
-                Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] 文件管理器处理完成，用时: {0:F2}s", stopwatch.Elapsed.TotalSeconds);
+                Logger.WriteLine(LogLevel.Information, "[FilesManagerViewModel] completed, and take: {0:F2}s", stopwatch.Elapsed.TotalSeconds);
             }
         }
 
