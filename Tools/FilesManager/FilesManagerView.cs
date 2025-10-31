@@ -165,6 +165,7 @@ namespace krrTools.Tools.FilesManager
 
             // Add Ctrl+Z undo event
             _fileDataGrid.KeyDown += OnDataGridKeyDown;
+            _fileDataGrid.PreviewKeyDown += OnDataGridPreviewKeyDown;
 
             Grid.SetRow(_fileDataGrid, 1);
             rootGrid.Children.Add(_fileDataGrid);
@@ -381,6 +382,16 @@ namespace krrTools.Tools.FilesManager
             if (e.Key == Key.Z && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
             {
                 foreach (FilesManagerInfo item in _viewModel.OsuFiles.Value) item.UndoAll();
+                e.Handled = true;
+            }
+        }
+
+        private void OnDataGridPreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            // 允许过滤输入框失去焦点
+            if (e.Key == Key.Tab || e.Key == Key.Enter)
+            {
+                Keyboard.ClearFocus();
                 e.Handled = true;
             }
         }

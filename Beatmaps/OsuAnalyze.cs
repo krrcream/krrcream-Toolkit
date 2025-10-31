@@ -100,10 +100,22 @@ namespace krrTools.Beatmaps
                 Task<(double maxKPS, double avgKPS)> kpsTask = Task.Run(() => CalculateKPSMetrics(beatmap));
                 Task<(double xxySR, double krrLV, double ylsLV)> srTask = Task.Run(() =>
                 {
-                    // Rust版有问题，部分文件会抛异常导致程序崩溃，暂时用C#版替代
-                    // double sr = SRCalculatorRust.CalculateSR_FromFile(filePath);
-                    // C#版遇到不那么规范的谱面会返回0，不崩溃，但是不好调试
-                    double sr = LAsOsuBeatmapParser.Analysis.SRCalculator.Instance.CalculateSRFromFileCS(filePath);
+                    double sr;
+
+                    try
+                    {
+                        // Rust版有问题，需要调试，先用C#版兜底
+                        sr = SRCalculatorRust.CalculateSR_FromFile(filePath);
+                        if (sr < 0)
+                            sr = LAsOsuBeatmapParser.Analysis.SRCalculator.Instance.CalculateSRFromFileCS(filePath);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                        // C#版遇到不那么规范的谱面会返回0，不崩溃，但是不好调试
+                        sr = LAsOsuBeatmapParser.Analysis.SRCalculator.Instance.CalculateSRFromFileCS(filePath);
+                    }
+
                     int keys = (int)beatmap.DifficultySection.CircleSize;
 
                     double xxySR = sr;

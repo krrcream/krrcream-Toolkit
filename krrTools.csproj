@@ -22,7 +22,7 @@
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0"/>
         <PackageReference Include="DataGridExtensions" Version="2.8.0"/>
         <PackageReference Include="krrcream.OsuParsers" Version="1.8.3.6"/>
-        <PackageReference Include="LAsOsuBeatmapParser" Version="1.0.1-beta"/>
+        <PackageReference Include="LAsOsuBeatmapParser" Version="1.0.4" />
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.0.0-1.25277.114">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -53,13 +53,24 @@
         <None Remove="tests\**"/>
     </ItemGroup>
 
+    <!--    <ItemGroup>-->
+    <!--        <Reference Include="LAsOsuBeatmapParser">-->
+    <!--            <HintPath>Analysis\LAsOsuBeatmapParser.dll</HintPath>-->
+    <!--        </Reference>-->
+    <!--    </ItemGroup>-->
+
+    <!--    <ItemGroup>-->
+    <!--        <Content Include="Analysis\rust_sr_calculator.dll">-->
+    <!--            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>-->
+    <!--        </Content>-->
+    <!--    </ItemGroup>-->
+
     <ItemGroup>
         <Compile Remove="publish\**"/>
         <Compile Remove="tests\bin"/>
         <Compile Remove="tests\obj"/>
         <Compile Remove="tests\**"/>
     </ItemGroup>
-
     <ItemGroup>
         <Page Remove="publish\**"/>
         <Page Remove="tests\**"/>
