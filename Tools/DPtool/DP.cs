@@ -114,6 +114,19 @@ namespace krrTools.Tools.DPtool
                 ifUseN2NC = true;
             }
 
+            // 3-1 处理移除
+            if (options.LRemove.Value == true)
+            {
+                int ROWS = matrix.Rows;
+                LMTX = new Matrix(ROWS, targetKeys);
+            }
+
+            if (options.RRemove.Value == true)
+            {
+                int ROWS = matrix.Rows;
+                RMTX = new Matrix(ROWS, targetKeys);
+            }
+
             // 4 创建矩阵
             if (ifUseN2NC)
             {
@@ -125,8 +138,10 @@ namespace krrTools.Tools.DPtool
                 Span<double> beatLengthAxis = Conv.GenerateBeatLengthAxis(timeAxisSpan, notes);
                 Span<int> endTimeIndexAxis = Conv.GenerateEndTimeIndex(notes);
                 Span<int> orgColIndex = Conv.GenerateOrgColIndex(matrix);
-                LMTX = Conv.DoKeys(LMTX, endTimeIndexAxis, timeAxisSpan, beatLengthAxis, orgColIndex, CS, targetKeys, LMAX, LMIN, convertTime, RG);
-                RMTX = Conv.DoKeys(RMTX, endTimeIndexAxis, timeAxisSpan, beatLengthAxis, orgColIndex, CS, targetKeys, RMAX, RMIN, convertTime, RG);
+                if (options.LRemove.Value != true)
+                    LMTX = Conv.DoKeys(LMTX, endTimeIndexAxis, timeAxisSpan, beatLengthAxis, orgColIndex, CS, targetKeys, LMAX, LMIN, convertTime, RG);
+                if (options.RRemove.Value != true)
+                    RMTX = Conv.DoKeys(RMTX, endTimeIndexAxis, timeAxisSpan, beatLengthAxis, orgColIndex, CS, targetKeys, RMAX, RMIN, convertTime, RG);
             }
 
             return ConcatenateHorizontal(LMTX, RMTX);

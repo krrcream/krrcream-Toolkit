@@ -227,7 +227,7 @@ namespace krrTools.Beatmaps
 
             if (xxyStarRating is < LOWER_BOUND and > 0) return 3.6198 * xxyStarRating;
 
-            if (xxyStarRating is > UPPER_BOUND and < 12.3456789) return 2.791 * xxyStarRating + 0.5436;
+            if (xxyStarRating is > UPPER_BOUND and < 12.3456789) return (2.791 * xxyStarRating) + 0.5436;
 
             return double.NaN;
         }
@@ -235,7 +235,7 @@ namespace krrTools.Beatmaps
         private static double FittingFormula(double x)
         {
             // TODO: 凉雨算法，等待实现正确的拟合公式
-            return x * 1.5;
+            return 6.9615 * Math.Exp(0.1374 * x);
         }
     }
 }

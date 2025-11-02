@@ -57,6 +57,24 @@ namespace krrTools.Tools.DPtool
                     if (Options.RMaxKeys.Value < Options.RMinKeys.Value)
                         Options.RMaxKeys.Value = Options.RMinKeys.Value;
                     break;
+
+                case nameof(Options.LRemove):
+                    // 如果LRemove被设置为true，且RRemove也是true，则将RRemove设为false
+                    if (Options.LRemove.Value && Options.RRemove.Value)
+                    {
+                        Options.RRemove.Value = false;
+                    }
+
+                    break;
+
+                case nameof(Options.RRemove):
+                    // 如果RRemove被设置为true，且LRemove也是true，则将LRemove设为false
+                    if (Options.RRemove.Value && Options.LRemove.Value)
+                    {
+                        Options.LRemove.Value = false;
+                    }
+
+                    break;
             }
         }
 
