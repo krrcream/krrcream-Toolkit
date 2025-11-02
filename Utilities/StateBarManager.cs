@@ -65,7 +65,14 @@ namespace krrTools.Utilities
         public bool IsMonitoringEnable
         {
             get => ConfigManager.GetSetting(s => s.MonitoringEnable).Value;
-            set => ConfigManager.GetSetting(s => s.MonitoringEnable).Value = value;
+            set
+            {
+                bool oldValue = ConfigManager.GetSetting(s => s.MonitoringEnable).Value;
+                ConfigManager.GetSetting(s => s.MonitoringEnable).Value = value;
+
+                if (oldValue != value)
+                    eventBus.Publish(new MonitoringEnabledChangedEvent { OldValue = oldValue, NewValue = value });
+            }
         }
 
 #endregion

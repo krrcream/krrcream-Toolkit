@@ -169,63 +169,57 @@ namespace krrTools.Configuration
     /// </summary>
     public static class ConfigManager
     {
-        private const string ConfigFileName = "config.json";
-        private static readonly string ConfigFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ConfigFileName);
+        private const string config_file_name = "config.json";
+        private static readonly string config_file_path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, config_file_name);
 
-        private static FullAppConfig? _cachedConfig;
-        private static readonly Lock _configLock = new Lock();
+        private static FullAppConfig? cachedConfig;
+        private static readonly Lock config_lock = new Lock();
+
+        public static bool IsDeserializing { get; private set; }
+
+        internal static IEventBus? EventBus { get; private set; }
 
         // 全局缓存的序列化选项
-        private static readonly JsonSerializerOptions _deserializeOptions = new JsonSerializerOptions
+        private static readonly JsonSerializerOptions deserialize_options = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
             Converters = { new BindableJsonConverter<bool>(), new BindableJsonConverter<string>(), new BindableJsonConverter<Dictionary<string, List<int>>>() }
         };
 
-        private static readonly JsonSerializerOptions _serializeOptions = new JsonSerializerOptions
+        private static readonly JsonSerializerOptions serialize_options = new JsonSerializerOptions
         {
             WriteIndented = true,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             Converters = { new BindableJsonConverter<string>(), new BindableJsonConverter<Dictionary<string, List<int>>>() }
         };
 
-        private static bool _isDeserializing;
-
-        /// <summary>
-        /// 获取是否正在反序列化
-        /// </summary>
-        public static bool IsDeserializing
-        {
-            get => _isDeserializing;
-        }
-
         /// <summary>
         /// 加载配置
         /// </summary>
         private static FullAppConfig LoadConfig()
         {
-            lock (_configLock)
+            lock (config_lock)
             {
-                if (_cachedConfig != null) return _cachedConfig;
+                if (cachedConfig != null) return cachedConfig;
 
-                if (!File.Exists(ConfigFilePath))
+                if (!File.Exists(config_file_path))
                 {
-                    _cachedConfig = new FullAppConfig();
-                    return _cachedConfig;
+                    cachedConfig = new FullAppConfig();
+                    return cachedConfig;
                 }
 
                 try
                 {
-                    string json = File.ReadAllText(ConfigFilePath);
-                    _cachedConfig = JsonSerializer.Deserialize<FullAppConfig>(json, _deserializeOptions) ?? new FullAppConfig();
-                    return _cachedConfig;
+                    string json = File.ReadAllText(config_file_path);
+                    cachedConfig = JsonSerializer.Deserialize<FullAppConfig>(json, deserialize_options) ?? new FullAppConfig();
+                    return cachedConfig;
                 }
                 catch (Exception ex)
                 {
                     Logger.WriteLine(LogLevel.Error, $"[ConfigManager] Failed to load config: {ex.Message}. Using default config.");
-                    _cachedConfig = new FullAppConfig();
+                    cachedConfig = new FullAppConfig();
                     SaveConfig();
-                    return _cachedConfig;
+                    return cachedConfig;
                 }
             }
         }
@@ -235,14 +229,14 @@ namespace krrTools.Configuration
         /// </summary>
         public static void SaveConfig()
         {
-            lock (_configLock)
+            lock (config_lock)
             {
-                if (_cachedConfig == null) return;
+                if (cachedConfig == null) return;
 
                 try
                 {
-                    string json = JsonSerializer.Serialize(_cachedConfig, _serializeOptions);
-                    File.WriteAllText(ConfigFilePath, json);
+                    string json = JsonSerializer.Serialize(cachedConfig, serialize_options);
+                    File.WriteAllText(config_file_path, json);
                 }
                 catch (Exception ex)
                 {
@@ -262,9 +256,9 @@ namespace krrTools.Configuration
 
             if (value is JsonElement jsonElement)
             {
-                _isDeserializing = true;
+                IsDeserializing = true;
                 var result = jsonElement.Deserialize<T>();
-                _isDeserializing = false;
+                IsDeserializing = false;
                 if (result is ToolOptionsBase toolOptions) toolOptions.IsLoading = true;
                 config.Converters[converter] = result;
                 return result;
@@ -292,9 +286,9 @@ namespace krrTools.Configuration
 
             if (value is JsonElement jsonElement)
             {
-                _isDeserializing = true;
+                IsDeserializing = true;
                 var result = jsonElement.Deserialize<T>();
-                _isDeserializing = false;
+                IsDeserializing = false;
                 if (result is ToolOptionsBase toolOptions) toolOptions.IsLoading = true;
                 config.Modules[module] = result;
                 return result;
@@ -350,7 +344,7 @@ namespace krrTools.Configuration
             {
                 foreach (KeyValuePair<string, object?> kvp in toolPresets)
                 {
-                    T? opt = default;
+                    T? opt = null;
 
                     try
                     {
@@ -436,22 +430,16 @@ namespace krrTools.Configuration
             SetModuleOptions(module, options);
         }
 
-        /// <summary>
-        /// 设置变化事件
-        /// </summary>
-        public static event Action<ConverterEnum>? SettingsChanged;
+        // public static event Action<ConverterEnum>? SettingsChanged;
 
-        /// <summary>
-        /// 全局设置变化事件
-        /// </summary>
-        public static event Action? GlobalSettingsChanged;
+        // public static event Action? GlobalSettingsChanged;
 
         /// <summary>
         /// 设置全局EventBus引用
         /// </summary>
         public static void SetEventBus(IEventBus eventBus)
         {
-            // 简化实现，移除复杂的事件处理
+            EventBus = eventBus;
         }
 
         /// <summary>
