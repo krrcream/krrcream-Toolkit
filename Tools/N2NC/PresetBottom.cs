@@ -22,7 +22,7 @@ namespace krrTools.Tools.N2NC
                                                opts.TargetKeys.Value = 8;
                                                opts.MaxKeys.Value = 8;
                                                opts.MinKeys.Value = 2;
-                                               opts.TransformSpeed.Value = 2;
+                                               opts.TransformSpeed.Value = 4;
                                                opts.Seed = 114514;
                                                opts.SelectedKeyFlags = (KeySelectionFlags)0b0011111111;
                                            })),
@@ -31,7 +31,7 @@ namespace krrTools.Tools.N2NC
                                             opts.TargetKeys.Value = 10;
                                             opts.MaxKeys.Value = 8;
                                             opts.MinKeys.Value = 2;
-                                            opts.TransformSpeed.Value = 1;
+                                            opts.TransformSpeed.Value = 4;
                                             opts.Seed = 0;
                                             opts.SelectedKeyFlags = (KeySelectionFlags)0b0001111110;
                                         })),
@@ -40,7 +40,7 @@ namespace krrTools.Tools.N2NC
                                              opts.TargetKeys.Value = 9;
                                              opts.MaxKeys.Value = 8;
                                              opts.MinKeys.Value = 2;
-                                             opts.TransformSpeed.Value = 2;
+                                             opts.TransformSpeed.Value = 4;
                                              opts.Seed = 0;
                                              opts.SelectedKeyFlags = (KeySelectionFlags)0b0000111110;
                                          })),
@@ -49,7 +49,7 @@ namespace krrTools.Tools.N2NC
                                               opts.TargetKeys.Value = 8;
                                               opts.MaxKeys.Value = 8;
                                               opts.MinKeys.Value = 2;
-                                              opts.TransformSpeed.Value = 2;
+                                              opts.TransformSpeed.Value = 4;
                                               opts.Seed = 0;
                                               opts.SelectedKeyFlags = (KeySelectionFlags)0b0000011110;
                                           })),
@@ -58,7 +58,7 @@ namespace krrTools.Tools.N2NC
                                               opts.TargetKeys.Value = 7;
                                               opts.MaxKeys.Value = 7;
                                               opts.MinKeys.Value = 2;
-                                              opts.TransformSpeed.Value = 2;
+                                              opts.TransformSpeed.Value = 4;
                                               opts.Seed = 0;
                                               opts.SelectedKeyFlags = (KeySelectionFlags)0b0000001110;
                                           })),

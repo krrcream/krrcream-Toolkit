@@ -43,13 +43,11 @@ namespace krrTools.Beatmaps
 
         public static string GetBPMDisplay(this Beatmap beatmap)
         {
-            double bpm = beatmap.MainBPM;
-            double bpmMax = beatmap.MaxBPM;
-            double bpmMin = beatmap.MinBPM;
-
-            string BPMFormat = string.Format(CultureInfo.InvariantCulture, "{0:F0}({1:F0} - {2:F0})", bpm, bpmMin, bpmMax);
-
-            return BPMFormat;
+            Double bpm = beatmap.MainBPM;
+            Double maxBpm = beatmap.MaxBPM;
+            Double minBpm = beatmap.MinBPM;
+            string bpmFormat = maxBpm == minBpm ? $"{bpm:F0}" : $"{minBpm:F0} - {maxBpm:F0} ({bpm:F0})";
+            return bpmFormat;
         }
 
         public static (NoteMatrix, List<int>) BuildMatrix(this Beatmap beatmap)
