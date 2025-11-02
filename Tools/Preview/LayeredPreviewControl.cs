@@ -68,8 +68,8 @@ namespace krrTools.Tools.Preview
         private double _laneWidth;
         private bool _needsRefresh; // 标记是否需要刷新
         private DrawingVisualHost _noteHost = null!; // 音符层（动态）
-        private double _previousAvailableWidth; // 缓存上次的availableWidth
-        private bool _layoutCalculated; // 是否已计算过布局
+        private double _noteWidth; // 缓存的音符宽度，避免绘制过程中修改
+        private int _previousColumns = -1; // 缓存上次的列数，用于判断是否需要重新计算列宽
 
         // 数据状态
         private List<ManiaHitObject> _notes = new List<ManiaHitObject>();
@@ -140,7 +140,6 @@ namespace krrTools.Tools.Preview
 
             // 更新数据
             _notes = notes.OrderBy(n => n.StartTime).ToList();
-            if (columns != _columns) _layoutCalculated = false;
             _columns = columns;
             _quarterMs = quarterMs;
             _firstTime = _notes.Any() ? _notes.Min(n => n.StartTime) : 0;
@@ -203,11 +202,7 @@ namespace krrTools.Tools.Preview
         {
             double availableWidth = Math.Max(100, ActualWidth - 20);
 
-            // 如果布局已计算且availableWidth变化不大，跳过重算
-            if (_layoutCalculated && Math.Abs(availableWidth - _previousAvailableWidth) < 1) return;
-
-            _layoutCalculated = true;
-            _previousAvailableWidth = availableWidth;
+            // 总是计算布局，确保列宽等参数正确更新，避免notes位置错误
 
             // 计算时间范围
             double firstTime = _firstTime;
@@ -236,14 +231,19 @@ namespace krrTools.Tools.Preview
             double availableHeight = Math.Max(PreviewConstants.CANVAS_MIN_HEIGHT, ActualHeight);
             _canvasHeight = Math.Max(availableHeight, totalCanvasHeight);
 
-            // 计算列宽
-            double totalSpacing = (_columns - 1) * lane_spacing;
-            double contentWidth = Math.Max(10,
-                                           Math.Min(PreviewConstants.MAX_CONTENT_WIDTH, availableWidth) -
-                                           PreviewConstants.CANVAS_PADDING);
+            // 计算列宽（只在列数变化时重新计算）
+            if (_columns != _previousColumns)
+            {
+                double totalSpacing = (_columns - 1) * lane_spacing;
+                double contentWidth = Math.Max(10,
+                                               Math.Min(PreviewConstants.MAX_CONTENT_WIDTH, availableWidth) -
+                                               PreviewConstants.CANVAS_PADDING);
 
-            _laneWidth = Math.Clamp((contentWidth - totalSpacing) / Math.Max(1, _columns),
-                                    PreviewConstants.LANE_MIN_WIDTH, PreviewConstants.LANE_MAX_WIDTH);
+                _laneWidth = Math.Clamp((contentWidth - totalSpacing) / Math.Max(1, _columns),
+                                        PreviewConstants.LANE_MIN_WIDTH, PreviewConstants.LANE_MAX_WIDTH);
+                _noteWidth = Math.Max(2.0, _laneWidth * 0.95); // 预计算音符宽度
+                _previousColumns = _columns;
+            }
 
             _canvasWidth = PreviewConstants.CANVAS_PADDING + _laneWidth * _columns;
         }
@@ -334,7 +334,7 @@ namespace krrTools.Tools.Preview
                     double yStart = (_totalTimeRange - relStart) * _pixelsPerMs;
 
                     // 计算矩形参数
-                    double rectWidth = Math.Max(2.0, _laneWidth * 0.95);
+                    double rectWidth = _noteWidth; // 使用预计算的音符宽度
                     double rectLeft = PreviewConstants.CANVAS_PADDING + lane * _laneWidth +
                                       (_laneWidth - rectWidth) / 2;
 

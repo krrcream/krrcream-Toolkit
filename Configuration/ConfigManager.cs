@@ -240,8 +240,21 @@ namespace krrTools.Configuration
                 }
                 catch (Exception ex)
                 {
-                    Logger.WriteLine(LogLevel.Error, $"[ConfigManager] Failed to save config: {ex.Message}");
-                    throw new IOException($"Unable to save configuration: {ex.Message}", ex);
+                    Logger.WriteLine(LogLevel.Error, $"[ConfigManager] Failed to save config: {ex.Message}. Attempting to overwrite file.");
+                    try
+                    {
+                        // 尝试删除并重新创建文件，然后保存当前设置
+                        if (File.Exists(config_file_path))
+                            File.Delete(config_file_path);
+                        string json = JsonSerializer.Serialize(cachedConfig, serialize_options);
+                        File.WriteAllText(config_file_path, json);
+                        Logger.WriteLine(LogLevel.Information, "[ConfigManager] Successfully overwrote config file with current settings.");
+                    }
+                    catch (Exception overwriteEx)
+                    {
+                        Logger.WriteLine(LogLevel.Error, $"[ConfigManager] Failed to overwrite config file: {overwriteEx.Message}");
+                        throw new IOException($"Unable to save or overwrite configuration: {ex.Message}", ex);
+                    }
                 }
             }
         }

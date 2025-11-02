@@ -73,10 +73,10 @@ namespace krrTools.Tools.Preview
         private void OnSettingsChanged(SettingsChangedEvent settingsEvent)
         {
             // Debug日志：显示所有发生的设置变化，由于异步通知管线，这里不生效
-            Logger.WriteLine(LogLevel.Debug, "[SettingsChanged] Tool: {0}, Property: {1}, Type: {2}, Value: {3}",
+            Logger.WriteLine(LogLevel.Debug, "[SettingsChanged] [{0}模块]-{1}-从{2}变更为{3}",
                              _currentTool?.ToString() ?? "None",
                              settingsEvent.PropertyName ?? "null",
-                             settingsEvent.SettingsType?.Name ?? "Unknown",
+                             settingsEvent.OldValue?.ToString() ?? "null",
                              settingsEvent.NewValue?.ToString() ?? "null");
 
             // 只处理当前工具的设置变化
