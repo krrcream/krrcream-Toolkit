@@ -107,9 +107,9 @@ namespace krrTools.Utilities
                     {
                         // 只有在进程变化时才重新设置songs路径
                         if (_lastProcessId != selectedProcess.Id &&
-                            songsPath != BaseOptionsManager.GetGlobalSettings().SongsPath.Value)
+                            songsPath != ConfigManager.GetGlobalSettings().SongsPath.Value)
                         {
-                            BaseOptionsManager.GetGlobalSettings().SongsPath.Value = songsPath;
+                            ConfigManager.GetGlobalSettings().SongsPath.Value = songsPath;
                             Logger.WriteLine(LogLevel.Information,
                                              "[OsuMonitorService] Client: osu!, Process ID: {0}, Loaded Songs Path: {1}",
                                              selectedProcess.Id, songsPath);
@@ -143,7 +143,7 @@ namespace krrTools.Utilities
                 string? beatmapFile = reader.GetOsuFileName();
                 string? mapFolderName = reader.GetMapFolderName();
 
-                string path = Path.Combine(BaseOptionsManager.GetGlobalSettings().SongsPath.Value, mapFolderName,
+                string path = Path.Combine(ConfigManager.GetGlobalSettings().SongsPath.Value, mapFolderName,
                                            beatmapFile);
 
                 // 只有当beatmap文件变化时才输出日志

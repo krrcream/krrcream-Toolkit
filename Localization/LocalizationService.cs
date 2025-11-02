@@ -128,7 +128,7 @@ namespace krrTools.Localization
         static LocalizationService()
         {
             // 从设置加载语言偏好
-            bool forceChinese = BaseOptionsManager.GetForceChinese();
+            bool forceChinese = ConfigManager.GetSetting(s => s.ForceChinese).Value;
             IsChinese = forceChinese;
         }
 
@@ -138,13 +138,10 @@ namespace krrTools.Localization
         /// </summary>
         public static event Action? LanguageChanged;
 
-        /// <summary>
-        /// 切换语言（中英文互换）。
-        /// </summary>
         public static void ToggleLanguage()
         {
             IsChinese = !IsChinese;
-            BaseOptionsManager.SetForceChinese(IsChinese);
+            ConfigManager.GetSetting(s => s.ForceChinese).Value = IsChinese;
             Logger.WriteLine(LogLevel.Debug, $"[LocalizationService] ToggleLanguage: ForceChinese set to {IsChinese}");
             LanguageChanged?.Invoke();
         }

@@ -27,7 +27,7 @@ namespace krrTools.Bindable
         {
             _converter = converter;
             _eventBus = eventBus;
-            Options = BaseOptionsManager.LoadOptions<TOptions>(converter) ?? new TOptions();
+            Options = ConfigManager.LoadOptions<TOptions>(converter) ?? new TOptions();
 
             // 初始化旧值缓存
             InitializeOldValues();
@@ -37,8 +37,8 @@ namespace krrTools.Bindable
                 notifyOptions.PropertyChanged += OnOptionsPropertyChanged;
 
             // Listen to BaseOptionsManager settings changed to reload when options are saved externally
-            BaseOptionsManager.SettingsChanged += OnExternalSettingsChanged;
-            BaseOptionsManager.GlobalSettingsChanged += OnGlobalSettingsChanged;
+            ConfigManager.SettingsChanged += OnExternalSettingsChanged;
+            ConfigManager.GlobalSettingsChanged += OnGlobalSettingsChanged;
         }
 
         /// <summary>
@@ -79,7 +79,7 @@ namespace krrTools.Bindable
             //                  newValue ?? "null");
 
             // Auto-save on property change
-            BaseOptionsManager.SaveOptions(_converter, Options);
+            ConfigManager.SaveOptions(_converter, Options);
 
             // Forward PropertyChanged event so that listeners of ReactiveOptions instance can receive internal Options changes
             OnPropertyChanged(e.PropertyName);
@@ -111,20 +111,14 @@ namespace krrTools.Bindable
             {
                 var toolOptions = (ToolOptionsBase)Options;
                 toolOptions.IsLoading = true;
-                Options = BaseOptionsManager.LoadOptions<TOptions>(changedConverter) ?? new TOptions();
 
-                // 暂时没用的
-                // // Unsubscribe from old options
-                // if (Options is INotifyPropertyChanged oldNotifyOptions)
-                // {
-                //     oldNotifyOptions.PropertyChanged -= OnOptionsPropertyChanged;
-                // }
+                // Unsubscribe from old options
+                if (Options is INotifyPropertyChanged oldNotifyOptions) oldNotifyOptions.PropertyChanged -= OnOptionsPropertyChanged;
 
-                // // Subscribe to new options
-                // if (Options is INotifyPropertyChanged newNotifyOptions)
-                // {
-                //     newNotifyOptions.PropertyChanged += OnOptionsPropertyChanged;
-                // }
+                Options = ConfigManager.LoadOptions<TOptions>(changedConverter) ?? new TOptions();
+
+                // Subscribe to new options
+                if (Options is INotifyPropertyChanged newNotifyOptions) newNotifyOptions.PropertyChanged += OnOptionsPropertyChanged;
 
                 toolOptions.IsLoading = false;
             }
@@ -135,7 +129,15 @@ namespace krrTools.Bindable
             // 重新加载选项以应用全局设置变化
             var toolOptions = (ToolOptionsBase)Options;
             toolOptions.IsLoading = true;
-            Options = BaseOptionsManager.LoadOptions<TOptions>(_converter) ?? new TOptions();
+
+            // Unsubscribe from old options
+            if (Options is INotifyPropertyChanged oldNotifyOptions) oldNotifyOptions.PropertyChanged -= OnOptionsPropertyChanged;
+
+            Options = ConfigManager.LoadOptions<TOptions>(_converter) ?? new TOptions();
+
+            // Subscribe to new options
+            if (Options is INotifyPropertyChanged newNotifyOptions) newNotifyOptions.PropertyChanged += OnOptionsPropertyChanged;
+
             toolOptions.IsLoading = false;
         }
 
@@ -150,7 +152,7 @@ namespace krrTools.Bindable
         {
             if (Options is INotifyPropertyChanged notifyOptions) notifyOptions.PropertyChanged -= OnOptionsPropertyChanged;
 
-            BaseOptionsManager.SettingsChanged -= OnExternalSettingsChanged;
+            ConfigManager.SettingsChanged -= OnExternalSettingsChanged;
         }
 
         public static implicit operator TOptions(ReactiveOptions<TOptions> reactive)

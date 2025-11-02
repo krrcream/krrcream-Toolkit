@@ -64,8 +64,8 @@ namespace krrTools.Utilities
         /// </summary>
         public bool IsMonitoringEnable
         {
-            get => BaseOptionsManager.GetRealTimePreview();
-            set => BaseOptionsManager.SetMonitoring(value);
+            get => ConfigManager.GetSetting(s => s.MonitoringEnable).Value;
+            set => ConfigManager.GetSetting(s => s.MonitoringEnable).Value = value;
         }
 
 #endregion

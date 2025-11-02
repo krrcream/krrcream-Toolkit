@@ -72,17 +72,17 @@ namespace krrTools.Tools.Listener
 
         public void SetN2NCHotkey(string hotkey)
         {
-            BaseOptionsManager.GetGlobalSettings().N2NCHotkey.Value = hotkey;
+            ConfigManager.GetGlobalSettings().N2NCHotkey.Value = hotkey;
         }
 
         public void SetDPHotkey(string hotkey)
         {
-            BaseOptionsManager.GetGlobalSettings().DPHotkey.Value = hotkey;
+            ConfigManager.GetGlobalSettings().DPHotkey.Value = hotkey;
         }
 
         public void SetKRRLNHotkey(string hotkey)
         {
-            BaseOptionsManager.GetGlobalSettings().KRRLNHotkey.Value = hotkey;
+            ConfigManager.GetGlobalSettings().KRRLNHotkey.Value = hotkey;
         }
 
 #endregion
@@ -131,7 +131,7 @@ namespace krrTools.Tools.Listener
         public ListenerViewModel()
         {
             // 获取全局设置引用
-            GlobalSettings = BaseOptionsManager.GetGlobalSettings();
+            GlobalSettings = ConfigManager.GetGlobalSettings();
 
             BrowseCommand = new RelayCommand(SetSongsPathWindow);
 
@@ -211,11 +211,11 @@ namespace krrTools.Tools.Listener
 
                 _hasLoggedNonMania = false; // 重置标志，以便下次非Mania谱面时记录日志
                 // 检查文件路径是否与全局设置中的最后预览路径不同
-                GlobalSettings globalSettings = BaseOptionsManager.GetGlobalSettings();
+                GlobalSettings globalSettings = ConfigManager.GetGlobalSettings();
 
                 if (monitorFilePath != globalSettings.LastPreviewPath.Value)
                 {
-                    BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = monitorFilePath);
+                    ConfigManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = monitorFilePath);
 
                     // 足够条件确认为新谱面，文件正确，路径安全，发布事件
                     eventBus.Publish(new BeatmapChangedEvent
@@ -247,7 +247,7 @@ namespace krrTools.Tools.Listener
 
             if (!string.IsNullOrEmpty(selectedPath))
             {
-                BaseOptionsManager.GetGlobalSettings().SongsPath.Value = selectedPath;
+                ConfigManager.GetGlobalSettings().SongsPath.Value = selectedPath;
                 _hasSongsPath = true;
             }
         }

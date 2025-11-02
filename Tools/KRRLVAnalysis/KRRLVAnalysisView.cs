@@ -214,7 +214,7 @@ namespace krrTools.Tools.KRRLVAnalysis
         {
             if (dataGrid == null) return;
 
-            GlobalSettings config = BaseOptionsManager.GetGlobalSettings();
+            GlobalSettings config = ConfigManager.GetGlobalSettings();
 
             if (config.DataGridColumnOrders.Value.TryGetValue(ToolName, out List<int>? orders) && orders.Count == dataGrid.Columns.Count)
             {
@@ -236,9 +236,9 @@ namespace krrTools.Tools.KRRLVAnalysis
 
             foreach (DataGridColumn? col in dataGrid.Columns.OrderBy(c => c.DisplayIndex)) orders.Add(dataGrid.Columns.IndexOf(col));
 
-            GlobalSettings config = BaseOptionsManager.GetGlobalSettings();
+            GlobalSettings config = ConfigManager.GetGlobalSettings();
             config.DataGridColumnOrders.Value[ToolName] = orders;
-            BaseOptionsManager.SetGlobalSettingsSilent(config);
+            ConfigManager.SetGlobalSettingsSilent(config);
         }
     }
 }

@@ -74,7 +74,7 @@ namespace krrTools
 
                 // 设置BaseOptionsManager的EventBus引用
                 var eventBus = Services.GetRequiredService<IEventBus>();
-                BaseOptionsManager.SetEventBus(eventBus);
+                ConfigManager.SetEventBus(eventBus);
 
                 base.OnStartup(e);
 
@@ -94,7 +94,7 @@ namespace krrTools
             // 在应用退出时保存设置
             try
             {
-                BaseOptionsManager.GetGlobalSettings().Flush();
+                ConfigManager.GetGlobalSettings().Flush();
             }
             catch (Exception ex)
             {

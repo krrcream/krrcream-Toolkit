@@ -68,6 +68,8 @@ namespace krrTools.Tools.Preview
         private double _laneWidth;
         private bool _needsRefresh; // 标记是否需要刷新
         private DrawingVisualHost _noteHost = null!; // 音符层（动态）
+        private double _previousAvailableWidth; // 缓存上次的availableWidth
+        private bool _layoutCalculated; // 是否已计算过布局
 
         // 数据状态
         private List<ManiaHitObject> _notes = new List<ManiaHitObject>();
@@ -138,6 +140,7 @@ namespace krrTools.Tools.Preview
 
             // 更新数据
             _notes = notes.OrderBy(n => n.StartTime).ToList();
+            if (columns != _columns) _layoutCalculated = false;
             _columns = columns;
             _quarterMs = quarterMs;
             _firstTime = _notes.Any() ? _notes.Min(n => n.StartTime) : 0;
@@ -200,6 +203,12 @@ namespace krrTools.Tools.Preview
         {
             double availableWidth = Math.Max(100, ActualWidth - 20);
 
+            // 如果布局已计算且availableWidth变化不大，跳过重算
+            if (_layoutCalculated && Math.Abs(availableWidth - _previousAvailableWidth) < 1) return;
+
+            _layoutCalculated = true;
+            _previousAvailableWidth = availableWidth;
+
             // 计算时间范围
             double firstTime = _firstTime;
             double lastTime = firstTime;
@@ -236,7 +245,7 @@ namespace krrTools.Tools.Preview
             _laneWidth = Math.Clamp((contentWidth - totalSpacing) / Math.Max(1, _columns),
                                     PreviewConstants.LANE_MIN_WIDTH, PreviewConstants.LANE_MAX_WIDTH);
 
-            _canvasWidth = PreviewConstants.CANVAS_PADDING + (_laneWidth * _columns);
+            _canvasWidth = PreviewConstants.CANVAS_PADDING + _laneWidth * _columns;
         }
 
         /// <summary>
@@ -326,8 +335,8 @@ namespace krrTools.Tools.Preview
 
                     // 计算矩形参数
                     double rectWidth = Math.Max(2.0, _laneWidth * 0.95);
-                    double rectLeft = PreviewConstants.CANVAS_PADDING + (lane * _laneWidth) +
-                                      ((_laneWidth - rectWidth) / 2);
+                    double rectLeft = PreviewConstants.CANVAS_PADDING + lane * _laneWidth +
+                                      (_laneWidth - rectWidth) / 2;
 
                     // 绘制音符
                     if (!note.IsHold)

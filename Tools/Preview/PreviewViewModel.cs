@@ -146,7 +146,7 @@ namespace krrTools.Tools.Preview
         public void LoadPreviewPath(string path)
         {
             // 更新全局最后预览路径
-            BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = path);
+            ConfigManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = path);
 
             RefreshOriginal();
             RefreshConverted();
@@ -155,7 +155,7 @@ namespace krrTools.Tools.Preview
         public void ResetPreview()
         {
             // 清空全局最后预览路径以使用内置样本
-            BaseOptionsManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = string.Empty);
+            ConfigManager.UpdateGlobalSettings(settings => settings.LastPreviewPath.Value = string.Empty);
 
             RefreshOriginal();
             RefreshConverted();
@@ -188,7 +188,7 @@ namespace krrTools.Tools.Preview
                 DateTime decodeStartTime = DateTime.Now;
 
                 // 从全局设置获取最后预览路径，如果为空则使用内置样本
-                GlobalSettings globalSettings = BaseOptionsManager.GetGlobalSettings();
+                GlobalSettings globalSettings = ConfigManager.GetGlobalSettings();
                 string lastPreviewPath = globalSettings.LastPreviewPath.Value;
 
                 Beatmap? beatmap = !string.IsNullOrEmpty(lastPreviewPath)
@@ -223,7 +223,7 @@ namespace krrTools.Tools.Preview
                 DateTime decodeStartTime = DateTime.Now;
 
                 // 从全局设置获取最后预览路径，如果为空则使用内置样本
-                GlobalSettings globalSettings = BaseOptionsManager.GetGlobalSettings();
+                GlobalSettings globalSettings = ConfigManager.GetGlobalSettings();
                 string lastPreviewPath = globalSettings.LastPreviewPath.Value;
 
                 Beatmap? beatmap = !string.IsNullOrEmpty(lastPreviewPath)

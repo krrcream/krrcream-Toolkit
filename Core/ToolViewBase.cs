@@ -20,7 +20,7 @@ namespace krrTools.Core
             if (injectedOptions == null) DoLoadOptions();
 
             // 订阅设置变化事件
-            BaseOptionsManager.SettingsChanged += OnSettingsChanged;
+            ConfigManager.SettingsChanged += OnSettingsChanged;
         }
 
         private void OnSettingsChanged(ConverterEnum changedConverter)
@@ -35,7 +35,7 @@ namespace krrTools.Core
 
         private void DoLoadOptions()
         {
-            var saved = BaseOptionsManager.LoadOptions<TOptions>(_toolEnum);
+            var saved = ConfigManager.LoadOptions<TOptions>(_toolEnum);
             if (saved != null) Options = saved;
         }
     }

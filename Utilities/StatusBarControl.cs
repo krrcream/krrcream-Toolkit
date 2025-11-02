@@ -251,7 +251,7 @@ namespace krrTools.Utilities
                     }
 
                     themeItem.IsChecked = true;
-                    BaseOptionsManager.SetApplicationTheme(theme.ToString());
+                    ConfigManager.GetSetting(s => s.ApplicationTheme).Value = theme.ToString();
                     ApplyThemeSettings();
                 };
                 themeMenuItem.Items.Add(themeItem);
@@ -292,7 +292,7 @@ namespace krrTools.Utilities
                     }
 
                     backdropItem.IsChecked = true;
-                    BaseOptionsManager.SetWindowBackdropType(backdrop.ToString());
+                    ConfigManager.GetSetting(s => s.WindowBackdropType).Value = backdrop.ToString();
                     ApplyThemeSettings();
                 };
                 backdropMenuItem.Items.Add(backdropItem);
@@ -312,7 +312,7 @@ namespace krrTools.Utilities
             accentMenuItem.Click += (_, _) =>
             {
                 accentMenuItem.IsChecked = accentMenuItem.IsChecked;
-                BaseOptionsManager.SetUpdateAccent(accentMenuItem.IsChecked);
+                ConfigManager.GetSetting(s => s.UpdateAccent).Value = accentMenuItem.IsChecked;
                 ApplyThemeSettings();
             };
             return accentMenuItem;
@@ -340,21 +340,21 @@ namespace krrTools.Utilities
 
         private static ApplicationTheme GetSavedApplicationTheme()
         {
-            return Enum.TryParse(BaseOptionsManager.GetApplicationTheme(), out ApplicationTheme theme)
+            return Enum.TryParse(ConfigManager.GetSetting(s => s.ApplicationTheme).Value, out ApplicationTheme theme)
                        ? theme
                        : ApplicationTheme.Light;
         }
 
         private static WindowBackdropType GetSavedWindowBackdropType()
         {
-            return Enum.TryParse(BaseOptionsManager.GetWindowBackdropType(), out WindowBackdropType backdrop)
+            return Enum.TryParse(ConfigManager.GetSetting(s => s.WindowBackdropType).Value, out WindowBackdropType backdrop)
                        ? backdrop
                        : WindowBackdropType.Acrylic;
         }
 
         private static bool? GetSavedUpdateAccent()
         {
-            return BaseOptionsManager.GetUpdateAccent();
+            return ConfigManager.GetSetting(s => s.UpdateAccent).Value;
         }
 
         private void OnLanguageChanged()

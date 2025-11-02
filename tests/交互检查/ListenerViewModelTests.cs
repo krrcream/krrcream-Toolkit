@@ -38,7 +38,7 @@ namespace krrTools.Tests.交互检查
 
         private void ResetGlobalSettingsToDefaults()
         {
-            GlobalSettings globalSettings = BaseOptionsManager.GetGlobalSettings();
+            GlobalSettings globalSettings = ConfigManager.GetGlobalSettings();
             globalSettings.N2NCHotkey.Value = "Ctrl+Shift+N";
             globalSettings.DPHotkey.Value = "Ctrl+Shift+D";
             globalSettings.KRRLNHotkey.Value = "Ctrl+Shift+K";

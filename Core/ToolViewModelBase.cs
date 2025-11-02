@@ -48,7 +48,7 @@ namespace krrTools.Core
                         {
                             TOptions optionsToSave = Options;
                             optionsToSave.Validate();
-                            BaseOptionsManager.SaveOptions(_toolEnum, optionsToSave);
+                            ConfigManager.SaveOptions(_toolEnum, optionsToSave);
                         }
                         catch (Exception ex)
                         {
@@ -68,7 +68,7 @@ namespace krrTools.Core
                     // Load options on initialization if not injected
                     if (injectedOptions == null) DoLoadOptions();
 
-                    BaseOptionsManager.SettingsChanged += OnSettingsChanged;
+                    ConfigManager.SettingsChanged += OnSettingsChanged;
 
                     if (_autoSave) PropertyChanged += OnPropertyChanged;
 
@@ -124,7 +124,7 @@ namespace krrTools.Core
         {
             try
             {
-                var saved = BaseOptionsManager.LoadOptions<TOptions>(_toolEnum);
+                var saved = ConfigManager.LoadOptions<TOptions>(_toolEnum);
 
                 if (saved != null)
                 {

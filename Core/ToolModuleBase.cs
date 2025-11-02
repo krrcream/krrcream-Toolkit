@@ -38,7 +38,7 @@ namespace krrTools.Core
             _reactiveOptions = reactiveOptions;
             LoadCurrentOptions();
             // 订阅设置变化事件
-            BaseOptionsManager.SettingsChanged += OnSettingsChanged;
+            ConfigManager.SettingsChanged += OnSettingsChanged;
         }
 
         private void OnSettingsChanged(ConverterEnum changedConverter)
@@ -51,7 +51,7 @@ namespace krrTools.Core
         /// </summary>
         private void LoadCurrentOptions()
         {
-            _currentOptions = BaseOptionsManager.LoadOptions<TOptions>(
+            _currentOptions = ConfigManager.LoadOptions<TOptions>(
                                   (ConverterEnum)Enum.Parse(typeof(ConverterEnum), ModuleType.ToString())) ??
                               CreateDefaultOptionsInternal();
         }

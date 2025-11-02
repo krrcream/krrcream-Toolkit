@@ -165,7 +165,7 @@ namespace krrTools
             eventBus?.Subscribe<MonitoringEnabledChangedEvent>(OnMonitoringEnabledChanged);
 
             // 如果监听已启用，注册快捷键
-            GlobalSettings globalSettings = BaseOptionsManager.GetGlobalSettings();
+            GlobalSettings globalSettings = ConfigManager.GetGlobalSettings();
             if (globalSettings.MonitoringEnable.Value) _conversionHotkeyManager.RegisterHotkeys(globalSettings);
         }
 
@@ -231,7 +231,7 @@ namespace krrTools
 
                 Logger.WriteLine(LogLevel.Information, $"已创建 {zipFilePath}");
 
-                string songsPath = BaseOptionsManager.GetGlobalSettings().SongsPath.Value;
+                string songsPath = ConfigManager.GetGlobalSettings().SongsPath.Value;
                 string? osuDir = Path.GetDirectoryName(songsPath);
                 if (osuDir == null)
                     throw new InvalidOperationException("Invalid songs path");
@@ -255,7 +255,7 @@ namespace krrTools
             if (evt.NewValue)
             {
                 // 监听启用，注册快捷键
-                GlobalSettings globalSettings = BaseOptionsManager.GetGlobalSettings();
+                GlobalSettings globalSettings = ConfigManager.GetGlobalSettings();
                 _conversionHotkeyManager.RegisterHotkeys(globalSettings);
             }
             else
@@ -861,7 +861,7 @@ namespace krrTools
         private void MainWindow_Closed(object? sender, EventArgs e)
         {
             // 确保设置保存
-            BaseOptionsManager.GetGlobalSettings().Flush();
+            ConfigManager.GetGlobalSettings().Flush();
 
             // 清理预览ViewModel的资源
             if (_previewDual.ViewModel is IDisposable disposableViewModel) disposableViewModel.Dispose();

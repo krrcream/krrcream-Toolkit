@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using krrTools.Bindable;
+using krrTools.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace krrTools.Core
@@ -110,10 +111,10 @@ namespace krrTools.Core
 
         protected override void OnPropertyChanged(PropertyChangedEventArgs e)
         {
-            if (IsLoading) return; // 加载时避免触发PropertyChanged
+            if (IsLoading || ConfigManager.IsDeserializing) return; // 加载或反序列化时避免触发PropertyChanged
 
             // 测试调试，显示名
-            Logger.WriteLine(LogLevel.Debug, $"[ToolOptions] Property '{e.PropertyName}' changed");
+            // Logger.WriteLine(LogLevel.Debug, $"[ToolOptions] Property '{e.PropertyName}' changed");
             base.OnPropertyChanged(e);
             // 设置变化时，通过UI或其他方式触发BaseOptionsManager.SaveOptions
         }

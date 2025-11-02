@@ -187,7 +187,7 @@ namespace krrTools.Tools.Preview
         private void DualPreviewControl_Loaded(object sender, RoutedEventArgs e)
         {
             LocalizationService.LanguageChanged += OnLanguageChanged;
-            BaseOptionsManager.SettingsChanged += OnSettingsChanged;
+            ConfigManager.SettingsChanged += OnSettingsChanged;
             TryAutoLoadSample();
             Visibility = Visibility.Visible;
         }
@@ -195,7 +195,7 @@ namespace krrTools.Tools.Preview
         private void DualPreviewControl_Unloaded(object? sender, RoutedEventArgs e)
         {
             LocalizationService.LanguageChanged -= OnLanguageChanged;
-            BaseOptionsManager.SettingsChanged -= OnSettingsChanged;
+            ConfigManager.SettingsChanged -= OnSettingsChanged;
             Visibility = Visibility.Collapsed;
         }
 
@@ -281,16 +281,47 @@ namespace krrTools.Tools.Preview
                     break;
 
                 case nameof(ViewModel.OriginalVisual):
+                    double originalRatio = _originalScrollViewer != null && _originalScrollViewer.ScrollableHeight > 0
+                                               ? _originalScrollViewer.VerticalOffset / _originalScrollViewer.ScrollableHeight
+                                               : 0;
+                    bool wasNull = _originalScrollViewer == null;
                     _originalContent.Content = ViewModel.OriginalVisual;
                     _originalScrollViewer = FindScrollViewer(ViewModel.OriginalVisual);
-                    if (_originalScrollViewer != null) _originalScrollViewer.ScrollChanged += OnOriginalScrollChanged;
+
+                    if (_originalScrollViewer != null)
+                    {
+                        _originalScrollViewer.ScrollChanged += OnOriginalScrollChanged;
+                        Dispatcher.BeginInvoke(() =>
+                        {
+                            if (wasNull)
+                                _originalScrollViewer.ScrollToBottom();
+                            else
+                                _originalScrollViewer.ScrollToVerticalOffset(originalRatio * _originalScrollViewer.ScrollableHeight);
+                        });
+                    }
+
                     break;
 
                 case nameof(ViewModel.ConvertedVisual):
+                    double convertedRatio = _convertedScrollViewer != null && _convertedScrollViewer.ScrollableHeight > 0
+                                                ? _convertedScrollViewer.VerticalOffset / _convertedScrollViewer.ScrollableHeight
+                                                : 0;
+                    bool wasNullConverted = _convertedScrollViewer == null;
                     _convertedContent.Content = ViewModel.ConvertedVisual;
                     _convertedScrollViewer = FindScrollViewer(ViewModel.ConvertedVisual);
+
                     if (_convertedScrollViewer != null)
+                    {
                         _convertedScrollViewer.ScrollChanged += OnConvertedScrollChanged;
+                        Dispatcher.BeginInvoke(() =>
+                        {
+                            if (wasNullConverted)
+                                _convertedScrollViewer.ScrollToBottom();
+                            else
+                                _convertedScrollViewer.ScrollToVerticalOffset(convertedRatio * _convertedScrollViewer.ScrollableHeight);
+                        });
+                    }
+
                     break;
             }
         }

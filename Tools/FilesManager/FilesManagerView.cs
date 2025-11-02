@@ -350,7 +350,7 @@ namespace krrTools.Tools.FilesManager
         {
             if (_fileDataGrid == null) return;
 
-            GlobalSettings config = BaseOptionsManager.GetGlobalSettings();
+            GlobalSettings config = ConfigManager.GetGlobalSettings();
 
             if (config.DataGridColumnOrders.Value.TryGetValue(tool_name, out List<int>? orders) &&
                 orders.Count == _fileDataGrid.Columns.Count)
@@ -372,9 +372,9 @@ namespace krrTools.Tools.FilesManager
             var orders = new List<int>();
             foreach (DataGridColumn? col in _fileDataGrid.Columns.OrderBy(c => c.DisplayIndex))
                 orders.Add(_fileDataGrid.Columns.IndexOf(col));
-            GlobalSettings config = BaseOptionsManager.GetGlobalSettings();
+            GlobalSettings config = ConfigManager.GetGlobalSettings();
             config.DataGridColumnOrders.Value[tool_name] = orders;
-            BaseOptionsManager.SetGlobalSettingsSilent(config);
+            ConfigManager.SetGlobalSettingsSilent(config);
         }
 
         private void OnDataGridKeyDown(object sender, KeyEventArgs e)

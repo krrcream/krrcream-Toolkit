@@ -26,7 +26,7 @@ namespace krrTools.UI
             {
                 list.Children.Clear();
 
-                foreach ((string name, T? opt) in BaseOptionsManager.LoadPresets<T>(toolName))
+                foreach ((string name, T? opt) in ConfigManager.LoadPresets<T>(toolName))
                 {
                     var row = new Grid { Margin = new Thickness(0, 2, 0, 2) };
                     row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -43,7 +43,7 @@ namespace krrTools.UI
                     Button del = SharedUIComponents.CreateStandardButton("Delete|删除");
                     del.Click += (_, _) =>
                     {
-                        BaseOptionsManager.DeletePreset(toolName, name);
+                        ConfigManager.DeletePreset(toolName, name);
                         refresh();
                     };
                     Grid.SetColumn(del, 1);
@@ -124,7 +124,7 @@ namespace krrTools.UI
 
                     if (current != null)
                     {
-                        BaseOptionsManager.SavePreset(toolName, name, current);
+                        ConfigManager.SavePreset(toolName, name, current);
                         refresh();
                     }
                 }
