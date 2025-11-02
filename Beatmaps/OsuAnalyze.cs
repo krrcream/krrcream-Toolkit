@@ -235,7 +235,7 @@ namespace krrTools.Beatmaps
         private static double FittingFormula(double x)
         {
             // TODO: 凉雨算法，等待实现正确的拟合公式
-            return x * 1.5;
+            return 6.9615 * Math.Exp(0.1374 * x);
         }
     }
 }
