@@ -30,13 +30,13 @@ namespace krrTools.Tools.DPtool
             UIElement changeKeyPanel = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.ModifyKeys);
 
             // 创建模板化控件，但保持自定义布局
-
+            FrameworkElement lRemoveCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.LRemove);
             FrameworkElement lMirrorCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.LMirror);
             FrameworkElement lDensityCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.LDensity);
             UIElement lMaxKeysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.LMaxKeys);
             UIElement lMinKeysSlider = SettingsBinder.CreateTemplatedSliderWithDynamicMax(_viewModel.Options, o => o.LMinKeys,
                                                                                           _viewModel, nameof(_viewModel.LMinKeysMaximum));
-
+            FrameworkElement rRemoveCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.RRemove);
             FrameworkElement rMirrorCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.RMirror);
             FrameworkElement rDensityCheckBox = SettingsBinder.CreateTemplatedControl(_viewModel.Options, o => o.RDensity);
             UIElement rMaxKeysSlider = SettingsBinder.CreateTemplatedSlider(_viewModel.Options, o => o.RMaxKeys);
@@ -53,6 +53,7 @@ namespace krrTools.Tools.DPtool
             var leftLabel = new TextBlock { FontSize = UIConstants.HEADER_FONT_SIZE, FontWeight = FontWeights.Bold };
             leftLabel.SetBinding(TextBlock.TextProperty,
                                  new Binding("Value") { Source = Strings.DPLeftLabel.GetLocalizedString() });
+            lRemoveCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
             lMirrorCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
             lDensityCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
 
@@ -61,6 +62,7 @@ namespace krrTools.Tools.DPtool
                 Orientation = Orientation.Vertical, Margin = new Thickness(0, 6, 0, 10),
                 HorizontalAlignment = HorizontalAlignment.Left
             };
+            leftChecks.Children.Add(lRemoveCheckBox);
             leftChecks.Children.Add(lMirrorCheckBox);
             leftChecks.Children.Add(lDensityCheckBox);
 
@@ -75,6 +77,7 @@ namespace krrTools.Tools.DPtool
             var rightLabel = new TextBlock { FontSize = UIConstants.HEADER_FONT_SIZE, FontWeight = FontWeights.Bold };
             rightLabel.SetBinding(TextBlock.TextProperty,
                                   new Binding("Value") { Source = Strings.DPRightLabel.GetLocalizedString() });
+            rRemoveCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
             rMirrorCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
             rDensityCheckBox.HorizontalAlignment = HorizontalAlignment.Left;
 
@@ -83,6 +86,7 @@ namespace krrTools.Tools.DPtool
                 Orientation = Orientation.Vertical, Margin = new Thickness(0, 6, 0, 10),
                 HorizontalAlignment = HorizontalAlignment.Left
             };
+            rightChecks.Children.Add(rRemoveCheckBox);
             rightChecks.Children.Add(rMirrorCheckBox);
             rightChecks.Children.Add(rDensityCheckBox);
 
