@@ -430,9 +430,9 @@ namespace krrTools.Configuration
             SetModuleOptions(module, options);
         }
 
-        // public static event Action<ConverterEnum>? SettingsChanged;
+        public static event Action<ConverterEnum>? SettingsChanged;
 
-        // public static event Action? GlobalSettingsChanged;
+        public static event Action? GlobalSettingsChanged;
 
         /// <summary>
         /// 设置全局EventBus引用
